@@ -1,6 +1,6 @@
-# Jobs Pipeline
+# Jobs Scraper
 
-Este projeto é um pipeline completo para coleta, processamento, armazenamento e divulgação de vagas de emprego extraídas do LinkedIn, utilizando Node.js, TypeScript, Puppeteer, RabbitMQ, MongoDB, Discord e IA generativa.
+Este projeto é um scraper completo para coleta, processamento, armazenamento e divulgação de vagas de emprego extraídas do LinkedIn, utilizando Node.js, TypeScript, Puppeteer, RabbitMQ, MongoDB, Discord e IA generativa.
 
 ## Visão Geral
 
