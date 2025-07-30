@@ -3,8 +3,6 @@ import ampqlib from 'amqplib'
 
 import AiJsonResponse from '../types/AiJsonResponse'
 
-process.loadEnvFile()
-
 const client = new Client({
 	intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent],
 })
@@ -33,7 +31,6 @@ client.once(Events.ClientReady, async readyClient => {
 		let data: AiJsonResponse | null = null
 		try {
 			data = JSON.parse(content)
-			console.log('Parsed JSON data:', data)
 		} catch (error) {
 			console.error('Error parsing JSON:', error)
 			return channel.ack(msg)

@@ -1,8 +1,6 @@
 import puppeteer from 'puppeteer'
 import amqplib from 'amqplib'
 
-process.loadEnvFile()
-
 const searchFilters = {
 	keywords: ['Front End', 'Vue'],
 }

@@ -1,3 +1,4 @@
+name: jobs-scraper
 services:
   rabbitmq:
     image: rabbitmq:4-management
