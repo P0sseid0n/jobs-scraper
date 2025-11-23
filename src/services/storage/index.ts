@@ -1,6 +1,6 @@
 import mongoose, { Schema } from 'mongoose'
 import amqplib from 'amqplib'
-import AiJsonResponse from '../types/AiJsonResponse'
+import AiJsonResponse from '../../types/AiJsonResponse'
 ;(async function () {
 	await mongoose.connect('mongodb://user:user@127.0.0.1:27017/jobs?authSource=admin')
 

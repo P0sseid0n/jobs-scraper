@@ -1,7 +1,7 @@
 import { ButtonStyle, Client, ComponentType, Events, GatewayIntentBits, MessagePayload } from 'discord.js'
 import ampqlib from 'amqplib'
 
-import AiJsonResponse from '../types/AiJsonResponse'
+import AiJsonResponse from '../../types/AiJsonResponse'
 
 const client = new Client({
 	intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent],

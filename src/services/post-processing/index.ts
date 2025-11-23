@@ -1,7 +1,7 @@
 import ollama from 'ollama'
 import amqplib from 'amqplib'
 import { jsonrepair } from 'jsonrepair'
-import AiJsonResponse from '../types/AiJsonResponse'
+import AiJsonResponse from '../../types/AiJsonResponse'
 ;(async function () {
 	const connection = await amqplib.connect('amqp://user:user@localhost')
 	const channel = await connection.createChannel()
