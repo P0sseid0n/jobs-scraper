@@ -1,6 +1,8 @@
 import puppeteer from 'puppeteer-extra'
 import { Browser, BrowserContext, Page } from 'puppeteer'
-import { createQueue } from '../../utils/queue.js'
+import { createQueue } from '../../utils/queue'
+import * as FileUtils from '../../utils/files'
+import path from 'path'
 
 const SEARCH_FILTERS = {
 	keywords: ['Front End', 'Vue'],
@@ -20,14 +22,15 @@ function buildQueryString(filters: typeof SEARCH_FILTERS) {
 	return '?' + params.toString()
 }
 
-async function ensureLogin(page: Page, searchPath: string) {
-	const url = page.url()
+async function ensureLogin(browserManager: BrowserManager, waitUntilPath?: string) {
+	const url = browserManager.page.url()
+	console.log('Ensure login')
 
 	console.log('Current URL:', url)
 
 	if (url.includes('/authwall')) {
 		console.log('🛡️ Blocked by authwall — navigating manually to login page...')
-		await page.goto('https://www.linkedin.com/login', { waitUntil: 'domcontentloaded' })
+		await browserManager.page.goto('https://www.linkedin.com/login', { waitUntil: 'domcontentloaded' })
 	}
 
 	if (!url.includes('/login')) return
@@ -41,14 +44,19 @@ async function ensureLogin(page: Page, searchPath: string) {
 		throw new Error('LINKEDIN_EMAIL e LINKEDIN_PASSWORD são obrigatórios')
 	}
 
-	await page.type('#username', email)
-	await page.type('#password', password)
-	await page.click('button[type="submit"]')
+	await browserManager.page.type('#username', email)
+	await browserManager.page.type('#password', password)
+	await browserManager.page.click('button[type="submit"]')
 
-	while (!page.url().includes(searchPath)) {
-		await page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 3000 }).catch(() => {})
-		// await page.waitForURL('**' + searchPath, { timeout: 5000 })
+	if (waitUntilPath) {
+		await browserManager.page.waitForFunction(() => window.location.href.includes(waitUntilPath), { timeout: 15000 })
+	} else {
+		await browserManager.page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 5000 })
 	}
+
+	const cookies = await browserManager.context!.cookies()
+	const liAtCookie = cookies.find(cookie => cookie.name === 'li_at')
+	browserManager.savePersistedCookies('li_at', liAtCookie?.value || '')
 
 	console.log('✅ Login successful')
 }
@@ -78,37 +86,74 @@ function scrapePage(page: Page, offset: number) {
 class BrowserManager {
 	context!: BrowserContext
 	page!: Page
+	readonly LINKEDIN_COOKIE_FILE_NAME = 'linkedin_cookies.json'
+	cookies: Record<string, string> = {}
+	cookiesAppliedToBrowser = false
+
 	private constructor(public browser: Browser) {}
 
 	static async setupNewBrowser() {
 		const launcher = await puppeteer.launch({ headless: false })
-
 		const context = new BrowserManager(launcher)
-		await context.setupNewContextPage()
+		console.log('🌐 Browser launched')
+
+		await context.loadPersistedCookies()
+		await context.setupNewContextPage({ setCookies: true })
 
 		return context
 	}
 
-	async setupNewContextPage(opts?: { setLinkedInCookies?: boolean }) {
+	async setupNewContextPage(opts?: { setCookies?: true }) {
+		console.log('🆕 Setting up new browser context and page...')
+		await this.context.close()
+
 		this.context = await this.browser.createBrowserContext()
 		this.page = await this.context.newPage()
 
-		if (opts?.setLinkedInCookies) {
-			await this.applyLinkedInCookies()
+		if (opts?.setCookies) {
+			await this.applyPersistedCookiesToBrowser()
+			this.cookiesAppliedToBrowser = true
 		}
+
+		console.log('🆕 Setting up new browser context and page... OK')
 
 		return this.context
 	}
 
-	async applyLinkedInCookies() {
-		if (!process.env.LINKEDIN_LI_AT) return
+	async applyPersistedCookiesToBrowser() {
+		const loadedCookies = await FileUtils.loadJson(path.join(__dirname, './data', this.LINKEDIN_COOKIE_FILE_NAME))
 
-		await this.context?.setCookie({
-			name: 'li_at',
-			value: process.env.LINKEDIN_LI_AT,
-			domain: '.linkedin.com',
-			path: '/',
+		const cookies = {
+			li_at: process.env.LINKEDIN_LI_AT || '',
+			...loadedCookies,
+		}
+
+		Object.keys(cookies).forEach(async cookieName => {
+			await this.context?.setCookie({
+				name: cookieName,
+				value: cookies[cookieName],
+				domain: '.linkedin.com',
+				path: '/',
+			})
 		})
+	}
+
+	async savePersistedCookies(cookieName: string, cookieValue: string) {
+		this.cookies = {
+			...this.cookies,
+			[cookieName]: cookieValue,
+		}
+
+		await FileUtils.saveJson(path.join(__dirname, './data', this.LINKEDIN_COOKIE_FILE_NAME), this.cookies)
+	}
+
+	async loadPersistedCookies() {
+		console.log('📥 Loading persisted cookies...')
+		this.cookies = (await FileUtils.loadJson(path.join(__dirname, './data', this.LINKEDIN_COOKIE_FILE_NAME))) as Record<
+			string,
+			string
+		>
+		console.log('📥 Loading persisted cookies... OK')
 	}
 }
 
@@ -127,13 +172,15 @@ async function main() {
 	await browserManager.page!.goto(BASE_URL + SEARCH_PATH + buildQueryString(SEARCH_FILTERS)).catch(async () => {
 		console.log('🚫 Failed to load search page, creating new page...')
 
-		browserManager.setupNewContextPage()
-		browserManager.page!.goto(BASE_URL + LOGIN_PATH)
+		await browserManager.setupNewContextPage()
+		await browserManager.page!.goto(BASE_URL + LOGIN_PATH)
 	})
 
-	console.log(`url: ${browserManager.page!.url()}`)
+	await ensureLogin(browserManager, '/feed/')
 
-	await ensureLogin(browserManager.page!, SEARCH_PATH)
+	if (!browserManager.page.url().includes(SEARCH_PATH)) {
+		await browserManager.page!.goto(BASE_URL + SEARCH_PATH + buildQueryString(SEARCH_FILTERS))
+	}
 
 	await browserManager.page!.waitForSelector('li.search-results__search-feed-update')
 	console.log('🫡 Search results loaded, starting to scrape...')
@@ -151,7 +198,7 @@ async function main() {
 		console.log(`Found ${vagas.length} vagas in this scroll, total: ${offset}`)
 
 		vagas.forEach(vaga => {
-			console.log('Sending vaga to queue:', vaga)
+			console.log('📨 Sending vaga to queue:', vaga)
 			channel.sendToQueue(QUEUE, Buffer.from(JSON.stringify(vaga)))
 		})
 
