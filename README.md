@@ -132,6 +132,7 @@ tests/                      # testes (bun test)
 ## 🔄 Migrando de uma versão anterior
 
 - **Filas:** as filas foram renomeadas para kebab-case (`post_processing` → `post-processing`, `send-discord-message` → `discord`) e agora são declaradas com dead-letter. Apague as filas antigas `post_processing`, `storage` e `send-discord-message` pelo painel (aba *Queues* → *Delete*). Mensagens que ainda estiverem nelas não são migradas. A `storage` mantém o nome, mas precisa ser recriada: enquanto a versão antiga existir, o serviço encerra com um erro avisando.
+- **Banco:** a coleção de vagas foi renomeada de `processed` para `jobs`. A migração é automática: na primeira inicialização, o storage ou o post-processing renomeia a coleção e mantém os dados.
 - **Credenciais:** o Mongo e o RabbitMQ só criam o usuário quando o volume é criado. Para trocar as credenciais antigas (`user`/`user`), recrie os volumes com `docker compose down -v`. Isso **apaga os dados**.
 
 ## ⚠️ Observações importantes
