@@ -64,9 +64,9 @@ Pré-requisitos: [Bun](https://bun.sh) 1.4+ e Docker.
 
    ```bash
    docker compose up -d
-   # com GPU NVIDIA:
-   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
    ```
+
+   **Com GPU NVIDIA**, descomente `COMPOSE_FILE` no `.env`. Assim qualquer comando `docker compose` inclui o `docker-compose.gpu.yml`. Sem isso, um `docker compose up` sem o `-f docker-compose.gpu.yml` recria o Ollama **sem GPU**, e o modelo passa a rodar na CPU e a consumir muita RAM. Para conferir, rode `docker compose exec ollama ollama ps`: a coluna `PROCESSOR` deve mostrar `100% GPU`.
 
    O serviço `ollama-init` baixa automaticamente o modelo definido em `OLLAMA_MODEL` (padrão `gemma3:4b`). A primeira vez pode demorar. Acompanhe com `docker compose logs -f ollama-init`.
 
@@ -83,7 +83,9 @@ Pré-requisitos: [Bun](https://bun.sh) 1.4+ e Docker.
 docker compose --profile app up -d --build
 ```
 
-O scraper roda uma coleta e termina. Para coletar de novo: `docker compose --profile app run --rm scraper`, que pode ser agendado com cron ou com o Agendador de Tarefas.
+Por padrão o scraper roda uma coleta e termina. Para coletar periodicamente, defina `SCRAPER_INTERVAL_MINUTES` (ex.: `180` para a cada 3 horas). Outra opção é agendar `docker compose --profile app run --rm scraper` com cron ou com o Agendador de Tarefas.
+
+A sessão do LinkedIn fica salva em `src/services/scraper/data/linkedin_cookies.json` (no Docker, no volume `scraper_data`), então o login só é refeito quando ela expira. Se o LinkedIn pedir captcha ou 2FA, rode com `HEADLESS=false` e resolva na janela do navegador.
 
 ### Painéis
 
@@ -99,10 +101,11 @@ Todas as portas ficam publicadas apenas em `127.0.0.1`.
 | `bun dev` | Todos os serviços com `--watch` |
 | `bun start:<scraper\|processing\|storage\|bot>` | Um serviço, sem `--watch` |
 | `bun run typecheck` | Checagem de tipos (`tsc --noEmit`) |
-| `bun run lint` / `bun run lint:fix` | Lint e formatação com Biome |
+| `bun run lint` / `bun run lint:fix` | Lint com Biome |
+| `bun run format` / `bun run format:check` | Formatação com Prettier |
 | `bun test` | Testes |
 
-O CI (GitHub Actions) roda `typecheck`, `lint` e `test` em todo push e PR.
+O CI (GitHub Actions) roda `typecheck`, `lint`, `format:check` e `test` em todo push e PR. O estilo de código fica no `.prettierrc` e no `.editorconfig`; no VS Code, use a extensão do Prettier com formatação ao salvar.
 
 ## 📁 Estrutura
 
@@ -111,6 +114,11 @@ src/
   config.ts                 # schemas das variáveis de ambiente (zod)
   services/
     scraper/                # scraper do LinkedIn
+      index.ts              #   loop de coleta e agendamento
+      browser.ts            #   navegador (stealth) e sessão/cookies
+      auth.ts               #   login e verificação
+      scrape.ts             #   leitura dos posts e paginação
+      linkedin.ts           #   URLs, seletores e helpers puros
     post-processing/        # extração com IA
     storage/                # persistência no MongoDB
     discord-bot/            # publicação no Discord
@@ -127,7 +135,7 @@ tests/                      # testes (bun test)
 ## ⚠️ Observações importantes
 
 - **NUNCA** suba o `.env` ou o `linkedin_cookies.json` para o repositório.
-- Fazer scraping do LinkedIn vai contra os Termos de Uso da plataforma e pode levar ao bloqueio da conta. Use uma conta dedicada, mantenha `SCRAPER_MAX_POSTS` baixo, use um `SCRAPER_SCROLL_DELAY_MS` generoso e espace as execuções.
+- Fazer scraping do LinkedIn vai contra os Termos de Uso da plataforma e pode levar ao bloqueio da conta. Use uma conta dedicada, mantenha `SCRAPER_MAX_POSTS` baixo, use o filtro `SCRAPER_DATE_POSTED` e espace as execuções (`SCRAPER_INTERVAL_MINUTES` de algumas horas).
 - Os logs em nível `info` registram apenas IDs e metadados. O conteúdo dos posts e as respostas da IA só aparecem com `LOG_LEVEL=debug`.
 
 ## 📄 Licença

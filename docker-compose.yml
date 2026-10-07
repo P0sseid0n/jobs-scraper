@@ -96,7 +96,10 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
-    restart: 'no' # roda uma coleta e termina; agende com cron/`docker compose run`
+    # Com SCRAPER_INTERVAL_MINUTES > 0 o scraper fica rodando e coleta periodicamente;
+    # com 0 ele roda uma vez e termina (agende com cron/`docker compose run`)
+    # Sem restart automático: reiniciar em loop após falha de login aumentaria o risco de bloqueio da conta
+    restart: 'no'
 
   post-processing:
     profiles: [app]
