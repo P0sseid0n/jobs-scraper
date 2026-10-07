@@ -23,6 +23,14 @@ describe('parseModelResponse', () => {
 		})
 	})
 
+	test('trata "null" e similares em texto como ausentes', () => {
+		const job = parseModelResponse(
+			'{"title": "null", "company": "N/A", "location": "None", "necessary_knowledge": ["null"], "workMode": "null", "aiJobConfidence": 20}',
+		)
+
+		expect(job).toMatchObject({ title: null, company: null, location: null, necessary_knowledge: null, workMode: null })
+	})
+
 	test('repara JSON levemente quebrado', () => {
 		expect(parseModelResponse("{title: 'Vaga', aiJobConfidence: 90,}")?.title).toBe('Vaga')
 	})

@@ -42,6 +42,7 @@ client.once(Events.ClientReady, async readyClient => {
 			`Empresa: \`${data.company || 'Sem empresa'}\`` +
 			`\nLocalização: \`${data.location || 'Sem localização'}\`` +
 			`\nModalidade: \`${data.workMode || 'Não informada'}\`` +
+			`\nPublicada em: \`${data.postedAt ? new Date(data.postedAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : 'Data desconhecida'}\`` +
 			`\nConhecimentos Necessários: \`${data.necessary_knowledge?.join(', ') || 'Sem conhecimentos necessários'}\`` +
 			`\nLink: \`${data.link || 'Sem link'}\``
 

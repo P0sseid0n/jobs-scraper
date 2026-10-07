@@ -6,14 +6,20 @@ export const WORK_MODES = ['remoto', 'presencial', 'hibrido'] as const
 export const RawPostSchema = z.object({
 	postId: z.string().min(1),
 	text: z.string().min(1),
+	url: z.url().nullable().default(null),
+	author: z.string().nullable().default(null),
+	postedAt: z.iso.datetime().nullable().default(null),
 	scrapedAt: z.iso.datetime(),
 })
 export type RawPost = z.infer<typeof RawPostSchema>
 
+/** Textos que o modelo às vezes devolve como string em vez do `null` do JSON. */
+const EMPTY_VALUES = new Set(['', 'null', 'none', 'n/a', 'na', 'undefined', '-', 'string'])
+
 const nullableString = z
 	.string()
 	.trim()
-	.transform(value => value || null)
+	.transform(value => (EMPTY_VALUES.has(value.toLowerCase()) ? null : value))
 	.nullable()
 	.catch(null)
 
@@ -28,7 +34,10 @@ export const AiJobOutputSchema = z.object({
 	link: nullableString,
 	necessary_knowledge: z
 		.union([z.array(z.string()), z.string().transform(value => value.split(','))])
-		.transform(items => items.map(item => item.trim()).filter(Boolean))
+		.transform(items => {
+			const knowledge = items.map(item => item.trim()).filter(item => !EMPTY_VALUES.has(item.toLowerCase()))
+			return knowledge.length > 0 ? knowledge : null
+		})
 		.nullable()
 		.catch(null),
 	recruiter_email: nullableString,
@@ -59,5 +68,6 @@ export const ProcessedJobSchema = z.object({
 	recruiter_email: z.string().nullable(),
 	workMode: z.enum(WORK_MODES).nullable(),
 	aiJobConfidence: z.number().min(0).max(100),
+	postedAt: z.iso.datetime().nullable().default(null),
 })
 export type ProcessedJob = z.infer<typeof ProcessedJobSchema>

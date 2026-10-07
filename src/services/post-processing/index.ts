@@ -85,7 +85,14 @@ await queue.consume(QUEUES.postProcessing, RawPostSchema, async post => {
 	const aiJob = parseModelResponse(response.message.content)
 
 	if (aiJob) {
-		const job: ProcessedJob = { ...aiJob, postId: post.postId, rawContent: post.text }
+		// O link real do post (vindo do scraper) tem prioridade sobre o que a IA extraiu do texto
+		const job: ProcessedJob = {
+			...aiJob,
+			link: post.url ?? aiJob.link,
+			postId: post.postId,
+			rawContent: post.text,
+			postedAt: post.postedAt,
+		}
 		await queue.publish(QUEUES.storage, job)
 		log.info({ aiJobConfidence: job.aiJobConfidence }, 'Vaga estruturada enviada para o storage')
 	} else {
