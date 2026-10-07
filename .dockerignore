@@ -1,0 +1,7 @@
+node_modules
+.git
+.github
+.env
+**/linkedin_cookies.json
+tests
+*.md

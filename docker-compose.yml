@@ -1,44 +1,150 @@
 name: jobs-scraper
+
+# Infraestrutura: `docker compose up -d`
+# Infraestrutura + serviços da aplicação: `docker compose --profile app up -d --build`
+# Com GPU NVIDIA: adicione `-f docker-compose.yml -f docker-compose.gpu.yml`
+
+x-app-env: &app-env
+  RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672
+  MONGO_URL: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017/jobs?authSource=admin
+  OLLAMA_HOST: http://ollama:11434
+  LOG_PRETTY: 'false'
+
 services:
   rabbitmq:
-    image: rabbitmq:4-management
+    image: rabbitmq:4.2-management
     ports:
-      - '15672:15672' # Management UI
-      - '5672:5672' # RabbitMQ port
+      - '127.0.0.1:15672:15672' # Management UI
+      - '127.0.0.1:5672:5672' # AMQP
     environment:
-      RABBITMQ_DEFAULT_USER: user
-      RABBITMQ_DEFAULT_PASS: user
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:?defina RABBITMQ_USER no .env}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?defina RABBITMQ_PASSWORD no .env}
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ['CMD', 'rabbitmq-diagnostics', '-q', 'ping']
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
   ollama:
-    image: ollama/ollama
+    image: ollama/ollama:0.40.0
     ports:
-      - '11434:11434'
+      - '127.0.0.1:11434:11434'
     volumes:
       - ollama_data:/root/.ollama
-    gpus: all
+    healthcheck:
+      test: ['CMD', 'ollama', 'list']
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+  # Baixa o modelo usado pelo post-processing (roda uma vez e termina)
+  ollama-init:
+    image: ollama/ollama:0.40.0
+    entrypoint: ['ollama', 'pull', '${OLLAMA_MODEL:-gemma3:4b}']
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: 'no'
+
   mongo:
-    image: mongo:latest
+    image: mongo:8.2
     ports:
-      - '27017:27017'
+      - '127.0.0.1:27017:27017'
     volumes:
       - mongo_data:/data/db
     environment:
-      MONGO_INITDB_ROOT_USERNAME: user
-      MONGO_INITDB_ROOT_PASSWORD: user
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:?defina MONGO_USER no .env}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?defina MONGO_PASSWORD no .env}
+    healthcheck:
+      test: ['CMD', 'mongosh', '--quiet', '--eval', "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
   mongo_express:
-    image: mongo-express
+    image: mongo-express:1.0.2
     ports:
-      - '8081:8081'
+      - '127.0.0.1:8081:8081'
     environment:
-      ME_CONFIG_MONGODB_URL: mongodb://user:user@mongo:27017/
-      ME_CONFIG_BASICAUTH: false
-      ME_CONFIG_MONGODB_ADMINUSERNAME: user
-      ME_CONFIG_MONGODB_ADMINPASSWORD: user
+      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017/
+      ME_CONFIG_BASICAUTH: 'true'
+      ME_CONFIG_BASICAUTH_ENABLED: 'true'
+      ME_CONFIG_BASICAUTH_USERNAME: ${MONGO_EXPRESS_USER:?defina MONGO_EXPRESS_USER no .env}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_EXPRESS_PASSWORD:?defina MONGO_EXPRESS_PASSWORD no .env}
     depends_on:
-      - mongo
+      mongo:
+        condition: service_healthy
+
+  # ---- Serviços da aplicação (profile "app") ----
+
+  scraper:
+    profiles: [app]
+    build:
+      context: .
+      target: scraper
+    env_file: .env
+    environment:
+      <<: *app-env
+      HEADLESS: 'true'
+      BROWSER_NO_SANDBOX: 'true'
+    volumes:
+      - scraper_data:/app/src/services/scraper/data
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: 'no' # roda uma coleta e termina; agende com cron/`docker compose run`
+
+  post-processing:
+    profiles: [app]
+    build:
+      context: .
+      target: app
+    command: ['bun', 'src/services/post-processing/index.ts']
+    env_file: .env
+    environment: *app-env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+      ollama-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  storage:
+    profiles: [app]
+    build:
+      context: .
+      target: app
+    command: ['bun', 'src/services/storage/index.ts']
+    env_file: .env
+    environment: *app-env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+    restart: unless-stopped
+
+  discord-bot:
+    profiles: [app]
+    build:
+      context: .
+      target: app
+    command: ['bun', 'src/services/discord-bot/index.ts']
+    env_file: .env
+    environment: *app-env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   ollama_data:
   rabbitmq_data:
   mongo_data:
+  scraper_data:
