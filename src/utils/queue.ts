@@ -3,9 +3,9 @@ import type { z } from 'zod'
 import type { Logger } from './logger'
 
 export const QUEUES = {
-	postProcessing: 'post_processing',
+	postProcessing: 'post-processing',
 	storage: 'storage',
-	discord: 'send-discord-message',
+	discord: 'discord',
 } as const
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES]
 
@@ -278,7 +278,7 @@ function isPreconditionFailed(error: unknown) {
 function toPreconditionError(error: unknown) {
 	return new Error(
 		'A fila já existe no RabbitMQ com outra configuração (versão antiga sem DLQ). ' +
-			'Apague as filas antigas (post_processing, storage, send-discord-message) pelo painel em http://localhost:15672 e rode de novo.',
+			'Apague a fila antiga "storage" (e as obsoletas "post_processing" e "send-discord-message") pelo painel em http://localhost:15672 e rode de novo.',
 		{ cause: error },
 	)
 }

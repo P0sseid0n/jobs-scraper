@@ -4,14 +4,20 @@ Pipeline que coleta postagens de vagas no LinkedIn, estrutura os dados com IA lo
 
 ## 🗺️ Visão geral
 
-```
-scraper ──► post_processing ──► post-processing ──► storage ──► storage ──► send-discord-message ──► discord-bot
-(Puppeteer)     (fila)             (Ollama)          (fila)    (MongoDB)          (fila)              (Discord)
+Os blocos são os serviços; os rótulos nas setas são as filas do RabbitMQ que os ligam.
+
+```mermaid
+flowchart LR
+	scraper["scraper<br/><small>Puppeteer</small>"] -- "fila: post-processing" --> processing["post-processing<br/><small>Ollama</small>"]
+	processing -- "fila: storage" --> storage["storage<br/><small>MongoDB</small>"]
+	storage -- "fila: discord" --> bot["discord-bot<br/><small>Discord</small>"]
 ```
 
-1. **Scraper** (`src/services/scraper`): usa Puppeteer para buscar posts no LinkedIn. Cada post recebe um `postId` (hash do texto normalizado) e é enviado para a fila `post_processing`.
+Cada fila tem o mesmo nome do serviço que a consome. O `discord-bot` consome a fila `discord`.
+
+1. **Scraper** (`src/services/scraper`): usa Puppeteer para buscar posts no LinkedIn. Cada post recebe um `postId` (hash do texto normalizado) e é enviado para a fila `post-processing`.
 2. **Pós-processamento** (`src/services/post-processing`): ignora posts já vistos, usa um modelo do Ollama para extrair os dados da vaga e envia o resultado para a fila `storage`.
-3. **Armazenamento** (`src/services/storage`): salva a vaga no MongoDB (sem duplicar, por causa do índice único em `postId`) e envia para a fila `send-discord-message`.
+3. **Armazenamento** (`src/services/storage`): salva a vaga no MongoDB (sem duplicar, por causa do índice único em `postId`) e envia para a fila `discord`.
 4. **Bot do Discord** (`src/services/discord-bot`): publica a vaga no canal configurado.
 
 ### Filas, retries e DLQ
@@ -115,7 +121,7 @@ tests/                      # testes (bun test)
 
 ## 🔄 Migrando de uma versão anterior
 
-- **Filas:** as filas agora são declaradas com dead-letter. Se elas já existirem no RabbitMQ com a configuração antiga, o serviço encerra com um erro avisando. Apague as filas `post_processing`, `storage` e `send-discord-message` pelo painel (aba *Queues* → *Delete*) e rode de novo.
+- **Filas:** as filas foram renomeadas para kebab-case (`post_processing` → `post-processing`, `send-discord-message` → `discord`) e agora são declaradas com dead-letter. Apague as filas antigas `post_processing`, `storage` e `send-discord-message` pelo painel (aba *Queues* → *Delete*). Mensagens que ainda estiverem nelas não são migradas. A `storage` mantém o nome, mas precisa ser recriada: enquanto a versão antiga existir, o serviço encerra com um erro avisando.
 - **Credenciais:** o Mongo e o RabbitMQ só criam o usuário quando o volume é criado. Para trocar as credenciais antigas (`user`/`user`), recrie os volumes com `docker compose down -v`. Isso **apaga os dados**.
 
 ## ⚠️ Observações importantes

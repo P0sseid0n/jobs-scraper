@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 export const WORK_MODES = ['remoto', 'presencial', 'hibrido'] as const
 
-/** Mensagem da fila `post_processing`: post bruto vindo do scraper. */
+/** Mensagem da fila `post-processing`: post bruto vindo do scraper. */
 export const RawPostSchema = z.object({
 	postId: z.string().min(1),
 	text: z.string().min(1),
@@ -47,7 +47,7 @@ export const AiJobOutputSchema = z.object({
 })
 export type AiJobOutput = z.infer<typeof AiJobOutputSchema>
 
-/** Mensagem das filas `storage` e `send-discord-message`: vaga já estruturada. */
+/** Mensagem das filas `storage` e `discord`: vaga já estruturada. */
 export const ProcessedJobSchema = z.object({
 	postId: z.string().min(1),
 	rawContent: z.string(),
