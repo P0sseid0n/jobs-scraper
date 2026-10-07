@@ -36,7 +36,7 @@ As mensagens são persistentes e validadas com os schemas de `src/types/messages
 
 ## 🏃‍♂️ Como rodar localmente
 
-Pré-requisitos: [Bun](https://bun.sh) 1.2+ e Docker.
+Pré-requisitos: [Bun](https://bun.sh) 1.4+ e Docker.
 
 1. **Clone o repositório e instale as dependências:**
 

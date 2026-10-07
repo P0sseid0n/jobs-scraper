@@ -1,4 +1,4 @@
-FROM oven/bun:1.2.19 AS base
+FROM oven/bun:1.4.2 AS base
 WORKDIR /app
 ENV NODE_ENV=production \
 	PUPPETEER_SKIP_DOWNLOAD=true

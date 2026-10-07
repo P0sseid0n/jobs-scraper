@@ -31,7 +31,11 @@ await queue.consume(QUEUES.storage, ProcessedJobSchema, async data => {
 	}
 
 	// Upsert idempotente: a mesma vaga nunca é salva duas vezes, mesmo se a mensagem for reprocessada.
-	const job = await Job.findOneAndUpdate({ postId: data.postId }, { $setOnInsert: data }, { upsert: true, new: true })
+	const job = await Job.findOneAndUpdate(
+		{ postId: data.postId },
+		{ $setOnInsert: data },
+		{ upsert: true, returnDocument: 'after' },
+	)
 
 	if (job.notifiedAt) {
 		log.info('Vaga já salva e anunciada anteriormente, ignorando')
