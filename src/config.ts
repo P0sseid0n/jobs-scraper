@@ -17,6 +17,8 @@ export const mongoEnv = {
 export const ollamaEnv = {
 	OLLAMA_HOST: z.url().default('http://localhost:11434'),
 	OLLAMA_MODEL: z.string().min(1).default('gemma3:4b'),
+	/** Posts com confiança da IA abaixo disso são descartados (não viram vaga). */
+	MIN_JOB_CONFIDENCE: z.coerce.number().min(0).max(100).default(60),
 }
 
 export const linkedinEnv = {

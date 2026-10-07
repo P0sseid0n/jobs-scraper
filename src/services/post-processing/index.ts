@@ -3,25 +3,15 @@ import { loadConfig, mongoEnv, ollamaEnv, rabbitmqEnv } from '../../config'
 import { type ProcessedJob, RawPostSchema } from '../../types/messages'
 import { connectDatabase, disconnectDatabase, SeenPost } from '../../utils/db'
 import { createLogger } from '../../utils/logger'
-import { QUEUES, QueueClient } from '../../utils/queue'
+import { PermanentError, QUEUES, QueueClient } from '../../utils/queue'
 import { onShutdown, setupGracefulShutdown } from '../../utils/shutdown'
-import { parseModelResponse } from './parse'
+import { linkFromText, parseModelResponse, rejectionReason } from './parse'
+import { buildMessages, MODEL_OUTPUT_FORMAT } from './prompt'
 
 const logger = createLogger('post-processing')
 setupGracefulShutdown(logger)
 
 const config = loadConfig({ ...rabbitmqEnv, ...mongoEnv, ...ollamaEnv })
-
-const expectedResponse = `{
-            "title": "string",
-            "company": "string",
-            "location": "string",
-            "link": "string",
-            "necessary_knowledge": ["string"],
-            "recruiter_email": "string",
-            "workMode": "remoto | presencial | hibrido",
-            "aiJobConfidence": 0
-        }`.replace(/\n/g, '')
 
 const ollama = new Ollama({ host: config.OLLAMA_HOST })
 
@@ -49,6 +39,7 @@ const queue = new QueueClient({
 })
 await queue.connect()
 onShutdown(() => queue.close())
+await queue.assertQueue(QUEUES.storage)
 
 await queue.consume(QUEUES.postProcessing, RawPostSchema, async post => {
 	const log = logger.child({ postId: post.postId })
@@ -58,50 +49,49 @@ await queue.consume(QUEUES.postProcessing, RawPostSchema, async post => {
 		return
 	}
 
+	// NFKC converte o "negrito" Unicode comum no LinkedIn (𝐕𝐮𝐞.𝐣𝐬) em texto normal, que o modelo entende melhor
+	const text = post.text.normalize('NFKC')
+
 	log.info('Processando post')
+	// Erros do Ollama (fora do ar, timeout) são transitórios: o QueueClient tenta de novo
 	const response = await ollama.chat({
 		model: config.OLLAMA_MODEL,
-		messages: [
-			{
-				role: 'user',
-				content: `Leia a seguinte postagem e retorne **exatamente um único JSON em uma única linha**, sem explicações nem texto extra. O formato do JSON deve ser este: ${expectedResponse}.`,
-			},
-			{
-				role: 'user',
-				content: `Se **menos de 3 campos puderem ser preenchidos**, retorne **apenas a palavra: null**. Não escreva nenhum outro texto além de "null".`,
-			},
-			{
-				role: 'user',
-				content: `Preencha os campos ausentes com **null**. O campo "aiJobConfidence" deve conter um número de 0 a 100 representando sua certeza de que a postagem é uma vaga de emprego.`,
-			},
-			{
-				role: 'user',
-				content: post.text,
-			},
-		],
+		messages: buildMessages({ text, author: post.author }),
+		format: MODEL_OUTPUT_FORMAT,
+		options: { temperature: 0 },
 	})
-
 	log.debug({ response: response.message.content }, 'Resposta bruta do modelo')
-	const aiJob = parseModelResponse(response.message.content)
 
-	if (aiJob) {
-		// O link real do post (vindo do scraper) tem prioridade sobre o que a IA extraiu do texto
+	let aiJob: ReturnType<typeof parseModelResponse>
+	try {
+		aiJob = parseModelResponse(response.message.content)
+	} catch (error) {
+		// Com structured outputs isso não deveria acontecer; se acontecer, tentar de novo não ajuda
+		throw new PermanentError('Resposta do modelo inválida', { cause: error })
+	}
+
+	const reason = rejectionReason(aiJob, config.MIN_JOB_CONFIDENCE)
+
+	if (aiJob && !reason) {
 		const job: ProcessedJob = {
-			...aiJob,
-			link: post.url ?? aiJob.link,
 			postId: post.postId,
 			rawContent: post.text,
+			title: aiJob.title,
+			company: aiJob.company,
+			location: aiJob.location,
+			// O link real do post tem prioridade; o da IA só vale se estiver escrito no texto
+			link: post.url ?? linkFromText(aiJob.link, text),
+			necessary_knowledge: aiJob.necessary_knowledge,
+			recruiter_email: aiJob.recruiter_email,
+			workMode: aiJob.workMode,
+			aiJobConfidence: aiJob.aiJobConfidence,
 			postedAt: post.postedAt,
 		}
 		await queue.publish(QUEUES.storage, job)
-		log.info({ aiJobConfidence: job.aiJobConfidence }, 'Vaga estruturada enviada para o storage')
+		log.info({ aiJobConfidence: job.aiJobConfidence, title: job.title }, 'Vaga estruturada enviada para o storage')
 	} else {
-		log.info('Modelo indicou que o post não é uma vaga')
+		log.info({ reason, aiJobConfidence: aiJob?.aiJobConfidence }, 'Post descartado: não é vaga')
 	}
 
-	await SeenPost.updateOne(
-		{ postId: post.postId },
-		{ $setOnInsert: { postId: post.postId, isJob: aiJob !== null } },
-		{ upsert: true },
-	)
+	await SeenPost.updateOne({ postId: post.postId }, { $setOnInsert: { postId: post.postId, isJob: !reason } }, { upsert: true })
 })
