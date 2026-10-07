@@ -20,11 +20,7 @@ export class PermanentError extends Error {
 export type FailureDecision = { action: 'retry'; delayMs: number } | { action: 'dead-letter' }
 
 /** Decide o que fazer com uma mensagem cujo processamento falhou. Backoff exponencial: delay, 2x delay, 4x delay... */
-export function decideOnFailure(
-	error: unknown,
-	retries: number,
-	opts: { maxRetries: number; retryDelayMs: number },
-): FailureDecision {
+export function decideOnFailure(error: unknown, retries: number, opts: { maxRetries: number; retryDelayMs: number }): FailureDecision {
 	if (error instanceof PermanentError || retries >= opts.maxRetries) return { action: 'dead-letter' }
 	return { action: 'retry', delayMs: opts.retryDelayMs * 2 ** retries }
 }

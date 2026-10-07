@@ -9,15 +9,7 @@
 		"includes": ["src/**", "tests/**", "*.json", "!bun.lock"]
 	},
 	"formatter": {
-		"indentStyle": "tab",
-		"lineWidth": 130
-	},
-	"javascript": {
-		"formatter": {
-			"quoteStyle": "single",
-			"semicolons": "asNeeded",
-			"arrowParentheses": "asNeeded"
-		}
+		"enabled": false
 	},
 	"linter": {
 		"rules": {
@@ -25,5 +17,8 @@
 				"noNonNullAssertion": "off"
 			}
 		}
+	},
+	"assist": {
+		"enabled": false
 	}
 }

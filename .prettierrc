@@ -1,0 +1,14 @@
+{
+	"useTabs": true,
+	"tabWidth": 3,
+	"printWidth": 135,
+	"semi": false,
+	"singleQuote": true,
+	"arrowParens": "avoid",
+	"overrides": [
+		{
+			"files": ["*.yml", "*.yaml"],
+			"options": { "tabWidth": 2 }
+		}
+	]
+}

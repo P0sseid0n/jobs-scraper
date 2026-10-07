@@ -1,0 +1,21 @@
+# https://editorconfig.org — mantém o editor alinhado com o .prettierrc
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = tab
+indent_size = 3
+tab_width = 3
+max_line_length = 135
+
+# YAML não aceita tabs
+[*.{yml,yaml}]
+indent_style = space
+indent_size = 2
+
+# Dois espaços no fim da linha são quebra de linha no Markdown
+[*.md]
+trim_trailing_whitespace = false

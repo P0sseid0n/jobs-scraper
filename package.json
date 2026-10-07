@@ -16,8 +16,10 @@
 		"start:storage": "bun src/services/storage/index.ts",
 		"start:bot": "bun src/services/discord-bot/index.ts",
 		"typecheck": "tsc --noEmit",
-		"lint": "biome check .",
-		"lint:fix": "biome check --write .",
+		"lint": "biome lint .",
+		"lint:fix": "biome lint --write .",
+		"format": "prettier --write .",
+		"format:check": "prettier --check .",
 		"test": "bun test"
 	},
 	"devDependencies": {
@@ -25,6 +27,7 @@
 		"@types/bun": "^1.4.2",
 		"@types/node": "^26.6.4",
 		"concurrently": "^10.0.5",
+		"prettier": "^3.9.9",
 		"typescript": "^7.0.2"
 	},
 	"dependencies": {
