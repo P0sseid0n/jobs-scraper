@@ -77,5 +77,6 @@ export const ProcessedJobSchema = z.object({
 	workMode: z.enum(WORK_MODES).nullable(),
 	aiJobConfidence: z.number().min(0).max(100),
 	postedAt: z.iso.datetime().nullable().default(null),
+	author: z.string().nullable().default(null),
 })
 export type ProcessedJob = z.infer<typeof ProcessedJobSchema>

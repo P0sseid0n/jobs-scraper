@@ -18,6 +18,7 @@ const jobSchema = new Schema<JobDocument>(
 		workMode: { type: String, enum: [...WORK_MODES, null], default: null },
 		aiJobConfidence: { type: Number, required: true },
 		postedAt: { type: String, default: null },
+		author: { type: String, default: null },
 		notifiedAt: { type: Date, default: null },
 	},
 	{ timestamps: true },

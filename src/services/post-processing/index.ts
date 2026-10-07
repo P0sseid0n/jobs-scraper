@@ -86,6 +86,7 @@ await queue.consume(QUEUES.postProcessing, RawPostSchema, async post => {
 			workMode: aiJob.workMode,
 			aiJobConfidence: aiJob.aiJobConfidence,
 			postedAt: post.postedAt,
+			author: post.author,
 		}
 		await queue.publish(QUEUES.storage, job)
 		log.info({ aiJobConfidence: job.aiJobConfidence, title: job.title }, 'Vaga estruturada enviada para o storage')
