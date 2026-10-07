@@ -1,4 +1,4 @@
-export async function saveJson(filePath: string, data: any) {
+export async function saveJson(filePath: string, data: unknown) {
 	return await Bun.write(filePath, JSON.stringify(data, null, 2))
 }
 

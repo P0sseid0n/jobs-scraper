@@ -1,8 +1,18 @@
+import path from 'node:path'
+import type { Browser, BrowserContext, Page } from 'puppeteer'
 import puppeteer from 'puppeteer-extra'
-import { Browser, BrowserContext, Page } from 'puppeteer'
-import { createQueue } from '../../utils/queue'
+import { linkedinEnv, loadConfig, rabbitmqEnv } from '../../config'
+import type { RawPost } from '../../types/messages'
 import * as FileUtils from '../../utils/files'
-import path from 'path'
+import { hashPost } from '../../utils/hash'
+import { createLogger } from '../../utils/logger'
+import { QUEUES, QueueClient } from '../../utils/queue'
+import { onShutdown, setupGracefulShutdown, shutdown } from '../../utils/shutdown'
+
+const logger = createLogger('scraper')
+setupGracefulShutdown(logger)
+
+const config = loadConfig({ ...rabbitmqEnv, ...linkedinEnv })
 
 const SEARCH_FILTERS = {
 	keywords: ['Front End', 'Vue'],
@@ -19,33 +29,24 @@ function buildQueryString(filters: typeof SEARCH_FILTERS) {
 
 	params.set('keywords', filters.keywords.join(' '))
 
-	return '?' + params.toString()
+	return `?${params.toString()}`
 }
 
 async function ensureLogin(browserManager: BrowserManager, waitUntilPath?: string) {
 	const url = browserManager.page.url()
-	console.log('Ensure login')
-
-	console.log('Current URL:', url)
+	logger.info({ url }, 'Verificando login')
 
 	if (url.includes('/authwall')) {
-		console.log('🛡️ Blocked by authwall — navigating manually to login page...')
+		logger.info('🛡️ Bloqueado pelo authwall, navegando para a página de login')
 		await browserManager.page.goto('https://www.linkedin.com/login', { waitUntil: 'domcontentloaded' })
 	}
 
 	if (!url.includes('/login')) return
 
-	console.log('⚠️ Login required...')
+	logger.info('⚠️ Login necessário')
 
-	const email = process.env.LINKEDIN_EMAIL
-	const password = process.env.LINKEDIN_PASSWORD
-
-	if (!email || !password) {
-		throw new Error('LINKEDIN_EMAIL e LINKEDIN_PASSWORD são obrigatórios')
-	}
-
-	await browserManager.page.type('#username', email)
-	await browserManager.page.type('#password', password)
+	await browserManager.page.type('#username', config.LINKEDIN_EMAIL)
+	await browserManager.page.type('#password', config.LINKEDIN_PASSWORD)
 	await browserManager.page.click('button[type="submit"]')
 
 	if (waitUntilPath) {
@@ -58,7 +59,7 @@ async function ensureLogin(browserManager: BrowserManager, waitUntilPath?: strin
 	const liAtCookie = cookies.find(cookie => cookie.name === 'li_at')
 	browserManager.savePersistedCookies('li_at', liAtCookie?.value || '')
 
-	console.log('✅ Login successful')
+	logger.info('✅ Login realizado')
 }
 
 function scrapePage(page: Page, offset: number) {
@@ -93,9 +94,12 @@ class BrowserManager {
 	private constructor(public browser: Browser) {}
 
 	static async setupNewBrowser() {
-		const launcher = await puppeteer.launch({ headless: false })
+		const launcher = await puppeteer.launch({
+			headless: config.HEADLESS,
+			args: config.BROWSER_NO_SANDBOX ? ['--no-sandbox', '--disable-setuid-sandbox'] : [],
+		})
 		const context = new BrowserManager(launcher)
-		console.log('🌐 Browser launched')
+		logger.info('🌐 Navegador iniciado')
 
 		await context.loadPersistedCookies()
 		await context.setupNewContextPage({ setCookies: true })
@@ -104,7 +108,7 @@ class BrowserManager {
 	}
 
 	async setupNewContextPage(opts?: { setCookies?: true }) {
-		console.log('🆕 Setting up new browser context and page...')
+		logger.debug('🆕 Criando novo contexto e página')
 		await this.context.close()
 
 		this.context = await this.browser.createBrowserContext()
@@ -115,8 +119,6 @@ class BrowserManager {
 			this.cookiesAppliedToBrowser = true
 		}
 
-		console.log('🆕 Setting up new browser context and page... OK')
-
 		return this.context
 	}
 
@@ -124,7 +126,7 @@ class BrowserManager {
 		const loadedCookies = await FileUtils.loadJson(path.join(__dirname, './data', this.LINKEDIN_COOKIE_FILE_NAME))
 
 		const cookies = {
-			li_at: process.env.LINKEDIN_LI_AT || '',
+			li_at: config.LINKEDIN_LI_AT || '',
 			...loadedCookies,
 		}
 
@@ -148,29 +150,36 @@ class BrowserManager {
 	}
 
 	async loadPersistedCookies() {
-		console.log('📥 Loading persisted cookies...')
 		this.cookies = (await FileUtils.loadJson(path.join(__dirname, './data', this.LINKEDIN_COOKIE_FILE_NAME))) as Record<
 			string,
 			string
 		>
-		console.log('📥 Loading persisted cookies... OK')
+		logger.debug('📥 Cookies persistidos carregados')
 	}
 }
 
 async function main() {
-	console.log('🚀 Starting scraper...')
+	logger.info('🚀 Iniciando scraper')
 
-	const QUEUE = 'post_processing'
-	const { channel } = await createQueue(QUEUE)
-	console.log('📬 Queue created:', QUEUE)
+	const queue = new QueueClient({
+		url: config.RABBITMQ_URL,
+		maxRetries: config.QUEUE_MAX_RETRIES,
+		retryDelayMs: config.QUEUE_RETRY_DELAY_MS,
+		logger,
+	})
+	await queue.connect()
+	onShutdown(() => queue.close())
+	await queue.assertQueue(QUEUES.postProcessing)
+
 	const browserManager = await BrowserManager.setupNewBrowser()
+	onShutdown(() => browserManager.browser.close())
 
 	const SEARCH_PATH = '/search/results/all'
 	const LOGIN_PATH = '/login'
 
-	console.log('🔎 Navigating to LinkedIn search page...')
+	logger.info('🔎 Abrindo a busca do LinkedIn')
 	await browserManager.page!.goto(BASE_URL + SEARCH_PATH + buildQueryString(SEARCH_FILTERS)).catch(async () => {
-		console.log('🚫 Failed to load search page, creating new page...')
+		logger.warn('🚫 Falha ao carregar a busca, criando nova página')
 
 		await browserManager.setupNewContextPage()
 		await browserManager.page!.goto(BASE_URL + LOGIN_PATH)
@@ -183,38 +192,49 @@ async function main() {
 	}
 
 	await browserManager.page!.waitForSelector('li.search-results__search-feed-update')
-	console.log('🫡 Search results loaded, starting to scrape...')
+	logger.info('🫡 Resultados carregados, iniciando coleta')
 
 	let offset = 0
 	let lastBatchSize = 1
+	const sentPostIds = new Set<string>()
 
-	while (lastBatchSize > 0) {
-		console.log(`Scrolling... Attempt ${offset}`)
-
+	// Limite de posts por execução para reduzir o risco de bloqueio da conta no LinkedIn
+	while (lastBatchSize > 0 && sentPostIds.size < config.SCRAPER_MAX_POSTS) {
 		const vagas = await scrapePage(browserManager.page!, offset)
 		lastBatchSize = vagas.length
 		offset += vagas.length
 
-		console.log(`Found ${vagas.length} vagas in this scroll, total: ${offset}`)
+		logger.info({ found: vagas.length, total: offset }, 'Posts encontrados nesta rolagem')
 
-		vagas.forEach(vaga => {
-			console.log('📨 Sending vaga to queue:', vaga)
-			channel.sendToQueue(QUEUE, Buffer.from(JSON.stringify(vaga)))
-		})
+		for (const vaga of vagas) {
+			if (sentPostIds.size >= config.SCRAPER_MAX_POSTS) break
+
+			const post: RawPost = { postId: hashPost(vaga), text: vaga, scrapedAt: new Date().toISOString() }
+			if (!post.text.trim() || sentPostIds.has(post.postId)) continue
+
+			await queue.publish(QUEUES.postProcessing, post)
+			sentPostIds.add(post.postId)
+			logger.debug({ postId: post.postId }, '📨 Post enviado para a fila')
+		}
 
 		const loadMoreBtn = await browserManager.page!.$(
-			'button.artdeco-button.artdeco-button--muted.artdeco-button--1.artdeco-button--full.artdeco-button--secondary.ember-view.scaffold-finite-scroll__load-button'
+			'button.artdeco-button.artdeco-button--muted.artdeco-button--1.artdeco-button--full.artdeco-button--secondary.ember-view.scaffold-finite-scroll__load-button',
 		)
 
 		if (loadMoreBtn) await loadMoreBtn.click()
-		else console.log('No load more button found')
+		else logger.debug('Botão "carregar mais" não encontrado')
 
-		await wait(10_000)
+		await wait(config.SCRAPER_SCROLL_DELAY_MS)
 	}
 
-	await browserManager.browser.close()
+	logger.info({ sent: sentPostIds.size }, '✅ Coleta finalizada')
 }
 
 main()
+	.then(() => shutdown(logger))
+	.catch(error => {
+		logger.fatal({ err: error }, 'Erro no scraper')
+		return shutdown(logger, 1)
+	})
 
 // https://www.linkedin.com/jobs/search/?currentJobId=4275789186&f_TPR=r86400&f_WT=2&keywords=Front%20End%20NOT%20Estagio%20NOT%20Junior%20NOT%20Senior

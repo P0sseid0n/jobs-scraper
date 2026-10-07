@@ -1,41 +1,44 @@
-import mongoose, { Schema } from 'mongoose'
-import amqplib from 'amqplib'
-import AiJsonResponse from '../../types/AiJsonResponse'
-;(async function () {
-	await mongoose.connect('mongodb://user:user@127.0.0.1:27017/jobs?authSource=admin')
+import { loadConfig, mongoEnv, rabbitmqEnv } from '../../config'
+import { ProcessedJobSchema } from '../../types/messages'
+import { connectDatabase, disconnectDatabase, Job } from '../../utils/db'
+import { createLogger } from '../../utils/logger'
+import { QUEUES, QueueClient } from '../../utils/queue'
+import { onShutdown, setupGracefulShutdown } from '../../utils/shutdown'
 
-	const Job = mongoose.model('Job', new Schema<AiJsonResponse>(), 'processed')
+const logger = createLogger('storage')
+setupGracefulShutdown(logger)
 
-	const connection = await amqplib.connect('amqp://user:user@localhost')
-	const channel = await connection.createChannel()
+const config = loadConfig({ ...rabbitmqEnv, ...mongoEnv })
 
-	const queue = 'storage'
-	await channel.assertQueue(queue)
+await connectDatabase(config.MONGO_URL, logger)
+onShutdown(disconnectDatabase)
 
-	console.log('Waiting for messages in queue:', queue)
+const queue = new QueueClient({
+	url: config.RABBITMQ_URL,
+	maxRetries: config.QUEUE_MAX_RETRIES,
+	retryDelayMs: config.QUEUE_RETRY_DELAY_MS,
+	logger,
+})
+await queue.connect()
+onShutdown(() => queue.close())
 
-	await channel.consume(queue, async msg => {
-		if (!msg) return
+await queue.consume(QUEUES.storage, ProcessedJobSchema, async data => {
+	const log = logger.child({ postId: data.postId })
 
-		try {
-			console.log(`${queue} - Received message with timestamp:`, msg.properties.timestamp)
+	if (!data.title || !data.company || !data.location || !data.link) {
+		log.warn('Vaga sem os campos obrigatórios, descartando')
+		return
+	}
 
-			const data = JSON.parse(msg.content.toString())
+	// Upsert idempotente: a mesma vaga nunca é salva duas vezes, mesmo se a mensagem for reprocessada.
+	const job = await Job.findOneAndUpdate({ postId: data.postId }, { $setOnInsert: data }, { upsert: true, new: true })
 
-			if (!data || !data.title || !data.company || !data.location || !data.link) {
-				console.error('Invalid data format:', data)
-				return channel.ack(msg)
-			}
+	if (job.notifiedAt) {
+		log.info('Vaga já salva e anunciada anteriormente, ignorando')
+		return
+	}
 
-			await Job.create(data)
-			console.log('Data saved to MongoDB:', data)
-			channel.ack(msg)
-
-			channel.assertQueue('send-discord-message')
-			channel.sendToQueue('send-discord-message', Buffer.from(JSON.stringify(data)))
-		} catch (error) {
-			console.error('Error processing message:', error)
-			channel.nack(msg, false, false) // Reject the message without requeueing
-		}
-	})
-})()
+	await queue.publish(QUEUES.discord, data)
+	await Job.updateOne({ postId: data.postId }, { notifiedAt: new Date() })
+	log.info('Vaga salva no MongoDB e enviada para o Discord')
+})
