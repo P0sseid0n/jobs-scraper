@@ -1,6 +1,6 @@
 import { ProcessedJobSchema, type ProcessedJob } from '@shared/contracts'
 import { Job } from '@shared/database'
-import { QUEUES } from '@shared/messaging'
+import { EXCHANGES, QUEUES } from '@shared/messaging'
 import { startService } from '@shared/service'
 
 import { missingRequiredFields } from './job-validation'
@@ -12,7 +12,7 @@ const { logger, queue } = await startService({ name: 'storage', database: true }
 
 await queue.consume(QUEUES.storage, ProcessedJobSchema, saveJob, { prefetch: PREFETCH })
 
-/** Salva a vaga (uma única vez) e a encaminha ao Discord. */
+/** Salva a vaga (uma única vez) e publica o evento `job-published`, que cada canal (ex.: o discord-bot) recebe. */
 async function saveJob(data: ProcessedJob) {
 	const log = logger.child({ postId: data.postId })
 
@@ -30,8 +30,8 @@ async function saveJob(data: ProcessedJob) {
 		return
 	}
 
-	await queue.publish(QUEUES.discord, data)
+	await queue.publishEvent(EXCHANGES.jobPublished, data)
 	await Job.updateOne({ postId: data.postId }, { notifiedAt: new Date() })
 
-	log.info('Vaga salva no MongoDB e enviada para o Discord')
+	log.info('Vaga salva no MongoDB e publicada para os canais')
 }

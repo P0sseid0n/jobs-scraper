@@ -35,15 +35,14 @@ try {
 	process.exit(1)
 }
 
-await queue.assertQueue(QUEUES.discordCv)
 await queue.consume(QUEUES.cvUpdater, CvRequestSchema, generateCv)
 
-/** Gera o currículo da vaga pedida e envia ao bot o PDF ou o motivo da falha. */
+/** Gera o currículo da vaga pedida e envia o PDF (ou o motivo da falha) para a fila de resposta de quem pediu. */
 async function generateCv(request: CvRequest) {
-	const log = logger.child({ postId: request.postId })
+	const log = logger.child({ postId: request.postId, replyTo: request.replyTo.queue })
 
-	const reply = (result: Omit<CvResult, 'postId' | 'interaction'>) =>
-		queue.publish(QUEUES.discordCv, { postId: request.postId, interaction: request.interaction, ...result })
+	const reply = (result: Omit<CvResult, 'postId' | 'context'>) =>
+		queue.publish(request.replyTo.queue, { postId: request.postId, context: request.replyTo.context, ...result })
 
 	const job = await findTargetJob(request.postId)
 	if (!job) {

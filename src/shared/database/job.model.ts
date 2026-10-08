@@ -20,6 +20,7 @@ const jobSchema = new Schema<JobDocument>(
 		postedAt: { type: String, default: null },
 		author: { type: String, default: null },
 		language: { type: String, default: null },
+		// Quando o evento `job-published` foi publicado (com pelo menos uma fila ligada); não confirma a entrega
 		notifiedAt: { type: Date, default: null },
 	},
 	{ timestamps: true },

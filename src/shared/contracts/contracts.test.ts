@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
+import { CvRequestSchema } from './cv'
 import { ProcessedJobSchema } from './job'
 import { RawPostSchema } from './raw-post'
 
@@ -25,5 +26,13 @@ describe('contratos das filas', () => {
 
 		expect(ProcessedJobSchema.safeParse(job).success).toBe(false)
 		expect(ProcessedJobSchema.safeParse({ ...job, workMode: 'remoto' }).success).toBe(true)
+	})
+
+	test('CvRequest leva a fila de resposta e um contexto livre, sem nada específico de um canal', () => {
+		const request = { postId: 'abc', requestedBy: 'user-1', requestedAt: new Date().toISOString() }
+
+		expect(CvRequestSchema.parse({ ...request, replyTo: { queue: 'telegram-cv' } }).replyTo.context).toEqual({})
+		expect(CvRequestSchema.safeParse({ ...request, replyTo: { queue: 'discord-cv', context: { token: 'x' } } }).success).toBe(true)
+		expect(CvRequestSchema.safeParse({ ...request, replyTo: { queue: 'Fila Inválida' } }).success).toBe(false)
 	})
 })

@@ -5,6 +5,7 @@ import type { Logger } from '@shared/logging'
 import { QUEUES, type QueueClient } from '@shared/messaging'
 
 import { buildContactReply, emailFromEmbed, parseContactButton } from './contact-reply'
+import type { DiscordReplyContext } from './cv-delivery'
 
 /**
  * Trata o clique em "Contato do recrutador"/"Gerar currículo": responde com o contato (só quem clicou vê)
@@ -28,7 +29,11 @@ export async function handleContactButton(interaction: ButtonInteraction, queue:
 	const request: CvRequest = {
 		postId,
 		requestedBy: interaction.user.id,
-		interaction: { applicationId: interaction.applicationId, token: interaction.token },
+		// O cv-updater devolve o contexto sem interpretar; o token permite responder ao clique (vale 15 min)
+		replyTo: {
+			queue: QUEUES.discordCv,
+			context: { applicationId: interaction.applicationId, token: interaction.token } satisfies DiscordReplyContext,
+		},
 		requestedAt: new Date().toISOString(),
 	}
 	await queue.publish(QUEUES.cvUpdater, request)

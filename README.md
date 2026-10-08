@@ -4,22 +4,28 @@ Pipeline que coleta postagens de vagas no LinkedIn, estrutura os dados com IA lo
 
 ## 🗺️ Visão geral
 
-Os blocos são os serviços; os rótulos nas setas são as filas do RabbitMQ que os ligam.
+Os blocos são os serviços; os rótulos nas setas são as filas do RabbitMQ que os ligam. O hexágono é um evento: cada canal liga a própria fila nele e recebe todas as vagas.
 
 ```mermaid
 flowchart LR
 	scraper["scraper<br/><small>Puppeteer</small>"] -- "fila: post-processing" --> processing["post-processing<br/><small>Ollama</small>"]
 	processing -- "fila: storage" --> storage["storage<br/><small>MongoDB</small>"]
-	storage -- "fila: discord" --> bot["discord-bot<br/><small>Discord</small>"]
+	storage --> event{{"evento: job-published"}}
+	event -- "fila: discord" --> bot["discord-bot<br/><small>Discord</small>"]
 	bot -- "fila: cv-updater" --> cv["cv-updater<br/><small>LaTeX + Ollama</small>"]
-	cv -- "fila: discord-cv" --> bot
+	cv -- "fila: discord-cv (replyTo)" --> bot
 ```
 
-Cada fila tem o mesmo nome do serviço que a consome. O `discord-bot` consome as filas `discord` (vagas) e `discord-cv` (currículos prontos). A fila `scraper` recebe comandos para o scraper, como o "coletar agora" (`bun scraper:run` ou de outras fontes).
+Cada fila tem o mesmo nome do serviço que a consome. A fila `scraper` recebe comandos para o scraper, como o "coletar agora" (`bun scraper:run` ou de outras fontes).
+
+O núcleo (scraper → post-processing → storage → cv-updater) não depende do Discord, e o bot é só um dos canais:
+
+- **Vagas:** o storage publica cada vaga nova no evento `job-published` (exchange fanout). O bot liga a fila `discord` nele; outro canal (Telegram, site…) ligaria a própria fila e receberia todas as vagas também. Se nenhum canal estiver ligado, o storage não marca a vaga como publicada e tenta de novo depois.
+- **Currículos:** o pedido (`CvRequest`) traz um `replyTo` com a fila de resposta e um contexto livre. O cv-updater devolve o resultado nessa fila, com o mesmo contexto. O bot usa a fila `discord-cv` e guarda no contexto o token da interação do Discord.
 
 1. **Scraper** (`src/services/scraper`): usa Puppeteer para buscar posts no LinkedIn. Cada post recebe um `postId` (hash do texto normalizado) e é enviado para a fila `post-processing`.
 2. **Pós-processamento** (`src/services/post-processing`): ignora posts já vistos, usa um modelo do Ollama para extrair os dados da vaga e envia o resultado para a fila `storage`.
-3. **Armazenamento** (`src/services/storage`): salva a vaga no MongoDB (sem duplicar, por causa do índice único em `postId`) e envia para a fila `discord`.
+3. **Armazenamento** (`src/services/storage`): salva a vaga no MongoDB (sem duplicar, por causa do índice único em `postId`) e publica o evento `job-published`.
 4. **Bot do Discord** (`src/services/discord-bot`): publica cada vaga como um card (embed) com cargo, empresa, local, modalidade, data, tecnologias e botões para o post e para o contato do recrutador.
    - Num **canal de texto**, cada vaga vira uma mensagem.
    - Num **canal de fórum**, cada vaga vira um post próprio. O bot aplica as tags do fórum que batem com a modalidade ou as tecnologias (crie tags como "Remoto" ou "Vue" no fórum).

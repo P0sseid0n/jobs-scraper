@@ -3,7 +3,7 @@ import type { z } from 'zod'
 
 import type { Logger } from '../logging/logger'
 import { decideOnFailure, PermanentError } from './failure-policy'
-import { deadLetterQueueName, retryQueueName, type QueueName } from './queues'
+import { deadLetterQueueName, retryQueueName, type ExchangeName, type QueueName } from './queues'
 
 type QueueClientOptions = {
 	url: string
@@ -26,8 +26,9 @@ const MAX_RECONNECT_DELAY_MS = 30_000
 /**
  * Cliente RabbitMQ compartilhado pelos serviços:
  * - reconecta com backoff e registra os consumers de novo quando a conexão cai;
- * - publica mensagens persistentes com confirmação do broker;
+ * - publica mensagens persistentes com confirmação do broker, numa fila ou num evento (exchange fanout);
  * - para cada fila `X` declara `X.retry` (espera com TTL e volta para `X`) e `X.dlq` (falhas definitivas);
+ * - liga as filas aos eventos que elas assinam (`consume` com `bindTo`);
  * - sempre faz ack/nack: sucesso → ack, erro transitório → retry com backoff, erro permanente ou retries esgotados → DLQ.
  */
 export class QueueClient {
@@ -36,8 +37,13 @@ export class QueueClient {
 	private connecting?: Promise<void>
 	private closing = false
 
-	private readonly declared = new Set<QueueName>()
+	private readonly declared = new Set<string>()
+	private readonly exchanges = new Set<ExchangeName>()
+	private readonly bindings = new Map<string, ExchangeName>()
 	private readonly consumers: Consumer[] = []
+
+	// IDs de eventos que o broker devolveu por não haver nenhuma fila ligada à exchange
+	private readonly unroutable = new Set<string>()
 	private readonly inFlight = new Set<Promise<void>>()
 	private readonly logger: Logger
 
@@ -53,8 +59,11 @@ export class QueueClient {
 		return this.connecting
 	}
 
-	/** Declara a fila com retry e DLQ. Idempotente; refeito automaticamente após reconexões. */
-	async assertQueue(queue: QueueName) {
+	/**
+	 * Declara a fila com retry e DLQ. Idempotente; refeito automaticamente após reconexões.
+	 * Aceita qualquer nome para atender filas de resposta de outros canais (`replyTo.queue`).
+	 */
+	async assertQueue(queue: string) {
 		const channel = await this.getChannel()
 		if (this.declared.has(queue)) return
 
@@ -67,28 +76,56 @@ export class QueueClient {
 		this.declared.add(queue)
 	}
 
-	/** Publica uma mensagem persistente e espera a confirmação do broker. */
-	async publish(queue: QueueName, payload: unknown) {
+	/** Declara o evento (exchange fanout durável). Idempotente; refeito automaticamente após reconexões. */
+	async assertExchange(exchange: ExchangeName) {
+		const channel = await this.getChannel()
+		if (this.exchanges.has(exchange)) return
+
+		await channel.assertExchange(exchange, 'fanout', { durable: true })
+		this.exchanges.add(exchange)
+	}
+
+	/** Publica uma mensagem persistente numa fila e espera a confirmação do broker. */
+	async publish(queue: string, payload: unknown) {
 		await this.assertQueue(queue)
 		const channel = await this.getChannel()
 
-		channel.sendToQueue(queue, Buffer.from(JSON.stringify(payload)), {
-			persistent: true,
-			contentType: 'application/json',
-			timestamp: Date.now(),
-		})
+		channel.sendToQueue(queue, Buffer.from(JSON.stringify(payload)), messageProperties())
 
 		await channel.waitForConfirms()
 	}
 
-	/** Consome a fila validando cada mensagem com `schema`. Se o handler terminar sem erro, a mensagem recebe ack. */
+	/**
+	 * Publica um evento: cada fila ligada à exchange recebe uma cópia.
+	 * @throws Se nenhuma fila estiver ligada (a mensagem se perderia); como erro transitório, entra no retry.
+	 */
+	async publishEvent(exchange: ExchangeName, payload: unknown) {
+		await this.assertExchange(exchange)
+		const channel = await this.getChannel()
+		const properties = { ...messageProperties(), messageId: crypto.randomUUID(), mandatory: true }
+
+		channel.publish(exchange, '', Buffer.from(JSON.stringify(payload)), properties)
+
+		// O broker devolve (basic.return) as mensagens sem destino antes de confirmá-las
+		await channel.waitForConfirms()
+
+		if (this.unroutable.delete(properties.messageId)) {
+			throw new Error(`Nenhuma fila ligada ao evento "${exchange}": inicie um consumidor (ex.: o discord-bot)`)
+		}
+	}
+
+	/**
+	 * Consome a fila validando cada mensagem com `schema`. Se o handler terminar sem erro, a mensagem recebe ack.
+	 * Com `bindTo`, a fila também passa a receber os eventos dessa exchange.
+	 */
 	async consume<S extends z.ZodType>(
 		queue: QueueName,
 		schema: S,
 		handler: (payload: z.output<S>) => Promise<void>,
-		options: { prefetch?: number } = {},
+		options: { prefetch?: number; bindTo?: ExchangeName } = {},
 	) {
 		await this.assertQueue(queue)
+		if (options.bindTo) await this.bindQueue(queue, options.bindTo)
 
 		const consumer: Consumer = {
 			queue,
@@ -120,6 +157,14 @@ export class QueueClient {
 		this.logger.info('Conexão com o RabbitMQ encerrada')
 	}
 
+	private async bindQueue(queue: string, exchange: ExchangeName) {
+		await this.assertExchange(exchange)
+		const channel = await this.getChannel()
+
+		await channel.bindQueue(queue, exchange, '')
+		this.bindings.set(queue, exchange)
+	}
+
 	// ----------------------------------------------------------------------------------------------- conexão
 
 	private async connectWithRetry() {
@@ -147,6 +192,9 @@ export class QueueClient {
 			connection.on('error', error => this.logger.error({ err: error }, 'Erro na conexão com o RabbitMQ'))
 			connection.on('close', () => this.handleDisconnect(connection))
 			channel.on('error', error => this.logger.error({ err: error }, 'Erro no canal do RabbitMQ'))
+			channel.on('return', (msg: ConsumeMessage) => {
+				if (msg.properties.messageId) this.unroutable.add(msg.properties.messageId)
+			})
 
 			// Um canal pode fechar sozinho (ex.: erro de protocolo) com a conexão ainda aberta: força a reconexão completa
 			channel.on('close', () => {
@@ -154,6 +202,8 @@ export class QueueClient {
 			})
 
 			for (const queue of this.declared) await assertTopology(channel, queue)
+			for (const exchange of this.exchanges) await channel.assertExchange(exchange, 'fanout', { durable: true })
+			for (const [queue, exchange] of this.bindings) await channel.bindQueue(queue, exchange, '')
 
 			this.connection = connection
 			this.channel = channel
@@ -255,8 +305,12 @@ function parseMessage(consumer: Consumer, msg: ConsumeMessage) {
 	}
 }
 
+function messageProperties() {
+	return { persistent: true, contentType: 'application/json', timestamp: Date.now() }
+}
+
 /** Declara a fila principal, a `.retry` (volta à principal após o TTL) e a `.dlq` (falhas definitivas). */
-async function assertTopology(channel: ConfirmChannel, queue: QueueName) {
+async function assertTopology(channel: ConfirmChannel, queue: string) {
 	await channel.assertQueue(deadLetterQueueName(queue), { durable: true })
 
 	await channel.assertQueue(retryQueueName(queue), {

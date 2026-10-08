@@ -2,7 +2,7 @@ import { Client, Events, GatewayIntentBits } from 'discord.js'
 
 import { CvResultSchema, ProcessedJobSchema } from '@shared/contracts'
 import { onShutdown } from '@shared/lifecycle'
-import { QUEUES } from '@shared/messaging'
+import { EXCHANGES, QUEUES } from '@shared/messaging'
 import { startService } from '@shared/service'
 
 import { discordEnv } from './config'
@@ -36,15 +36,21 @@ client.once(Events.ClientReady, async readyClient => {
 
 	await queue.consume(QUEUES.discordCv, CvResultSchema, result => deliverCv(client, result, logger))
 
-	await queue.consume(QUEUES.discord, ProcessedJobSchema, async job => {
-		try {
-			await publishJob(channel, job)
-		} catch (error) {
-			throw toQueueError(error)
-		}
+	// A fila `discord` assina o evento `job-published`: recebe todas as vagas, independente de outros canais
+	await queue.consume(
+		QUEUES.discord,
+		ProcessedJobSchema,
+		async job => {
+			try {
+				await publishJob(channel, job)
+			} catch (error) {
+				throw toQueueError(error)
+			}
 
-		logger.info({ postId: job.postId }, 'Vaga publicada no Discord')
-	})
+			logger.info({ postId: job.postId }, 'Vaga publicada no Discord')
+		},
+		{ bindTo: EXCHANGES.jobPublished },
+	)
 })
 
 await client.login(config.DISCORD_TOKEN).catch(error => {
