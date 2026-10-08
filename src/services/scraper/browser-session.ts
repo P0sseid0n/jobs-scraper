@@ -1,0 +1,116 @@
+import type { Browser, BrowserContext, Page } from 'puppeteer'
+import puppeteer from 'puppeteer-extra'
+import StealthPlugin from 'puppeteer-extra-plugin-stealth'
+
+import type { Logger } from '@shared/logging'
+
+import { loadJson, saveJson } from './json-file'
+import { linkedinCookie, parseStoredCookies } from './linkedin/session-cookies'
+
+puppeteer.use(StealthPlugin())
+
+type BrowserOptions = {
+	headless: boolean
+	noSandbox: boolean
+
+	/** Onde a sessão do LinkedIn (cookies) é salva entre execuções. */
+	cookieFile: string
+
+	/** Cookie `li_at` vindo do .env, usado quando o arquivo de cookies ainda não tem um. */
+	fallbackLiAt?: string
+
+	logger: Logger
+}
+
+const NAVIGATION_ATTEMPTS = 3
+
+/** Navegador com uma aba anônima e a sessão do LinkedIn salva em disco. */
+export class BrowserSession {
+	context?: BrowserContext
+	private currentPage?: Page
+
+	private constructor(
+		readonly browser: Browser,
+		private readonly options: BrowserOptions,
+	) {}
+
+	static async launch(options: BrowserOptions) {
+		const browser = await puppeteer.launch({
+			headless: options.headless,
+			args: options.noSandbox ? ['--no-sandbox', '--disable-setuid-sandbox'] : [],
+		})
+		options.logger.info('🌐 Navegador iniciado')
+
+		const session = new BrowserSession(browser, options)
+		await session.newContext()
+
+		return session
+	}
+
+	get page(): Page {
+		if (!this.currentPage) throw new Error('Nenhuma página aberta')
+
+		return this.currentPage
+	}
+
+	/** Abre um contexto limpo (aba anônima). Com `withCookies`, restaura a sessão salva. */
+	async newContext({ withCookies = true } = {}) {
+		await this.context?.close()
+
+		this.context = await this.browser.createBrowserContext()
+		this.currentPage = await this.context.newPage()
+
+		if (withCookies) await this.restoreCookies()
+	}
+
+	/** Navega tentando de novo se a navegação for abortada (ex.: por um redirecionamento ainda em andamento). */
+	async goto(url: string) {
+		for (let attempt = 1; ; attempt++) {
+			try {
+				return await this.page.goto(url, { waitUntil: 'domcontentloaded' })
+			} catch (error) {
+				if (attempt >= NAVIGATION_ATTEMPTS || !String(error).includes('ERR_ABORTED')) throw error
+
+				this.options.logger.debug({ attempt }, 'Navegação abortada, tentando de novo')
+				await Bun.sleep(2_000)
+			}
+		}
+	}
+
+	/** Há uma sessão do LinkedIn (cookie `li_at` com valor) no contexto atual? */
+	async hasSession() {
+		const cookies = (await this.context?.cookies()) ?? []
+
+		return cookies.some(cookie => cookie.name === 'li_at' && cookie.value)
+	}
+
+	/** Salva todos os cookies do LinkedIn da sessão atual (não só o `li_at`), se houver uma sessão válida. */
+	async saveCookies() {
+		if (!this.context) return
+
+		const cookies = (await this.context.cookies()).filter(cookie => cookie.domain.endsWith('linkedin.com') && cookie.value)
+
+		if (!cookies.some(cookie => cookie.name === 'li_at')) {
+			this.options.logger.warn('Cookie li_at não encontrado após o login; a sessão não foi salva')
+			return
+		}
+
+		await saveJson(this.options.cookieFile, cookies)
+		this.options.logger.debug({ count: cookies.length }, '💾 Cookies salvos')
+	}
+
+	close() {
+		return this.browser.close()
+	}
+
+	private async restoreCookies() {
+		const cookies = parseStoredCookies(await loadJson(this.options.cookieFile, []))
+
+		if (this.options.fallbackLiAt && !cookies.some(cookie => cookie.name === 'li_at')) {
+			cookies.push(linkedinCookie('li_at', this.options.fallbackLiAt))
+		}
+
+		if (cookies.length > 0) await this.context?.setCookie(...cookies)
+		this.options.logger.debug({ count: cookies.length }, '📥 Cookies restaurados')
+	}
+}

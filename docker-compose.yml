@@ -92,7 +92,7 @@ services:
       HEADLESS: 'true'
       BROWSER_NO_SANDBOX: 'true'
     volumes:
-      - scraper_data:/app/src/services/scraper/data
+      - scraper_data:/app/data/scraper
     depends_on:
       rabbitmq:
         condition: service_healthy

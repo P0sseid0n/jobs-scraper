@@ -2,4 +2,6 @@ node_modules
 .env
 
 
-linkedin_cookies.json
+
+# Dados de execução: currículo pessoal, PDFs gerados, caches e sessão do LinkedIn
+data/

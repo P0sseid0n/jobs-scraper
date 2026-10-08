@@ -2,6 +2,7 @@ node_modules
 .git
 .github
 .env
-**/linkedin_cookies.json
-tests
 *.md
+# Dados de execução (currículo pessoal, sessão do LinkedIn...): montados como volume, nunca dentro da imagem
+data
+**/*.test.ts
