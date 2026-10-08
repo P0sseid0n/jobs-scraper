@@ -5,7 +5,7 @@ import { PermanentError } from '@shared/messaging'
 
 import type { AiJobOutput } from './extraction-output'
 import { buildExtractionMessages, EXTRACTION_OUTPUT_FORMAT } from './extraction-prompt'
-import { keepLinkIfInPost, parseModelResponse } from './model-response'
+import { keepLinkIfInPost, keepSkillsInPost, parseModelResponse } from './model-response'
 
 /** Pede ao modelo os dados da vaga contidos no post (`null` se ele responder `null`). */
 export async function extractJobFromPost(ollama: Ollama, model: string, post: RawPost): Promise<AiJobOutput | null> {
@@ -35,7 +35,8 @@ export function buildProcessedJob(post: RawPost, aiJob: AiJobOutput, language: s
 		location: aiJob.location,
 		// O link real do post tem prioridade; o da IA só vale se estiver escrito no texto
 		link: post.url ?? keepLinkIfInPost(aiJob.link, normalizePostText(post.text)),
-		necessary_knowledge: aiJob.necessary_knowledge,
+		// Só os conhecimentos escritos no post: o modelo às vezes completa com tecnologias "típicas" do cargo
+		necessary_knowledge: keepSkillsInPost(aiJob.necessary_knowledge, post.text),
 		recruiter_email: aiJob.recruiter_email,
 		workMode: aiJob.workMode,
 		aiJobConfidence: aiJob.aiJobConfidence,

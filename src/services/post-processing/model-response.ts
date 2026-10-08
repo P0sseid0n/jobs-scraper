@@ -32,3 +32,38 @@ export function keepLinkIfInPost(link: string | null, text: string): string | nu
 	if (!link || !/^https?:\/\//i.test(link)) return null
 	return text.includes(link) ? link : null
 }
+
+/**
+ * Mantém só os conhecimentos escritos no post (evita tecnologia inventada): cada palavra do item precisa
+ * começar alguma palavra do texto, ignorando caixa, acentos, ".js" e plural ("REST APIs" ↔ "API REST").
+ * @returns Os conhecimentos encontrados, ou `null` se nenhum sobrar.
+ */
+export function keepSkillsInPost(skills: string[] | null, text: string): string[] | null {
+	const normalizedText = normalizeForMatch(text)
+	const kept = (skills ?? []).filter(skill => skillWords(skill).every(word => containsWordStart(normalizedText, word)))
+
+	return kept.length > 0 ? kept : null
+}
+
+function skillWords(skill: string) {
+	return normalizeForMatch(skill)
+		.replace(/\.js\b/g, '')
+		.split(/[^a-z0-9#+]+/)
+		.filter(Boolean)
+		.map(word => word.replace(/(?<=.{3})js$/, '').replace(/(?<=.{3})s$/, ''))
+}
+
+/** Palavras de até 2 caracteres ("C", "R", "Go", "AI") precisam aparecer inteiras; as demais, no começo de uma palavra. */
+function containsWordStart(text: string, word: string) {
+	const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+	const end = word.length <= 2 ? '(?![a-z0-9#+])' : ''
+
+	return new RegExp(`(?<![a-z0-9])${escaped}${end}`).test(text)
+}
+
+function normalizeForMatch(text: string) {
+	return text
+		.normalize('NFKD')
+		.replace(/\p{Diacritic}/gu, '')
+		.toLowerCase()
+}

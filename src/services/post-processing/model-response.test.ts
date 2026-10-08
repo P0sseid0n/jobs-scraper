@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { keepLinkIfInPost, parseModelResponse, rejectionReason } from './model-response'
+import { keepLinkIfInPost, keepSkillsInPost, parseModelResponse, rejectionReason } from './model-response'
 
 describe('parseModelResponse', () => {
 	test('retorna null quando o modelo responde "null"', () => {
@@ -78,5 +78,28 @@ describe('keepLinkIfInPost', () => {
 		expect(keepLinkIfInPost('https://empresa.com/careers', text)).toBeNull()
 		expect(keepLinkIfInPost('empresa.com', text)).toBeNull()
 		expect(keepLinkIfInPost(null, text)).toBeNull()
+	})
+})
+
+describe('keepSkillsInPost', () => {
+	const text = 'Vaga Full-Stack: 𝐂# / Python / Vue.js 3, NestJS e Node. Experiência com APIs REST e Microsoft Azure.'
+
+	test('mantém os conhecimentos escritos no post, mesmo com outra grafia', () => {
+		const skills = ['C#', 'Python', 'Vue.js', 'NestJS', 'Node.js', 'REST API', 'Azure']
+
+		expect(keepSkillsInPost(skills, text)).toEqual(skills)
+	})
+
+	test('remove os que não estão no post', () => {
+		expect(keepSkillsInPost(['Vue.js', 'React', 'SQL', 'Full Stack Development'], text)).toEqual(['Vue.js'])
+	})
+
+	test('não confunde letra solta com parte de palavra', () => {
+		expect(keepSkillsInPost(['C', 'R'], 'Vaga para dev com experiência em React')).toBeNull()
+	})
+
+	test('null quando nada sobra ou não havia conhecimentos', () => {
+		expect(keepSkillsInPost(['Java'], text)).toBeNull()
+		expect(keepSkillsInPost(null, text)).toBeNull()
 	})
 })

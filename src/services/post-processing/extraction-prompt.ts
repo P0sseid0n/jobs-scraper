@@ -44,11 +44,14 @@ Mentioning technologies or the word "developer" does NOT make a post a job_openi
 - 0-29: not a vacancy (always use this range when postType is not "job_opening").
 
 ## 3. Extract the fields, using only the post text
+If the post lists several openings, extract only ONE: the opening most related to software development (or the first one if none is).
+Every field must come from that same opening; never mix the title of one opening with the link or skills of another.
+
 - title: the role exactly as written, without emojis. null if absent.
 - company: the hiring company. null if not named. Never write placeholders like "unknown".
 - location: city, state and/or country of the job. null if absent.
 - workMode: "remoto" (remote), "presencial" (on-site) or "hibrido" (hybrid). null if not stated.
-- necessary_knowledge: required technologies and skills as short names (e.g. "Vue.js", "TypeScript"); at most 10; [] if none.
+- necessary_knowledge: technologies and skills written in the post for this opening, as short names (e.g. "Vue.js", "TypeScript"); at most 10; [] if none. Never add technologies that are not written, even if they are typical for the role.
 - recruiter_email: a contact email written in the post. null if absent.
 - link: an application URL (starting with http) written in the post. null if absent.
 
