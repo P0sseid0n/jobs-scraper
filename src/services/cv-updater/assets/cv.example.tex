@@ -1,0 +1,94 @@
+\documentclass[a4paper,10pt]{article}
+
+\usepackage[brazil]{babel}
+\usepackage[margin=1.5cm]{geometry}
+\usepackage{parskip}
+\usepackage[hidelinks]{hyperref}
+\usepackage{xurl}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{fontspec}
+\setmainfont{Nunito}
+
+\pagestyle{empty}
+\setlength{\parskip}{4pt}
+\linespread{1.05}
+
+\hypersetup{
+    pdftitle={CV - Fulano da Silva},
+    pdfauthor={Fulano da Silva}
+}
+
+\setcounter{secnumdepth}{0}
+
+\titleformat{\section}
+  {\Large\bfseries} % Formato do texto do título (grande e negrito)
+  {}
+  {0em}
+  {}
+  [\titlerule\vspace{0.25ex}] % Adiciona uma linha horizontal e um pequeno espaço vertical
+
+
+\begin{document}
+
+\begin{center}
+    {\LARGE \textbf{Fulano da Silva}}
+
+    \textit{Desenvolvedor Full-Stack}
+
+    São Paulo, SP
+
+    \href{mailto:fulano@example.com}{fulano@example.com} \ | \ (11) 90000-0000
+
+    \href{https://fulano.dev}{fulano.dev} \ |
+    \href{https://github.com/fulano}{github.com/fulano}
+\end{center}
+
+\vspace{8pt}
+
+\section*{Apresentação}
+Desenvolvedor Full-Stack com experiência em TypeScript, Vue.js e Node.js.
+Focado em interfaces performáticas, boas práticas e qualidade de código.
+
+\section*{Habilidades Técnicas}
+
+\begin{itemize}[leftmargin=*, itemsep=4pt]
+    \item \textbf{Front-end:} HTML, CSS (SASS/SCSS), Vue.js, React
+    \item \textbf{Back-end:} Node.js, Express, PostgreSQL
+    \item \textbf{Linguagens:} JavaScript / TypeScript, Python
+    \item \textbf{Ferramentas \& DevOps:} Git, Docker
+\end{itemize}
+
+\section*{Projetos}
+
+\textbf{Loja Exemplo} | \href{https://github.com/fulano/loja}{github.com/fulano/loja}
+
+E-commerce com carrinho e pagamentos.
+
+\textit{Tecnologias: React, Node.js, PostgreSQL}
+
+\vspace{6pt}
+
+\textbf{Painel Exemplo} | \href{https://github.com/fulano/painel}{github.com/fulano/painel}
+
+Painel administrativo com gráficos em tempo real.
+
+\textit{Tecnologias: Vue.js, TypeScript}
+
+\section*{Experiência Profissional}
+
+\textbf{Empresa Exemplo} \hfill Janeiro 2022 - Presente
+
+\textit{Desenvolvedor Front-End}
+
+\begin{itemize}[leftmargin=*]
+    \item Integração com APIs REST e melhoria de performance.
+    \item Desenvolvimento de interfaces com Vue.js e TypeScript.
+    \item Participação em cerimônias ágeis (Scrum).
+\end{itemize}
+
+\section*{Formação Acadêmica}
+
+\textbf{Universidade Exemplo} - Análise e Desenvolvimento de Sistemas \hfill 2020 - 2023
+
+\end{document}

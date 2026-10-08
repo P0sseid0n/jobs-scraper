@@ -11,9 +11,11 @@ flowchart LR
 	scraper["scraper<br/><small>Puppeteer</small>"] -- "fila: post-processing" --> processing["post-processing<br/><small>Ollama</small>"]
 	processing -- "fila: storage" --> storage["storage<br/><small>MongoDB</small>"]
 	storage -- "fila: discord" --> bot["discord-bot<br/><small>Discord</small>"]
+	bot -- "fila: cv-updater" --> cv["cv-updater<br/><small>LaTeX + Ollama</small>"]
+	cv -- "fila: discord-cv" --> bot
 ```
 
-Cada fila tem o mesmo nome do serviço que a consome. O `discord-bot` consome a fila `discord`.
+Cada fila tem o mesmo nome do serviço que a consome. O `discord-bot` consome as filas `discord` (vagas) e `discord-cv` (currículos prontos).
 
 1. **Scraper** (`src/services/scraper`): usa Puppeteer para buscar posts no LinkedIn. Cada post recebe um `postId` (hash do texto normalizado) e é enviado para a fila `post-processing`.
 2. **Pós-processamento** (`src/services/post-processing`): ignora posts já vistos, usa um modelo do Ollama para extrair os dados da vaga e envia o resultado para a fila `storage`.
@@ -21,6 +23,24 @@ Cada fila tem o mesmo nome do serviço que a consome. O `discord-bot` consome a 
 4. **Bot do Discord** (`src/services/discord-bot`): publica cada vaga como um card (embed) com cargo, empresa, local, modalidade, data, tecnologias e botões para o post e para o contato do recrutador.
    - Num **canal de texto**, cada vaga vira uma mensagem.
    - Num **canal de fórum**, cada vaga vira um post próprio. O bot aplica as tags do fórum que batem com a modalidade ou as tecnologias (crie tags como "Remoto" ou "Vue" no fórum).
+5. **Currículo ajustado** (`src/services/cv-updater`): ao clicar em "📧 Contato do recrutador" (ou "📄 Gerar currículo", quando a vaga não tem e-mail), o bot responde só para você com o contato e, segundos depois, envia um PDF do seu currículo ajustado à vaga.
+
+### 📄 Currículo ajustado (cv-updater)
+
+O currículo base é o seu próprio `.tex` (o mesmo do Overleaf), em `data/cv/cv.tex`. O serviço reescreve só os trechos de texto e compila com o [Tectonic](https://tectonic-typesetting.github.io), então o PDF sai com **o mesmo design** do original:
+
+- **Apresentação**: reescrita pela IA para a vaga, destacando o que combina e citando as tecnologias pedidas (que também entram nas habilidades).
+- **Habilidades**: entram as tecnologias pedidas pela vaga (na categoria certa; nuvem e DevOps vão para ferramentas) e ficam só as suas categorias relacionadas à vaga, com as tecnologias da vaga primeiro. Conceitos e metodologias ("Agile", "Component-driven architecture") não entram como tecnologia.
+- **Projetos**: com `GITHUB_USERNAME` configurado, os projetos (`CV_MAX_PROJECTS`, padrão 2) são escolhidos entre os seus repositórios públicos por ranqueamento: +10 por tecnologia da vaga que o projeto usa (linguagens, topics e dependências do `package.json`), +3 se tem descrição e +3 se tem topics; desempate pelo mais recente. Projetos que já estão no `.tex` usam o texto que você escreveu; os demais ganham uma descrição gerada a partir do README. Forks, arquivados e os listados em `GITHUB_EXCLUDE_REPOS` ficam de fora. Sem GitHub, ficam os projetos do `.tex`, reordenados.
+- **Experiência**: bullets reordenados por relevância; nenhum é criado ou removido.
+
+Se o resultado passar de uma página, primeiro sai um projeto e depois volta a apresentação original, até caber. Os PDFs gerados ficam em `data/cv/generated/`.
+
+**Configuração:**
+
+1. Coloque seu currículo em `data/cv/cv.tex`. Use o `src/services/cv-updater/assets/cv.example.tex` como referência do formato esperado: seções `Apresentação`, `Habilidades Técnicas` (`\item \textbf{Categoria:} item, item`), `Projetos` (blocos separados por `\vspace`) e `Experiência Profissional` (bullets em `itemize`). A pasta `data/` inteira fica fora do git.
+2. Instale o [Tectonic](https://github.com/tectonic-typesetting/tectonic/releases) e aponte `TECTONIC_BIN` para o executável (no Docker ele já vem na imagem). Na primeira compilação, ele baixa os pacotes LaTeX e guarda em cache.
+3. A fonte Nunito (usada pelo modelo) já vem em `src/services/cv-updater/assets/fonts/` (licença OFL). Se o seu `.tex` usar outra fonte com `\setmainfont{Fonte}`, coloque os arquivos `Fonte-Regular.otf`, `Fonte-Italic.otf` e `Fonte-Bold.otf` (ou `-ExtraBold.otf`) nessa pasta.
 
 ### Filas, retries e DLQ
 
@@ -29,7 +49,7 @@ Para cada fila `X` existem também:
 - `X.retry`: mensagens que falharam por erro transitório esperam ali (backoff exponencial a partir de `QUEUE_RETRY_DELAY_MS`) e depois voltam para `X`.
 - `X.dlq`: mensagens com formato inválido ou que falharam mais de `QUEUE_MAX_RETRIES` vezes. Inspecione pelo painel do RabbitMQ.
 
-As mensagens são persistentes e validadas com os schemas de `src/types/messages.ts`.
+As mensagens são persistentes e validadas com os schemas de `src/shared/contracts/`.
 
 ## 🛠️ Tecnologias
 
@@ -39,6 +59,7 @@ As mensagens são persistentes e validadas com os schemas de `src/types/messages
 - **MongoDB** + Mongoose (armazenamento)
 - **Ollama** (IA local)
 - **Discord.js** (bot)
+- **Tectonic** (LaTeX, para o currículo)
 - **Zod** (validação de configuração e mensagens), **Pino** (logs)
 - **Docker Compose** (infraestrutura e serviços)
 
@@ -87,7 +108,7 @@ docker compose --profile app up -d --build
 
 Por padrão o scraper roda uma coleta e termina. Para coletar periodicamente, defina `SCRAPER_INTERVAL_MINUTES` (ex.: `180` para a cada 3 horas). Outra opção é agendar `docker compose --profile app run --rm scraper` com cron ou com o Agendador de Tarefas.
 
-A sessão do LinkedIn fica salva em `src/services/scraper/data/linkedin_cookies.json` (no Docker, no volume `scraper_data`), então o login só é refeito quando ela expira. Se o LinkedIn pedir captcha ou 2FA, rode com `HEADLESS=false` e resolva na janela do navegador.
+A sessão do LinkedIn fica salva em `data/scraper/linkedin-cookies.json` (no Docker, no volume `scraper_data`), então o login só é refeito quando ela expira. Se o LinkedIn pedir captcha ou 2FA, rode com `HEADLESS=false` e resolva na janela do navegador.
 
 ### Painéis
 
@@ -113,31 +134,51 @@ O CI (GitHub Actions) roda `typecheck`, `lint`, `format:check` e `test` em todo 
 
 ```
 src/
-  config.ts                 # schemas das variáveis de ambiente (zod)
+  shared/                      # código usado por mais de um serviço (importado como @shared/<módulo>)
+    service/                   #   startService(): logger, .env, MongoDB e RabbitMQ prontos em uma chamada
+    config/                    #   carregamento e validação do .env (zod) e variáveis de infraestrutura
+    contracts/                 #   formato das mensagens que trafegam nas filas
+    database/                  #   conexão com o MongoDB e modelos (Job, SeenPost)
+    messaging/                 #   cliente RabbitMQ, nomes das filas e política de retry/DLQ
+    logging/, lifecycle/       #   logger e encerramento gracioso
   services/
-    scraper/                # scraper do LinkedIn
-      index.ts              #   loop de coleta e agendamento
-      browser.ts            #   navegador (stealth) e sessão/cookies
-      auth.ts               #   login e verificação
-      scrape.ts             #   leitura dos posts e paginação
-      linkedin.ts           #   URLs, seletores e helpers puros
-    post-processing/        # extração com IA
-    storage/                # persistência no MongoDB
-    discord-bot/            # publicação no Discord
-  types/messages.ts         # contratos das mensagens das filas
-  utils/                    # fila (RabbitMQ), banco, logger, shutdown, hash
-tests/                      # testes (bun test)
+    scraper/                   # coleta posts no LinkedIn
+      scrape-run.ts            #   uma execução: abre a busca, lê os posts e publica os novos
+      browser-session.ts       #   navegador (stealth) e cookies da sessão
+      login.ts                 #   login e verificação (captcha/2FA)
+      feed-reader.ts           #   leitura dos posts e paginação
+      linkedin/                #   URLs, seletores, URN do post, cookies e limpeza de texto
+    post-processing/           # extrai a vaga do post com IA
+      job-extraction.ts        #   chamada ao modelo e montagem da vaga
+      extraction-prompt.ts     #   prompt e schema enviados ao modelo
+      model-response.ts        #   leitura e validação da resposta
+    storage/                   # salva no MongoDB e encaminha ao Discord
+    discord-bot/               # publica as vagas e entrega o currículo
+      job-publisher.ts         #   canal das vagas (texto ou fórum) e envio do card
+      job-card.ts              #   card (embed) da vaga
+      contact-button.ts        #   clique no botão de contato (pede o currículo)
+      contact-reply.ts         #   texto da resposta do botão
+      cv-delivery.ts           #   envio do PDF gerado
+    cv-updater/                # gera o currículo ajustado à vaga
+      base-resume.ts           #   leitura do cv.tex base
+      tailoring-suggestions.ts #   sugestões da IA (apresentação, habilidades, projetos)
+      tailoring-prompt.ts      #   prompt e schema dessas sugestões
+      tailor-resume.ts         #   monta o currículo da vaga (habilidades, projetos, experiência)
+      resume-pdf.ts            #   PDF em uma página (simplifica se não couber)
+      latex-compiler.ts        #   compilação com o Tectonic
+      resume/                  #   leitura e escrita do .tex sem alterar o design
+      skills/                  #   seção de habilidades e associação entre tecnologias da vaga e do currículo
+      projects/                #   GitHub (API e cache), ranking, escolha e descrição dos projetos
+      assets/                  #   fontes e cv.example.tex
+data/                          # dados de execução, fora do git: cv/cv.tex, cv/generated/, cache/, scraper/
 ```
 
-## 🔄 Migrando de uma versão anterior
-
-- **Filas:** as filas foram renomeadas para kebab-case (`post_processing` → `post-processing`, `send-discord-message` → `discord`) e agora são declaradas com dead-letter. Apague as filas antigas `post_processing`, `storage` e `send-discord-message` pelo painel (aba *Queues* → *Delete*). Mensagens que ainda estiverem nelas não são migradas. A `storage` mantém o nome, mas precisa ser recriada: enquanto a versão antiga existir, o serviço encerra com um erro avisando.
-- **Banco:** a coleção de vagas foi renomeada de `processed` para `jobs`. A migração é automática: na primeira inicialização, o storage ou o post-processing renomeia a coleção e mantém os dados.
-- **Credenciais:** o Mongo e o RabbitMQ só criam o usuário quando o volume é criado. Para trocar as credenciais antigas (`user`/`user`), recrie os volumes com `docker compose down -v`. Isso **apaga os dados**.
+Cada serviço tem um `index.ts` (ponto de entrada, que chama `startService()` e registra os consumers) e, quando precisa, um `config.ts` (variáveis de ambiente próprias). Os módulos de `shared/` são importados pelo barrel (`@shared/messaging`, `@shared/contracts`...). Os imports ficam em três grupos (pacotes, `@shared`, locais), ordenados automaticamente pelo Prettier. Os testes ficam ao lado do arquivo testado (`*.test.ts`).
 
 ## ⚠️ Observações importantes
 
-- **NUNCA** suba o `.env` ou o `linkedin_cookies.json` para o repositório.
+- O Mongo e o RabbitMQ só criam o usuário quando o volume é criado. Para trocar as credenciais depois, recrie os volumes com `docker compose down -v`. Isso **apaga os dados**.
+- **NUNCA** suba o `.env` ou a pasta `data/` (currículo pessoal e sessão do LinkedIn) para o repositório.
 - Fazer scraping do LinkedIn vai contra os Termos de Uso da plataforma e pode levar ao bloqueio da conta. Use uma conta dedicada, mantenha `SCRAPER_MAX_POSTS` baixo, use o filtro `SCRAPER_DATE_POSTED` e espace as execuções (`SCRAPER_INTERVAL_MINUTES` de algumas horas).
 - Os logs em nível `info` registram apenas IDs e metadados. O conteúdo dos posts e as respostas da IA só aparecem com `LOG_LEVEL=debug`.
 

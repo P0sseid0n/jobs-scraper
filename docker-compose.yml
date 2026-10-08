@@ -146,8 +146,35 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  cv-updater:
+    profiles: [app]
+    build:
+      context: .
+      target: cv-updater
+    env_file: .env
+    environment:
+      <<: *app-env
+      TECTONIC_BIN: tectonic
+    volumes:
+      - ./data/cv/cv.tex:/app/data/cv/cv.tex:ro
+      - ./data/cv/generated:/app/data/cv/generated
+      # Cache dos repositórios do GitHub
+      - cv_cache:/app/data/cache
+      # Cache dos pacotes LaTeX baixados pelo Tectonic na primeira compilação
+      - tectonic_cache:/home/bun/.cache/Tectonic
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+      ollama-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
 volumes:
   ollama_data:
   rabbitmq_data:
   mongo_data:
   scraper_data:
+  tectonic_cache:
+  cv_cache:
