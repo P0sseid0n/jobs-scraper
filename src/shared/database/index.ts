@@ -1,3 +1,5 @@
 export * from './connection'
 export * from './job.model'
+export * from './scraper-run.model'
 export * from './seen-post.model'
+export * from './settings.model'

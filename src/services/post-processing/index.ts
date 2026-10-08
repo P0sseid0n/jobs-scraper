@@ -5,6 +5,7 @@ import { RawPostSchema, type RawPost } from '@shared/contracts'
 import { SeenPost } from '@shared/database'
 import { QUEUES } from '@shared/messaging'
 import { startService } from '@shared/service'
+import { loadSettings } from '@shared/settings'
 
 import { extractionEnv } from './config'
 import { buildProcessedJob, extractJobFromPost } from './job-extraction'
@@ -18,6 +19,10 @@ const { config, logger, queue } = await startService({
 
 const ollama = new Ollama({ host: config.OLLAMA_HOST })
 await ensureModelAvailable()
+
+// Valor inicial da coleção `settings`; depois a confiança mínima é editável por outras fontes
+const settingsSeed = { minJobConfidence: config.MIN_JOB_CONFIDENCE }
+await loadSettings('post-processing', settingsSeed)
 
 await queue.assertQueue(QUEUES.storage)
 await queue.consume(QUEUES.postProcessing, RawPostSchema, processPost)
@@ -33,7 +38,8 @@ async function processPost(post: RawPost) {
 
 	log.info('Processando post')
 	const aiJob = await extractJobFromPost(ollama, config.OLLAMA_MODEL, post)
-	const reason = rejectionReason(aiJob, config.MIN_JOB_CONFIDENCE)
+	const { minJobConfidence } = await loadSettings('post-processing', settingsSeed)
+	const reason = rejectionReason(aiJob, minJobConfidence)
 
 	if (aiJob && !reason) {
 		const job = buildProcessedJob(post, aiJob)

@@ -6,6 +6,8 @@ export const QUEUES = {
 	cvUpdater: 'cv-updater',
 	/** Currículos prontos, consumidos pelo discord-bot para entregar ao usuário. */
 	discordCv: 'discord-cv',
+	/** Comandos para o scraper (ex.: "coletar agora" vindo de outras fontes). */
+	scraper: 'scraper',
 } as const
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES]
 

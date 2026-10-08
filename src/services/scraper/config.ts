@@ -1,8 +1,7 @@
 import { z } from 'zod'
 
 import { booleanFromEnv } from '@shared/config'
-
-import { DATE_POSTED_FILTERS } from './linkedin/urls'
+import { DATE_POSTED_FILTERS } from '@shared/contracts'
 
 export const scraperEnv = {
 	// Conta do LinkedIn
@@ -16,14 +15,19 @@ export const scraperEnv = {
 	HEADLESS: booleanFromEnv.default(false),
 	BROWSER_NO_SANDBOX: booleanFromEnv.default(false),
 
-	// Busca e limites por execução
+	// Busca e limites: só os valores iniciais. Depois valem os da coleção `settings` (editável por outras fontes)
+	/** Termos de busca separados por vírgula; cada um vira uma busca na mesma coleta. */
 	SEARCH_KEYWORDS: z.string().trim().min(1).default('Front End Vue'),
 	SCRAPER_DATE_POSTED: z.enum(DATE_POSTED_FILTERS).default('past-24h'),
 	SCRAPER_MAX_POSTS: z.coerce.number().int().positive().default(50),
+	/**
+	 * 0 = roda uma coleta e termina. > 0 = fica rodando: coleta a cada N minutos e atende o "coletar agora"
+	 * (fila `scraper`). Com o serviço rodando, o intervalo passa a ser o da coleção `settings`.
+	 */
+	SCRAPER_INTERVAL_MINUTES: z.coerce.number().int().min(0).default(0),
+
 	/** Tempo máximo esperando novos posts aparecerem depois de rolar a página. */
 	SCRAPER_SCROLL_DELAY_MS: z.coerce.number().int().min(1_000).default(10_000),
-	/** 0 = roda uma vez e termina; > 0 = repete a coleta a cada N minutos. */
-	SCRAPER_INTERVAL_MINUTES: z.coerce.number().int().min(0).default(0),
 }
 
 export type ScraperConfig = z.infer<z.ZodObject<typeof scraperEnv>>

@@ -96,7 +96,9 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
-    # Com SCRAPER_INTERVAL_MINUTES > 0 o scraper fica rodando e coleta periodicamente;
+      mongo:
+        condition: service_healthy
+    # Com SCRAPER_INTERVAL_MINUTES > 0 o scraper fica rodando: coleta periodicamente e atende o "coletar agora";
     # com 0 ele roda uma vez e termina (agende com cron/`docker compose run`)
     # Sem restart automático: reiniciar em loop após falha de login aumentaria o risco de bloqueio da conta
     restart: 'no'

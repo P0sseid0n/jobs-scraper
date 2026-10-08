@@ -1,6 +1,7 @@
 import type { Page } from 'puppeteer'
 
-import type { RawPost } from '@shared/contracts'
+import type { RawPost, ScraperSettings } from '@shared/contracts'
+import type { ScraperRunTerm } from '@shared/database'
 import type { Logger } from '@shared/logging'
 import { QUEUES, type QueueClient } from '@shared/messaging'
 
@@ -13,8 +14,9 @@ import { SELECTORS } from './linkedin/selectors'
 import { buildSearchUrl, LOGIN_URL } from './linkedin/urls'
 import { ensureLoggedIn } from './login'
 import { hashPost } from './post-id'
+import { postsPerTerm } from './schedule'
 
-type ScrapeOptions = { config: ScraperConfig; queue: QueueClient; logger: Logger }
+type ScrapeOptions = { config: ScraperConfig; settings: ScraperSettings; queue: QueueClient; logger: Logger }
 
 const RESULTS_TIMEOUT_MS = 30_000
 
@@ -25,9 +27,18 @@ export function closeActiveBrowser() {
 	return activeSession?.close()
 }
 
-/** Uma coleta completa: abre a busca (logando se preciso) e envia os posts novos para a fila. */
-export async function scrapeOnce(options: ScrapeOptions) {
-	const { config, logger } = options
+/**
+ * Faz uma coleta: busca cada termo ativo em sequência e envia os posts novos para a fila.
+ * @returns O resultado de cada termo; um termo que falhar não impede os outros.
+ */
+export async function scrapeOnce(options: ScrapeOptions): Promise<ScraperRunTerm[]> {
+	const { config, settings, logger } = options
+
+	const terms = settings.searchTerms.filter(term => term.enabled).map(term => term.term)
+	const limit = postsPerTerm(settings.maxPostsPerRun, terms.length)
+
+	// Compartilhado entre os termos: um post que aparece em duas buscas só é enviado uma vez
+	const seen = new Set<string>()
 
 	const session = await BrowserSession.launch({
 		headless: config.HEADLESS,
@@ -39,22 +50,46 @@ export async function scrapeOnce(options: ScrapeOptions) {
 	activeSession = session
 
 	try {
-		const page = await openSearchResults(session, options)
-		const sent = await publishNewPosts(page, options)
+		const results: ScraperRunTerm[] = []
+
+		for (const [index, term] of terms.entries()) {
+			if (index > 0) await humanPause()
+			results.push(await scrapeTerm(session, { term, limit, seen }, options))
+		}
 
 		// Renova a sessão salva (o LinkedIn atualiza os cookies durante a navegação)
 		await session.saveCookies()
 
-		logger.info({ sent }, '✅ Coleta finalizada')
+		const sent = results.reduce((total, result) => total + result.sent, 0)
+		logger.info({ sent, terms: results.length }, '✅ Coleta finalizada')
+
+		return results
 	} finally {
 		activeSession = undefined
 		await session.close()
 	}
 }
 
+type TermSearch = { term: string; limit: number; seen: Set<string> }
+
+async function scrapeTerm(session: BrowserSession, search: TermSearch, options: ScrapeOptions): Promise<ScraperRunTerm> {
+	const logger = options.logger.child({ term: search.term })
+
+	try {
+		const page = await openSearchResults(session, search.term, { ...options, logger })
+		const sent = await publishNewPosts(page, search, { ...options, logger })
+
+		return { term: search.term, sent, error: null }
+	} catch (error) {
+		logger.error({ err: error }, 'Falha na busca deste termo')
+
+		return { term: search.term, sent: 0, error: error instanceof Error ? error.message : String(error) }
+	}
+}
+
 /** Abre a busca de posts, faz login se o LinkedIn pedir e espera os resultados aparecerem. */
-async function openSearchResults(session: BrowserSession, { config, logger }: ScrapeOptions): Promise<Page> {
-	const searchUrl = buildSearchUrl({ keywords: config.SEARCH_KEYWORDS, datePosted: config.SCRAPER_DATE_POSTED })
+async function openSearchResults(session: BrowserSession, term: string, { config, settings, logger }: ScrapeOptions): Promise<Page> {
+	const searchUrl = buildSearchUrl({ keywords: term, datePosted: settings.datePosted })
 	logger.info({ searchUrl }, '🔎 Abrindo a busca do LinkedIn')
 
 	try {
@@ -89,19 +124,18 @@ async function openSearchResults(session: BrowserSession, { config, logger }: Sc
 	return page
 }
 
-/** Rola a busca enviando cada post novo para a fila, até o limite por execução ou o fim dos resultados. */
-async function publishNewPosts(page: Page, { config, queue, logger }: ScrapeOptions) {
-	const seen = new Set<string>()
+/** Rola a busca enviando cada post novo para a fila, até o limite do termo ou o fim dos resultados. */
+async function publishNewPosts(page: Page, { limit, seen }: TermSearch, { config, queue, logger }: ScrapeOptions) {
 	let sent = 0
 	let hasMore = true
 
-	// Limite de posts por execução para reduzir o risco de bloqueio da conta no LinkedIn
-	while (sent < config.SCRAPER_MAX_POSTS) {
+	// Limite de posts por coleta (dividido entre os termos) para reduzir o risco de bloqueio da conta
+	while (sent < limit) {
 		const posts = await collectNewPosts(page)
 		logger.info({ found: posts.length, sent }, 'Posts novos nesta rolagem')
 
 		for (const scraped of posts) {
-			if (sent >= config.SCRAPER_MAX_POSTS) break
+			if (sent >= limit) break
 
 			const post = toRawPost(scraped)
 			const textHash = hashPost(post.text)
@@ -115,7 +149,7 @@ async function publishNewPosts(page: Page, { config, queue, logger }: ScrapeOpti
 		}
 
 		// Quando nada novo carregou, a coleta acima foi a última (pega posts que renderizaram depois)
-		if (sent >= config.SCRAPER_MAX_POSTS || !hasMore) break
+		if (sent >= limit || !hasMore) break
 
 		await humanPause()
 		hasMore = await loadMorePosts(page, config.SCRAPER_SCROLL_DELAY_MS)

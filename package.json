@@ -17,6 +17,7 @@
 		"start:storage": "bun src/services/storage/index.ts",
 		"start:bot": "bun src/services/discord-bot/index.ts",
 		"start:cv": "bun src/services/cv-updater/index.ts",
+		"scraper:run": "bun src/services/scraper/request-run.ts",
 		"typecheck": "tsc --noEmit",
 		"lint": "biome lint .",
 		"lint:fix": "biome lint --write .",

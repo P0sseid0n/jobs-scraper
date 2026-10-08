@@ -15,7 +15,7 @@ flowchart LR
 	cv -- "fila: discord-cv" --> bot
 ```
 
-Cada fila tem o mesmo nome do serviço que a consome. O `discord-bot` consome as filas `discord` (vagas) e `discord-cv` (currículos prontos).
+Cada fila tem o mesmo nome do serviço que a consome. O `discord-bot` consome as filas `discord` (vagas) e `discord-cv` (currículos prontos). A fila `scraper` recebe comandos para o scraper, como o "coletar agora" (`bun scraper:run` ou de outras fontes).
 
 1. **Scraper** (`src/services/scraper`): usa Puppeteer para buscar posts no LinkedIn. Cada post recebe um `postId` (hash do texto normalizado) e é enviado para a fila `post-processing`.
 2. **Pós-processamento** (`src/services/post-processing`): ignora posts já vistos, usa um modelo do Ollama para extrair os dados da vaga e envia o resultado para a fila `storage`.
@@ -96,7 +96,7 @@ Pré-requisitos: [Bun](https://bun.sh) 1.4+ e Docker.
 4. **Inicie os serviços em modo desenvolvimento:**
 
    ```bash
-   bun dev            # scraper + post-processing + storage + discord-bot
+   bun dev            # todos os serviços
    bun dev:scraped    # tudo menos o scraper (só processa o que já está nas filas)
    ```
 
@@ -107,6 +107,17 @@ docker compose --profile app up -d --build
 ```
 
 Por padrão o scraper roda uma coleta e termina. Para coletar periodicamente, defina `SCRAPER_INTERVAL_MINUTES` (ex.: `180` para a cada 3 horas). Outra opção é agendar `docker compose --profile app run --rm scraper` com cron ou com o Agendador de Tarefas.
+
+### Configurações em tempo de execução
+
+Os termos de busca, o filtro de data, o limite de posts, o intervalo, a pausa das coletas e a confiança mínima da IA ficam na coleção `settings` do MongoDB (um documento por serviço), preparados para serem editados por outras fontes. Os valores do `.env` (`SEARCH_KEYWORDS`, `SCRAPER_DATE_POSTED`, `SCRAPER_MAX_POSTS`, `SCRAPER_INTERVAL_MINUTES`, `MIN_JOB_CONFIDENCE`) só preenchem esse documento na primeira execução; depois disso, valem os do banco. Para voltar a usar o `.env`, apague o documento (ex.: pelo Mongo Express).
+
+- `SEARCH_KEYWORDS` aceita vários termos separados por vírgula; cada um vira uma busca na mesma coleta, e o limite de posts é dividido entre eles.
+- Com o scraper rodando continuamente, ele relê as configurações a cada 30 segundos: mudanças valem sem reiniciar.
+- `bun scraper:run` pede uma coleta imediata (qualquer outra fonte pode fazer o mesmo publicando na fila `scraper`), mesmo com as coletas pausadas.
+- Cada coleta fica registrada em `scraper_runs` (em andamento, sucesso ou falha, com os posts enviados por termo) por 90 dias.
+
+Para outras fontes: as configurações são lidas e salvas com `loadSettings`/`updateSettings` (`@shared/settings`), que validam tudo com os schemas de `@shared/contracts` (`ScraperSettingsSchema`, `PostProcessingSettingsSchema`); o "coletar agora" é uma mensagem `ScraperCommand` publicada na fila `scraper`.
 
 A sessão do LinkedIn fica salva em `data/scraper/linkedin-cookies.json` (no Docker, no volume `scraper_data`), então o login só é refeito quando ela expira. Se o LinkedIn pedir captcha ou 2FA, rode com `HEADLESS=false` e resolva na janela do navegador.
 
@@ -119,14 +130,14 @@ Todas as portas ficam publicadas apenas em `127.0.0.1`.
 
 ## 🧰 Scripts
 
-| Script | Descrição |
-| --- | --- |
-| `bun dev` | Todos os serviços com `--watch` |
-| `bun start:<scraper\|processing\|storage\|bot>` | Um serviço, sem `--watch` |
-| `bun run typecheck` | Checagem de tipos (`tsc --noEmit`) |
-| `bun run lint` / `bun run lint:fix` | Lint com Biome |
-| `bun run format` / `bun run format:check` | Formatação com Prettier |
-| `bun test` | Testes |
+| Script                                          | Descrição                          |
+| ----------------------------------------------- | ---------------------------------- |
+| `bun dev`                                       | Todos os serviços com `--watch`    |
+| `bun start:<scraper\|processing\|storage\|bot>` | Um serviço, sem `--watch`          |
+| `bun run typecheck`                             | Checagem de tipos (`tsc --noEmit`) |
+| `bun run lint` / `bun run lint:fix`             | Lint com Biome                     |
+| `bun run format` / `bun run format:check`       | Formatação com Prettier            |
+| `bun test`                                      | Testes                             |
 
 O CI (GitHub Actions) roda `typecheck`, `lint`, `format:check` e `test` em todo push e PR. O estilo de código fica no `.prettierrc` e no `.editorconfig`; no VS Code, use a extensão do Prettier com formatação ao salvar.
 
@@ -136,6 +147,7 @@ O CI (GitHub Actions) roda `typecheck`, `lint`, `format:check` e `test` em todo 
 src/
   shared/                      # código usado por mais de um serviço (importado como @shared/<módulo>)
     service/                   #   startService(): logger, .env, MongoDB e RabbitMQ prontos em uma chamada
+    settings/                  #   configurações editáveis em tempo de execução (coleção settings)
     config/                    #   carregamento e validação do .env (zod) e variáveis de infraestrutura
     contracts/                 #   formato das mensagens que trafegam nas filas
     database/                  #   conexão com o MongoDB e modelos (Job, SeenPost)
@@ -143,7 +155,9 @@ src/
     logging/, lifecycle/       #   logger e encerramento gracioso
   services/
     scraper/                   # coleta posts no LinkedIn
-      scrape-run.ts            #   uma execução: abre a busca, lê os posts e publica os novos
+      scrape-run.ts            #   uma coleta: busca cada termo, lê os posts e publica os novos
+      scheduler.ts             #   agenda das coletas e "coletar agora" (fila scraper)
+      run-history.ts           #   histórico das coletas (coleção scraper_runs)
       browser-session.ts       #   navegador (stealth) e cookies da sessão
       login.ts                 #   login e verificação (captcha/2FA)
       feed-reader.ts           #   leitura dos posts e paginação
@@ -179,7 +193,7 @@ Cada serviço tem um `index.ts` (ponto de entrada, que chama `startService()` e 
 
 - O Mongo e o RabbitMQ só criam o usuário quando o volume é criado. Para trocar as credenciais depois, recrie os volumes com `docker compose down -v`. Isso **apaga os dados**.
 - **NUNCA** suba o `.env` ou a pasta `data/` (currículo pessoal e sessão do LinkedIn) para o repositório.
-- Fazer scraping do LinkedIn vai contra os Termos de Uso da plataforma e pode levar ao bloqueio da conta. Use uma conta dedicada, mantenha `SCRAPER_MAX_POSTS` baixo, use o filtro `SCRAPER_DATE_POSTED` e espace as execuções (`SCRAPER_INTERVAL_MINUTES` de algumas horas).
+- Fazer scraping do LinkedIn vai contra os Termos de Uso da plataforma e pode levar ao bloqueio da conta. Use uma conta dedicada, mantenha o limite de posts baixo, use o filtro de data e espace as coletas (intervalo de algumas horas), sem muitos termos de busca.
 - Os logs em nível `info` registram apenas IDs e metadados. O conteúdo dos posts e as respostas da IA só aparecem com `LOG_LEVEL=debug`.
 
 ## 📄 Licença

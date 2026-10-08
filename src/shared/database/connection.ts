@@ -2,7 +2,9 @@ import mongoose from 'mongoose'
 
 import type { Logger } from '../logging/logger'
 import { Job } from './job.model'
+import { ScraperRun } from './scraper-run.model'
 import { SeenPost } from './seen-post.model'
+import { Settings } from './settings.model'
 
 export async function connectDatabase(url: string, logger: Logger) {
 	try {
@@ -10,7 +12,7 @@ export async function connectDatabase(url: string, logger: Logger) {
 	} catch (error) {
 		throw new Error('Não foi possível conectar ao MongoDB (verifique MONGO_URL e se o container está rodando)', { cause: error })
 	}
-	await Promise.all([Job.init(), SeenPost.init()])
+	await Promise.all([Job.init(), SeenPost.init(), Settings.init(), ScraperRun.init()])
 	logger.info('Conectado ao MongoDB')
 
 	mongoose.connection.on('disconnected', () => logger.warn('Desconectado do MongoDB, o driver vai tentar reconectar'))
