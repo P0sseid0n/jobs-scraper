@@ -51,6 +51,13 @@ export const ScraperSettingsSchema = z
 
 export type ScraperSettings = z.output<typeof ScraperSettingsSchema>
 
+/** Lista de palavras-chave sem repetidos (a comparação ignora caixa, acentos, hífen e ".js"). */
+const keywordList = z
+	.array(z.string().trim().min(1).max(50))
+	.max(50)
+	.default([])
+	.transform(keywords => [...new Set(keywords.map(keyword => keyword.toLowerCase()))])
+
 export const PostProcessingSettingsSchema = z.object({
 	/** Posts com confiança da IA abaixo disso são descartados (não viram vaga). */
 	minJobConfidence: z.number().min(0).max(100).default(60),
@@ -67,6 +74,12 @@ export const PostProcessingSettingsSchema = z.object({
 		.max(20)
 		.default(['pt'])
 		.transform(languages => [...new Set(languages)]),
+
+	/** A vaga precisa citar ao menos uma destas palavras no cargo ou nos conhecimentos; lista vazia desliga o filtro. */
+	requiredKeywords: keywordList,
+
+	/** A vaga é descartada se citar alguma destas palavras no cargo ou nos conhecimentos. */
+	excludedKeywords: keywordList,
 })
 
 export type PostProcessingSettings = z.output<typeof PostProcessingSettingsSchema>

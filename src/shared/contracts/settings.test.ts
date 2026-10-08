@@ -34,12 +34,25 @@ describe('ScraperSettingsSchema', () => {
 
 describe('PostProcessingSettingsSchema', () => {
 	test('confiança mínima entre 0 e 100, padrão 60', () => {
-		expect(PostProcessingSettingsSchema.parse({})).toEqual({ minJobConfidence: 60, allowedLanguages: ['pt'] })
+		expect(PostProcessingSettingsSchema.parse({})).toEqual({
+			minJobConfidence: 60,
+			allowedLanguages: ['pt'],
+			requiredKeywords: [],
+			excludedKeywords: [],
+		})
 		expect(PostProcessingSettingsSchema.safeParse({ minJobConfidence: 120 }).success).toBe(false)
 	})
 
 	test('idiomas: normaliza, remove repetidos e exige o código ISO 639-1', () => {
 		expect(PostProcessingSettingsSchema.parse({ allowedLanguages: ['PT', ' en ', 'pt'] }).allowedLanguages).toEqual(['pt', 'en'])
 		expect(PostProcessingSettingsSchema.safeParse({ allowedLanguages: ['português'] }).success).toBe(false)
+	})
+
+	test('palavras-chave: minúsculas, sem repetidos e sem vazias', () => {
+		expect(PostProcessingSettingsSchema.parse({ requiredKeywords: ['Vue', ' vue ', 'Front-end'] }).requiredKeywords).toEqual([
+			'vue',
+			'front-end',
+		])
+		expect(PostProcessingSettingsSchema.safeParse({ excludedKeywords: [' '] }).success).toBe(false)
 	})
 })
