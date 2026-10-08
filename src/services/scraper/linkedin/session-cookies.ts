@@ -1,9 +1,6 @@
 import type { CookieData } from 'puppeteer'
 
-/**
- * Converte o conteúdo do arquivo de cookies em cookies do Puppeteer. Aceita o formato atual
- * (lista de cookies do navegador) e o antigo (`{ "li_at": "valor" }`). Ignora cookies sem valor.
- */
+/** Converte o arquivo de cookies (formato atual ou o antigo `{ "li_at": "…" }`) em cookies do Puppeteer, sem os vazios. */
 export function parseStoredCookies(stored: unknown): CookieData[] {
 	if (Array.isArray(stored)) {
 		return stored.filter(

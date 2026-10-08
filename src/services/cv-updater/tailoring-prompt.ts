@@ -34,7 +34,7 @@ Return JSON with:
   cloud providers (AWS, Azure, GCP), CI/CD, containers and other DevOps/tools -> the tools category.
   Use "skip" only when the item is not a concrete technology or tool.`
 
-/** Mensagens e schema de saída (com as categorias do currículo e as techs da vaga como opções fechadas). */
+/** Monta o pedido de ajuste à IA (mensagens e schema de saída) e a lista de techs a adicionar. */
 export function buildTailoringRequest(cv: ResumeContent, job: TargetJob) {
 	const categories = cv.skills.map(group => group.category)
 	const toAdd = skillsToAdd(cv, job)
@@ -53,7 +53,7 @@ export function buildTailoringRequest(cv: ResumeContent, job: TargetJob) {
 	return { messages, format: z.toJSONSchema(outputSchema(categories, toAdd)), toAdd }
 }
 
-/** Pede uma nova versão quando a apresentação foi rejeitada pela validação. */
+/** Pede ao modelo outra apresentação, informando por que a anterior foi rejeitada. */
 export function buildRetryMessage(reason: string): Message {
 	return { role: 'user', content: `Your summary was rejected: ${reason}. Rewrite it and return the full JSON again.` }
 }
@@ -62,7 +62,7 @@ export function parseTailoringSuggestions(content: string): TailoringSuggestions
 	return TailoringSuggestionsSchema.parse(JSON.parse(content))
 }
 
-/** Schema enviado ao modelo: categorias e techs a adicionar como enums, para ele não inventar valores. */
+/** Cria o schema de saída com categorias e techs como enums, para o modelo não inventar valores. */
 function outputSchema(categories: string[], toAdd: string[]) {
 	return z.object({
 		summary: z.string(),

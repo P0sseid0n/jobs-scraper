@@ -23,7 +23,10 @@ export class LatexCompileError extends Error {
  */
 const FONTS_SUBDIR = 'fonts'
 
-/** Compila o `.tex` com o Tectonic (XeTeX) numa pasta temporária e devolve o PDF e o número de páginas. */
+/**
+ * Compila o `.tex` com o Tectonic numa pasta temporária e devolve o PDF e o número de páginas.
+ * @throws {LatexCompileError} Se o Tectonic não for encontrado ou a compilação falhar.
+ */
 export async function compileLatex(tex: string, options: CompileOptions): Promise<CompileResult> {
 	const dir = await mkdtemp(path.join(tmpdir(), 'cv-'))
 
@@ -48,9 +51,8 @@ export async function compileLatex(tex: string, options: CompileOptions): Promis
 }
 
 /**
- * Se o `.tex` usa `\setmainfont{Família}` e `fontsDir` tem `Família-Regular.otf`, aponta o fontspec para esses
- * arquivos (copiados para `./fonts/` na compilação). Assim o PDF sai com as mesmas fontes do Overleaf mesmo sem
- * elas instaladas no sistema. Negrito usa ExtraBold quando existir, como o Overleaf faz com a Nunito.
+ * Faz o `\setmainfont{Família}` usar os arquivos de `fontsDir` (`Família-Regular.otf`...), para o PDF sair
+ * igual ao do Overleaf sem as fontes instaladas. O negrito usa ExtraBold quando existir.
  */
 export function withProjectFonts(tex: string, fontsDir: string) {
 	return tex.replace(/\\setmainfont\{([^}]+)\}(?!\s*\[)/, (original, family: string) => {
@@ -71,7 +73,7 @@ export function withProjectFonts(tex: string, fontsDir: string) {
 	})
 }
 
-/** Número de páginas a partir do log do TeX ("Output written on cv.xdv (1 page, ...)"). */
+/** Extrai o número de páginas do log do TeX ("Output written on cv.xdv (1 page, ...)"), ou `null`. */
 export function pagesFromLog(log: string) {
 	const match = log.match(/Output written on .*?\((\d+) pages?/)
 

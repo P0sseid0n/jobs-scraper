@@ -29,8 +29,8 @@ const TOOLS_SKILLS = new Set(
 )
 
 /**
- * Habilidades do currículo para a vaga: entram as tecnologias pedidas (inclusive as que a pessoa não tinha)
- * e ficam só as categorias relacionadas à vaga, com o que a vaga pede primeiro.
+ * Monta as habilidades para a vaga: todas as tecnologias pedidas (inclusive as novas) e só as
+ * categorias relacionadas, com o que a vaga pede primeiro.
  */
 export function buildSkillsSection(cv: ResumeContent, job: TargetJob, suggestions: TailoringSuggestions | null): SkillsSection {
 	const jobSkills = job.necessary_knowledge ?? []
@@ -52,7 +52,7 @@ export function buildSkillsSection(cv: ResumeContent, job: TargetJob, suggestion
 	}
 }
 
-/** Tecnologias da vaga que a pessoa não tinha, na categoria escolhida pela IA (ou na de ferramentas). */
+/** Põe cada tecnologia nova na categoria escolhida pela IA, ou na de ferramentas. */
 function classifyAddedSkills(cv: ResumeContent, job: TargetJob, suggestions: TailoringSuggestions | null): AddedSkill[] {
 	const categories = cv.skills.map(group => group.category)
 	const toAdd = skillsToAdd(cv, job)
@@ -76,8 +76,8 @@ function classifyAddedSkills(cv: ResumeContent, job: TargetJob, suggestions: Tai
 }
 
 /**
- * Habilidades da pessoa que ficam: as relevantes + todas das categorias relacionadas à vaga
- * (categoria com alguma tech da vaga, dela ou adicionada). Se sobrar pouco, completa na ordem original.
+ * Escolhe as habilidades da pessoa que ficam: as relevantes e as das categorias ligadas à vaga.
+ * Se sobrar pouco, completa na ordem original.
  */
 function keptOwnSkills(cv: ResumeContent, fromJob: string[], relevant: string[], added: AddedSkill[]) {
 	const isRelated = (group: ResumeContent['skills'][number]) =>
@@ -93,7 +93,7 @@ function keptOwnSkills(cv: ResumeContent, fromJob: string[], relevant: string[],
 	return new Set([...related, ...fillers])
 }
 
-/** Ordem de importância segundo a vaga, com os itens da pessoa e os adicionados intercalados. */
+/** Ordena os itens pela importância na vaga, intercalando os da pessoa e os adicionados. */
 function jobOrder(cv: ResumeContent, jobSkills: string[], added: AddedSkill[]) {
 	return jobSkills.flatMap(skill => {
 		const own = matchJobSkills(cv, [skill])[0]
@@ -103,7 +103,7 @@ function jobOrder(cv: ResumeContent, jobSkills: string[], added: AddedSkill[]) {
 	})
 }
 
-/** Monta as linhas de habilidades: itens ordenados pela prioridade e categorias com mais itens da vaga primeiro. */
+/** Monta as linhas de habilidades: itens por prioridade e categorias com mais itens da vaga primeiro. */
 function buildCategories(cv: ResumeContent, added: AddedSkill[], kept: Set<string>, priority: string[]) {
 	return cv.skills
 		.map((group, index) => {
@@ -120,12 +120,12 @@ function buildCategories(cv: ResumeContent, added: AddedSkill[], kept: Set<strin
 		.map(({ category, items }) => ({ category, items }))
 }
 
-/** Categoria usada quando a IA não classificou uma tech da vaga: "Ferramentas"/"Tools", ou a última. */
+/** Escolhe a categoria das techs que a IA não classificou: "Ferramentas"/"Tools" ou a última. */
 function fallbackCategory(categories: string[]) {
 	return categories.find(category => /ferrament|tool/i.test(category)) ?? categories.at(-1)!
 }
 
-/** Ordena pelos itens de `selected` primeiro (na ordem deles); os demais mantêm a ordem original. */
+/** Põe os itens de `selected` primeiro, na ordem deles; os demais mantêm a ordem original. */
 export function orderBy<T>(items: T[], key: (item: T) => string, selected: string[]) {
 	const rank = (item: T) => {
 		const index = selected.indexOf(key(item))

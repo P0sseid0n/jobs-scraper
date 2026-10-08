@@ -14,7 +14,7 @@ const DescriptionsSchema = z.object({
 	projects: z.array(z.object({ repo: z.string(), description: z.string() })).default([]),
 })
 
-/** Pede descrições para os projetos que vieram só do GitHub (os do `.tex` já têm texto escrito pela pessoa). */
+/** Monta o pedido à IA de descrições para os projetos que vieram só do GitHub. */
 export function buildDescriptionRequest(candidates: ProjectCandidate[], example: string | undefined) {
 	const repos = candidates.flatMap(candidate => (!candidate.fromTex && candidate.repo ? [candidate.repo] : []))
 	const names = repos.map(repo => repo.name)
@@ -40,7 +40,7 @@ export function buildDescriptionRequest(candidates: ProjectCandidate[], example:
 	return { messages, format: z.toJSONSchema(schema), names }
 }
 
-/** Aplica as descrições geradas; se alguma vier fora do tamanho, usa a descrição do próprio repositório. */
+/** Aplica as descrições geradas; uma fora do tamanho é trocada pela descrição do repositório. */
 export function applyDescriptions(candidates: ProjectCandidate[], generated: { repo: string; description: string }[]) {
 	return candidates.map(candidate => {
 		if (candidate.fromTex || !candidate.repo) return candidate.project

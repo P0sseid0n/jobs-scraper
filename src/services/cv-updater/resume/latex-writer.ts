@@ -23,7 +23,7 @@ export function writeResumeTex(parsed: ParsedResume, cv: TailoredResume) {
 	return tex
 }
 
-/** Bloco LaTeX de um projeto novo, no mesmo formato dos projetos do currículo base. */
+/** Gera o bloco LaTeX de um projeto novo, no formato dos projetos do currículo base. */
 export function projectToLatex(project: ResumeProject) {
 	const url = project.url ? ` | \\href{https://${project.url}}{${escapeLatex(project.url)}}` : ''
 	const technologies = project.technologies.length

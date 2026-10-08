@@ -4,7 +4,7 @@ export const BASE_URL = 'https://www.linkedin.com'
 export const LOGIN_URL = `${BASE_URL}/login`
 const SEARCH_PATH = '/search/results/content/'
 
-/** Páginas em que o LinkedIn pede login, verificação (captcha/2FA) ou bloqueia o acesso anônimo. */
+/** Diz se a URL é de login, verificação (captcha/2FA) ou bloqueio do LinkedIn. */
 export function isAuthPage(url: string) {
 	const { pathname } = new URL(url, BASE_URL)
 	return /^\/(login|authwall|checkpoint|uas\/login|signup)/.test(pathname)

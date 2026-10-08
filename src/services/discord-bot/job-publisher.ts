@@ -7,7 +7,7 @@ import { buildJobCard, buildThreadName, pickForumTags } from './job-card'
 
 export type JobChannel = SendableChannels | ForumChannel
 
-/** Busca o canal configurado; aceita canal de texto ou de fórum. */
+/** Busca o canal configurado (texto ou fórum). */
 export async function resolveJobChannel(client: Client<true>, channelId: string, logger: Logger): Promise<JobChannel> {
 	const channel = await client.channels.fetch(channelId).catch(() => null)
 	const isForum = channel?.type === ChannelType.GuildForum
@@ -21,7 +21,7 @@ export async function resolveJobChannel(client: Client<true>, channelId: string,
 	return channel as JobChannel
 }
 
-/** Num fórum, cada vaga vira um post próprio (com tags); num canal de texto, uma mensagem com o card. */
+/** Publica a vaga: num fórum, como post próprio com tags; num canal de texto, como mensagem. */
 export async function publishJob(channel: JobChannel, job: ProcessedJob) {
 	const card = buildJobCard(job)
 

@@ -3,8 +3,9 @@ import { jsonrepair } from 'jsonrepair'
 import { AiJobOutputSchema, type AiJobOutput } from './extraction-output'
 
 /**
- * Converte a resposta do modelo em uma vaga. Retorna `null` se o modelo respondeu `null`
- * (formato antigo do prompt). Lança erro se a resposta não puder ser interpretada como JSON.
+ * Converte a resposta do modelo numa vaga, reparando JSON malformado.
+ * @returns A vaga, ou `null` se o modelo respondeu `null` (formato antigo do prompt).
+ * @throws Se a resposta não for um objeto JSON.
  */
 export function parseModelResponse(content: string): AiJobOutput | null {
 	const repaired = jsonrepair(content.trim())
@@ -18,7 +19,7 @@ export function parseModelResponse(content: string): AiJobOutput | null {
 	return AiJobOutputSchema.parse(parsed)
 }
 
-/** Motivo para descartar a resposta do modelo, ou `null` se ela é uma vaga válida. */
+/** Diz por que descartar a resposta do modelo, ou `null` se ela for uma vaga válida. */
 export function rejectionReason(job: AiJobOutput | null, minConfidence: number): string | null {
 	if (!job) return 'modelo respondeu null'
 	if (!job.isJob) return `modelo indicou que não é vaga (${job.postType ?? 'isJob=false'})`
@@ -26,7 +27,7 @@ export function rejectionReason(job: AiJobOutput | null, minConfidence: number):
 	return null
 }
 
-/** Só aceita o link extraído pela IA se ele estiver escrito no post (evita link inventado). */
+/** Mantém o link da IA só se ele estiver escrito no post (evita link inventado). */
 export function keepLinkIfInPost(link: string | null, text: string): string | null {
 	if (!link || !/^https?:\/\//i.test(link)) return null
 	return text.includes(link) ? link : null

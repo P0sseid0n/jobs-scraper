@@ -5,7 +5,7 @@ import type { Logger } from '@shared/logging'
 
 import { isExpiredInteraction, toQueueError } from './discord-errors'
 
-/** Entrega o currículo gerado como resposta extra ao clique (só quem clicou vê). O token da interação vale 15 minutos. */
+/** Entrega o currículo como resposta extra ao clique (só quem clicou vê); o token da interação vale 15 min. */
 export async function deliverCv(client: Client, result: CvResult, logger: Logger) {
 	const content = result.file
 		? `📄 Currículo ajustado para **${result.jobTitle ?? 'a vaga'}**`

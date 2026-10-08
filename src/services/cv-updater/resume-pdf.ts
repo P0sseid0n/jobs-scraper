@@ -5,8 +5,8 @@ import { writeResumeTex } from './resume/latex-writer'
 import type { ParsedResume, TailoredResume } from './resume/resume.types'
 
 /**
- * Gera o PDF do currículo ajustado garantindo uma página. Se transbordar:
- * primeiro tira projetos (até sobrar 1), depois volta para a apresentação original.
+ * Gera o PDF do currículo garantindo uma página.
+ * Se transbordar, tira projetos (até sobrar 1) e depois volta à apresentação original.
  */
 export async function renderOnePagePdf(base: ParsedResume, tailored: TailoredResume, compileOptions: CompileOptions, log: Logger) {
 	const attempts = simplifications(base, tailored)
@@ -23,7 +23,7 @@ export async function renderOnePagePdf(base: ParsedResume, tailored: TailoredRes
 	return result.pdf
 }
 
-/** Nome do arquivo: "Curriculo-Empresa-Cargo.pdf", sem acentos nem caracteres especiais. */
+/** Monta o nome do arquivo ("Curriculo-Empresa-Cargo.pdf"), sem acentos nem caracteres especiais. */
 export function pdfFileName(job: { title: string | null; company: string | null }) {
 	const slug = [job.company, job.title]
 		.filter(Boolean)
@@ -37,7 +37,7 @@ export function pdfFileName(job: { title: string | null; company: string | null 
 	return `Curriculo${slug ? `-${slug}` : ''}.pdf`
 }
 
-/** Versões cada vez mais simples do currículo, na ordem em que são tentadas. */
+/** Lista versões cada vez mais simples do currículo, na ordem em que são tentadas. */
 function simplifications(base: ParsedResume, tailored: TailoredResume) {
 	const attempts: TailoredResume[] = [tailored]
 

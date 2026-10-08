@@ -23,9 +23,8 @@ const SCORE_PER_BASIC_MATCH = 3
 const BASIC_SKILLS = new Set(['javascript', 'typescript', 'html', 'css'])
 
 /**
- * Ranqueia projetos do GitHub e do `.tex` para a vaga. Pontuação: tecnologias da vaga (`scoreTechMatches`), +3 se tem
- * descrição e +3 se tem topics (sinais de dedicação; projetos do `.tex` contam como tendo os dois).
- * Desempate: mais tecnologias, mais recente, mais estrelas.
+ * Ranqueia os projetos do GitHub e do `.tex` para a vaga: tecnologias da vaga (`scoreTechMatches`),
+ * +3 por descrição e +3 por topics (os do `.tex` ganham os dois). Desempate em `compareCandidates`.
  */
 export function rankProjects(texProjects: ResumeProject[], repos: GithubRepo[], jobSkills: string[]): ProjectCandidate[] {
 	const candidates = texProjects.map(project => texCandidate(project, repos, jobSkills))
@@ -38,10 +37,7 @@ export function rankProjects(texProjects: ResumeProject[], repos: GithubRepo[], 
 	return candidates.sort(compareCandidates)
 }
 
-/**
- * Escolhe os projetos do currículo: os melhores que usam alguma tecnologia da vaga; se não houver suficientes,
- * completa com os do `.tex` (na ordem do ranking).
- */
+/** Escolhe `count` projetos: os melhores com tecnologias da vaga, completando com os do `.tex`. */
 export function selectProjects(ranked: ProjectCandidate[], count: number) {
 	const matching = ranked.filter(candidate => candidate.matches.length > 0)
 	const fallback = ranked.filter(candidate => candidate.fromTex && !matching.includes(candidate))
@@ -49,7 +45,7 @@ export function selectProjects(ranked: ProjectCandidate[], count: number) {
 	return [...matching, ...fallback].slice(0, count)
 }
 
-/** Tecnologias do projeto com as pedidas pela vaga primeiro (limitadas para caber numa linha). */
+/** Ordena as tecnologias do projeto com as da vaga primeiro, limitadas para caber numa linha. */
 export function orderTechnologies(technologies: string[], jobSkills: string[]) {
 	const isMatch = (tech: string) => matchingTechnologies([tech], jobSkills).length > 0
 	const ordered = [...technologies.filter(isMatch), ...technologies.filter(tech => !isMatch(tech))]
@@ -57,14 +53,14 @@ export function orderTechnologies(technologies: string[], jobSkills: string[]) {
 	return ordered.slice(0, MAX_TECHNOLOGIES)
 }
 
-/** Quantas tecnologias pedidas pela vaga aparecem no projeto. */
+/** Retorna as tecnologias da vaga presentes no projeto. */
 export function matchingTechnologies(technologies: string[], jobSkills: string[]) {
 	const projectAliases = new Set(technologies.flatMap(tech => [...skillAliases(tech)]))
 
 	return jobSkills.filter(skill => [...skillAliases(skill)].some(alias => projectAliases.has(alias)))
 }
 
-/** Pontos pelas tecnologias da vaga: +10 cada, +3 para linguagens básicas (JavaScript e TypeScript contam como uma). */
+/** Pontua as tecnologias da vaga: +10 cada; linguagens básicas valem +3 (JavaScript e TypeScript contam como uma). */
 export function scoreTechMatches(matches: string[]) {
 	const basic = new Set<string>()
 	let score = 0
@@ -80,7 +76,7 @@ export function scoreTechMatches(matches: string[]) {
 	return score + basic.size * SCORE_PER_BASIC_MATCH
 }
 
-/** Projeto do `.tex`, enriquecido com as tecnologias do repositório correspondente (se houver). */
+/** Cria o candidato de um projeto do `.tex`, somando as tecnologias do repositório correspondente. */
 function texCandidate(project: ResumeProject, repos: GithubRepo[], jobSkills: string[]): ProjectCandidate {
 	const repo = repos.find(candidate => sameProject(project, candidate)) ?? null
 	const technologies = [...project.technologies, ...(repo ? repoTechnologies(repo) : [])]
@@ -114,7 +110,7 @@ function repoCandidate(repo: GithubRepo, jobSkills: string[]): ProjectCandidate 
 	}
 }
 
-/** Maior pontuação; desempate pelo projeto mais completo (mais tecnologias), mais recente e com mais estrelas. */
+/** Ordena por pontuação; desempata por mais tecnologias, mais recente e mais estrelas. */
 function compareCandidates(a: ProjectCandidate, b: ProjectCandidate) {
 	const richness = (candidate: ProjectCandidate) =>
 		candidate.repo ? repoTechnologies(candidate.repo).length : candidate.project.technologies.length
@@ -130,7 +126,7 @@ function sameProject(project: ResumeProject, repo: GithubRepo) {
 	return url.includes(repo.fullName.toLowerCase()) || normalizeSkill(project.name) === normalizeSkill(repo.name)
 }
 
-/** "sistema-de-vendas" → "Sistema de Vendas". */
+/** Formata o nome do repositório para exibição: "sistema-de-vendas" → "Sistema de Vendas". */
 function prettyRepoName(name: string) {
 	const lowercase = new Set(['de', 'da', 'do', 'das', 'dos', 'e', 'pra', 'para', 'com', 'na', 'no'])
 

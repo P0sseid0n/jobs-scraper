@@ -17,9 +17,8 @@ type ChooseProjectsOptions = {
 }
 
 /**
- * Projetos do GitHub mais relevantes para a vaga (ranking em project-ranking.ts).
- * Projetos que não estão no .tex ganham uma descrição escrita pela IA a partir do README.
- * Se o GitHub falhar, ficam os projetos do .tex (`fallback`).
+ * Escolhe os projetos do GitHub mais relevantes para a vaga (ranking em project-ranking.ts).
+ * Os que não estão no `.tex` ganham descrição da IA; se o GitHub falhar, usa `fallback`.
  */
 export async function chooseProjects(
 	options: ChooseProjectsOptions,
@@ -49,7 +48,7 @@ export async function chooseProjects(
 	}
 }
 
-/** Descrições geradas pela IA para os projetos que não estão no .tex (vazio se não houver nenhum ou se a IA falhar). */
+/** Gera com a IA as descrições dos projetos fora do `.tex` (vazio se não houver nenhum ou a IA falhar). */
 async function describeNewProjects(
 	options: ChooseProjectsOptions,
 	selected: ProjectCandidate[],

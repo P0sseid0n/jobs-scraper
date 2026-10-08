@@ -38,7 +38,7 @@ try {
 await queue.assertQueue(QUEUES.discordCv)
 await queue.consume(QUEUES.cvUpdater, CvRequestSchema, generateCv)
 
-/** Gera o currículo ajustado à vaga pedida e devolve o PDF ao bot (ou o motivo da falha). */
+/** Gera o currículo da vaga pedida e envia ao bot o PDF ou o motivo da falha. */
 async function generateCv(request: CvRequest) {
 	const log = logger.child({ postId: request.postId })
 
@@ -101,7 +101,7 @@ async function findTargetJob(postId: string): Promise<TargetJob | null> {
 	}
 }
 
-/** Guarda uma cópia local de cada currículo gerado (histórico). */
+/** Guarda uma cópia local do currículo gerado (histórico). */
 async function savePdf(name: string, pdf: Buffer) {
 	await mkdir(config.CV_OUTPUT_DIR, { recursive: true })
 	await Bun.write(path.join(config.CV_OUTPUT_DIR, name), pdf)

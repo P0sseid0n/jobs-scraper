@@ -21,10 +21,7 @@ export type TailoringReport = {
 const SUMMARY_MIN = 120
 const SUMMARY_MAX = 520
 
-/**
- * Monta o currículo da vaga a partir do currículo base e das sugestões da IA:
- * habilidades da vaga, projetos e experiência reordenados e a nova apresentação (se válida).
- */
+/** Monta o currículo da vaga: habilidades, projetos e experiência reordenados e a nova apresentação (se válida). */
 export function tailorResumeToJob(
 	cv: ResumeContent,
 	job: TargetJob,
@@ -46,7 +43,7 @@ export function tailorResumeToJob(
 	}
 }
 
-/** Projetos na ordem sugerida pela IA (só nomes que existem), depois os demais. */
+/** Ordena os projetos pela sugestão da IA (só nomes existentes), seguidos dos demais. */
 function orderProjects(cv: ResumeContent, suggestions: TailoringSuggestions | null) {
 	const projectNames = new Set(cv.projects.map(project => project.name))
 	const suggested = (suggestions?.relevantProjects ?? []).filter(name => projectNames.has(name))
@@ -54,7 +51,7 @@ function orderProjects(cv: ResumeContent, suggestions: TailoringSuggestions | nu
 	return orderBy(cv.projects, project => project.name, suggested)
 }
 
-/** Bullets de experiência que citam mais habilidades relevantes sobem (ordem original no empate). */
+/** Sobe os bullets de experiência que citam mais habilidades relevantes (ordem original no empate). */
 function orderExperience(cv: ResumeContent, relevantSkills: string[]) {
 	const aliases = relevantSkills.flatMap(skill => [...skillAliases(skill)])
 
@@ -72,7 +69,10 @@ function orderExperience(cv: ResumeContent, relevantSkills: string[]) {
 	}))
 }
 
-/** A apresentação pode citar as techs da vaga (elas entram no currículo); só o tamanho é validado. */
+/**
+ * Valida só o tamanho da apresentação (ela pode citar as techs da vaga).
+ * @returns O texto a usar (a original, se rejeitada) e o motivo da rejeição, ou `null`.
+ */
 function validateSummary(candidate: string | undefined, cv: ResumeContent) {
 	const text = candidate?.trim().replace(/\s+/g, ' ')
 

@@ -40,7 +40,7 @@ export function readResumeTex(tex: string): ParsedResume {
 	}
 }
 
-/** Onde começa e termina o corpo de cada seção conhecida (do fim do `\section*{...}` até a próxima seção). */
+/** Localiza o corpo de cada seção conhecida: do fim do `\section*{...}` até a próxima seção. */
 function findSections(tex: string): ParsedResume['sections'] {
 	const headers = [...tex.matchAll(/\\section\*?\{([^}]*)\}/g)]
 	const documentEnd = tex.indexOf('\\end{document}')
@@ -105,7 +105,7 @@ function parseProjects(body: string) {
 	return { projects, raw }
 }
 
-/** Cada `itemize` da seção é uma experiência; o texto antes dele é o cabeçalho (empresa, cargo, período). */
+/** Lê a experiência: cada `itemize` é uma entrada e o texto antes dele, o cabeçalho (empresa, cargo, período). */
 function parseExperience(body: string) {
 	const entries: ResumeContent['experience'] = []
 	const raw: ParsedResume['raw']['bullets'] = []

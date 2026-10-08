@@ -53,7 +53,7 @@ export class BrowserSession {
 		return this.currentPage
 	}
 
-	/** Abre um contexto limpo (aba anônima). Com `withCookies`, restaura a sessão salva. */
+	/** Abre um contexto limpo (aba anônima); com `withCookies`, restaura a sessão salva. */
 	async newContext({ withCookies = true } = {}) {
 		await this.context?.close()
 
@@ -63,7 +63,7 @@ export class BrowserSession {
 		if (withCookies) await this.restoreCookies()
 	}
 
-	/** Navega tentando de novo se a navegação for abortada (ex.: por um redirecionamento ainda em andamento). */
+	/** Navega para `url`, tentando de novo se a navegação for abortada (ex.: redirecionamento em andamento). */
 	async goto(url: string) {
 		for (let attempt = 1; ; attempt++) {
 			try {
@@ -77,14 +77,14 @@ export class BrowserSession {
 		}
 	}
 
-	/** Há uma sessão do LinkedIn (cookie `li_at` com valor) no contexto atual? */
+	/** Diz se o contexto atual tem uma sessão do LinkedIn (cookie `li_at` com valor). */
 	async hasSession() {
 		const cookies = (await this.context?.cookies()) ?? []
 
 		return cookies.some(cookie => cookie.name === 'li_at' && cookie.value)
 	}
 
-	/** Salva todos os cookies do LinkedIn da sessão atual (não só o `li_at`), se houver uma sessão válida. */
+	/** Salva todos os cookies do LinkedIn da sessão atual, se ela for válida. */
 	async saveCookies() {
 		if (!this.context) return
 

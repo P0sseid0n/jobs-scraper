@@ -18,10 +18,7 @@ type ServiceOptions<Env extends z.ZodRawShape> = {
 	database?: boolean
 }
 
-/**
- * Inicialização comum a todos os serviços:
- * logger, encerramento gracioso, validação do .env, MongoDB (opcional) e conexão com o RabbitMQ.
- */
+/** Inicializa o que todo serviço precisa: logger, encerramento gracioso, `.env`, MongoDB (opcional) e RabbitMQ. */
 export async function startService<Env extends z.ZodRawShape = Record<never, never>>(options: ServiceOptions<Env>) {
 	const logger = createLogger(options.name)
 	setupGracefulShutdown(logger)

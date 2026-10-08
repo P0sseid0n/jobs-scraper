@@ -87,7 +87,10 @@ async function scrapeTerm(session: BrowserSession, search: TermSearch, options: 
 	}
 }
 
-/** Abre a busca de posts, faz login se o LinkedIn pedir e espera os resultados aparecerem. */
+/**
+ * Abre a busca do termo, faz login se o LinkedIn pedir e espera os resultados.
+ * @throws Se nenhum post aparecer.
+ */
 async function openSearchResults(session: BrowserSession, term: string, { config, settings, logger }: ScrapeOptions): Promise<Page> {
 	const searchUrl = buildSearchUrl({ keywords: term, datePosted: settings.datePosted })
 	logger.info({ searchUrl }, '🔎 Abrindo a busca do LinkedIn')
@@ -172,7 +175,7 @@ function toRawPost(post: ScrapedPost): RawPost {
 	}
 }
 
-/** Pausa aleatória entre rolagens para não ter um ritmo de robô. */
+/** Pausa por um tempo aleatório, para não ter ritmo de robô. */
 function humanPause() {
 	return Bun.sleep(1_500 + Math.random() * 2_500)
 }

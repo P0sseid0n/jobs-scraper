@@ -1,7 +1,7 @@
 import type { ResumeContent } from '../resume/resume.types'
 import type { TargetJob } from '../target-job'
 
-/** Normaliza nomes de tecnologias para comparação: "Vue 3" ≈ "Vue.js" ≈ "vue", "Node.JS" ≈ "node". */
+/** Normaliza o nome de uma tecnologia para comparação: "Vue 3" ≈ "Vue.js" ≈ "vue". */
 export function normalizeSkill(value: string) {
 	return (
 		value
@@ -16,10 +16,7 @@ export function normalizeSkill(value: string) {
 	)
 }
 
-/**
- * Nomes pelos quais um item do currículo pode ser citado em uma vaga.
- * Ex.: "CSS (SASS/SCSS)" → css, sass, scss; "JavaScript / TypeScript" → javascript, typescript.
- */
+/** Lista os nomes pelos quais um item pode aparecer numa vaga: "CSS (SASS/SCSS)" → css, sass, scss. */
 export function skillAliases(item: string) {
 	const inside = item.match(/\(([^)]*)\)/)?.[1] ?? ''
 	const outside = item.replace(/\([^)]*\)/g, '')
@@ -28,7 +25,7 @@ export function skillAliases(item: string) {
 	return new Set(parts.map(normalizeSkill).filter(alias => alias.length > 0))
 }
 
-/** Itens do currículo que correspondem às tecnologias pedidas pela vaga, na ordem da vaga. */
+/** Encontra os itens do currículo pedidos pela vaga, na ordem da vaga. */
 export function matchJobSkills(cv: ResumeContent, jobSkills: string[]) {
 	const items = cv.skills.flatMap(group => group.items)
 	const matched: string[] = []
@@ -47,7 +44,7 @@ export function matchJobSkills(cv: ResumeContent, jobSkills: string[]) {
 	return matched
 }
 
-/** Tecnologias da vaga a adicionar ao currículo (as que a pessoa ainda não tem), sem duplicatas. */
+/** Lista as tecnologias da vaga que a pessoa não tem (sem conceitos nem duplicatas), para adicioná-las. */
 export function skillsToAdd(cv: ResumeContent, job: TargetJob) {
 	const seen = new Set<string>()
 
@@ -63,9 +60,8 @@ export function skillsToAdd(cv: ResumeContent, job: TargetJob) {
 }
 
 /**
- * Tecnologias pedidas pela vaga que NÃO aparecem em nenhum lugar do currículo (são as adicionadas ao currículo).
- * Um requisito conta como existente se bater com uma habilidade/tecnologia de projeto, ou se todas as suas palavras
- * significativas aparecerem no texto do currículo (ex.: "REST APIs" ↔ "Integração de APIs RESTful").
+ * Filtra as tecnologias da vaga que não aparecem no currículo: nem como habilidade ou tecnologia de projeto,
+ * nem com todas as palavras no texto (ex.: "REST APIs" ↔ "Integração de APIs RESTful").
  */
 export function missingJobSkills(cv: ResumeContent, jobSkills: string[]) {
 	const known = knownAliases(cv)
@@ -82,12 +78,12 @@ export function missingJobSkills(cv: ResumeContent, jobSkills: string[]) {
 	})
 }
 
-/** Conceito ou metodologia ("Component-driven architecture", "Agile/Scrum"), não uma tecnologia. */
+/** Diz se o requisito é um conceito ou metodologia ("Agile/Scrum"), e não uma tecnologia. */
 export function isConcept(skill: string) {
 	return words(skill).some(word => CONCEPT_WORDS.has(word))
 }
 
-/** Habilidades e tecnologias de projetos que já estão no currículo. */
+/** Reúne os aliases das habilidades e das tecnologias de projeto do currículo. */
 function knownAliases(cv: ResumeContent) {
 	const known = new Set(cv.skills.flatMap(group => group.items).flatMap(item => [...skillAliases(item)]))
 

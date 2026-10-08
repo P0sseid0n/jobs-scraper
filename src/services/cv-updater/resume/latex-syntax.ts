@@ -41,7 +41,7 @@ export function escapeLatex(text: string) {
 		.replace(/\^/g, '\\textasciicircum{}')
 }
 
-/** Divide "a, b (c, d), e" nas vírgulas de nível superior (fora de parênteses e chaves). */
+/** Divide "a, b (c, d), e" nas vírgulas fora de parênteses e chaves. */
 export function splitTopLevel(text: string) {
 	const parts: string[] = []
 	let depth = 0
@@ -58,7 +58,7 @@ export function splitTopLevel(text: string) {
 	return parts.map(part => part.trim()).filter(Boolean)
 }
 
-/** Separa o corpo de uma seção em espaço inicial, conteúdo e espaço final (preservados na remontagem). */
+/** Separa o corpo da seção em espaço inicial, conteúdo e espaço final, para remontá-lo igual. */
 export function splitWhitespace(body: string) {
 	const lead = body.match(/^\s*/)![0]
 	const trail = body.slice(lead.length).match(/\s*$/)![0]
@@ -68,8 +68,8 @@ export function splitWhitespace(body: string) {
 export const SKILL_LINE = /^(\s*\\item\s+\\textbf\{)(.+?):\}(\s*)(.+?)\s*$/
 
 /**
- * Separa os blocos de projeto. O separador inclui as linhas em branco ao redor do `\vspace`: sem elas o LaTeX
- * junta o projeto seguinte ao parágrafo anterior.
+ * Separa os blocos de projeto e o separador entre eles. O separador inclui as linhas em branco do
+ * `\vspace`: sem elas o LaTeX junta o projeto ao parágrafo anterior.
  */
 export function splitProjectBlocks(content: string) {
 	const separator = content.match(/\s*\n[ \t]*\\vspace\*?\{[^}]*\}[ \t]*\n\s*/)?.[0]

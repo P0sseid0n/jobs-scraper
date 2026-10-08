@@ -12,9 +12,9 @@ const MODEL_ATTEMPTS = 2
 type AiOptions = { ollama: Ollama; model: string }
 
 /**
- * Pede à IA a nova apresentação e as sugestões de habilidades/projetos. Se a apresentação for rejeitada
- * (ex.: grande demais), devolve o motivo ao modelo e pede uma nova versão uma vez.
- * Se a IA falhar, devolve `null`: o currículo ainda é ajustado pelo que a vaga pede, só sem a apresentação nova.
+ * Pede à IA a nova apresentação e as sugestões de habilidades e projetos; se a apresentação for
+ * rejeitada, pede outra versão uma vez.
+ * @returns As sugestões, ou `null` se a IA falhar (o currículo ainda é ajustado, sem apresentação nova).
  */
 export async function requestTailoringSuggestions(
 	ai: AiOptions,

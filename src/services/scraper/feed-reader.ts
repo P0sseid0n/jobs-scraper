@@ -13,10 +13,8 @@ export type ScrapedPost = {
 const SCRAPED_ATTRIBUTE = 'data-jobs-scraped'
 
 /**
- * Lê os posts que ainda não foram coletados e os marca no DOM. Assim a paginação não depende da posição
- * dos elementos (que muda quando o LinkedIn adiciona/remove itens da lista).
- *
- * O callback roda dentro do navegador: não pode usar nada de fora dele além dos argumentos.
+ * Lê os posts ainda não coletados e os marca no DOM, para a paginação não depender da posição deles.
+ * O callback roda no navegador: só pode usar os próprios argumentos.
  */
 export function collectNewPosts(page: Page): Promise<ScrapedPost[]> {
 	return page.evaluate(
@@ -65,8 +63,8 @@ export function collectNewPosts(page: Page): Promise<ScrapedPost[]> {
 }
 
 /**
- * Rola até o fim, clica em "carregar mais" se existir e espera aparecerem novos posts.
- * Retorna `false` se nada novo carregar dentro de `timeoutMs` (fim dos resultados).
+ * Rola até o fim, clica em "carregar mais" (se houver) e espera novos posts.
+ * @returns `false` se nada novo carregar em `timeoutMs` (fim dos resultados).
  */
 export async function loadMorePosts(page: Page, timeoutMs: number): Promise<boolean> {
 	const before = await countPosts(page)
@@ -89,10 +87,7 @@ export async function loadMorePosts(page: Page, timeoutMs: number): Promise<bool
 	}
 }
 
-/**
- * A busca atual rola dentro de um contêiner (<main>), não na janela: levar o último post à tela
- * funciona nos dois layouts e dispara o carregamento lazy.
- */
+/** Leva o último post à tela para disparar o carregamento lazy (a busca rola dentro do `<main>`, não da janela). */
 function scrollToLastPost(page: Page) {
 	return page.evaluate(selectors => {
 		const posts = document.querySelectorAll(`${selectors.post}, ${selectors.postText}`)

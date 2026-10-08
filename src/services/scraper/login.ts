@@ -20,8 +20,8 @@ const LOGIN_TIMEOUT_MS = 30_000
 const MANUAL_VERIFICATION_TIMEOUT_MS = 180_000
 
 /**
- * Garante que a página atual está logada. Retorna `true` se precisou fazer login
- * (o chamador deve voltar para a página que queria abrir).
+ * Garante que a página atual está logada, fazendo login se preciso.
+ * @returns `true` se fez login (o chamador deve voltar à página que queria abrir).
  */
 export async function ensureLoggedIn(session: BrowserSession, options: LoginOptions): Promise<boolean> {
 	const { logger } = options
@@ -60,10 +60,7 @@ async function submitLoginForm(page: Page, options: LoginOptions) {
 	await passwordInput.press('Enter')
 }
 
-/**
- * O login só está concluído quando o cookie de sessão existe E saímos das páginas de autenticação.
- * Só a URL não basta: ela muda antes de o LinkedIn gravar o `li_at` e terminar os redirecionamentos.
- */
+/** Espera o login terminar: cookie de sessão gravado e fora das páginas de autenticação (a URL muda antes do `li_at`). */
 async function waitForSession(session: BrowserSession, headless: boolean) {
 	const deadline = Date.now() + (headless ? LOGIN_TIMEOUT_MS : MANUAL_VERIFICATION_TIMEOUT_MS)
 
@@ -82,9 +79,8 @@ async function waitForSession(session: BrowserSession, headless: boolean) {
 }
 
 /**
- * Espera o primeiro elemento *visível* que casa com o seletor. O `waitForSelector({ visible: true })`
- * não serve aqui: ele só olha o primeiro elemento do documento, e a página de login tem uma cópia
- * oculta (0×0) do formulário antes da visível.
+ * Espera o primeiro elemento *visível* do seletor. `waitForSelector({ visible: true })` não serve: olha só
+ * o primeiro, e a página de login tem uma cópia oculta do formulário.
  */
 async function waitForVisible(page: Page, selector: string) {
 	const handle = await page.waitForFunction(

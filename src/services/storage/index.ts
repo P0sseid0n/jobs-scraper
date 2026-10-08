@@ -12,7 +12,7 @@ const { logger, queue } = await startService({ name: 'storage', database: true }
 
 await queue.consume(QUEUES.storage, ProcessedJobSchema, saveJob, { prefetch: PREFETCH })
 
-/** Salva a vaga (uma única vez) e encaminha para o Discord. */
+/** Salva a vaga (uma única vez) e a encaminha ao Discord. */
 async function saveJob(data: ProcessedJob) {
 	const log = logger.child({ postId: data.postId })
 

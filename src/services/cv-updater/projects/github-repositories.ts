@@ -35,8 +35,8 @@ export class GithubRepositories {
 	}
 
 	/**
-	 * Repositórios com detalhes. Usa o cache enquanto estiver válido; ao renovar, só busca detalhes de quem mudou
-	 * desde a última vez. Se o limite da API acabar no meio, os que faltarem ficam para a próxima renovação.
+	 * Devolve os repositórios com detalhes, usando o cache enquanto ele for válido.
+	 * Ao renovar, só busca detalhes de quem mudou; o que o limite da API impedir fica para a próxima vez.
 	 */
 	async load(): Promise<GithubRepo[]> {
 		const cache = await this.readCache()
@@ -61,7 +61,7 @@ export class GithubRepositories {
 		return repos
 	}
 
-	/** Reaproveita os detalhes em cache de quem não mudou e busca os dos demais (até o limite da API). */
+	/** Reaproveita os detalhes em cache de quem não mudou e busca os demais enquanto a API permitir. */
 	private async withDetails(listed: ListedRepo[], cache: Cache | null) {
 		const previous = new Map(cache?.repos.map(repo => [repo.fullName, repo]))
 		const repos: GithubRepo[] = []
@@ -91,7 +91,7 @@ export class GithubRepositories {
 		return repos
 	}
 
-	/** Cache vale por `cacheHours`; com detalhes faltando (limite da API), tenta completar depois da janela de 1 h do GitHub. */
+	/** Diz se o cache vale: até `cacheHours`, ou só 1 h se faltarem detalhes (o limite do GitHub renova a cada hora). */
 	private isFresh(cache: Cache) {
 		const ageHours = (Date.now() - new Date(cache.fetchedAt).getTime()) / 3_600_000
 		const incomplete = cache.repos.some(repo => repo.detailsPushedAt !== repo.pushedAt && worthDetails(repo))

@@ -53,7 +53,7 @@ export class GithubApi {
 
 	constructor(private readonly token?: string) {}
 
-	/** Repositórios do usuário, sem forks, arquivados, o repositório de perfil e os nomes em `exclude`. */
+	/** Lista os repositórios do usuário, sem forks, arquivados, o repositório de perfil e os de `exclude`. */
 	async listRepos(username: string, exclude: string[]): Promise<ListedRepo[]> {
 		const excluded = new Set([username, ...exclude].map(name => name.toLowerCase()))
 		const repos: ListedRepo[] = []
@@ -77,7 +77,7 @@ export class GithubApi {
 		return repos
 	}
 
-	/** Linguagens, dependências e README (3 requisições). */
+	/** Busca linguagens, dependências e README do repositório (3 requisições). */
 	async fetchDetails(fullName: string): Promise<RepoDetails> {
 		const base = `${API}/repos/${fullName}`
 
@@ -140,7 +140,7 @@ export class GithubApi {
 	}
 }
 
-/** Remove imagens, badges, HTML e links do README, deixando só texto. */
+/** Reduz o README a texto puro (sem imagens, badges, HTML e links), cortado no tamanho máximo. */
 export function cleanReadme(markdown: string) {
 	return markdown
 		.replace(/<!--[\s\S]*?-->/g, '')

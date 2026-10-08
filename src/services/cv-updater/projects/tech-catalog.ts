@@ -104,7 +104,7 @@ const LANGUAGE_NAMES: Record<string, string> = { vue: 'Vue.js', html: 'HTML', cs
 
 export const MAX_TECHNOLOGIES = 8
 
-/** Tecnologias de um repositório, com nomes de exibição, a partir de topics, dependências e linguagens. */
+/** Lista as tecnologias do repositório (topics, dependências e linguagens) com nomes de exibição. */
 export function repoTechnologies(repo: Pick<GithubRepo, 'topics' | 'dependencies' | 'languages' | 'language'>) {
 	const names: string[] = []
 	const add = (name: string | undefined) => {

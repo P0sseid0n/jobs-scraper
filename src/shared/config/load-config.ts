@@ -8,7 +8,7 @@ export function parseConfig<T extends z.ZodRawShape>(shape: T, env: Record<strin
 	return z.object(shape).safeParse(env)
 }
 
-/** Valida as variáveis de ambiente do serviço e encerra o processo com uma mensagem clara se algo estiver errado. */
+/** Valida as variáveis de ambiente do serviço; se algo estiver errado, encerra o processo com uma mensagem clara. */
 export function loadConfig<T extends z.ZodRawShape>(shape: T): z.infer<z.ZodObject<T>> {
 	const result = parseConfig(shape, process.env)
 

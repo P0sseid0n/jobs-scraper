@@ -53,7 +53,7 @@ export class QueueClient {
 		return this.connecting
 	}
 
-	/** Declara a fila (com retry e DLQ). Idempotente; é refeito automaticamente após reconexões. */
+	/** Declara a fila com retry e DLQ. Idempotente; refeito automaticamente após reconexões. */
 	async assertQueue(queue: QueueName) {
 		const channel = await this.getChannel()
 		if (this.declared.has(queue)) return
@@ -102,7 +102,7 @@ export class QueueClient {
 		this.logger.info({ queue }, 'Aguardando mensagens')
 	}
 
-	/** Para de consumir, espera as mensagens em andamento terminarem e fecha a conexão. */
+	/** Para de consumir, espera as mensagens em andamento e fecha a conexão. */
 	async close() {
 		this.closing = true
 		const channel = this.channel
@@ -217,7 +217,7 @@ export class QueueClient {
 		}
 	}
 
-	/** Erro transitório: reagenda na fila `.retry` com backoff. Erro permanente ou retries esgotados: DLQ. */
+	/** Reagenda a mensagem na `.retry` com backoff, ou a manda para a DLQ (erro permanente ou retries esgotados). */
 	private async handleFailure(consumer: Consumer, channel: ConfirmChannel, msg: ConsumeMessage, error: unknown, retries: number) {
 		const logger = this.logger.child({ queue: consumer.queue, retries })
 		const decision = decideOnFailure(error, retries, this.options)
@@ -255,7 +255,7 @@ function parseMessage(consumer: Consumer, msg: ConsumeMessage) {
 	}
 }
 
-/** Fila principal + `.retry` (volta para a principal depois do TTL) + `.dlq` (falhas definitivas). */
+/** Declara a fila principal, a `.retry` (volta à principal após o TTL) e a `.dlq` (falhas definitivas). */
 async function assertTopology(channel: ConfirmChannel, queue: QueueName) {
 	await channel.assertQueue(deadLetterQueueName(queue), { durable: true })
 

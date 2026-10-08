@@ -27,7 +27,7 @@ await loadSettings('post-processing', settingsSeed)
 await queue.assertQueue(QUEUES.storage)
 await queue.consume(QUEUES.postProcessing, RawPostSchema, processPost)
 
-/** Extrai a vaga do post; se for uma vaga, envia para o storage. Cada post é processado uma única vez. */
+/** Extrai a vaga do post e, se for vaga, envia ao storage. Cada post é processado uma única vez. */
 async function processPost(post: RawPost) {
 	const log = logger.child({ postId: post.postId })
 
@@ -53,7 +53,7 @@ async function processPost(post: RawPost) {
 	await SeenPost.updateOne({ postId: post.postId }, { $setOnInsert: { postId: post.postId, isJob: !reason } }, { upsert: true })
 }
 
-/** Sem o modelo baixado, todas as chamadas falhariam: melhor encerrar com uma instrução clara. */
+/** Encerra o serviço com uma instrução clara se o modelo não estiver baixado no Ollama. */
 async function ensureModelAvailable() {
 	try {
 		await ollama.show({ model: config.OLLAMA_MODEL })

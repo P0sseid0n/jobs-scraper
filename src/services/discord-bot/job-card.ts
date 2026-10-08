@@ -27,22 +27,19 @@ const THREAD_NAME_MAX = 100
 const CUSTOM_ID_MAX = 100
 const FORUM_TAGS_MAX = 5
 
-/** Mensagem da vaga: embed com os dados + botões (link do post e contato/currículo). */
+/** Monta a mensagem da vaga: embed com os dados e botões de link e contato/currículo. */
 export function buildJobCard(job: ProcessedJob) {
 	return { embeds: [buildJobEmbed(job)], components: buildJobComponents(job) }
 }
 
-/** Nome do post quando o canal é um fórum: "Cargo · Empresa". */
+/** Monta o nome do post no fórum: "Cargo · Empresa". */
 export function buildThreadName(job: ProcessedJob) {
 	const name = [job.title ?? 'Vaga sem título', job.company].filter(Boolean).join(' · ')
 
 	return truncate(name, THREAD_NAME_MAX)
 }
 
-/**
- * Escolhe tags do fórum (no máximo 5) cujo nome bate com a modalidade ou com as tecnologias da vaga.
- * As tags precisam existir no fórum; o bot não cria tags.
- */
+/** Escolhe até 5 tags existentes no fórum que batem com a modalidade ou as tecnologias da vaga. */
 export function pickForumTags(job: ProcessedJob, availableTags: { id: string; name: string }[]) {
 	const wanted = new Set([workModeLabel(job), ...(job.necessary_knowledge ?? [])].filter(Boolean).map(value => normalizeTag(value!)))
 
@@ -52,7 +49,7 @@ export function pickForumTags(job: ProcessedJob, availableTags: { id: string; na
 		.map(tag => tag.id)
 }
 
-/** Resumo do post: primeiras linhas, sem o texto inteiro (ele continua acessível pelo link). */
+/** Resume o post nas primeiras linhas; o texto inteiro continua acessível pelo link. */
 export function summarizePost(text: string, max = SUMMARY_MAX) {
 	const normalized = text
 		.normalize('NFKC')
@@ -80,7 +77,7 @@ function buildJobEmbed(job: ProcessedJob) {
 	return embed
 }
 
-/** Campos do embed; os sem valor são omitidos. */
+/** Lista os campos do embed (os vazios são omitidos ao montar). */
 function jobFields(job: ProcessedJob) {
 	const postedAt = job.postedAt ? time(new Date(job.postedAt), TimestampStyles.RelativeTime) : null
 	const skills = job.necessary_knowledge?.length ? job.necessary_knowledge.map(skill => `\`${skill}\``).join(' ') : null

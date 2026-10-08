@@ -7,7 +7,7 @@ import type { AiJobOutput } from './extraction-output'
 import { buildExtractionMessages, EXTRACTION_OUTPUT_FORMAT } from './extraction-prompt'
 import { keepLinkIfInPost, parseModelResponse } from './model-response'
 
-/** Pede ao modelo os dados da vaga contidos no post. */
+/** Pede ao modelo os dados da vaga contidos no post (`null` se ele responder `null`). */
 export async function extractJobFromPost(ollama: Ollama, model: string, post: RawPost): Promise<AiJobOutput | null> {
 	// Erros do Ollama (fora do ar, timeout) são transitórios: o QueueClient tenta de novo
 	const response = await ollama.chat({
@@ -25,7 +25,7 @@ export async function extractJobFromPost(ollama: Ollama, model: string, post: Ra
 	}
 }
 
-/** Monta a mensagem da vaga com os dados da IA e os do post (que têm prioridade). */
+/** Monta a vaga com os dados da IA e os do post, que têm prioridade. */
 export function buildProcessedJob(post: RawPost, aiJob: AiJobOutput): ProcessedJob {
 	return {
 		postId: post.postId,
@@ -44,7 +44,7 @@ export function buildProcessedJob(post: RawPost, aiJob: AiJobOutput): ProcessedJ
 	}
 }
 
-/** NFKC converte o "negrito" Unicode comum no LinkedIn (𝐕𝐮𝐞.𝐣𝐬) em texto normal, que o modelo entende melhor. */
+/** Aplica NFKC: o "negrito" Unicode comum no LinkedIn (𝐕𝐮𝐞.𝐣𝐬) vira texto que o modelo entende. */
 function normalizePostText(text: string) {
 	return text.normalize('NFKC')
 }

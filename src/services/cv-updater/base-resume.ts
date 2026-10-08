@@ -6,7 +6,7 @@ import type { ParsedResume } from './resume/resume.types'
 
 const EXPECTED_SECTIONS = ['summary', 'skills', 'projects', 'experience'] as const
 
-/** Lê o currículo base (.tex). É relido a cada pedido, então dá para editar o arquivo sem reiniciar o serviço. */
+/** Lê e interpreta o currículo base. É relido a cada pedido: dá para editar o `.tex` sem reiniciar. */
 export async function loadBaseResume(texFile: string): Promise<ParsedResume> {
 	const file = Bun.file(texFile)
 
@@ -21,7 +21,7 @@ export async function loadBaseResume(texFile: string): Promise<ParsedResume> {
 
 /**
  * Valida o currículo base e o Tectonic na inicialização, para falhar cedo com uma mensagem clara.
- * Na primeira vez o Tectonic baixa os pacotes LaTeX (pode levar alguns minutos).
+ * A primeira compilação baixa os pacotes LaTeX e pode levar alguns minutos.
  */
 export async function checkBaseResume(texFile: string, compileOptions: CompileOptions, logger: Logger) {
 	const resume = await loadBaseResume(texFile)

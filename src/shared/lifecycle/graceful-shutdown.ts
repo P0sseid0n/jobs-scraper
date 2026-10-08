@@ -7,7 +7,7 @@ let shuttingDown = false
 
 const SHUTDOWN_TIMEOUT_MS = 15_000
 
-/** Registra uma função de limpeza. Elas rodam na ordem inversa do registro ao receber SIGINT/SIGTERM. */
+/** Registra uma limpeza para o encerramento; elas rodam na ordem inversa do registro. */
 export function onShutdown(cleanup: Cleanup) {
 	cleanups.push(cleanup)
 }
