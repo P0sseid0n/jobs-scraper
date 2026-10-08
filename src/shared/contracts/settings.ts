@@ -54,6 +54,19 @@ export type ScraperSettings = z.output<typeof ScraperSettingsSchema>
 export const PostProcessingSettingsSchema = z.object({
 	/** Posts com confiança da IA abaixo disso são descartados (não viram vaga). */
 	minJobConfidence: z.number().min(0).max(100).default(60),
+
+	/** Idiomas aceitos (ISO 639-1, ex.: "pt", "en"), detectados no texto do post; lista vazia aceita todos. */
+	allowedLanguages: z
+		.array(
+			z
+				.string()
+				.trim()
+				.toLowerCase()
+				.regex(/^[a-z]{2}$/, 'Use o código ISO 639-1 do idioma (ex.: "pt", "en")'),
+		)
+		.max(20)
+		.default(['pt'])
+		.transform(languages => [...new Set(languages)]),
 })
 
 export type PostProcessingSettings = z.output<typeof PostProcessingSettingsSchema>

@@ -17,6 +17,7 @@ const job: ProcessedJob = {
 	aiJobConfidence: 80,
 	postedAt: null,
 	author: null,
+	language: null,
 }
 
 describe('missingRequiredFields', () => {

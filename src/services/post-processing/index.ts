@@ -7,9 +7,10 @@ import { QUEUES } from '@shared/messaging'
 import { startService } from '@shared/service'
 import { loadSettings } from '@shared/settings'
 
-import { extractionEnv } from './config'
+import { extractionEnv, languagesFromEnv } from './config'
 import { buildProcessedJob, extractJobFromPost } from './job-extraction'
 import { rejectionReason } from './model-response'
+import { checkPostLanguage } from './post-language'
 
 const { config, logger, queue } = await startService({
 	name: 'post-processing',
@@ -21,13 +22,16 @@ const ollama = new Ollama({ host: config.OLLAMA_HOST })
 await ensureModelAvailable()
 
 // Valor inicial da coleção `settings`; depois a confiança mínima é editável por outras fontes
-const settingsSeed = { minJobConfidence: config.MIN_JOB_CONFIDENCE }
+const settingsSeed = { minJobConfidence: config.MIN_JOB_CONFIDENCE, allowedLanguages: languagesFromEnv(config.JOB_LANGUAGES) }
 await loadSettings('post-processing', settingsSeed)
 
 await queue.assertQueue(QUEUES.storage)
 await queue.consume(QUEUES.postProcessing, RawPostSchema, processPost)
 
-/** Extrai a vaga do post e, se for vaga, envia ao storage. Cada post é processado uma única vez. */
+/**
+ * Descarta o post se ele estiver fora dos idiomas aceitos (sem chamar a IA); senão extrai a vaga e, se for
+ * uma vaga, envia ao storage. Cada post é processado uma única vez.
+ */
 async function processPost(post: RawPost) {
 	const log = logger.child({ postId: post.postId })
 
@@ -36,21 +40,33 @@ async function processPost(post: RawPost) {
 		return
 	}
 
-	log.info('Processando post')
+	const settings = await loadSettings('post-processing', settingsSeed)
+	const { language, rejection } = checkPostLanguage(post.text, settings.allowedLanguages)
+
+	if (rejection) {
+		log.info({ reason: rejection }, 'Post descartado')
+		await markAsSeen(post, false)
+		return
+	}
+
+	log.info({ language }, 'Processando post')
 	const aiJob = await extractJobFromPost(ollama, config.OLLAMA_MODEL, post)
-	const { minJobConfidence } = await loadSettings('post-processing', settingsSeed)
-	const reason = rejectionReason(aiJob, minJobConfidence)
+	const reason = rejectionReason(aiJob, settings.minJobConfidence)
 
 	if (aiJob && !reason) {
-		const job = buildProcessedJob(post, aiJob)
+		const job = buildProcessedJob(post, aiJob, language)
 		await queue.publish(QUEUES.storage, job)
 
 		log.info({ aiJobConfidence: job.aiJobConfidence, title: job.title }, 'Vaga estruturada enviada para o storage')
 	} else {
-		log.info({ reason, aiJobConfidence: aiJob?.aiJobConfidence }, 'Post descartado: não é vaga')
+		log.info({ reason, aiJobConfidence: aiJob?.aiJobConfidence }, 'Post descartado')
 	}
 
-	await SeenPost.updateOne({ postId: post.postId }, { $setOnInsert: { postId: post.postId, isJob: !reason } }, { upsert: true })
+	await markAsSeen(post, !reason)
+}
+
+function markAsSeen(post: RawPost, isJob: boolean) {
+	return SeenPost.updateOne({ postId: post.postId }, { $setOnInsert: { postId: post.postId, isJob } }, { upsert: true })
 }
 
 /** Encerra o serviço com uma instrução clara se o modelo não estiver baixado no Ollama. */

@@ -26,7 +26,7 @@ export async function extractJobFromPost(ollama: Ollama, model: string, post: Ra
 }
 
 /** Monta a vaga com os dados da IA e os do post, que têm prioridade. */
-export function buildProcessedJob(post: RawPost, aiJob: AiJobOutput): ProcessedJob {
+export function buildProcessedJob(post: RawPost, aiJob: AiJobOutput, language: string | null): ProcessedJob {
 	return {
 		postId: post.postId,
 		rawContent: post.text,
@@ -41,6 +41,7 @@ export function buildProcessedJob(post: RawPost, aiJob: AiJobOutput): ProcessedJ
 		aiJobConfidence: aiJob.aiJobConfidence,
 		postedAt: post.postedAt,
 		author: post.author,
+		language,
 	}
 }
 

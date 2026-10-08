@@ -16,5 +16,7 @@ export const ProcessedJobSchema = z.object({
 	aiJobConfidence: z.number().min(0).max(100),
 	postedAt: z.iso.datetime().nullable().default(null),
 	author: z.string().nullable().default(null),
+	/** Idioma do post (ISO 639-1), detectado no texto; `null` se curto demais. */
+	language: z.string().nullable().default(null),
 })
 export type ProcessedJob = z.infer<typeof ProcessedJobSchema>

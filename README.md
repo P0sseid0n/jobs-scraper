@@ -110,8 +110,9 @@ Por padrão o scraper roda uma coleta e termina. Para coletar periodicamente, de
 
 ### Configurações em tempo de execução
 
-Os termos de busca, o filtro de data, o limite de posts, o intervalo, a pausa das coletas e a confiança mínima da IA ficam na coleção `settings` do MongoDB (um documento por serviço), preparados para serem editados por outras fontes. Os valores do `.env` (`SEARCH_KEYWORDS`, `SCRAPER_DATE_POSTED`, `SCRAPER_MAX_POSTS`, `SCRAPER_INTERVAL_MINUTES`, `MIN_JOB_CONFIDENCE`) só preenchem esse documento na primeira execução; depois disso, valem os do banco. Para voltar a usar o `.env`, apague o documento (ex.: pelo Mongo Express).
+Os termos de busca, o filtro de data, o limite de posts, o intervalo, a pausa das coletas, a confiança mínima da IA e os idiomas aceitos ficam na coleção `settings` do MongoDB (um documento por serviço), preparados para serem editados por outras fontes. Os valores do `.env` (`SEARCH_KEYWORDS`, `SCRAPER_DATE_POSTED`, `SCRAPER_MAX_POSTS`, `SCRAPER_INTERVAL_MINUTES`, `MIN_JOB_CONFIDENCE`, `JOB_LANGUAGES`) só preenchem esse documento na primeira execução; depois disso, valem os do banco. Para voltar a usar o `.env`, apague o documento (ex.: pelo Mongo Express).
 
+- O idioma de cada post é detectado no texto (biblioteca `franc`, sem IA), e os que não estiverem em `allowedLanguages` (padrão: só `pt`) são descartados antes de chamar a IA. Lista vazia aceita todos; posts curtos demais para detectar seguem normalmente.
 - `SEARCH_KEYWORDS` aceita vários termos separados por vírgula; cada um vira uma busca na mesma coleta, e o limite de posts é dividido entre eles.
 - Com o scraper rodando continuamente, ele relê as configurações a cada 30 segundos: mudanças valem sem reiniciar.
 - `bun scraper:run` pede uma coleta imediata (qualquer outra fonte pode fazer o mesmo publicando na fila `scraper`), mesmo com as coletas pausadas.

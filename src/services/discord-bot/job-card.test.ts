@@ -18,6 +18,7 @@ const job: ProcessedJob = {
 	aiJobConfidence: 85,
 	postedAt: '2026-10-07T17:18:50.712Z',
 	author: 'Mandar Wairkar',
+	language: 'pt',
 }
 
 describe('buildJobCard', () => {
