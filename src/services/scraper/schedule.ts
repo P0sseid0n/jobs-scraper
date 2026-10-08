@@ -15,9 +15,15 @@ export function settingsSeedFromEnv(config: ScraperConfig): Partial<SettingsInpu
 	}
 }
 
-/** Divide o limite da coleta entre os termos, para um termo não consumir o limite inteiro. */
+/**
+ * Divide o limite da coleta entre os termos sem ultrapassá-lo; o resto vai para os primeiros (50 em 3 → 17, 17, 16).
+ * Com mais termos que posts, os últimos ficam com 0.
+ */
 export function postsPerTerm(maxPostsPerRun: number, termCount: number) {
-	return Math.max(1, Math.ceil(maxPostsPerRun / Math.max(1, termCount)))
+	const base = Math.floor(maxPostsPerRun / termCount)
+	const remainder = maxPostsPerRun % termCount
+
+	return Array.from({ length: termCount }, (_, index) => base + (index < remainder ? 1 : 0))
 }
 
 /** Calcula a próxima coleta automática: `intervalMinutes` após o início da última, ou já se nunca coletou. */

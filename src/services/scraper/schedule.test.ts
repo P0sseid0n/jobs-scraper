@@ -31,13 +31,14 @@ describe('settingsSeedFromEnv', () => {
 })
 
 describe('postsPerTerm', () => {
-	test('divide o limite entre os termos, arredondando para cima', () => {
-		expect(postsPerTerm(50, 1)).toBe(50)
-		expect(postsPerTerm(50, 3)).toBe(17)
+	test('divide o limite exato entre os termos, com o resto nos primeiros', () => {
+		expect(postsPerTerm(50, 1)).toEqual([50])
+		expect(postsPerTerm(50, 3)).toEqual([17, 17, 16])
+		expect(postsPerTerm(50, 7).reduce((total, limit) => total + limit, 0)).toBe(50)
 	})
 
-	test('pelo menos 1 post por termo', () => {
-		expect(postsPerTerm(1, 5)).toBe(1)
+	test('com mais termos que posts, os últimos ficam com 0', () => {
+		expect(postsPerTerm(2, 5)).toEqual([1, 1, 0, 0, 0])
 	})
 })
 

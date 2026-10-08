@@ -35,7 +35,7 @@ export async function scrapeOnce(options: ScrapeOptions): Promise<ScraperRunTerm
 	const { config, settings, logger } = options
 
 	const terms = settings.searchTerms.filter(term => term.enabled).map(term => term.term)
-	const limit = postsPerTerm(settings.maxPostsPerRun, terms.length)
+	const limits = postsPerTerm(settings.maxPostsPerRun, terms.length)
 
 	// Compartilhado entre os termos: um post que aparece em duas buscas só é enviado uma vez
 	const seen = new Set<string>()
@@ -53,7 +53,16 @@ export async function scrapeOnce(options: ScrapeOptions): Promise<ScraperRunTerm
 		const results: ScraperRunTerm[] = []
 
 		for (const [index, term] of terms.entries()) {
-			if (index > 0) await humanPause()
+			const limit = limits[index] ?? 0
+
+			// Mais termos que posts no limite: os últimos ficam sem busca, mas aparecem no histórico
+			if (limit === 0) {
+				logger.info({ term }, 'Termo pulado: o limite de posts da coleta já foi distribuído')
+				results.push({ term, sent: 0, error: null })
+				continue
+			}
+
+			if (results.length > 0) await humanPause()
 			results.push(await scrapeTerm(session, { term, limit, seen }, options))
 		}
 
