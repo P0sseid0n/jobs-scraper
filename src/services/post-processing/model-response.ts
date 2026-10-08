@@ -33,6 +33,22 @@ export function keepLinkIfInPost(link: string | null, text: string): string | nu
 	return text.includes(link) ? link : null
 }
 
+/** Descarta o local quando ele é só a modalidade ("Remoto", "100% home office"), que já tem campo próprio. */
+export function locationWithoutWorkMode(location: string | null): string | null {
+	if (!location) return null
+
+	const normalized = location
+		.normalize('NFKD')
+		.replace(/\p{Diacritic}/gu, '')
+		.toLowerCase()
+		.replace(/[^a-z0-9% ]+/g, ' ')
+		.trim()
+
+	return WORK_MODE_ONLY.test(normalized) ? null : location
+}
+
+const WORK_MODE_ONLY = /^(100 ?% ?)?(remoto|remote|home ?office|hibrido|hybrid|presencial|on ?site)$/
+
 /**
  * Mantém só os conhecimentos escritos no post (evita tecnologia inventada): cada palavra do item precisa
  * começar alguma palavra do texto, ignorando caixa, acentos, ".js" e plural ("REST APIs" ↔ "API REST").

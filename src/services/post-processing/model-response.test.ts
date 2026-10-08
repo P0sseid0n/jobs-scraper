@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { keepLinkIfInPost, keepSkillsInPost, parseModelResponse, rejectionReason } from './model-response'
+import { keepLinkIfInPost, keepSkillsInPost, locationWithoutWorkMode, parseModelResponse, rejectionReason } from './model-response'
 
 describe('parseModelResponse', () => {
 	test('retorna null quando o modelo responde "null"', () => {
@@ -101,5 +101,19 @@ describe('keepSkillsInPost', () => {
 	test('null quando nada sobra ou não havia conhecimentos', () => {
 		expect(keepSkillsInPost(['Java'], text)).toBeNull()
 		expect(keepSkillsInPost(null, text)).toBeNull()
+	})
+})
+
+describe('locationWithoutWorkMode', () => {
+	test('descarta o local quando ele é só a modalidade', () => {
+		for (const location of ['remoto', 'Remoto', '100% Remoto', 'Home Office', 'Híbrido', 'remote']) {
+			expect(locationWithoutWorkMode(location)).toBeNull()
+		}
+	})
+
+	test('mantém locais de verdade, mesmo com a modalidade junto', () => {
+		expect(locationWithoutWorkMode('São Paulo, SP')).toBe('São Paulo, SP')
+		expect(locationWithoutWorkMode('Remoto (Brasil)')).toBe('Remoto (Brasil)')
+		expect(locationWithoutWorkMode(null)).toBeNull()
 	})
 })

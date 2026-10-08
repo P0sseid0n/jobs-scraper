@@ -49,7 +49,7 @@ Every field must come from that same opening; never mix the title of one opening
 
 - title: the role exactly as written, without emojis. null if absent.
 - company: the hiring company. null if not named. Never write placeholders like "unknown".
-- location: city, state and/or country of the job. null if absent.
+- location: city, state and/or country of the job. null if absent. Never put the work mode here ("remote", "home office" and "hybrid" go in workMode).
 - workMode: "remoto" (remote), "presencial" (on-site) or "hibrido" (hybrid). null if not stated.
 - necessary_knowledge: technologies and skills written in the post for this opening, as short names (e.g. "Vue.js", "TypeScript"); at most 10; [] if none. Never add technologies that are not written, even if they are typical for the role.
 - recruiter_email: a contact email written in the post. null if absent.
