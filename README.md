@@ -138,14 +138,17 @@ Todas as portas ficam publicadas apenas em `127.0.0.1`.
 
 ## 🧰 Scripts
 
-| Script                                          | Descrição                          |
-| ----------------------------------------------- | ---------------------------------- |
-| `bun dev`                                       | Todos os serviços com `--watch`    |
-| `bun start:<scraper\|processing\|storage\|bot>` | Um serviço, sem `--watch`          |
-| `bun run typecheck`                             | Checagem de tipos (`tsc --noEmit`) |
-| `bun run lint` / `bun run lint:fix`             | Lint com Biome                     |
-| `bun run format` / `bun run format:check`       | Formatação com Prettier            |
-| `bun test`                                      | Testes                             |
+| Script                                              | Descrição                                                |
+| --------------------------------------------------- | -------------------------------------------------------- |
+| `bun dev`                                           | Todos os serviços com `--watch`                          |
+| `bun dev:scraped`                                   | Todos menos o scraper (só processa o que está nas filas) |
+| `bun dev:<scraper\|processing\|storage\|bot\|cv>`   | Um serviço, com `--watch`                                |
+| `bun start:<scraper\|processing\|storage\|bot\|cv>` | Um serviço, sem `--watch`                                |
+| `bun scraper:run`                                   | Pede uma coleta imediata ao scraper (fila `scraper`)     |
+| `bun run typecheck`                                 | Checagem de tipos (`tsc --noEmit`)                       |
+| `bun run lint` / `bun run lint:fix`                 | Lint com Biome                                           |
+| `bun run format` / `bun run format:check`           | Formatação com Prettier                                  |
+| `bun test`                                          | Testes                                                   |
 
 O CI (GitHub Actions) roda `typecheck`, `lint`, `format:check` e `test` em todo push e PR. O estilo de código fica no `.prettierrc` e no `.editorconfig`; no VS Code, use a extensão do Prettier com formatação ao salvar.
 
@@ -158,7 +161,7 @@ src/
     settings/                  #   configurações editáveis em tempo de execução (coleção settings)
     config/                    #   carregamento e validação do .env (zod) e variáveis de infraestrutura
     contracts/                 #   formato das mensagens que trafegam nas filas
-    database/                  #   conexão com o MongoDB e modelos (Job, SeenPost)
+    database/                  #   conexão com o MongoDB e modelos (Job, SeenPost, Settings, ScraperRun)
     messaging/                 #   cliente RabbitMQ, nomes das filas e política de retry/DLQ
     logging/, lifecycle/       #   logger e encerramento gracioso
   services/
@@ -174,7 +177,7 @@ src/
       job-extraction.ts        #   chamada ao modelo e montagem da vaga
       extraction-prompt.ts     #   prompt e schema enviados ao modelo
       model-response.ts        #   leitura e validação da resposta
-    storage/                   # salva no MongoDB e encaminha ao Discord
+    storage/                   # salva no MongoDB e publica o evento job-published para os canais
     discord-bot/               # publica as vagas e entrega o currículo
       job-publisher.ts         #   canal das vagas (texto ou fórum) e envio do card
       job-card.ts              #   card (embed) da vaga
