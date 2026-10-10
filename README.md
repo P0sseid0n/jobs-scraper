@@ -1,6 +1,6 @@
 # Jobs Scraper 🚀💼
 
-Pipeline que coleta postagens de vagas no LinkedIn, estrutura os dados com IA local (Ollama), salva no MongoDB e publica as vagas em um canal do Discord. Os serviços se comunicam por filas do RabbitMQ.
+Pipeline que coleta postagens de vagas no LinkedIn, estrutura os dados com IA local (Ollama), salva no MongoDB e publica as vagas em um canal do Discord e num site próprio. Os serviços se comunicam por filas do RabbitMQ.
 
 ## 🗺️ Visão geral
 
@@ -14,14 +14,17 @@ flowchart LR
 	event -- "fila: discord" --> bot["discord-bot<br/><small>Discord</small>"]
 	bot -- "fila: cv-updater" --> cv["cv-updater<br/><small>LaTeX + Ollama</small>"]
 	cv -- "fila: discord-cv (replyTo)" --> bot
+	event -- "fila: web" --> web["web<br/><small>site</small>"]
+	web -- "fila: cv-updater" --> cv
+	cv -- "fila: web-cv (replyTo)" --> web
 ```
 
 Cada fila tem o mesmo nome do serviço que a consome. A fila `scraper` recebe comandos para o scraper, como o "coletar agora" (`bun scraper:run` ou de outras fontes).
 
-O núcleo (scraper → post-processing → storage → cv-updater) não depende do Discord, e o bot é só um dos canais:
+O núcleo (scraper → post-processing → storage → cv-updater) não depende do Discord: o bot e o site são dois canais.
 
-- **Vagas:** o storage publica cada vaga nova no evento `job-published` (exchange fanout). O bot liga a fila `discord` nele; outro canal (Telegram, site…) ligaria a própria fila e receberia todas as vagas também. Se nenhum canal estiver ligado, o storage não marca a vaga como publicada e tenta de novo depois.
-- **Currículos:** o pedido (`CvRequest`) traz um `replyTo` com a fila de resposta e um contexto livre. O cv-updater devolve o resultado nessa fila, com o mesmo contexto. O bot usa a fila `discord-cv` e guarda no contexto o token da interação do Discord.
+- **Vagas:** o storage publica cada vaga nova no evento `job-published` (exchange fanout). O bot liga a fila `discord` nele e o site, a fila `web`; outro canal (Telegram…) ligaria a própria fila e receberia todas as vagas também. Se nenhum canal estiver ligado, o storage não marca a vaga como publicada e tenta de novo depois.
+- **Currículos:** o pedido (`CvRequest`) traz um `replyTo` com a fila de resposta e um contexto livre. O cv-updater devolve o resultado nessa fila, com o mesmo contexto. O bot usa a fila `discord-cv` e guarda no contexto o token da interação do Discord; o site usa a `web-cv` e guarda o id do pedido.
 
 1. **Scraper** (`src/services/scraper`): usa Puppeteer para buscar posts no LinkedIn. Cada post recebe um `postId` (hash do texto normalizado) e é enviado para a fila `post-processing`.
 2. **Pós-processamento** (`src/services/post-processing`): ignora posts já vistos, usa um modelo do Ollama para extrair os dados da vaga e envia o resultado para a fila `storage`.
@@ -30,6 +33,19 @@ O núcleo (scraper → post-processing → storage → cv-updater) não depende 
    - Num **canal de texto**, cada vaga vira uma mensagem.
    - Num **canal de fórum**, cada vaga vira um post próprio. O bot aplica as tags do fórum que batem com a modalidade ou as tecnologias (crie tags como "Remoto" ou "Vue" no fórum).
 5. **Currículo ajustado** (`src/services/cv-updater`): ao clicar em "📧 Contato do recrutador" (ou "📄 Gerar currículo", quando a vaga não tem e-mail), o bot responde só para você com o contato e, segundos depois, envia um PDF do seu currículo ajustado à vaga.
+6. **Site** (`src/services/web`): veja abaixo.
+
+### 🌐 Site (web)
+
+Mais um canal, ao lado do Discord, com o que o Discord não faz bem: busca e filtros no histórico, acompanhamento das coletas e edição das configurações. Abre em http://localhost:3000 (sem login: a porta fica só em `127.0.0.1`).
+
+- **Vagas:** lista das mais recentes, com busca (cargo, empresa, tecnologias e texto do post) e filtros por modalidade, tecnologias, período, e-mail de contato, idioma e confiança mínima. No desktop, o detalhe abre ao lado; no celular, numa página própria. Vagas novas chegam em tempo real (Server-Sent Events) e aparecem num aviso "N vagas novas", sem reordenar a lista sob o cursor; as não vistas ganham um ponto verde.
+- **Detalhe:** todos os campos, o post original, o e-mail com botão de copiar e o modelo de mensagem de candidatura (o mesmo do bot).
+- **Currículos:** "gerar currículo" em qualquer vaga. O pedido segue em segundo plano (um indicador no canto acompanha todos os pedidos da sessão); quando fica pronto, dá para pré-visualizar e baixar. Os PDFs ficam na coleção `web_cv_requests` (90 dias) e aparecem em "Meus currículos".
+- **Coletas:** coleta em andamento, próxima agendada, "coletar agora", pausar e o histórico com o resultado por termo. Falhas de login do LinkedIn aparecem como alerta.
+- **Configurações:** formulário da coleção `settings` (termos de busca, filtro de data, limites, intervalo, confiança, idiomas e palavras-chave), com as mesmas validações dos schemas.
+
+O frontend é Vue 3 escrito em TSX e empacotado pelo próprio Bun (`Bun.serve` com import de HTML): não há etapa de build nem Vite. Em desenvolvimento (`bun dev:web`) há hot reload; com `NODE_ENV=production` (como no Docker), o bundle é minificado na inicialização. Os erros de validação da API voltam por campo.
 
 ### 📄 Currículo ajustado (cv-updater)
 
@@ -65,6 +81,7 @@ As mensagens são persistentes e validadas com os schemas de `src/shared/contrac
 - **MongoDB** + Mongoose (armazenamento)
 - **Ollama** (IA local)
 - **Discord.js** (bot)
+- **Vue 3** (site, em TSX, empacotado pelo Bun)
 - **Tectonic** (LaTeX, para o currículo)
 - **Zod** (validação de configuração e mensagens), **Pino** (logs)
 - **Docker Compose** (infraestrutura e serviços)
@@ -135,17 +152,18 @@ Todas as portas ficam publicadas apenas em `127.0.0.1`.
 
 - RabbitMQ: http://localhost:15672 (`RABBITMQ_USER` / `RABBITMQ_PASSWORD`)
 - mongo-express: http://localhost:8081 (`MONGO_EXPRESS_USER` / `MONGO_EXPRESS_PASSWORD`)
+- Site: http://localhost:3000 (`WEB_PORT`)
 
 ## 🧰 Scripts
 
-| Script                                          | Descrição                          |
-| ----------------------------------------------- | ---------------------------------- |
-| `bun dev`                                       | Todos os serviços com `--watch`    |
-| `bun start:<scraper\|processing\|storage\|bot>` | Um serviço, sem `--watch`          |
-| `bun run typecheck`                             | Checagem de tipos (`tsc --noEmit`) |
-| `bun run lint` / `bun run lint:fix`             | Lint com Biome                     |
-| `bun run format` / `bun run format:check`       | Formatação com Prettier            |
-| `bun test`                                      | Testes                             |
+| Script                                                   | Descrição                          |
+| -------------------------------------------------------- | ---------------------------------- |
+| `bun dev`                                                | Todos os serviços com `--watch`    |
+| `bun start:<scraper\|processing\|storage\|bot\|cv\|web>` | Um serviço, sem `--watch`          |
+| `bun run typecheck`                                      | Checagem de tipos (`tsc --noEmit`) |
+| `bun run lint` / `bun run lint:fix`                      | Lint com Biome                     |
+| `bun run format` / `bun run format:check`                | Formatação com Prettier            |
+| `bun test`                                               | Testes                             |
 
 O CI (GitHub Actions) roda `typecheck`, `lint`, `format:check` e `test` em todo push e PR. O estilo de código fica no `.prettierrc` e no `.editorconfig`; no VS Code, use a extensão do Prettier com formatação ao salvar.
 
@@ -159,6 +177,7 @@ src/
     config/                    #   carregamento e validação do .env (zod) e variáveis de infraestrutura
     contracts/                 #   formato das mensagens que trafegam nas filas
     database/                  #   conexão com o MongoDB e modelos (Job, SeenPost)
+    templates/                 #   textos compartilhados pelos canais (modelo de mensagem de candidatura)
     messaging/                 #   cliente RabbitMQ, nomes das filas e política de retry/DLQ
     logging/, lifecycle/       #   logger e encerramento gracioso
   services/
@@ -192,6 +211,12 @@ src/
       skills/                  #   seção de habilidades e associação entre tecnologias da vaga e do currículo
       projects/                #   GitHub (API e cache), ranking, escolha e descrição dos projetos
       assets/                  #   fontes e cv.example.tex
+    web/                       # site: API, tempo real (SSE) e a aplicação Vue
+      index.ts                 #   Bun.serve com as rotas da API e a aplicação
+      api-types.ts             #   formato das respostas da API (compartilhado com o navegador)
+      server/                  #   rotas (vagas, currículos, coletas, configurações), SSE e paginação
+      client/                  #   aplicação Vue em TSX: views/, components/, stores/ e lib/
+        jsx/                   #   runtime de JSX (o do Vue, sem renderizar `false` como texto)
 data/                          # dados de execução, fora do git: cv/cv.tex, cv/generated/, cache/, scraper/
 ```
 

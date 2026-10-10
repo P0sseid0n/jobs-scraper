@@ -1,3 +1,5 @@
+import { applicationMessage } from '@shared/templates'
+
 /** Botão de contato/currículo: o custom_id carrega o postId para o cv-updater achar a vaga. */
 export const CONTACT_BUTTON_PREFIX = 'contact:'
 
@@ -21,24 +23,12 @@ export function buildContactReply(email: string | null, jobTitle: string | null,
 		return opts.generatingCv ? CV_PENDING_NOTE : 'Essa vaga não tem e-mail de contato.'
 	}
 
-	const role = jobTitle ?? 'a vaga'
-	const template = [
-		`Assunto: Candidatura – ${role}`,
-		'',
-		'Olá! Tudo bem?',
-		'',
-		`Vi a publicação sobre ${role} no LinkedIn e tenho interesse na oportunidade.`,
-		'Envio em anexo meu currículo e fico à disposição para conversarmos.',
-		'',
-		'Obrigado!',
-	]
-
 	return [
 		`📧 **E-mail do recrutador:** ${email}`,
 		'',
 		'Modelo de mensagem para copiar:',
 		'```',
-		...template,
+		applicationMessage(jobTitle),
 		'```',
 		...(opts.generatingCv ? ['', CV_PENDING_NOTE] : []),
 	].join('\n')

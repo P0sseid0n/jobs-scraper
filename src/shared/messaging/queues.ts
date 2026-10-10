@@ -9,6 +9,10 @@ export const QUEUES = {
 	discordCv: 'discord-cv',
 	/** Comandos para o scraper (ex.: "coletar agora" vindo de outras fontes). */
 	scraper: 'scraper',
+	/** Vagas para o site repassar ao navegador em tempo real (ligada à exchange `job-published`). */
+	web: 'web',
+	/** Currículos prontos pedidos pelo site (é o `replyTo.queue` dos pedidos dele). */
+	webCv: 'web-cv',
 } as const
 
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES]

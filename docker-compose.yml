@@ -173,6 +173,27 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
 
+  # Site (vagas em tempo real, currículos, coletas e configurações): http://localhost:3000
+  web:
+    profiles: [app]
+    build:
+      context: .
+      target: app
+    command: ['bun', 'src/services/web/index.ts']
+    env_file: .env
+    environment:
+      <<: *app-env
+      WEB_HOST: 0.0.0.0
+      WEB_PORT: '3000'
+    ports:
+      - '127.0.0.1:${WEB_PORT:-3000}:3000'
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   ollama_data:
   rabbitmq_data:

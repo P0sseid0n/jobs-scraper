@@ -14,8 +14,11 @@
 		"noUncheckedIndexedAccess": true,
 		"forceConsistentCasingInFileNames": true,
 		"skipLibCheck": true,
+		"jsx": "preserve",
+		"jsxImportSource": "@web-jsx",
 		"paths": {
-			"@shared/*": ["./src/shared/*"]
+			"@shared/*": ["./src/shared/*"],
+			"@web-jsx/*": ["./src/services/web/client/jsx/*"]
 		}
 	},
 	"include": ["src"]
