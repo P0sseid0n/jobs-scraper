@@ -129,7 +129,16 @@ Os termos de busca, o filtro de data, o limite de posts, o intervalo, a pausa da
 
 Para outras fontes: as configurações são lidas e salvas com `loadSettings`/`updateSettings` (`@shared/settings`), que validam tudo com os schemas de `@shared/contracts` (`ScraperSettingsSchema`, `PostProcessingSettingsSchema`); o "coletar agora" é uma mensagem `ScraperCommand` publicada na fila `scraper`.
 
-A sessão do LinkedIn fica salva em `data/scraper/linkedin-cookies.json` (no Docker, no volume `scraper_data`), então o login só é refeito quando ela expira. Se o LinkedIn pedir captcha ou 2FA, rode com `HEADLESS=false` e resolva na janela do navegador.
+A sessão do LinkedIn fica salva em `data/scraper/linkedin-cookies.json` (no Docker, no volume `scraper_data`), então o login só é refeito quando ela expira.
+
+Com `HEADLESS=auto` (padrão), o navegador roda sem janela. Se o LinkedIn pedir uma verificação no login:
+
+- **QR code:** aparece no terminal (ou em `docker compose logs -f scraper`) para escanear com o app do LinkedIn.
+- **Código** (e-mail, SMS ou app autenticador): envie com `bun scraper:verify 123456`, de outro terminal. Se estiver errado, envie outro.
+- **Aprovação no app do LinkedIn:** aprove no celular; o scraper espera até 3 minutos.
+- **Captcha ou verificação não reconhecida:** onde há tela, o scraper abre a janela do navegador, refaz o login para você resolver e volta a rodar sem janela. Sem tela (Docker), salva um screenshot em `data/scraper/login-verification.png` e a coleta falha.
+
+`HEADLESS=true` nunca abre janela; `HEADLESS=false` roda sempre com janela. Se o login falhar, a coleta inteira para, em vez de tentar logar de novo em cada termo de busca.
 
 ### Painéis
 
@@ -147,6 +156,7 @@ Todas as portas ficam publicadas apenas em `127.0.0.1`.
 | `bun dev:<scraper\|processing\|storage\|bot\|cv>`   | Um serviço, com `--watch`                                |
 | `bun start:<scraper\|processing\|storage\|bot\|cv>` | Um serviço, sem `--watch`                                |
 | `bun scraper:run`                                   | Pede uma coleta imediata ao scraper (fila `scraper`)     |
+| `bun scraper:verify <código>`                       | Envia o código de verificação do login do LinkedIn       |
 | `bun run typecheck`                                 | Checagem de tipos (`tsc --noEmit`)                       |
 | `bun run lint` / `bun run lint:fix`                 | Lint com Biome                                           |
 | `bun run format` / `bun run format:check`           | Formatação com Prettier                                  |
@@ -173,7 +183,8 @@ src/
       scheduler.ts             #   agenda das coletas e "coletar agora" (fila scraper)
       run-history.ts           #   histórico das coletas (coleção scraper_runs)
       browser-session.ts       #   navegador (stealth) e cookies da sessão
-      login.ts                 #   login e verificação (captcha/2FA)
+      login.ts                 #   login e verificação (QR, código, captcha), sem janela ou com janela
+      verification.ts          #   identifica a verificação pedida pelo LinkedIn
       feed-reader.ts           #   leitura dos posts e paginação
       linkedin/                #   URLs, seletores, URN do post, cookies e limpeza de texto
     post-processing/           # extrai a vaga do post com IA

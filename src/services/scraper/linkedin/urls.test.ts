@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { buildSearchUrl, isAuthPage } from './urls'
+import { buildSearchUrl, isAuthPage, isCheckpointPage } from './urls'
 
 describe('buildSearchUrl', () => {
 	test('busca de posts com filtro de data e ordenação', () => {
@@ -23,5 +23,13 @@ describe('isAuthPage', () => {
 		expect(isAuthPage('https://www.linkedin.com/authwall?trk=x')).toBe(true)
 		expect(isAuthPage('https://www.linkedin.com/checkpoint/challenge/123')).toBe(true)
 		expect(isAuthPage('https://www.linkedin.com/search/results/content/?keywords=vue')).toBe(false)
+	})
+})
+
+describe('isCheckpointPage', () => {
+	test('reconhece só a verificação do login', () => {
+		expect(isCheckpointPage('https://www.linkedin.com/checkpoint/challenge/AgF123?ut=x')).toBe(true)
+		expect(isCheckpointPage('https://www.linkedin.com/login')).toBe(false)
+		expect(isCheckpointPage('https://www.linkedin.com/feed/')).toBe(false)
 	})
 })

@@ -10,3 +10,14 @@ export const ScraperCommandSchema = z.object({
 })
 
 export type ScraperCommand = z.infer<typeof ScraperCommandSchema>
+
+/** Mensagem da fila `scraper-verification`: código de verificação (e-mail/SMS/app autenticador) pedido pelo LinkedIn no login. */
+export const VerificationCodeSchema = z.object({
+	code: z
+		.string()
+		.trim()
+		.regex(/^\d{4,10}$/, 'O código de verificação tem só números (normalmente 6)'),
+	requestedAt: z.iso.datetime(),
+})
+
+export type VerificationCode = z.infer<typeof VerificationCodeSchema>

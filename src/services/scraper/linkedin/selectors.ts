@@ -16,4 +16,10 @@ export const SELECTORS = {
 	// (uma cópia oculta): por isso usamos `autocomplete`/`type` e sempre o elemento visível.
 	loginUsername: '#username, input[name="session_key"], input[autocomplete~="username"]',
 	loginPassword: '#password, input[name="session_password"], input[type="password"]',
+	// Verificação do login (/checkpoint). Ainda não confirmados numa verificação real: se não forem reconhecidos,
+	// o scraper abre a janela ou salva um screenshot da página (ver `login.ts`), que ajuda a ajustar aqui.
+	/** Campo do código enviado por e-mail, SMS ou app autenticador. */
+	verificationCodeInput:
+		'input[name="pin"], input[autocomplete="one-time-code"], input[id*="verification_pin"], input[id*="pin_input"]',
+	captchaFrame: 'iframe[src*="captcha"], iframe[src*="arkoselabs"], iframe[title*="captcha" i], #captcha-internal',
 } as const

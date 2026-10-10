@@ -30,21 +30,35 @@ export class BrowserSession {
 	private currentPage?: Page
 
 	private constructor(
-		readonly browser: Browser,
+		private browser: Browser,
 		private readonly options: BrowserOptions,
 	) {}
 
 	static async launch(options: BrowserOptions) {
-		const browser = await puppeteer.launch({
-			headless: options.headless,
-			args: options.noSandbox ? ['--no-sandbox', '--disable-setuid-sandbox'] : [],
-		})
-		options.logger.info('🌐 Navegador iniciado')
-
-		const session = new BrowserSession(browser, options)
+		// Cópia: `relaunch` altera o `headless`
+		const session = new BrowserSession(await launchBrowser(options), { ...options })
 		await session.newContext()
 
 		return session
+	}
+
+	/** Se o navegador está sem janela. */
+	get headless() {
+		return this.options.headless
+	}
+
+	/**
+	 * Fecha o navegador e abre outro, com ou sem janela (não dá para mostrar a janela de um navegador headless já aberto).
+	 * Com `withCookies`, restaura a sessão salva em disco.
+	 */
+	async relaunch({ headless, withCookies = true }: { headless: boolean; withCookies?: boolean }) {
+		await this.browser.close()
+
+		this.options.headless = headless
+		this.context = undefined
+		this.browser = await launchBrowser(this.options)
+
+		await this.newContext({ withCookies })
 	}
 
 	get page(): Page {
@@ -99,6 +113,11 @@ export class BrowserSession {
 		this.options.logger.debug({ count: cookies.length }, '💾 Cookies salvos')
 	}
 
+	/** Salva um screenshot da página atual (ex.: para ver qual verificação o LinkedIn pediu). */
+	async saveScreenshot(filePath: string) {
+		await Bun.write(filePath, await this.page.screenshot({ type: 'png' }))
+	}
+
 	close() {
 		return this.browser.close()
 	}
@@ -113,4 +132,14 @@ export class BrowserSession {
 		if (cookies.length > 0) await this.context?.setCookie(...cookies)
 		this.options.logger.debug({ count: cookies.length }, '📥 Cookies restaurados')
 	}
+}
+
+async function launchBrowser(options: BrowserOptions) {
+	const browser = await puppeteer.launch({
+		headless: options.headless,
+		args: options.noSandbox ? ['--no-sandbox', '--disable-setuid-sandbox'] : [],
+	})
+	options.logger.info({ headless: options.headless }, '🌐 Navegador iniciado')
+
+	return browser
 }

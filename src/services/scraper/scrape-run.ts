@@ -1,3 +1,4 @@
+import path from 'node:path'
 import type { Page } from 'puppeteer'
 
 import type { RawPost, ScraperSettings } from '@shared/contracts'
@@ -12,7 +13,7 @@ import { cleanPostText } from './linkedin/post-text'
 import { postedAtFromUrn, postUrlFromUrn, resolvePostUrn } from './linkedin/post-urn'
 import { SELECTORS } from './linkedin/selectors'
 import { buildSearchUrl, LOGIN_URL } from './linkedin/urls'
-import { ensureLoggedIn } from './login'
+import { ensureLoggedIn, LoginError } from './login'
 import { hashPost } from './post-id'
 import { postsPerTerm } from './schedule'
 
@@ -41,7 +42,7 @@ export async function scrapeOnce(options: ScrapeOptions): Promise<ScraperRunTerm
 	const seen = new Set<string>()
 
 	const session = await BrowserSession.launch({
-		headless: config.HEADLESS,
+		headless: config.HEADLESS !== 'false',
 		noSandbox: config.BROWSER_NO_SANDBOX,
 		cookieFile: config.LINKEDIN_COOKIES_FILE,
 		fallbackLiAt: config.LINKEDIN_LI_AT,
@@ -90,6 +91,8 @@ async function scrapeTerm(session: BrowserSession, search: TermSearch, options: 
 
 		return { term: search.term, sent, error: null }
 	} catch (error) {
+		if (error instanceof LoginError) throw error
+
 		logger.error({ err: error }, 'Falha na busca deste termo')
 
 		return { term: search.term, sent: 0, error: error instanceof Error ? error.message : String(error) }
@@ -116,7 +119,8 @@ async function openSearchResults(session: BrowserSession, term: string, { config
 	const loggedInNow = await ensureLoggedIn(session, {
 		email: config.LINKEDIN_EMAIL,
 		password: config.LINKEDIN_PASSWORD,
-		headless: config.HEADLESS,
+		headlessMode: config.HEADLESS,
+		screenshotFile: path.join(path.dirname(config.LINKEDIN_COOKIES_FILE), 'login-verification.png'),
 		logger,
 	})
 	if (loggedInNow) await session.goto(searchUrl)

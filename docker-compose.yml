@@ -98,6 +98,7 @@ services:
     env_file: .env
     environment:
       <<: *app-env
+      # Sem tela no container: QR code nos logs, código via `bun scraper:verify`; captcha salva um screenshot no volume
       HEADLESS: 'true'
       BROWSER_NO_SANDBOX: 'true'
     volumes:

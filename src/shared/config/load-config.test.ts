@@ -9,11 +9,11 @@ describe('parseConfig', () => {
 	test('aplica valores padrão e converte tipos', () => {
 		const result = parseConfig(
 			{ ...rabbitmqEnv, ...scraperEnv },
-			{ RABBITMQ_URL: 'amqp://u:p@localhost', LINKEDIN_EMAIL: 'a@b.com', LINKEDIN_PASSWORD: 'x', HEADLESS: 'true' },
+			{ RABBITMQ_URL: 'amqp://u:p@localhost', LINKEDIN_EMAIL: 'a@b.com', LINKEDIN_PASSWORD: 'x', BROWSER_NO_SANDBOX: 'true' },
 		)
 
 		expect(result.success).toBe(true)
-		expect(result.data).toMatchObject({ QUEUE_MAX_RETRIES: 3, HEADLESS: true, SCRAPER_MAX_POSTS: 50 })
+		expect(result.data).toMatchObject({ QUEUE_MAX_RETRIES: 3, BROWSER_NO_SANDBOX: true, HEADLESS: 'auto', SCRAPER_MAX_POSTS: 50 })
 	})
 
 	test('falha quando variáveis obrigatórias estão ausentes ou inválidas', () => {

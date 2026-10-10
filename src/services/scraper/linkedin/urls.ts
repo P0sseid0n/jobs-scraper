@@ -10,6 +10,11 @@ export function isAuthPage(url: string) {
 	return /^\/(login|authwall|checkpoint|uas\/login|signup)/.test(pathname)
 }
 
+/** Diz se a URL é da verificação do login (captcha, código, aprovação pelo app...). */
+export function isCheckpointPage(url: string) {
+	return new URL(url, BASE_URL).pathname.startsWith('/checkpoint')
+}
+
 export function buildSearchUrl(opts: { keywords: string; datePosted: DatePostedFilter }) {
 	// O LinkedIn espera os valores dos filtros entre aspas, ex.: datePosted="past-24h"
 	const params = new URLSearchParams({ keywords: opts.keywords, sortBy: '"date_posted"' })

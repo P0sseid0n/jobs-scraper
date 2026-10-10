@@ -9,6 +9,8 @@ export const QUEUES = {
 	discordCv: 'discord-cv',
 	/** Comandos para o scraper (ex.: "coletar agora" vindo de outras fontes). */
 	scraper: 'scraper',
+	/** Códigos de verificação do login do LinkedIn, enviados por `bun scraper:verify <código>`. */
+	scraperVerification: 'scraper-verification',
 } as const
 
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES]

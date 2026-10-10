@@ -1,3 +1,4 @@
+import { VerificationCodeSchema } from '@shared/contracts'
 import type { ScraperRunTrigger } from '@shared/database'
 import { onShutdown, shutdown } from '@shared/lifecycle'
 import { QUEUES } from '@shared/messaging'
@@ -9,12 +10,19 @@ import { markInterruptedRuns, recordRun } from './run-history'
 import { settingsSeedFromEnv } from './schedule'
 import { runOnSchedule } from './scheduler'
 import { closeActiveBrowser, scrapeOnce } from './scrape-run'
+import { submitVerificationCode } from './verification-inbox'
 
 const { config, logger, queue } = await startService({ name: 'scraper', env: scraperEnv, database: true })
 
 onShutdown(closeActiveBrowser)
 await queue.assertQueue(QUEUES.postProcessing)
 await markInterruptedRuns()
+
+// Código de verificação do login (`bun scraper:verify <código>`): chega a qualquer momento, inclusive no meio de uma coleta
+await queue.consume(QUEUES.scraperVerification, VerificationCodeSchema, async ({ code }) => {
+	if (submitVerificationCode(code)) logger.info('🔢 Código de verificação recebido')
+	else logger.warn('Código de verificação ignorado: nenhum login está esperando um código')
+})
 
 const settingsSeed = settingsSeedFromEnv(config)
 
