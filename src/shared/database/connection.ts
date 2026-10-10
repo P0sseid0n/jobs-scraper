@@ -27,6 +27,10 @@ export async function connectDatabase(url: string, logger: Logger) {
 	activeLogger = logger
 }
 
+export function isDatabaseConnected() {
+	return mongoose.connection.readyState === mongoose.ConnectionStates.connected
+}
+
 /** Fecha a conexão no encerramento; o aviso de queda fica só para desconexões inesperadas. */
 export async function disconnectDatabase() {
 	closing = true

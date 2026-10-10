@@ -51,6 +51,11 @@ export class QueueClient {
 		this.logger = options.logger.child({ component: 'queue' })
 	}
 
+	/** Há um canal aberto com o broker (falso enquanto reconecta). */
+	get isConnected() {
+		return this.channel !== undefined
+	}
+
 	connect(): Promise<void> {
 		this.connecting ??= this.connectWithRetry().finally(() => {
 			this.connecting = undefined

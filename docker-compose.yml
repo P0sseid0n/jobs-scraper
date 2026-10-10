@@ -10,6 +10,15 @@ x-app-env: &app-env
   OLLAMA_HOST: http://ollama:11434
   LOG_PRETTY: 'false'
 
+# Os serviços atualizam um heartbeat enquanto estão conectados ao RabbitMQ (e ao MongoDB, se usam);
+# heartbeat velho = desconectado ou travado (aparece como "unhealthy" no `docker compose ps`)
+x-app-healthcheck: &app-healthcheck
+  test: ['CMD', 'bun', 'src/shared/health/healthcheck.ts']
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 30s
+
 services:
   rabbitmq:
     image: rabbitmq:4.2-management
@@ -98,6 +107,7 @@ services:
         condition: service_healthy
       mongo:
         condition: service_healthy
+    healthcheck: *app-healthcheck
     # Com SCRAPER_INTERVAL_MINUTES > 0 o scraper fica rodando: coleta periodicamente e atende o "coletar agora";
     # com 0 ele roda uma vez e termina (agende com cron/`docker compose run`)
     # Sem restart automático: reiniciar em loop após falha de login aumentaria o risco de bloqueio da conta
@@ -118,6 +128,7 @@ services:
         condition: service_healthy
       ollama-init:
         condition: service_completed_successfully
+    healthcheck: *app-healthcheck
     restart: unless-stopped
 
   storage:
@@ -133,6 +144,7 @@ services:
         condition: service_healthy
       mongo:
         condition: service_healthy
+    healthcheck: *app-healthcheck
     restart: unless-stopped
 
   discord-bot:
@@ -146,6 +158,7 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+    healthcheck: *app-healthcheck
     restart: unless-stopped
 
   cv-updater:
@@ -171,6 +184,7 @@ services:
         condition: service_healthy
       ollama-init:
         condition: service_completed_successfully
+    healthcheck: *app-healthcheck
     restart: unless-stopped
 
 volumes:

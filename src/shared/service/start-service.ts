@@ -2,7 +2,8 @@ import type { z } from 'zod'
 
 import { mongoEnv, rabbitmqEnv } from '../config/infrastructure-env'
 import { loadConfig } from '../config/load-config'
-import { connectDatabase, disconnectDatabase } from '../database/connection'
+import { connectDatabase, disconnectDatabase, isDatabaseConnected } from '../database/connection'
+import { startHeartbeat } from '../health/heartbeat'
 import { onShutdown, setupGracefulShutdown } from '../lifecycle/graceful-shutdown'
 import { createLogger } from '../logging/logger'
 import { QueueClient } from '../messaging/queue-client'
@@ -41,6 +42,9 @@ export async function startService<Env extends z.ZodRawShape = Record<never, nev
 
 	await queue.connect()
 	onShutdown(() => queue.close())
+
+	const stopHeartbeat = startHeartbeat(() => queue.isConnected && (!options.database || isDatabaseConnected()))
+	onShutdown(stopHeartbeat)
 
 	return { config, logger, queue }
 }

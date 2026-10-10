@@ -112,6 +112,8 @@ Pré-requisitos: [Bun](https://bun.sh) 1.4+ e Docker.
 docker compose --profile app up -d --build
 ```
 
+Cada serviço da aplicação tem um healthcheck: ele aparece como `unhealthy` no `docker compose ps` quando fica sem conexão com o RabbitMQ (ou com o MongoDB, se usa) por mais de 45 segundos. O Docker Compose só marca o estado; ele não reinicia containers `unhealthy` sozinho.
+
 Por padrão o scraper roda uma coleta e termina. Para coletar periodicamente, defina `SCRAPER_INTERVAL_MINUTES` (ex.: `180` para a cada 3 horas). Outra opção é agendar `docker compose --profile app run --rm scraper` com cron ou com o Agendador de Tarefas.
 
 ### Configurações em tempo de execução
@@ -164,6 +166,7 @@ src/
     database/                  #   conexão com o MongoDB e modelos (Job, SeenPost, Settings, ScraperRun)
     messaging/                 #   cliente RabbitMQ, nomes das filas e política de retry/DLQ
     logging/, lifecycle/       #   logger e encerramento gracioso
+    health/                    #   heartbeat dos serviços e script do healthcheck do Docker
   services/
     scraper/                   # coleta posts no LinkedIn
       scrape-run.ts            #   uma coleta: busca cada termo, lê os posts e publica os novos
