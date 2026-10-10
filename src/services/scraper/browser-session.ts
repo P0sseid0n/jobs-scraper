@@ -134,10 +134,18 @@ export class BrowserSession {
 	}
 }
 
+// Tamanho de um notebook comum, igual com e sem janela. O padrão do headless (~800x600) é pequeno demais:
+// a busca do LinkedIn mostra os primeiros posts, mas não carrega mais ao rolar.
+const WINDOW_SIZE = { width: 1366, height: 1024 }
+
 async function launchBrowser(options: BrowserOptions) {
 	const browser = await puppeteer.launch({
 		headless: options.headless,
-		args: options.noSandbox ? ['--no-sandbox', '--disable-setuid-sandbox'] : [],
+		defaultViewport: WINDOW_SIZE,
+		args: [
+			`--window-size=${WINDOW_SIZE.width},${WINDOW_SIZE.height}`,
+			...(options.noSandbox ? ['--no-sandbox', '--disable-setuid-sandbox'] : []),
+		],
 	})
 	options.logger.info({ headless: options.headless }, '🌐 Navegador iniciado')
 
