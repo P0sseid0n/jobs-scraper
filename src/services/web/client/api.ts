@@ -69,6 +69,8 @@ export const api = {
 	jobs: (filters: JobFilters, cursor?: string | null) => request<JobsPage>(`/api/jobs?${jobsQueryString(filters, cursor)}`),
 	facets: () => request<JobFacets>('/api/jobs/facets'),
 	job: (postId: string) => request<WebJob>(`/api/jobs/${encodeURIComponent(postId)}`),
+	/** O documento da vaga no MongoDB, para depuração. */
+	rawJob: (postId: string) => request<Record<string, unknown>>(`/api/jobs/${encodeURIComponent(postId)}/raw`),
 
 	requestCv: (postId: string) => request<WebCvRequest>(`/api/jobs/${encodeURIComponent(postId)}/cv`, { method: 'POST' }),
 	cvRequests: () => request<WebCvRequest[]>('/api/cv'),

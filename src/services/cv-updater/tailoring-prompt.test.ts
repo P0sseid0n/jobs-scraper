@@ -9,7 +9,7 @@ const { model: cv } = readResumeTex(await Bun.file(path.join(import.meta.dir, '.
 const job = {
 	title: 'Dev Front-end',
 	company: 'Acme',
-	necessary_knowledge: ['Vue 3', 'TypeScript', 'CSS3/SCSS', 'Angular', 'REST APIs'],
+	necessaryKnowledge: ['Vue 3', 'TypeScript', 'CSS3/SCSS', 'Angular', 'REST APIs'],
 	rawContent: 'Vaga',
 }
 

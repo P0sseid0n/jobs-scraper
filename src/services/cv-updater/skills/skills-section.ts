@@ -33,7 +33,7 @@ const TOOLS_SKILLS = new Set(
  * categorias relacionadas, com o que a vaga pede primeiro.
  */
 export function buildSkillsSection(cv: ResumeContent, job: TargetJob, suggestions: TailoringSuggestions | null): SkillsSection {
-	const jobSkills = job.necessary_knowledge ?? []
+	const jobSkills = job.necessaryKnowledge ?? []
 
 	// Habilidades da pessoa: as pedidas pela vaga + as que a IA considerou relacionadas (só nomes que existem)
 	const fromJob = matchJobSkills(cv, jobSkills)

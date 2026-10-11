@@ -10,15 +10,16 @@ const job: ProcessedJob = {
 	title: 'Dev Vue',
 	company: null,
 	location: null,
-	link: 'https://www.linkedin.com/feed/update/urn:li:share:1/',
-	necessary_knowledge: null,
-	recruiter_email: null,
+	applyLink: null,
+	necessaryKnowledge: null,
+	recruiterEmail: null,
 	workMode: null,
 	aiJobConfidence: 80,
 	postedAt: null,
 	author: null,
 	language: null,
 	sourcePostId: null,
+	postLink: 'https://www.linkedin.com/feed/update/urn:li:share:1/',
 }
 
 describe('missingRequiredFields', () => {
@@ -26,11 +27,13 @@ describe('missingRequiredFields', () => {
 		expect(missingRequiredFields(job)).toEqual([])
 	})
 
-	test('e-mail substitui o link como forma de candidatura', () => {
-		expect(missingRequiredFields({ ...job, link: null, recruiter_email: 'rh@empresa.com' })).toEqual([])
+	test('site e e-mail são opcionais: o post já é uma forma de candidatura', () => {
+		expect(missingRequiredFields({ ...job, applyLink: null, recruiterEmail: null })).toEqual([])
 	})
 
-	test('exige cargo e alguma forma de candidatura', () => {
-		expect(missingRequiredFields({ ...job, title: null, link: null })).toEqual(['title', 'link ou recruiter_email'])
+	test('exige cargo e o link do post', () => {
+		const withEverythingElse = { ...job, applyLink: 'https://empresa.com/vagas/1', recruiterEmail: 'rh@empresa.com' }
+
+		expect(missingRequiredFields({ ...withEverythingElse, title: null, postLink: null })).toEqual(['title', 'postLink'])
 	})
 })

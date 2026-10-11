@@ -9,9 +9,10 @@ export const ProcessedJobSchema = z.object({
 	title: z.string().nullable(),
 	company: z.string().nullable(),
 	location: z.string().nullable(),
-	link: z.string().nullable(),
-	necessary_knowledge: z.array(z.string()).nullable(),
-	recruiter_email: z.string().nullable(),
+	/** Link de candidatura (site da vaga, formulário...), se houver. */
+	applyLink: z.string().nullable(),
+	necessaryKnowledge: z.array(z.string()).nullable(),
+	recruiterEmail: z.string().nullable(),
 	workMode: z.enum(WORK_MODES).nullable(),
 	aiJobConfidence: z.number().min(0).max(100),
 	postedAt: z.iso.datetime().nullable().default(null),
@@ -20,5 +21,7 @@ export const ProcessedJobSchema = z.object({
 	language: z.string().nullable().default(null),
 	/** Post que listava várias vagas, de onde esta saiu; `null` se a vaga é o próprio post. */
 	sourcePostId: z.string().nullable().default(null),
+	/** Link do post no LinkedIn (numa vaga de lista, o do post de origem); `null` se o scraper não achou o id do post. */
+	postLink: z.string().nullable().default(null),
 })
 export type ProcessedJob = z.infer<typeof ProcessedJobSchema>

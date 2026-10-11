@@ -17,9 +17,9 @@ describe('contratos das filas', () => {
 			title: null,
 			company: null,
 			location: null,
-			link: null,
-			necessary_knowledge: null,
-			recruiter_email: null,
+			applyLink: null,
+			necessaryKnowledge: null,
+			recruiterEmail: null,
 			workMode: 'home office',
 			aiJobConfidence: 50,
 		}

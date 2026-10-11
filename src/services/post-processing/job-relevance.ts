@@ -6,8 +6,8 @@ type KeywordFilter = { requiredKeywords: string[]; excludedKeywords: string[] }
  * Diz por que a vaga não interessa (palavras-chave das configurações), ou `null` se ela segue.
  * Olha só o cargo e os conhecimentos: o texto do post cita outras áreas com frequência ("time de front e back").
  */
-export function relevanceRejection(job: Pick<ProcessedJob, 'title' | 'necessary_knowledge'>, filter: KeywordFilter) {
-	const terms = searchableTerms([job.title ?? '', ...(job.necessary_knowledge ?? [])].join(' '))
+export function relevanceRejection(job: Pick<ProcessedJob, 'title' | 'necessaryKnowledge'>, filter: KeywordFilter) {
+	const terms = searchableTerms([job.title ?? '', ...(job.necessaryKnowledge ?? [])].join(' '))
 
 	const excluded = filter.excludedKeywords.find(keyword => matchesKeyword(terms, keyword))
 	if (excluded) return `cita "${excluded}", que está nas palavras excluídas`

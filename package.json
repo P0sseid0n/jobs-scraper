@@ -21,6 +21,7 @@
 		"start:web": "NODE_ENV=production bun src/services/web/index.ts",
 		"scraper:run": "bun src/services/scraper/request-run.ts",
 		"scraper:verify": "bun src/services/scraper/submit-verification-code.ts",
+		"db:migrate-jobs": "bun src/services/storage/migrate-job-fields.ts",
 		"typecheck": "tsc --noEmit",
 		"lint": "biome lint .",
 		"lint:fix": "biome lint --write .",

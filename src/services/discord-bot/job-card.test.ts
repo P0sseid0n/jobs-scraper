@@ -11,15 +11,16 @@ const job: ProcessedJob = {
 	title: 'Lead Engineer - Vue.js',
 	company: 'CitiusTech',
 	location: 'Pune',
-	link: 'https://www.linkedin.com/feed/update/urn:li:share:7513649051440021505/',
-	necessary_knowledge: ['Vue.js', 'TypeScript'],
-	recruiter_email: 'rh@citiustech.com',
+	applyLink: null,
+	necessaryKnowledge: ['Vue.js', 'TypeScript'],
+	recruiterEmail: 'rh@citiustech.com',
 	workMode: 'hibrido',
 	aiJobConfidence: 85,
 	postedAt: '2026-10-07T17:18:50.712Z',
 	author: 'Mandar Wairkar',
 	language: 'pt',
 	sourcePostId: null,
+	postLink: 'https://www.linkedin.com/feed/update/urn:li:share:7513649051440021505/',
 }
 
 describe('buildJobCard', () => {
@@ -27,7 +28,7 @@ describe('buildJobCard', () => {
 		const embed = buildJobCard(job).embeds[0]!.toJSON()
 
 		expect(embed.title).toBe('Lead Engineer - Vue.js')
-		expect(embed.url).toBe(job.link!)
+		expect(embed.url).toBe(job.postLink!)
 		expect(embed.color).toBe(0x3498db)
 		expect(embed.footer?.text).toBe('Confiança da IA: 85%')
 		expect(embed.timestamp).toBe('2026-10-07T17:18:50.712Z')
@@ -50,23 +51,31 @@ describe('buildJobCard', () => {
 			company: null,
 			location: null,
 			workMode: null,
-			recruiter_email: null,
+			recruiterEmail: null,
 		}).embeds[0]!.toJSON()
 
 		expect(embed.fields?.map(field => field.name)).toEqual(['🕒 Publicada', '🛠️ Conhecimentos'])
 		expect(embed.color).toBe(0x95a5a6)
 	})
 
-	test('botões de link e de contato', () => {
+	test('botões de contato e do post (por último)', () => {
 		const [row] = buildJobCard(job).components
 		const buttons = row!.toJSON().components as { label?: string; url?: string; custom_id?: string }[]
 
-		expect(buttons[0]).toMatchObject({ label: 'Ver post', url: job.link })
-		expect(buttons[1]).toMatchObject({ label: 'Contato do recrutador', custom_id: `${CONTACT_BUTTON_PREFIX}${job.postId}` })
+		expect(buttons[0]).toMatchObject({ label: 'Contato do recrutador', custom_id: `${CONTACT_BUTTON_PREFIX}${job.postId}` })
+		expect(buttons[1]).toMatchObject({ label: 'Ver post', url: job.postLink })
+	})
+
+	test('com site de candidatura: a candidatura primeiro, cada link no seu botão', () => {
+		const [row] = buildJobCard({ ...job, applyLink: 'https://empresa.com/vagas/1' }).components
+		const buttons = row!.toJSON().components as { label?: string; url?: string }[]
+
+		expect(buttons.map(button => button.label)).toEqual(['Candidatar-se', 'Contato do recrutador', 'Ver post'])
+		expect(buttons[0]).toMatchObject({ url: 'https://empresa.com/vagas/1' })
 	})
 
 	test('sem e-mail o botão gera só o currículo', () => {
-		const [row] = buildJobCard({ ...job, link: null, recruiter_email: null }).components
+		const [row] = buildJobCard({ ...job, postLink: null, recruiterEmail: null }).components
 		const buttons = row!.toJSON().components as { label?: string; custom_id?: string }[]
 
 		expect(buttons).toHaveLength(1)

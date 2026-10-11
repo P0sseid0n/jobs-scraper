@@ -6,19 +6,19 @@ const filter = { requiredKeywords: ['vue', 'front-end', 'javascript', 'typescrip
 
 describe('relevanceRejection', () => {
 	test('aceita vaga que cita uma palavra obrigatória no cargo ou nos conhecimentos', () => {
-		expect(relevanceRejection({ title: 'Desenvolvedor Frontend Pleno', necessary_knowledge: null }, filter)).toBeNull()
-		expect(relevanceRejection({ title: 'Dev Pleno', necessary_knowledge: ['Vue.js', 'Pinia'] }, filter)).toBeNull()
-		expect(relevanceRejection({ title: 'Desenvolvedor Front End', necessary_knowledge: null }, filter)).toBeNull()
+		expect(relevanceRejection({ title: 'Desenvolvedor Frontend Pleno', necessaryKnowledge: null }, filter)).toBeNull()
+		expect(relevanceRejection({ title: 'Dev Pleno', necessaryKnowledge: ['Vue.js', 'Pinia'] }, filter)).toBeNull()
+		expect(relevanceRejection({ title: 'Desenvolvedor Front End', necessaryKnowledge: null }, filter)).toBeNull()
 	})
 
 	test('descarta vaga sem nenhuma palavra obrigatória', () => {
-		const golang = { title: 'Desenvolvedor(a) Pleno (Golang)', necessary_knowledge: ['Golang', 'Kafka', 'AWS'] }
+		const golang = { title: 'Desenvolvedor(a) Pleno (Golang)', necessaryKnowledge: ['Golang', 'Kafka', 'AWS'] }
 
 		expect(relevanceRejection(golang, filter)).toContain('nenhuma das palavras obrigatórias')
 	})
 
 	test('palavra excluída descarta mesmo com uma obrigatória', () => {
-		const job = { title: 'Desenvolvedor Fullstack', necessary_knowledge: ['Java', 'Vue.js'] }
+		const job = { title: 'Desenvolvedor Fullstack', necessaryKnowledge: ['Java', 'Vue.js'] }
 
 		expect(relevanceRejection(job, { ...filter, excludedKeywords: ['java'] })).toBe('cita "java", que está nas palavras excluídas')
 	})
@@ -27,24 +27,24 @@ describe('relevanceRejection', () => {
 		const dotnet = { ...filter, excludedKeywords: ['.net', 'asp.net', 'dotnet'] }
 
 		for (const skill of ['.NET Core', '.NET', 'ASP.NET Core', 'dotnet']) {
-			expect(relevanceRejection({ title: 'Dev Front-end', necessary_knowledge: [skill] }, dotnet)).not.toBeNull()
+			expect(relevanceRejection({ title: 'Dev Front-end', necessaryKnowledge: [skill] }, dotnet)).not.toBeNull()
 		}
-		expect(relevanceRejection({ title: 'Dev Front-end', necessary_knowledge: ['Vue.js', 'Node.js'] }, dotnet)).toBeNull()
+		expect(relevanceRejection({ title: 'Dev Front-end', necessaryKnowledge: ['Vue.js', 'Node.js'] }, dotnet)).toBeNull()
 	})
 
 	test('compara palavras inteiras: "java" não casa com "javascript"', () => {
-		const job = { title: 'Desenvolvedor Front-end', necessary_knowledge: ['JavaScript'] }
+		const job = { title: 'Desenvolvedor Front-end', necessaryKnowledge: ['JavaScript'] }
 
 		expect(relevanceRejection(job, { requiredKeywords: [], excludedKeywords: ['java'] })).toBeNull()
 	})
 
 	test('palavras-chave com mais de uma palavra', () => {
-		const job = { title: 'Dev Mobile', necessary_knowledge: ['React Native'] }
+		const job = { title: 'Dev Mobile', necessaryKnowledge: ['React Native'] }
 
 		expect(relevanceRejection(job, { requiredKeywords: ['react native'], excludedKeywords: [] })).toBeNull()
 		expect(
 			relevanceRejection(
-				{ title: 'Dev React', necessary_knowledge: null },
+				{ title: 'Dev React', necessaryKnowledge: null },
 				{ requiredKeywords: ['react native'], excludedKeywords: [] },
 			),
 		).not.toBeNull()
@@ -52,7 +52,7 @@ describe('relevanceRejection', () => {
 
 	test('listas vazias desligam o filtro', () => {
 		expect(
-			relevanceRejection({ title: 'Dev Golang', necessary_knowledge: null }, { requiredKeywords: [], excludedKeywords: [] }),
+			relevanceRejection({ title: 'Dev Golang', necessaryKnowledge: null }, { requiredKeywords: [], excludedKeywords: [] }),
 		).toBeNull()
 	})
 })

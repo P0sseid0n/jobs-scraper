@@ -33,17 +33,18 @@ export function buildProcessedJob(post: RawPost, aiJob: AiJobOutput, language: s
 		title: aiJob.title,
 		company: aiJob.company,
 		location: locationWithoutWorkMode(aiJob.location),
-		// O link real do post tem prioridade; o da IA só vale se estiver escrito no texto
-		link: post.url ?? keepLinkIfInPost(aiJob.link, normalizePostText(post.text)),
+		// O da lista (vaga de um post com várias) tem prioridade; o da IA só vale se estiver escrito no texto
+		applyLink: post.jobLink ?? keepLinkIfInPost(aiJob.link, normalizePostText(post.text)),
 		// Só os conhecimentos escritos no post: o modelo às vezes completa com tecnologias "típicas" do cargo
-		necessary_knowledge: keepSkillsInPost(aiJob.necessary_knowledge, post.text),
-		recruiter_email: aiJob.recruiter_email,
+		necessaryKnowledge: keepSkillsInPost(aiJob.necessary_knowledge, post.text),
+		recruiterEmail: aiJob.recruiter_email,
 		workMode: aiJob.workMode,
 		aiJobConfidence: aiJob.aiJobConfidence,
 		postedAt: post.postedAt,
 		author: post.author,
 		language,
 		sourcePostId: post.sourcePostId,
+		postLink: post.url,
 	}
 }
 

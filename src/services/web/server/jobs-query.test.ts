@@ -43,8 +43,8 @@ describe('buildJobsFilter', () => {
 	})
 
 	test('tecnologias: todas, palavra inteira, sem diferenciar maiúsculas', () => {
-		const [, skills] = filterFor({ skills: 'vue.js' }) as [unknown, { necessary_knowledge: { $all: RegExp[] } }]
-		const [pattern] = skills.necessary_knowledge.$all
+		const [, skills] = filterFor({ skills: 'vue.js' }) as [unknown, { necessaryKnowledge: { $all: RegExp[] } }]
+		const [pattern] = skills.necessaryKnowledge.$all
 
 		expect(pattern!.test('Vue.js')).toBe(true)
 		expect(pattern!.test('Vue.jsx')).toBe(false)
@@ -54,7 +54,7 @@ describe('buildJobsFilter', () => {
 		const conditions = filterFor({ since: '24h', hasEmail: 'true', language: 'pt', minConfidence: '75' })
 
 		expect(conditions).toContainEqual({ createdAt: { $gte: new Date('2026-10-09T12:00:00.000Z') } })
-		expect(conditions).toContainEqual({ recruiter_email: { $nin: [null, ''] } })
+		expect(conditions).toContainEqual({ recruiterEmail: { $nin: [null, ''] } })
 		expect(conditions).toContainEqual({ language: 'pt' })
 		expect(conditions).toContainEqual({ aiJobConfidence: { $gte: 75 } })
 	})
@@ -81,19 +81,20 @@ describe('toWebJob', () => {
 			title: null,
 			company: null,
 			location: null,
-			link: null,
-			necessary_knowledge: [],
-			recruiter_email: 'rh@x.com',
+			applyLink: null,
+			necessaryKnowledge: [],
+			recruiterEmail: 'rh@x.com',
 			workMode: null,
 			aiJobConfidence: 80,
 			postedAt: null,
 			author: null,
 			language: null,
 			sourcePostId: null,
+			postLink: null,
 			createdAt: NOW,
 		})
 
-		expect(job).toMatchObject({ title: 'Vaga sem título', necessary_knowledge: null, createdAt: NOW.toISOString() })
+		expect(job).toMatchObject({ title: 'Vaga sem título', necessaryKnowledge: null, createdAt: NOW.toISOString() })
 	})
 })
 

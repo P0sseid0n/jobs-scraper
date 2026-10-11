@@ -177,6 +177,7 @@ Todas as portas ficam publicadas apenas em `127.0.0.1`.
 | `bun start:<scraper\|processing\|storage\|bot\|cv\|web>` | Um serviço, sem `--watch`                                |
 | `bun scraper:run`                                   | Pede uma coleta imediata ao scraper (fila `scraper`)     |
 | `bun scraper:verify <código>`                       | Envia o código de verificação do login do LinkedIn       |
+| `bun db:migrate-jobs` | Atualiza as vagas salvas para o formato atual dos campos |
 | `bun run typecheck`                                 | Checagem de tipos (`tsc --noEmit`)                       |
 | `bun run lint` / `bun run lint:fix`                 | Lint com Biome                                           |
 | `bun run format` / `bun run format:check`           | Formatação com Prettier                                  |

@@ -9,7 +9,7 @@ const { model: cv } = readResumeTex(await Bun.file(path.join(import.meta.dir, '.
 const job = {
 	title: 'Dev Front-end',
 	company: 'Acme',
-	necessary_knowledge: ['Vue 3', 'TypeScript', 'CSS3/SCSS', 'Angular', 'REST APIs'],
+	necessaryKnowledge: ['Vue 3', 'TypeScript', 'CSS3/SCSS', 'Angular', 'REST APIs'],
 	rawContent: 'Vaga',
 }
 
@@ -28,11 +28,11 @@ describe('associação de habilidades', () => {
 	})
 
 	test('associa as tecnologias da vaga (inclusive compostas) aos itens do currículo', () => {
-		expect(matchJobSkills(cv, job.necessary_knowledge)).toEqual(['Vue.js', 'JavaScript / TypeScript', 'CSS (SASS/SCSS)'])
+		expect(matchJobSkills(cv, job.necessaryKnowledge)).toEqual(['Vue.js', 'JavaScript / TypeScript', 'CSS (SASS/SCSS)'])
 	})
 
 	test('detecta o que a vaga pede e não está em nenhum lugar do currículo', () => {
 		// "REST APIs" não é uma habilidade listada, mas aparece na experiência ("APIs REST")
-		expect(missingJobSkills(cv, job.necessary_knowledge)).toEqual(['Angular'])
+		expect(missingJobSkills(cv, job.necessaryKnowledge)).toEqual(['Angular'])
 	})
 })

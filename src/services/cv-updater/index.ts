@@ -95,7 +95,7 @@ async function findTargetJob(postId: string): Promise<TargetJob | null> {
 	return {
 		title: job.title ?? null,
 		company: job.company ?? null,
-		necessary_knowledge: job.necessary_knowledge ?? null,
+		necessaryKnowledge: job.necessaryKnowledge ?? null,
 		rawContent: job.rawContent,
 	}
 }

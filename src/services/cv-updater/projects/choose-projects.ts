@@ -29,7 +29,7 @@ export async function chooseProjects(
 ): Promise<ResumeProject[]> {
 	if (!options.github) return fallback
 
-	const jobSkills = job.necessary_knowledge ?? []
+	const jobSkills = job.necessaryKnowledge ?? []
 
 	try {
 		const ranked = rankProjects(base.model.projects, await options.github.load(), jobSkills)

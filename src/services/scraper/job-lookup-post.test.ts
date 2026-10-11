@@ -7,6 +7,7 @@ import { lookupToRawPost } from './job-lookup-post'
 const lookup: JobLookup = {
 	postId: 'hash-do-link',
 	sourcePostId: 'urn:li:activity:1',
+	sourcePostUrl: 'https://www.linkedin.com/feed/update/urn:li:activity:1/',
 	title: 'Junior pleno front end engineer remote',
 	link: 'https://lnkd.in/eQUCFcXh',
 	text: '📄 Junior pleno front end engineer remote\n🔗 Candidate-se: https://lnkd.in/eQUCFcXh',
@@ -27,12 +28,18 @@ describe('lookupToRawPost', () => {
 		expect(post.text).toBe(
 			`Vaga: Junior pleno front end engineer remote\nLink: https://lnkd.in/eQUCFcXh\n\nFrontend Engineer\nAcme · Brasil (Remoto)\n\n${DESCRIPTION}`,
 		)
-		expect(post.url).toBe('https://www.linkedin.com/jobs/view/4012345678/')
-		expect(post).toMatchObject({ postId: 'hash-do-link', sourcePostId: 'urn:li:activity:1', author: 'Agregador de Vagas' })
+		expect(post.jobLink).toBe('https://www.linkedin.com/jobs/view/4012345678/')
+		// O `url` continua sendo o post no LinkedIn (vira o `postLink` da vaga)
+		expect(post).toMatchObject({
+			postId: 'hash-do-link',
+			url: 'https://www.linkedin.com/feed/update/urn:li:activity:1/',
+			sourcePostId: 'urn:li:activity:1',
+			author: 'Agregador de Vagas',
+		})
 	})
 
-	test('fora do LinkedIn mantém o link curto do post', () => {
-		expect(lookupToRawPost(lookup, { url: 'https://empresa.com/vagas/1?utm_source=x', text: DESCRIPTION }).url).toBe(lookup.link)
+	test('fora do LinkedIn, a candidatura é o link curto da lista', () => {
+		expect(lookupToRawPost(lookup, { url: 'https://empresa.com/vagas/1?utm_source=x', text: DESCRIPTION }).jobLink).toBe(lookup.link)
 	})
 
 	test('sem a página, com ela vazia, num redirecionamento ou num captcha, usa as linhas do post sobre a vaga', () => {

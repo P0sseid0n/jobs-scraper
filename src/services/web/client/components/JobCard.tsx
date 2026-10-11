@@ -31,9 +31,10 @@ export const JobCard = defineComponent({
 
 		return () => {
 			const { job } = props
-			const skills = job.necessary_knowledge ?? []
+			const skills = job.necessaryKnowledge ?? []
 			const hidden = skills.length - VISIBLE_SKILLS
-			const link = safeLink(job.link)
+			const postLink = safeLink(job.postLink)
+			const applyLink = safeLink(job.applyLink)
 			const unseen = isUnseen(job)
 
 			return (
@@ -72,20 +73,31 @@ export const JobCard = defineComponent({
 
 					<div class="job-card-actions">
 						<span class="mono muted small contact-hint">
-							{job.recruiter_email ? (
+							{job.recruiterEmail ? (
 								<>
 									<Icon name="mail" size={14} />
 									tem e-mail de contato
 								</>
+							) : applyLink ? (
+								'candidatura pelo site da vaga'
 							) : (
 								'candidatura pelo post'
 							)}
 						</span>
-						{link && (
-							<a class="btn btn-ghost" href={link} target="_blank" rel="noopener noreferrer">
+						{/* A candidatura: o site da vaga ou, sem site nem e-mail, o post (o link do post para conferir fica no detalhe) */}
+						{applyLink ? (
+							<a class="btn btn-ghost" href={applyLink} target="_blank" rel="noopener noreferrer">
 								<Icon name="external" size={14} />
-								abrir post
+								candidatar-se
 							</a>
+						) : (
+							postLink &&
+							!job.recruiterEmail && (
+								<a class="btn btn-ghost" href={postLink} target="_blank" rel="noopener noreferrer">
+									<Icon name="external" size={14} />
+									abrir post
+								</a>
+							)
 						)}
 						<CvButton job={job} />
 					</div>

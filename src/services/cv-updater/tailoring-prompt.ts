@@ -94,7 +94,7 @@ function describeJob(job: TargetJob) {
 	return [
 		`Title: ${job.title ?? 'unknown'}`,
 		`Company: ${job.company ?? 'unknown'}`,
-		`Required skills: ${job.necessary_knowledge?.join(', ') || 'not listed'}`,
+		`Required skills: ${job.necessaryKnowledge?.join(', ') || 'not listed'}`,
 		`Post: ${job.rawContent.normalize('NFKC').slice(0, POST_MAX)}`,
 	].join('\n')
 }

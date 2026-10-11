@@ -99,7 +99,7 @@ async function requestLookups(post: RawPost, listings: JobListing[], settings: K
 	let requested = 0
 
 	for (const listing of listings) {
-		const irrelevant = relevanceRejection({ title: listing.title, necessary_knowledge: null }, settings)
+		const irrelevant = relevanceRejection({ title: listing.title, necessaryKnowledge: null }, settings)
 		if (irrelevant) {
 			log.debug({ title: listing.title, reason: irrelevant }, 'Vaga da lista descartada')
 			continue
@@ -111,6 +111,7 @@ async function requestLookups(post: RawPost, listings: JobListing[], settings: K
 		const lookup: JobLookup = {
 			postId,
 			sourcePostId: post.postId,
+			sourcePostUrl: post.url,
 			...listing,
 			author: post.author,
 			postedAt: post.postedAt,

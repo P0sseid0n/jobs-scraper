@@ -41,7 +41,7 @@ export function buildThreadName(job: ProcessedJob) {
 
 /** Escolhe até 5 tags existentes no fórum que batem com a modalidade ou as tecnologias da vaga. */
 export function pickForumTags(job: ProcessedJob, availableTags: { id: string; name: string }[]) {
-	const wanted = new Set([workModeLabel(job), ...(job.necessary_knowledge ?? [])].filter(Boolean).map(value => normalizeTag(value!)))
+	const wanted = new Set([workModeLabel(job), ...(job.necessaryKnowledge ?? [])].filter(Boolean).map(value => normalizeTag(value!)))
 
 	return availableTags
 		.filter(tag => wanted.has(normalizeTag(tag.name)))
@@ -66,7 +66,8 @@ function buildJobEmbed(job: ProcessedJob) {
 		.setColor(job.workMode ? WORK_MODE_COLORS[job.workMode] : DEFAULT_COLOR)
 		.setFooter({ text: `Confiança da IA: ${Math.round(job.aiJobConfidence)}%` })
 
-	if (isHttpUrl(job.link)) embed.setURL(job.link)
+	const titleUrl = isHttpUrl(job.postLink) ? job.postLink : isHttpUrl(job.applyLink) ? job.applyLink : null
+	if (titleUrl) embed.setURL(titleUrl)
 	if (job.author) embed.setAuthor({ name: truncate(`Publicado por ${job.author}`, TITLE_MAX) })
 	if (job.postedAt) embed.setTimestamp(new Date(job.postedAt))
 
@@ -80,14 +81,14 @@ function buildJobEmbed(job: ProcessedJob) {
 /** Lista os campos do embed (os vazios são omitidos ao montar). */
 function jobFields(job: ProcessedJob) {
 	const postedAt = job.postedAt ? time(new Date(job.postedAt), TimestampStyles.RelativeTime) : null
-	const skills = job.necessary_knowledge?.length ? job.necessary_knowledge.map(skill => `\`${skill}\``).join(' ') : null
+	const skills = job.necessaryKnowledge?.length ? job.necessaryKnowledge.map(skill => `\`${skill}\``).join(' ') : null
 
 	return [
 		{ name: '🏢 Empresa', value: job.company, inline: true },
 		{ name: '📍 Local', value: job.location, inline: true },
 		{ name: '🏠 Modalidade', value: workModeLabel(job), inline: true },
 		{ name: '🕒 Publicada', value: postedAt, inline: true },
-		{ name: '📧 Contato', value: job.recruiter_email, inline: true },
+		{ name: '📧 Contato', value: job.recruiterEmail, inline: true },
 		{ name: '🛠️ Conhecimentos', value: skills, inline: false },
 	]
 }
@@ -95,8 +96,9 @@ function jobFields(job: ProcessedJob) {
 function buildJobComponents(job: ProcessedJob) {
 	const buttons: ButtonBuilder[] = []
 
-	if (isHttpUrl(job.link)) {
-		buttons.push(new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel('Ver post').setEmoji('🔗').setURL(job.link))
+	// Primeiro as formas de candidatura (site, contato); o post vai por último, porque serve mais para conferir
+	if (isHttpUrl(job.applyLink)) {
+		buttons.push(new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel('Candidatar-se').setEmoji('📝').setURL(job.applyLink))
 	}
 
 	// Com e-mail: contato + currículo ajustado. Sem e-mail: só o currículo (para se candidatar pelo link).
@@ -106,10 +108,14 @@ function buildJobComponents(job: ProcessedJob) {
 		const button = new ButtonBuilder().setStyle(ButtonStyle.Secondary).setCustomId(contactId)
 
 		buttons.push(
-			job.recruiter_email
+			job.recruiterEmail
 				? button.setLabel('Contato do recrutador').setEmoji('📧')
 				: button.setLabel('Gerar currículo').setEmoji('📄'),
 		)
+	}
+
+	if (isHttpUrl(job.postLink)) {
+		buttons.push(new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel('Ver post').setEmoji('🔗').setURL(job.postLink))
 	}
 
 	if (buttons.length === 0) return []

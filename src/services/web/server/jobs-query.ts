@@ -52,7 +52,7 @@ export function buildJobsFilter(query: JobsQuery, now = new Date()) {
 	if (query.q) {
 		const pattern = new RegExp(escapeRegExp(query.q), 'i')
 		conditions.push({
-			$or: [{ title: pattern }, { company: pattern }, { necessary_knowledge: pattern }, { rawContent: pattern }],
+			$or: [{ title: pattern }, { company: pattern }, { necessaryKnowledge: pattern }, { rawContent: pattern }],
 		})
 	}
 
@@ -62,14 +62,14 @@ export function buildJobsFilter(query: JobsQuery, now = new Date()) {
 	}
 
 	if (query.skills.length > 0) {
-		conditions.push({ necessary_knowledge: { $all: query.skills.map(skill => new RegExp(`^${escapeRegExp(skill)}$`, 'i')) } })
+		conditions.push({ necessaryKnowledge: { $all: query.skills.map(skill => new RegExp(`^${escapeRegExp(skill)}$`, 'i')) } })
 	}
 
 	if (query.since !== 'all') {
 		conditions.push({ createdAt: { $gte: new Date(now.getTime() - PERIODS[query.since] * 24 * 60 * 60 * 1000) } })
 	}
 
-	if (query.hasEmail) conditions.push({ recruiter_email: { $nin: [null, ''] } })
+	if (query.hasEmail) conditions.push({ recruiterEmail: { $nin: [null, ''] } })
 	if (query.language) conditions.push({ language: query.language })
 	if (query.minConfidence !== undefined) conditions.push({ aiJobConfidence: { $gte: query.minConfidence } })
 	if (query.cursor) conditions.push(afterCursor(decodeCursor(query.cursor)))
@@ -95,15 +95,16 @@ export function toWebJob(doc: JobDocument): WebJob {
 		company: doc.company ?? null,
 		location: doc.location ?? null,
 		workMode: doc.workMode ?? null,
-		necessary_knowledge: doc.necessary_knowledge?.length ? doc.necessary_knowledge : null,
-		link: doc.link ?? null,
-		recruiter_email: doc.recruiter_email ?? null,
+		necessaryKnowledge: doc.necessaryKnowledge?.length ? doc.necessaryKnowledge : null,
+		applyLink: doc.applyLink ?? null,
+		recruiterEmail: doc.recruiterEmail ?? null,
 		author: doc.author ?? null,
 		postedAt: doc.postedAt ?? null,
 		createdAt: (doc.createdAt ?? new Date()).toISOString(),
 		aiJobConfidence: doc.aiJobConfidence,
 		language: doc.language ?? null,
 		sourcePostId: doc.sourcePostId ?? null,
+		postLink: doc.postLink ?? null,
 		rawContent: doc.rawContent,
 	}
 }

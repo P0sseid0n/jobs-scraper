@@ -11,15 +11,16 @@ const job: ProcessedJob = {
 	title: 'Lead Engineer - Vue.js',
 	company: 'CitiusTech',
 	location: 'Pune',
-	link: 'https://www.linkedin.com/feed/update/urn:li:share:7513649051440021505/',
-	necessary_knowledge: ['Vue.js', 'TypeScript'],
-	recruiter_email: 'rh@citiustech.com',
+	applyLink: null,
+	necessaryKnowledge: ['Vue.js', 'TypeScript'],
+	recruiterEmail: 'rh@citiustech.com',
 	workMode: 'hibrido',
 	aiJobConfidence: 85,
 	postedAt: '2026-10-07T17:18:50.712Z',
 	author: 'Mandar Wairkar',
 	language: 'pt',
 	sourcePostId: null,
+	postLink: 'https://www.linkedin.com/feed/update/urn:li:share:7513649051440021505/',
 }
 
 describe('botão de contato', () => {

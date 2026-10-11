@@ -24,14 +24,14 @@ const SINCE_MS = { '24h': 1, '7d': 7, '30d': 30 } as const
  * filtrada que está na tela.
  */
 export function matchesFilters(job: WebJob, filters: JobFilters, now = Date.now()) {
-	const skills = (job.necessary_knowledge ?? []).map(skill => skill.toLowerCase())
+	const skills = (job.necessaryKnowledge ?? []).map(skill => skill.toLowerCase())
 	const q = filters.q.trim().toLowerCase()
 
 	if (q && ![job.title, job.company ?? '', job.rawContent, ...skills].some(text => text.toLowerCase().includes(q))) return false
 	if (filters.workMode.length && !filters.workMode.includes(job.workMode ?? 'none')) return false
 	if (!filters.skills.every(skill => skills.includes(skill.toLowerCase()))) return false
 	if (filters.since !== 'all' && new Date(job.createdAt).getTime() < now - SINCE_MS[filters.since] * 24 * 60 * 60 * 1000) return false
-	if (filters.hasEmail && !job.recruiter_email) return false
+	if (filters.hasEmail && !job.recruiterEmail) return false
 	if (filters.language && job.language !== filters.language) return false
 	if (job.aiJobConfidence < filters.minConfidence) return false
 

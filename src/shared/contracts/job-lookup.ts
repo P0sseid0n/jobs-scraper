@@ -8,6 +8,7 @@ export const JobLookupSchema = z.object({
 	/** ID da vaga (hash do link): é o `postId` do post que o scraper vai gerar. */
 	postId: z.string().min(1),
 	sourcePostId: z.string().min(1),
+	sourcePostUrl: z.url().nullable(),
 	title: z.string().min(1),
 	link: z.url(),
 	/** As linhas do post sobre esta vaga, usadas se a página não abrir. */

@@ -141,6 +141,20 @@ async function publishNewPosts(page: Page, { limit, seen }: TermSearch, { config
 			if (sent >= limit) break
 
 			const post = toRawPost(scraped)
+
+			// Sem o id não há link do post: a vaga não serviria. O aviso mostra um formato novo do LinkedIn na hora.
+			if (!post) {
+				const text = cleanPostText(scraped.text)
+				if (!seen.has(hashPost(text))) {
+					seen.add(hashPost(text))
+					logger.warn(
+						{ candidates: scraped.urnCandidates.length, text: text.slice(0, 80) },
+						'Post sem id reconhecível ignorado (ver resolvePostUrn em linkedin/post-urn.ts)',
+					)
+				}
+				continue
+			}
+
 			const textHash = hashPost(post.text)
 			if (seen.has(post.postId) || seen.has(textHash)) continue
 
@@ -161,18 +175,20 @@ async function publishNewPosts(page: Page, { limit, seen }: TermSearch, { config
 	return sent
 }
 
-function toRawPost(post: ScrapedPost): RawPost {
-	const text = cleanPostText(post.text)
+/** O post para a fila, ou `null` se o id dele não for encontrado (sem ele não há link do post). */
+function toRawPost(post: ScrapedPost): RawPost | null {
 	const urn = resolvePostUrn(post.urnCandidates)
+	if (!urn) return null
 
 	return {
-		postId: urn ?? hashPost(text),
-		text,
-		url: urn ? postUrlFromUrn(urn) : null,
+		postId: urn,
+		text: cleanPostText(post.text),
+		url: postUrlFromUrn(urn),
 		author: post.author,
-		postedAt: urn ? postedAtFromUrn(urn) : null,
+		postedAt: postedAtFromUrn(urn),
 		scrapedAt: new Date().toISOString(),
 		sourcePostId: null,
+		jobLink: null,
 	}
 }
 

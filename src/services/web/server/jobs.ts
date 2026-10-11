@@ -34,8 +34,8 @@ export async function jobFacets() {
 		// Agrupa sem diferenciar maiúsculas ("Vue.js" e "vue.js"); mostra a grafia mais usada
 		Job.aggregate<{ name: string; count: number }>([
 			{ $match: LISTABLE_JOBS },
-			{ $unwind: '$necessary_knowledge' },
-			{ $group: { _id: { key: { $toLower: '$necessary_knowledge' }, name: '$necessary_knowledge' }, count: { $sum: 1 } } },
+			{ $unwind: '$necessaryKnowledge' },
+			{ $group: { _id: { key: { $toLower: '$necessaryKnowledge' }, name: '$necessaryKnowledge' }, count: { $sum: 1 } } },
 			{ $sort: { count: -1 } },
 			{ $group: { _id: '$_id.key', name: { $first: '$_id.name' }, count: { $sum: '$count' } } },
 			{ $sort: { count: -1, name: 1 } },
@@ -56,4 +56,15 @@ export async function getJob(req: Request & { params: { postId: string } }) {
 	if (!doc) throw new HttpError(404, 'Vaga não encontrada')
 
 	return Response.json(toWebJob(doc) satisfies WebJob)
+}
+
+/**
+ * `GET /api/jobs/:postId/raw`: o documento como está no MongoDB, com os campos internos (`_id`, `notifiedAt`,
+ * `sourcePostId`, datas), para depurar o que o pipeline salvou.
+ */
+export async function getRawJob(req: Request & { params: { postId: string } }) {
+	const doc = await Job.findOne({ postId: req.params.postId }).lean()
+	if (!doc) throw new HttpError(404, 'Vaga não encontrada')
+
+	return Response.json(doc)
 }

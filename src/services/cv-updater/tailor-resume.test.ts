@@ -10,7 +10,7 @@ const { model: cv } = readResumeTex(await Bun.file(path.join(import.meta.dir, '.
 const job = {
 	title: 'Dev Front-end',
 	company: 'Acme',
-	necessary_knowledge: ['Vue 3', 'TypeScript', 'CSS3/SCSS', 'Angular', 'REST APIs'],
+	necessaryKnowledge: ['Vue 3', 'TypeScript', 'CSS3/SCSS', 'Angular', 'REST APIs'],
 	rawContent: 'Vaga',
 }
 
@@ -50,7 +50,7 @@ describe('tailorResumeToJob', () => {
 	})
 
 	test('conceitos e metodologias da vaga não entram como tecnologia', () => {
-		const conceptJob = { ...job, necessary_knowledge: ['Vue 3', 'Component-driven architecture', 'Agile/Scrum', 'Git workflows'] }
+		const conceptJob = { ...job, necessaryKnowledge: ['Vue 3', 'Component-driven architecture', 'Agile/Scrum', 'Git workflows'] }
 		const { cv: tailored, report } = tailorResumeToJob(cv, conceptJob, null)
 
 		expect(report.addedSkills).toEqual([])
@@ -60,7 +60,7 @@ describe('tailorResumeToJob', () => {
 	})
 
 	test('nuvem e DevOps vão para a categoria de ferramentas, mesmo se a IA escolher outra', () => {
-		const cloudJob = { ...job, necessary_knowledge: ['AWS', 'Azure'] }
+		const cloudJob = { ...job, necessaryKnowledge: ['AWS', 'Azure'] }
 		const { report } = tailorResumeToJob(cv, cloudJob, output({ addedSkills: [{ skill: 'AWS', category: 'Back-end' }] }))
 		expect(report.addedSkills).toEqual([
 			{ skill: 'AWS', category: 'Ferramentas & DevOps' },

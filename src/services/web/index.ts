@@ -12,7 +12,7 @@ import { webEnv } from './config'
 import { getCvPdf, getCvRequest, listCvRequests, requestCv, saveCvResult } from './server/cv'
 import { EventHub } from './server/event-hub'
 import { handler } from './server/http'
-import { getJob, jobFacets, listJobs } from './server/jobs'
+import { getJob, getRawJob, jobFacets, listJobs } from './server/jobs'
 import { toWebJob, type JobDocument } from './server/jobs-query'
 import { listRuns, requestRun, scraperStatus } from './server/scraper'
 import { getSettings, putSettings } from './server/settings'
@@ -59,6 +59,7 @@ const server = Bun.serve({
 			},
 		},
 		'/api/jobs/:postId': { GET: api(getJob) },
+		'/api/jobs/:postId/raw': { GET: api(getRawJob) },
 		'/api/jobs/:postId/cv': { POST: api(req => requestCv(req, { queue, events, logger })) },
 		'/api/cv': { GET: api(listCvRequests) },
 		'/api/cv/:requestId': { GET: api(getCvRequest) },

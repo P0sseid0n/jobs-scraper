@@ -48,7 +48,7 @@ export function matchJobSkills(cv: ResumeContent, jobSkills: string[]) {
 export function skillsToAdd(cv: ResumeContent, job: TargetJob) {
 	const seen = new Set<string>()
 
-	return missingJobSkills(cv, job.necessary_knowledge ?? []).filter(skill => {
+	return missingJobSkills(cv, job.necessaryKnowledge ?? []).filter(skill => {
 		if (isConcept(skill)) return false
 
 		const key = normalizeSkill(skill)
