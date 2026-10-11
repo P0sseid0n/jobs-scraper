@@ -5,12 +5,12 @@ import { applicationMessage } from '@shared/templates'
 import type { WebJob } from '../../api-types'
 import { api, cvPdfUrl, RequestError } from '../api'
 import { cx } from '../lib/cx'
-import { jobDate, jobSubtitle, languageLabel, safeLink, timeAgo } from '../lib/format'
+import { contractTypesLabel, jobDate, jobSubtitle, languageLabel, safeLink, senioritiesLabel, timeAgo } from '../lib/format'
 import { useCvFor } from '../stores/cv'
 import { copyText, notify } from '../stores/toast'
-import { ContractTypeBadge } from './ContractTypeBadge'
 import { CvButton } from './CvButton'
 import { Icon } from './Icon'
+import { TextBadge } from './TextBadge'
 import { WorkModeBadge } from './WorkModeBadge'
 
 /** Posts maiores que isso começam recolhidos. */
@@ -59,7 +59,8 @@ function JobDetailContent({ job }: { job: WebJob }) {
 				<div className="row-between">
 					<div className="job-badges">
 						<WorkModeBadge job={job} />
-						<ContractTypeBadge job={job} />
+						<TextBadge label={senioritiesLabel(job)} />
+						<TextBadge label={contractTypesLabel(job)} />
 					</div>
 					<time className="mono muted small" dateTime={jobDate(job)}>
 						publicada {timeAgo(jobDate(job))}

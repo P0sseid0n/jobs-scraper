@@ -1,7 +1,7 @@
 import { Types } from 'mongoose'
 import { z } from 'zod'
 
-import { CONTRACT_TYPES, WORK_MODES, type ProcessedJob } from '@shared/contracts'
+import { CONTRACT_TYPES, SENIORITIES, WORK_MODES, type ProcessedJob } from '@shared/contracts'
 
 import type { WebJob } from '../api-types'
 import { decodeCursor, type Cursor } from './http'
@@ -26,6 +26,8 @@ export const JobsQuerySchema = z.object({
 	workMode: csv.pipe(z.array(z.enum([...WORK_MODES, 'none']))),
 	/** Regimes aceitos (a vaga entra se citar qualquer um deles); `none` são as vagas sem regime. */
 	contractType: csv.pipe(z.array(z.enum([...CONTRACT_TYPES, 'none']))),
+	/** Níveis aceitos (a vaga entra se citar qualquer um deles); `none` são as vagas sem nível. */
+	seniority: csv.pipe(z.array(z.enum([...SENIORITIES, 'none']))),
 	/** Tecnologias que a vaga precisa pedir (todas), sem diferenciar maiúsculas. */
 	skills: csv.pipe(z.array(z.string().max(100)).max(20)),
 	since: z.enum(['24h', '7d', '30d', 'all']).default('all'),
@@ -63,14 +65,8 @@ export function buildJobsFilter(query: JobsQuery, now = new Date()) {
 		conditions.push({ workMode: { $in: modes } })
 	}
 
-	if (query.contractType.length > 0) {
-		const types = query.contractType.filter(type => type !== 'none')
-		const options: Record<string, unknown>[] = []
-		if (types.length > 0) options.push({ contractTypes: { $in: types } })
-		// Sem regime: `null`, lista vazia ou campo ausente (vagas salvas antes do campo existir)
-		if (query.contractType.includes('none')) options.push({ contractTypes: null }, { contractTypes: { $size: 0 } })
-		conditions.push({ $or: options })
-	}
+	if (query.contractType.length > 0) conditions.push(anyOfOrNone('contractTypes', query.contractType))
+	if (query.seniority.length > 0) conditions.push(anyOfOrNone('seniorities', query.seniority))
 
 	if (query.skills.length > 0) {
 		conditions.push({ necessaryKnowledge: { $all: query.skills.map(skill => new RegExp(`^${escapeRegExp(skill)}$`, 'i')) } })
@@ -88,6 +84,20 @@ export function buildJobsFilter(query: JobsQuery, now = new Date()) {
 	return { $and: conditions }
 }
 
+/**
+ * Vagas cujo campo de lista (`contractTypes`, `seniorities`) tem qualquer um dos valores; `none` pega as vagas
+ * sem valor: `null`, lista vazia ou campo ausente (vagas salvas antes do campo existir).
+ */
+function anyOfOrNone(field: string, values: string[]) {
+	const wanted = values.filter(value => value !== 'none')
+	const options: Record<string, unknown>[] = []
+
+	if (wanted.length > 0) options.push({ [field]: { $in: wanted } })
+	if (values.includes('none')) options.push({ [field]: null }, { [field]: { $size: 0 } })
+
+	return { $or: options }
+}
+
 /** Itens depois do cursor na ordem `createdAt` desc, `_id` desc (o `_id` desempata vagas salvas no mesmo instante). */
 export function afterCursor(cursor: Cursor, field = 'createdAt') {
 	const id = new Types.ObjectId(cursor.id)
@@ -96,12 +106,13 @@ export function afterCursor(cursor: Cursor, field = 'createdAt') {
 }
 
 /**
- * Documento da coleção `jobs` como o `lean()` devolve (com os timestamps do mongoose). Vagas salvas antes do
- * campo `contractTypes` não o têm.
+ * Documento da coleção `jobs` como o `lean()` devolve (com os timestamps do mongoose). Vagas salvas antes dos
+ * campos `contractTypes` e `seniorities` não os têm.
  */
-export type JobDocument = Omit<ProcessedJob, 'title' | 'contractTypes'> & {
+export type JobDocument = Omit<ProcessedJob, 'title' | 'contractTypes' | 'seniorities'> & {
 	title: string | null
 	contractTypes?: ProcessedJob['contractTypes']
+	seniorities?: ProcessedJob['seniorities']
 	createdAt?: Date | null
 }
 
@@ -114,6 +125,7 @@ export function toWebJob(doc: JobDocument): WebJob {
 		location: doc.location ?? null,
 		workMode: doc.workMode ?? null,
 		contractTypes: doc.contractTypes?.length ? doc.contractTypes : null,
+		seniorities: doc.seniorities?.length ? doc.seniorities : null,
 		necessaryKnowledge: doc.necessaryKnowledge?.length ? doc.necessaryKnowledge : null,
 		applyLink: doc.applyLink ?? null,
 		recruiterEmail: doc.recruiterEmail ?? null,

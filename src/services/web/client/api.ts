@@ -43,6 +43,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export type JobFilters = {
 	q: string
 	workMode: string[]
+	seniority: string[]
 	contractType: string[]
 	skills: string[]
 	since: 'all' | '24h' | '7d' | '30d'
@@ -56,6 +57,7 @@ export function jobsQueryString(filters: JobFilters, cursor?: string | null) {
 
 	if (filters.q.trim()) params.set('q', filters.q.trim())
 	if (filters.workMode.length) params.set('workMode', filters.workMode.join(','))
+	if (filters.seniority.length) params.set('seniority', filters.seniority.join(','))
 	if (filters.contractType.length) params.set('contractType', filters.contractType.join(','))
 	if (filters.skills.length) params.set('skills', filters.skills.join(','))
 	if (filters.since !== 'all') params.set('since', filters.since)

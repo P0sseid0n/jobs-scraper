@@ -2,17 +2,17 @@ import type { MouseEvent } from 'react'
 
 import type { WebJob } from '../../api-types'
 import { cx } from '../lib/cx'
-import { jobDate, jobSubtitle, safeLink, timeAgo } from '../lib/format'
+import { contractTypesLabel, jobDate, jobSubtitle, safeLink, senioritiesLabel, timeAgo } from '../lib/format'
 import { jobPath, onLinkClick } from '../router'
 import { useUnseen } from '../stores/seen'
-import { ContractTypeBadge } from './ContractTypeBadge'
 import { CvButton } from './CvButton'
 import { Icon } from './Icon'
+import { TextBadge } from './TextBadge'
 import { WorkModeBadge } from './WorkModeBadge'
 
 const VISIBLE_SKILLS = 4
 
-/** Card da lista: otimizado para escanear (cargo, empresa · local, modalidade, regime, quando, tecnologias) e agir rápido. */
+/** Card da lista: otimizado para escanear (cargo, empresa · local, modalidade, nível, regime, quando, tecnologias) e agir rápido. */
 export function JobCard({
 	job,
 	selected = false,
@@ -51,7 +51,8 @@ export function JobCard({
 				</a>
 				<div className="job-card-meta">
 					<div className="job-badges">
-						<ContractTypeBadge job={job} />
+						<TextBadge label={senioritiesLabel(job)} />
+						<TextBadge label={contractTypesLabel(job)} />
 						<WorkModeBadge job={job} />
 					</div>
 					<time className="mono muted small" dateTime={jobDate(job)}>

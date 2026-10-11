@@ -1,4 +1,4 @@
-import { CONTRACT_TYPES } from '@shared/contracts'
+import { CONTRACT_TYPES, SENIORITIES } from '@shared/contracts'
 import { Job } from '@shared/database'
 
 import type { JobFacets, JobsPage, WebJob } from '../api-types'
@@ -24,20 +24,16 @@ export async function listJobs(req: Request) {
 	return Response.json({ jobs: page.map(toWebJob), nextCursor } satisfies JobsPage)
 }
 
-/** `GET /api/jobs/facets`: contagens para os filtros (modalidades, regimes e tecnologias mais pedidas). */
+/** `GET /api/jobs/facets`: contagens para os filtros (modalidades, níveis, regimes e tecnologias mais pedidas). */
 export async function jobFacets() {
-	const [total, modes, contracts, skills] = await Promise.all([
+	const [total, modes, levels, contracts, skills] = await Promise.all([
 		Job.countDocuments(LISTABLE_JOBS),
 		Job.aggregate<{ _id: string | null; count: number }>([
 			{ $match: LISTABLE_JOBS },
 			{ $group: { _id: '$workMode', count: { $sum: 1 } } },
 		]),
-		// Uma vaga "CLT ou PJ" conta nos dois; sem regime (null, vazio ou ausente) cai em `_id: null`
-		Job.aggregate<{ _id: string | null; count: number }>([
-			{ $match: LISTABLE_JOBS },
-			{ $unwind: { path: '$contractTypes', preserveNullAndEmptyArrays: true } },
-			{ $group: { _id: '$contractTypes', count: { $sum: 1 } } },
-		]),
+		countListValues('seniorities'),
+		countListValues('contractTypes'),
 		// Agrupa sem diferenciar maiúsculas ("Vue.js" e "vue.js"); mostra a grafia mais usada
 		Job.aggregate<{ name: string; count: number }>([
 			{ $match: LISTABLE_JOBS },
@@ -54,13 +50,34 @@ export async function jobFacets() {
 	const workModes: JobFacets['workModes'] = { remoto: 0, hibrido: 0, presencial: 0, none: 0 }
 	for (const mode of modes) workModes[mode._id && mode._id in workModes ? (mode._id as keyof typeof workModes) : 'none'] += mode.count
 
-	const contractTypes = Object.fromEntries([...CONTRACT_TYPES, 'none'].map(type => [type, 0])) as JobFacets['contractTypes']
-	for (const contract of contracts) {
-		const key = contract._id && contract._id in contractTypes ? (contract._id as keyof typeof contractTypes) : 'none'
-		contractTypes[key] += contract.count
+	return Response.json({
+		total,
+		workModes,
+		seniorities: facetCounts(SENIORITIES, levels),
+		contractTypes: facetCounts(CONTRACT_TYPES, contracts),
+		skills,
+	} satisfies JobFacets)
+}
+
+/** Conta as vagas por valor de um campo de lista: uma vaga "CLT ou PJ" conta nos dois; sem valor cai em `_id: null`. */
+function countListValues(field: 'seniorities' | 'contractTypes') {
+	return Job.aggregate<{ _id: string | null; count: number }>([
+		{ $match: LISTABLE_JOBS },
+		{ $unwind: { path: `$${field}`, preserveNullAndEmptyArrays: true } },
+		{ $group: { _id: `$${field}`, count: { $sum: 1 } } },
+	])
+}
+
+/** Contagem de cada valor conhecido, com zero nos que não apareceram; o resto (`null`, ausente) vai para `none`. */
+function facetCounts<T extends string>(values: readonly T[], groups: { _id: string | null; count: number }[]) {
+	const counts = Object.fromEntries([...values, 'none'].map(value => [value, 0])) as Record<T | 'none', number>
+
+	for (const group of groups) {
+		const key = group._id && group._id in counts ? (group._id as T) : 'none'
+		counts[key] += group.count
 	}
 
-	return Response.json({ total, workModes, contractTypes, skills } satisfies JobFacets)
+	return counts
 }
 
 /** `GET /api/jobs/:postId` */
