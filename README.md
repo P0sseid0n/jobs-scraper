@@ -34,7 +34,7 @@ O núcleo (scraper → post-processing → storage → cv-updater) não depende 
 4. **Bot do Discord** (`src/services/discord-bot`): publica cada vaga como um card (embed) com cargo, empresa, local, modalidade, data, tecnologias e botões para o post e para o contato do recrutador.
    - Num **canal de texto**, cada vaga vira uma mensagem.
    - Num **canal de fórum**, cada vaga vira um post próprio. O bot aplica as tags do fórum que batem com a modalidade ou as tecnologias (crie tags como "Remoto" ou "Vue" no fórum).
-5. **Currículo ajustado** (`src/services/cv-updater`): ao clicar em "📧 Contato do recrutador" (ou "📄 Gerar currículo", quando a vaga não tem e-mail), o bot responde só para você com o contato e, segundos depois, envia um PDF do seu currículo ajustado à vaga.
+5. **Currículo ajustado** (`src/services/cv-updater`): ao clicar em "📧 Contato do recrutador" (ou "📄 Gerar currículo", quando a vaga não tem e-mail), o bot responde só para você com o contato e, segundos depois, envia um PDF do seu currículo ajustado à vaga. Quando a vaga tem e-mail, junto vem uma mensagem de candidatura escrita para ela.
 6. **Site** (`src/services/web`): veja abaixo.
 
 ### 🌐 Site (web)
@@ -57,6 +57,7 @@ O currículo base é o seu próprio `.tex` (o mesmo do Overleaf), em `data/cv/cv
 - **Habilidades**: entram as tecnologias pedidas pela vaga (na categoria certa; nuvem e DevOps vão para ferramentas) e ficam só as suas categorias relacionadas à vaga, com as tecnologias da vaga primeiro. Conceitos e metodologias ("Agile", "Component-driven architecture") não entram como tecnologia.
 - **Projetos**: com `GITHUB_USERNAME` configurado, os projetos (`CV_MAX_PROJECTS`, padrão 2) são escolhidos entre os seus repositórios públicos por ranqueamento: +10 por tecnologia da vaga que o projeto usa (linguagens, topics e dependências do `package.json`), +3 se tem descrição e +3 se tem topics; desempate pelo mais recente. Projetos que já estão no `.tex` usam o texto que você escreveu; os demais ganham uma descrição gerada a partir do README. Forks, arquivados e os listados em `GITHUB_EXCLUDE_REPOS` ficam de fora. Sem GitHub, ficam os projetos do `.tex`, reordenados.
 - **Experiência**: bullets reordenados por relevância; nenhum é criado ou removido.
+- **Mensagem de candidatura** (só em vagas com e-mail de contato): a IA escreve o corpo do e-mail a partir do currículo ajustado, citando o cargo, a empresa, tecnologias da vaga e um projeto relacionado, no idioma do post. Regras descartam placeholders, anos de experiência e tecnologias que não estão no currículo nem na vaga; se a IA falhar, fica o modelo padrão. O site e o Discord mostram a mensagem para copiar e revisar.
 
 Se o resultado passar de uma página, primeiro sai um projeto e depois volta a apresentação original, até caber. Os PDFs gerados ficam em `data/cv/generated/`.
 
