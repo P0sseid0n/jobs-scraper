@@ -1,7 +1,7 @@
 import { Types } from 'mongoose'
 import { z } from 'zod'
 
-import { WORK_MODES, type ProcessedJob } from '@shared/contracts'
+import { CONTRACT_TYPES, WORK_MODES, type ProcessedJob } from '@shared/contracts'
 
 import type { WebJob } from '../api-types'
 import { decodeCursor, type Cursor } from './http'
@@ -24,6 +24,8 @@ export const JobsQuerySchema = z.object({
 	q: z.string().trim().max(200).optional(),
 	/** Modalidades aceitas; `none` são as vagas sem modalidade. */
 	workMode: csv.pipe(z.array(z.enum([...WORK_MODES, 'none']))),
+	/** Regimes aceitos (a vaga entra se citar qualquer um deles); `none` são as vagas sem regime. */
+	contractType: csv.pipe(z.array(z.enum([...CONTRACT_TYPES, 'none']))),
 	/** Tecnologias que a vaga precisa pedir (todas), sem diferenciar maiúsculas. */
 	skills: csv.pipe(z.array(z.string().max(100)).max(20)),
 	since: z.enum(['24h', '7d', '30d', 'all']).default('all'),
@@ -61,6 +63,15 @@ export function buildJobsFilter(query: JobsQuery, now = new Date()) {
 		conditions.push({ workMode: { $in: modes } })
 	}
 
+	if (query.contractType.length > 0) {
+		const types = query.contractType.filter(type => type !== 'none')
+		const options: Record<string, unknown>[] = []
+		if (types.length > 0) options.push({ contractTypes: { $in: types } })
+		// Sem regime: `null`, lista vazia ou campo ausente (vagas salvas antes do campo existir)
+		if (query.contractType.includes('none')) options.push({ contractTypes: null }, { contractTypes: { $size: 0 } })
+		conditions.push({ $or: options })
+	}
+
 	if (query.skills.length > 0) {
 		conditions.push({ necessaryKnowledge: { $all: query.skills.map(skill => new RegExp(`^${escapeRegExp(skill)}$`, 'i')) } })
 	}
@@ -84,8 +95,15 @@ export function afterCursor(cursor: Cursor, field = 'createdAt') {
 	return { $or: [{ [field]: { $lt: cursor.at } }, { [field]: cursor.at, _id: { $lt: id } }] }
 }
 
-/** Documento da coleção `jobs` como o `lean()` devolve (com os timestamps do mongoose). */
-export type JobDocument = Omit<ProcessedJob, 'title'> & { title: string | null; createdAt?: Date | null }
+/**
+ * Documento da coleção `jobs` como o `lean()` devolve (com os timestamps do mongoose). Vagas salvas antes do
+ * campo `contractTypes` não o têm.
+ */
+export type JobDocument = Omit<ProcessedJob, 'title' | 'contractTypes'> & {
+	title: string | null
+	contractTypes?: ProcessedJob['contractTypes']
+	createdAt?: Date | null
+}
 
 /** Converte o documento do MongoDB no formato da API (sem campos internos como `_id` e `notifiedAt`). */
 export function toWebJob(doc: JobDocument): WebJob {
@@ -95,6 +113,7 @@ export function toWebJob(doc: JobDocument): WebJob {
 		company: doc.company ?? null,
 		location: doc.location ?? null,
 		workMode: doc.workMode ?? null,
+		contractTypes: doc.contractTypes?.length ? doc.contractTypes : null,
 		necessaryKnowledge: doc.necessaryKnowledge?.length ? doc.necessaryKnowledge : null,
 		applyLink: doc.applyLink ?? null,
 		recruiterEmail: doc.recruiterEmail ?? null,

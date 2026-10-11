@@ -31,9 +31,9 @@ O núcleo (scraper → post-processing → storage → cv-updater) não depende 
 2. **Pós-processamento** (`src/services/post-processing`): ignora posts já vistos, usa um modelo do Ollama para extrair os dados da vaga e envia o resultado para a fila `storage`.
    - **Posts com várias vagas** (agregadores: "📄 Cargo" + "🔗 Candidate-se: https://lnkd.in/..."): o post é dividido por regra, sem IA. Cada vaga cujo cargo passa no filtro de palavras-chave vai para a fila `scraper-lookup`. O scraper abre o link de cada uma no navegador logado, uma por vez, com pausa (`SCRAPER_LOOKUP_DELAY_MS`) e nunca durante uma coleta. O texto da página volta para a fila `post-processing` como um post comum, com `sourcePostId` apontando para o post original.
 3. **Armazenamento** (`src/services/storage`): salva a vaga no MongoDB (sem duplicar, por causa do índice único em `postId`) e publica o evento `job-published`.
-4. **Bot do Discord** (`src/services/discord-bot`): publica cada vaga como um card (embed) com cargo, empresa, local, modalidade, data, tecnologias e botões para o post e para o contato do recrutador.
+4. **Bot do Discord** (`src/services/discord-bot`): publica cada vaga como um card (embed) com cargo, empresa, local, modalidade, regime de contratação (CLT, PJ…), data, tecnologias e botões para o post e para o contato do recrutador.
    - Num **canal de texto**, cada vaga vira uma mensagem.
-   - Num **canal de fórum**, cada vaga vira um post próprio. O bot aplica as tags do fórum que batem com a modalidade ou as tecnologias (crie tags como "Remoto" ou "Vue" no fórum).
+   - Num **canal de fórum**, cada vaga vira um post próprio. O bot aplica as tags do fórum que batem com a modalidade, o regime ou as tecnologias (crie tags como "Remoto", "PJ" ou "Vue" no fórum).
 5. **Currículo ajustado** (`src/services/cv-updater`): ao clicar em "📧 Contato do recrutador" (ou "📄 Gerar currículo", quando a vaga não tem e-mail), o bot responde só para você com o contato e, segundos depois, envia um PDF do seu currículo ajustado à vaga.
 6. **Site** (`src/services/web`): veja abaixo.
 
@@ -41,7 +41,7 @@ O núcleo (scraper → post-processing → storage → cv-updater) não depende 
 
 Mais um canal, ao lado do Discord, com o que o Discord não faz bem: busca e filtros no histórico, acompanhamento das coletas e edição das configurações. Abre em http://localhost:3000 (sem login: a porta fica só em `127.0.0.1`).
 
-- **Vagas:** lista das mais recentes, com busca (cargo, empresa, tecnologias e texto do post) e filtros por modalidade, tecnologias, período, e-mail de contato, idioma e confiança mínima. No desktop, o detalhe abre ao lado; no celular, numa página própria. Vagas novas chegam em tempo real (Server-Sent Events) e aparecem num aviso "N vagas novas", sem reordenar a lista sob o cursor; as não vistas ganham um ponto verde.
+- **Vagas:** lista das mais recentes, com busca (cargo, empresa, tecnologias e texto do post) e filtros por modalidade, regime de contratação, tecnologias, período, e-mail de contato, idioma e confiança mínima. No desktop, o detalhe abre ao lado; no celular, numa página própria. Vagas novas chegam em tempo real (Server-Sent Events) e aparecem num aviso "N vagas novas", sem reordenar a lista sob o cursor; as não vistas ganham um ponto verde.
 - **Detalhe:** todos os campos, o post original, o e-mail com botão de copiar e o modelo de mensagem de candidatura (o mesmo do bot).
 - **Currículos:** "gerar currículo" em qualquer vaga. O pedido segue em segundo plano (um indicador no canto acompanha todos os pedidos da sessão); quando fica pronto, dá para pré-visualizar e baixar. Os PDFs ficam na coleção `web_cv_requests` (90 dias) e aparecem em "Meus currículos".
 - **Coletas:** coleta em andamento, próxima agendada, "coletar agora", pausar e o histórico com o resultado por termo. Falhas de login do LinkedIn aparecem como alerta.
