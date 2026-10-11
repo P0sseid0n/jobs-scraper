@@ -1,5 +1,7 @@
 import { jsonrepair } from 'jsonrepair'
 
+import { CONTRACT_TYPES, type ContractType } from '@shared/contracts'
+
 import { AiJobOutputSchema, type AiJobOutput } from './extraction-output'
 
 /**
@@ -57,6 +59,36 @@ const WORK_MODE_ONLY = /^(100 ?% ?)?(remoto|remote|home ?office|hibrido|hybrid|p
 export function keepSkillsInPost(skills: string[] | null, text: string): string[] | null {
 	const normalizedText = normalizeForMatch(text)
 	const kept = (skills ?? []).filter(skill => skillWords(skill).every(word => containsWordStart(normalizedText, word)))
+
+	return kept.length > 0 ? kept : null
+}
+
+/**
+ * Termos de cada regime, procurados no texto sem acentos e em minúsculas. "CLT" e "PJ" quase só aparecem como
+ * regime, então valem mesmo que o modelo não os devolva; "estágio" e "freelance" também aparecem em outros
+ * sentidos ("estágio do processo", "já trabalhei como freelancer"), então só confirmam o que o modelo disse.
+ */
+const CONTRACT_TYPE_TERMS: Record<ContractType, { pattern: RegExp; reliable: boolean }> = {
+	clt: { pattern: /(?<![a-z0-9])clt(?![a-z0-9])/, reliable: true },
+	pj: { pattern: /(?<![a-z0-9])pj(?![a-z0-9])|pessoa juridica/, reliable: true },
+	estagio: { pattern: /(?<![a-z0-9])(estagi(o|ario|aria)s?|internships?|interns?)(?![a-z0-9])/, reliable: false },
+	freelance: { pattern: /(?<![a-z0-9])(free-?lance(rs?)?|freelas?)(?![a-z0-9])/, reliable: false },
+}
+
+/**
+ * Decide os regimes da vaga pelo texto do post (evita regime inventado pelo modelo): fica cada regime escrito no
+ * post que o modelo também indicou, mais "CLT" e "PJ" sempre que estiverem escritos. Com os dois ("CLT ou PJ"),
+ * guarda os dois.
+ * @returns Os regimes na ordem de `CONTRACT_TYPES`, ou `null` se o post não diz.
+ */
+export function keepContractTypesInPost(types: ContractType[] | null, text: string): ContractType[] | null {
+	const normalizedText = normalizeForMatch(text)
+	const fromModel = new Set(types ?? [])
+
+	const kept = CONTRACT_TYPES.filter(type => {
+		const { pattern, reliable } = CONTRACT_TYPE_TERMS[type]
+		return (reliable || fromModel.has(type)) && pattern.test(normalizedText)
+	})
 
 	return kept.length > 0 ? kept : null
 }

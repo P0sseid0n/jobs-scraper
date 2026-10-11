@@ -1,7 +1,7 @@
 import type { Message } from 'ollama'
 import { z } from 'zod'
 
-import { WORK_MODES } from '@shared/contracts'
+import { CONTRACT_TYPES, WORK_MODES } from '@shared/contracts'
 
 import { POST_TYPES } from './extraction-output'
 
@@ -17,6 +17,7 @@ const ModelOutputSchema = z.object({
 	company: z.string().nullable(),
 	location: z.string().nullable(),
 	workMode: z.enum(WORK_MODES).nullable(),
+	contractTypes: z.array(z.enum(CONTRACT_TYPES)),
 	necessary_knowledge: z.array(z.string()),
 	recruiter_email: z.string().nullable(),
 	link: z.string().nullable(),
@@ -51,6 +52,7 @@ Every field must come from that same opening; never mix the title of one opening
 - company: the hiring company. null if not named. Never write placeholders like "unknown".
 - location: city, state and/or country of the job. null if absent. Never put the work mode here ("remote", "home office" and "hybrid" go in workMode).
 - workMode: "remoto" (remote), "presencial" (on-site) or "hibrido" (hybrid). null if not stated.
+- contractTypes: the hiring regimes written in the post: "clt" (CLT employment), "pj" (contractor, "pessoa jurídica"), "estagio" (internship) or "freelance". List every regime written (e.g. "CLT ou PJ" → ["clt", "pj"]); [] if not stated. Never infer the regime from the role or the salary.
 - necessary_knowledge: technologies and skills written in the post for this opening, as short names (e.g. "Vue.js", "TypeScript"); at most 10; [] if none. Never add technologies that are not written, even if they are typical for the role.
 - recruiter_email: a contact email written in the post. null if absent.
 - link: an application URL (starting with http) written in the post. null if absent.

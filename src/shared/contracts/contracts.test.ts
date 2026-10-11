@@ -28,6 +28,25 @@ describe('contratos das filas', () => {
 		expect(ProcessedJobSchema.safeParse({ ...job, workMode: 'remoto' }).success).toBe(true)
 	})
 
+	test('ProcessedJob sem regime (mensagem antiga) vira null; regime desconhecido é rejeitado', () => {
+		const job = {
+			postId: 'abc',
+			rawContent: 'vaga',
+			title: null,
+			company: null,
+			location: null,
+			applyLink: null,
+			necessaryKnowledge: null,
+			recruiterEmail: null,
+			workMode: null,
+			aiJobConfidence: 50,
+		}
+
+		expect(ProcessedJobSchema.parse(job).contractTypes).toBeNull()
+		expect(ProcessedJobSchema.parse({ ...job, contractTypes: ['clt', 'pj'] }).contractTypes).toEqual(['clt', 'pj'])
+		expect(ProcessedJobSchema.safeParse({ ...job, contractTypes: ['temporario'] }).success).toBe(false)
+	})
+
 	test('CvRequest leva a fila de resposta e um contexto livre, sem nada específico de um canal', () => {
 		const request = { postId: 'abc', requestedBy: 'user-1', requestedAt: new Date().toISOString() }
 

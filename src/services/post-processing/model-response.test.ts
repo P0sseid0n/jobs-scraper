@@ -1,6 +1,13 @@
 import { describe, expect, test } from 'bun:test'
 
-import { keepLinkIfInPost, keepSkillsInPost, locationWithoutWorkMode, parseModelResponse, rejectionReason } from './model-response'
+import {
+	keepContractTypesInPost,
+	keepLinkIfInPost,
+	keepSkillsInPost,
+	locationWithoutWorkMode,
+	parseModelResponse,
+	rejectionReason,
+} from './model-response'
 
 describe('parseModelResponse', () => {
 	test('retorna null quando o modelo responde "null"', () => {
@@ -19,6 +26,7 @@ describe('parseModelResponse', () => {
 			link: null,
 			necessary_knowledge: ['Vue', 'TypeScript'],
 			recruiter_email: null,
+			contractTypes: null,
 			workMode: 'hibrido',
 			postType: null,
 			isJob: false,
@@ -32,6 +40,20 @@ describe('parseModelResponse', () => {
 		)
 
 		expect(job).toMatchObject({ title: null, company: null, location: null, necessary_knowledge: null, workMode: null })
+	})
+
+	test('regimes: aceita grafias do modelo, remove repetidos e ordena', () => {
+		expect(parseModelResponse('{"contractTypes": ["PJ", "CLT", "pj"]}')?.contractTypes).toEqual(['clt', 'pj'])
+		expect(parseModelResponse('{"contractTypes": "Estágio"}')?.contractTypes).toEqual(['estagio'])
+		expect(parseModelResponse('{"contractTypes": "CLT ou PJ"}')?.contractTypes).toEqual(['clt', 'pj'])
+		expect(parseModelResponse('{"contractTypes": ["Freelancer", "temporário"]}')?.contractTypes).toEqual(['freelance'])
+	})
+
+	test('regimes: lista vazia, valor desconhecido ou ausente viram null', () => {
+		expect(parseModelResponse('{"contractTypes": []}')?.contractTypes).toBeNull()
+		expect(parseModelResponse('{"contractTypes": ["null"]}')?.contractTypes).toBeNull()
+		expect(parseModelResponse('{"contractTypes": 3}')?.contractTypes).toBeNull()
+		expect(parseModelResponse('{"title": "Vaga"}')?.contractTypes).toBeNull()
 	})
 
 	test('repara JSON levemente quebrado', () => {
@@ -115,5 +137,61 @@ describe('locationWithoutWorkMode', () => {
 		expect(locationWithoutWorkMode('São Paulo, SP')).toBe('São Paulo, SP')
 		expect(locationWithoutWorkMode('Remoto (Brasil)')).toBe('Remoto (Brasil)')
 		expect(locationWithoutWorkMode(null)).toBeNull()
+	})
+})
+
+// Textos no formato dos posts coletados (empresas e contatos trocados)
+describe('keepContractTypesInPost', () => {
+	test('post com PJ sai com PJ', () => {
+		const text = `🚀 Vaga: Desenvolvedor(a) Front-end Vue.js Pleno
+
+📍 100% remoto
+💼 Contratação: PJ
+💰 Faixa: a combinar
+
+Interessados, mandar CV para vagas@empresa.com.br`
+
+		expect(keepContractTypesInPost(['pj'], text)).toEqual(['pj'])
+		// O texto basta: o modelo às vezes deixa o regime de fora
+		expect(keepContractTypesInPost(null, text)).toEqual(['pj'])
+	})
+
+	test('post com CLT sai com CLT, mesmo em negrito Unicode', () => {
+		const text = `Estamos contratando! 𝐃𝐞𝐬𝐞𝐧𝐯𝐨𝐥𝐯𝐞𝐝𝐨𝐫 𝐅𝐮𝐥𝐥 𝐒𝐭𝐚𝐜𝐤 (Node + React)
+Regime 𝐂𝐋𝐓 com VR, VA e plano de saúde. Híbrido em Campinas/SP.`
+
+		expect(keepContractTypesInPost(['clt'], text)).toEqual(['clt'])
+	})
+
+	test('post com "CLT ou PJ" guarda os dois', () => {
+		const text = 'Tech Lead Java | Remoto | Contrato CLT ou PJ (a combinar). Candidate-se: https://empresa.com/vagas/42'
+
+		expect(keepContractTypesInPost(['pj'], text)).toEqual(['clt', 'pj'])
+		expect(keepContractTypesInPost(null, 'Modelo de contratação: CLT/PJ')).toEqual(['clt', 'pj'])
+		expect(keepContractTypesInPost(null, 'Aceitamos pessoa jurídica')).toEqual(['pj'])
+	})
+
+	test('post sem regime fica sem regime, mesmo que o modelo invente', () => {
+		const text = `Oportunidade para Desenvolvedor Python Sênior na área de dados.
+Requisitos: Python, Airflow, SQL e AWS. Envie seu currículo pelo link do post.`
+
+		expect(keepContractTypesInPost(null, text)).toBeNull()
+		expect(keepContractTypesInPost(['clt', 'freelance'], text)).toBeNull()
+	})
+
+	test('estágio e freelance precisam do modelo e do texto', () => {
+		const internship = 'Vaga de Estágio em Desenvolvimento Web (Vue.js), 6h por dia, bolsa-auxílio.'
+		expect(keepContractTypesInPost(['estagio'], internship)).toEqual(['estagio'])
+		// "estágio" também aparece em outros sentidos: sem o modelo, não entra
+		expect(keepContractTypesInPost(null, 'Processo seletivo no estágio final, vaga de Dev Go')).toBeNull()
+
+		expect(keepContractTypesInPost(['freelance'], 'Procuro dev Vue para um projeto freela de 2 meses')).toEqual(['freelance'])
+		expect(keepContractTypesInPost(['freelance'], 'Freelancer job: React Native app')).toEqual(['freelance'])
+		expect(keepContractTypesInPost(['estagio'], 'Internship: Software Engineer Intern (Python)')).toEqual(['estagio'])
+	})
+
+	test('não confunde a sigla com parte de outra palavra', () => {
+		expect(keepContractTypesInPost(null, 'Dev para o sistema PJe (Processo Judicial Eletrônico)')).toBeNull()
+		expect(keepContractTypesInPost(null, 'Experiência com CLTool e PJAX')).toBeNull()
 	})
 })

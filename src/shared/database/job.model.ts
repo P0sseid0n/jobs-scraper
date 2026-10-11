@@ -1,6 +1,6 @@
 import mongoose, { Schema } from 'mongoose'
 
-import { WORK_MODES, type ProcessedJob } from '../contracts/job'
+import { CONTRACT_TYPES, WORK_MODES, type ProcessedJob } from '../contracts/job'
 
 type JobDocument = ProcessedJob & { notifiedAt: Date | null }
 
@@ -16,6 +16,8 @@ const jobSchema = new Schema<JobDocument>(
 		necessaryKnowledge: { type: [String], default: null },
 		recruiterEmail: { type: String, default: null },
 		workMode: { type: String, enum: [...WORK_MODES, null], default: null },
+		// Vagas salvas antes do campo não o têm: ausente é o mesmo que `null` (regime não informado)
+		contractTypes: { type: [{ type: String, enum: CONTRACT_TYPES }], default: null },
 		aiJobConfidence: { type: Number, required: true },
 		postedAt: { type: String, default: null },
 		author: { type: String, default: null },

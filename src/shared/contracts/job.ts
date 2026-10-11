@@ -2,6 +2,10 @@ import { z } from 'zod'
 
 export const WORK_MODES = ['remoto', 'presencial', 'hibrido'] as const
 
+/** Regimes de contratação que a vaga pode citar. */
+export const CONTRACT_TYPES = ['clt', 'pj', 'estagio', 'freelance'] as const
+export type ContractType = (typeof CONTRACT_TYPES)[number]
+
 /** Mensagem das filas `storage` e `discord`: vaga já estruturada. */
 export const ProcessedJobSchema = z.object({
 	postId: z.string().min(1),
@@ -14,6 +18,11 @@ export const ProcessedJobSchema = z.object({
 	necessaryKnowledge: z.array(z.string()).nullable(),
 	recruiterEmail: z.string().nullable(),
 	workMode: z.enum(WORK_MODES).nullable(),
+	/**
+	 * Regimes citados no post (um post com "CLT ou PJ" traz os dois); `null` quando o post não diz.
+	 * O padrão aceita mensagens de antes do campo existir.
+	 */
+	contractTypes: z.array(z.enum(CONTRACT_TYPES)).nullable().default(null),
 	aiJobConfidence: z.number().min(0).max(100),
 	postedAt: z.iso.datetime().nullable().default(null),
 	author: z.string().nullable().default(null),
