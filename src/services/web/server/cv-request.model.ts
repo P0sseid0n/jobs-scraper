@@ -1,5 +1,7 @@
 import mongoose, { Schema } from 'mongoose'
 
+import type { ApplicationMessage } from '@shared/contracts'
+
 import { CV_STATUSES, type CvStatus, type WebCvRequest } from '../api-types'
 
 type CvRequestDocument = {
@@ -11,6 +13,8 @@ type CvRequestDocument = {
 	fileName: string | null
 	pdf: Buffer | null
 	error: string | null
+	/** E-mail de candidatura gerado pela IA; pedidos de antes do campo não o têm. */
+	message?: ApplicationMessage | null
 	requestedAt: Date
 	finishedAt: Date | null
 }
@@ -28,6 +32,10 @@ const cvRequestSchema = new Schema<CvRequestDocument>(
 		fileName: { type: String, default: null },
 		pdf: { type: Buffer, default: null },
 		error: { type: String, default: null },
+		message: {
+			type: new Schema({ subject: { type: String, required: true }, body: { type: String, required: true } }, { _id: false }),
+			default: null,
+		},
 		requestedAt: { type: Date, required: true },
 		finishedAt: { type: Date, default: null },
 	},
@@ -56,6 +64,7 @@ export function toWebCvRequest(doc: Omit<CvRequestDocument, 'pdf'>, now = new Da
 		status: timedOut ? 'failed' : doc.status,
 		fileName: doc.fileName,
 		error: timedOut ? CV_TIMEOUT_ERROR : doc.error,
+		message: doc.message ? { subject: doc.message.subject, body: doc.message.body } : null,
 		requestedAt: doc.requestedAt.toISOString(),
 		finishedAt: doc.finishedAt?.toISOString() ?? null,
 	}

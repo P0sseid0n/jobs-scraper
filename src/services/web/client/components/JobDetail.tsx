@@ -1,12 +1,12 @@
 import { useState } from 'react'
 
-import { applicationMessage } from '@shared/templates'
+import { applicationMessage, formatApplicationMessage } from '@shared/templates'
 
 import type { WebJob } from '../../api-types'
 import { api, cvPdfUrl, RequestError } from '../api'
 import { cx } from '../lib/cx'
 import { jobDate, jobSubtitle, languageLabel, safeLink, timeAgo } from '../lib/format'
-import { useCvFor } from '../stores/cv'
+import { useCvFor, useGeneratedMessage } from '../stores/cv'
 import { copyText, notify } from '../stores/toast'
 import { CvButton } from './CvButton'
 import { Icon } from './Icon'
@@ -18,7 +18,7 @@ const LOW_CONFIDENCE = 75
 
 /** Todos os dados da vaga, com as ações de candidatura (painel lateral no desktop, página própria no celular). */
 export function JobDetail({ job }: { job: WebJob }) {
-	// Outra vaga começa do zero: post recolhido e sem o JSON da anterior
+	// Outra vaga começa do zero: post recolhido, sem o JSON da anterior e com a mensagem da IA
 	return <JobDetailContent key={job.postId} job={job} />
 }
 
@@ -29,11 +29,16 @@ function JobDetailContent({ job }: { job: WebJob }) {
 	const [rawJson, setRawJson] = useState<string | null>(null)
 	const [loadingRaw, setLoadingRaw] = useState(false)
 
+	// A mensagem gerada pela IA aparece no lugar do modelo padrão, que continua a um clique
+	const [useDefaultMessage, setUseDefaultMessage] = useState(false)
+
 	const cv = useCvFor(job.postId)
 	const postLink = safeLink(job.postLink)
 	const applyLink = safeLink(job.applyLink)
 	const appliesThroughPost = !applyLink && !job.recruiterEmail
-	const message = applicationMessage(job.title)
+	const generated = useGeneratedMessage(job.postId)
+	const showGenerated = !!generated && !useDefaultMessage
+	const message = generated && showGenerated ? formatApplicationMessage(generated) : applicationMessage(job.title)
 	const isLong = job.rawContent.length > LONG_POST_CHARS
 
 	async function toggleRawJson() {
@@ -127,13 +132,27 @@ function JobDetailContent({ job }: { job: WebJob }) {
 					</div>
 					<div className="message-box">
 						<div className="row-between">
-							<span className="label">modelo de mensagem</span>
-							<button type="button" className="btn btn-ghost btn-xs" onClick={() => copyText(message, 'Modelo de mensagem')}>
+							<span className="label">{showGenerated ? 'mensagem gerada pela IA' : 'modelo de mensagem'}</span>
+							<button type="button" className="btn btn-ghost btn-xs" onClick={() => copyText(message, 'Mensagem')}>
 								<Icon name="copy" size={13} />
 								copiar
 							</button>
 						</div>
 						<pre className="mono message-text">{message}</pre>
+						{generated ? (
+							<div className="row-between muted xsmall">
+								<span>{showGenerated ? 'revise antes de enviar' : ''}</span>
+								<button type="button" className="link-btn xsmall" onClick={() => setUseDefaultMessage(!useDefaultMessage)}>
+									{showGenerated ? 'usar o modelo padrão' : 'usar a mensagem da IA'}
+								</button>
+							</div>
+						) : (
+							<p className="muted xsmall">
+								{cv?.status === 'pending'
+									? 'A mensagem escrita para esta vaga chega junto com o currículo.'
+									: 'Gere o currículo para receber uma mensagem escrita para esta vaga.'}
+							</p>
+						)}
 					</div>
 				</section>
 			)}

@@ -46,6 +46,20 @@ export function useCvFor(postId: string) {
 	}, [requests, postId])
 }
 
+/** A mensagem de candidatura gerada pela IA mais recente da vaga (um pedido novo em andamento não a apaga). */
+export function useGeneratedMessage(postId: string) {
+	const { requests } = useStore(state)
+
+	return useMemo(() => {
+		let latest: WebCvRequest | null = null
+		for (const request of requests.values()) {
+			if (request.postId !== postId || request.status !== 'ready' || !request.message) continue
+			if (!latest || request.requestedAt > latest.requestedAt) latest = request
+		}
+		return latest?.message ?? null
+	}, [requests, postId])
+}
+
 function upsert(request: WebCvRequest, { track = false } = {}) {
 	state.set(current => ({
 		...current,
