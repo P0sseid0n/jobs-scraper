@@ -9,6 +9,8 @@ export const SELECTORS = {
 		'[data-testid="expandable-text-box"], .update-components-text, .update-components-update-v2__commentary, .feed-shared-update-v2__description',
 	/** Elementos cujo id/href contém o ID do post (ver `resolvePostUrn`). */
 	postIdSources: '[id^="translatable-commentary-"], a[href*="/feed/update/urn"], a[href*="UpdateUrn=urn"], a[href*="urn%3Ali%3A"]',
+	/** Ações do post (comentários) no layout atual: a `componentkey` começa com o URN codificado (`urnFromComponentKey`). */
+	postKeySources: '[componentkey*="-replaceableCommentTools"], [componentkey*="-commentsSectionAnchorRef"]',
 	/** Link do perfil do autor; o nome é o primeiro link com texto. */
 	authorLink: 'a[href*="/in/"], a[href*="/company/"]',
 	loadMoreButton: 'button.scaffold-finite-scroll__load-button',

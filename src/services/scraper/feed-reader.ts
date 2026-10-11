@@ -46,6 +46,7 @@ export function collectNewPosts(page: Page): Promise<ScrapedPost[]> {
 					...Array.from(container.querySelectorAll(selectors.postIdSources)).map(
 						el => el.getAttribute('id') ?? el.getAttribute('href') ?? '',
 					),
+					...Array.from(container.querySelectorAll(selectors.postKeySources)).map(el => el.getAttribute('componentkey') ?? ''),
 				].filter(Boolean)
 
 				const author = Array.from(container.querySelectorAll<HTMLElement>(selectors.authorLink))

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { postedAtFromUrn, postUrlFromUrn, resolvePostUrn } from './post-urn'
+import { postedAtFromUrn, postUrlFromUrn, resolvePostUrn, urnFromComponentKey } from './post-urn'
 
 describe('URN do post', () => {
 	test('monta o link do post', () => {
@@ -44,5 +44,31 @@ describe('resolvePostUrn', () => {
 		expect(resolvePostUrn(['urn:li:activity:7058939392341180416'])).toBe('urn:li:activity:7058939392341180416')
 		expect(resolvePostUrn(['/feed/update/urn%3Ali%3AugcPost%3A7483645236414480384/'])).toBe('urn:li:ugcPost:7483645236414480384')
 		expect(resolvePostUrn(['https://www.linkedin.com/in/fulano/'])).toBeNull()
+	})
+})
+
+describe('urnFromComponentKey', () => {
+	// Chaves reais da busca (out/2026), com o URN que o LinkedIn mandou junto no HTML
+	const keys = {
+		'CgsIgMDJ0JC9lMvQAQ-replaceableCommentToolsxdiLddY4Q4urmqtKV6WcfMECc0yJu3FOdWtvEsOQBuQFeedType_FLAGSHIP_SEARCH':
+			'urn:li:activity:7515145433866907648',
+		'CgsIgIDRlImsgMvQAQ-commentsSectionAnchorRefxYvb6ydUE7ojid1Lkui1FB5GY7SSUJyQNKloP1oGuMgFeedType_FLAGSHIP_SEARCH':
+			'urn:li:activity:7515101160341643264',
+		'EgsIgMDOgMfl4MTQAQ-replaceableCommentToolsi7xzRlyMf1vR-fqXlTqTMqfCgQa406lrasFJQSSYCkAFeedType_FLAGSHIP_SEARCH':
+			'urn:li:ugcPost:7513342929290252288',
+	}
+
+	test('lê o tipo e o ID do prefixo da componentkey (activity e ugcPost)', () => {
+		for (const [key, urn] of Object.entries(keys)) expect(urnFromComponentKey(key)).toBe(urn)
+	})
+
+	test('resolvePostUrn usa a componentkey quando o card não tem outro id', () => {
+		expect(resolvePostUrn(['update-card-focusxdiLdd', Object.keys(keys)[0]!])).toBe('urn:li:activity:7515145433866907648')
+	})
+
+	test('ignora chaves que não são desse formato', () => {
+		expect(urnFromComponentKey('update-card-focusxdiLddY4Q4urmqtKV6WcfMECc0yJu3FOdWtvEsOQBuQ')).toBeNull()
+		expect(urnFromComponentKey('59b1ae7a-d2b4-4c1e-8f6f-6f36129fb285')).toBeNull()
+		expect(resolvePostUrn(['Cg-qualquer-coisa'])).toBeNull()
 	})
 })
