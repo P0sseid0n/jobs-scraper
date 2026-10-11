@@ -251,6 +251,10 @@ Cada serviço tem um `index.ts` (ponto de entrada, que chama `startService()` e 
 - Fazer scraping do LinkedIn vai contra os Termos de Uso da plataforma e pode levar ao bloqueio da conta. Use uma conta dedicada, mantenha o limite de posts baixo, use o filtro de data e espace as coletas (intervalo de algumas horas), sem muitos termos de busca.
 - Os logs em nível `info` registram apenas IDs e metadados. O conteúdo dos posts e as respostas da IA só aparecem com `LOG_LEVEL=debug`.
 
+## 🤝 Contribuindo
+
+O padrão das issues, das branches e dos commits e as verificações antes do merge estão no [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## 📄 Licença
 
 Este projeto está licenciado sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.

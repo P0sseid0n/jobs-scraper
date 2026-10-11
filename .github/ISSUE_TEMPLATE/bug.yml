@@ -1,0 +1,59 @@
+name: Bug
+description: Algo que não funciona como deveria
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Título dizendo o que acontece de errado: "PDF do currículo abre vazio no site".
+        Não cole o `.env`, cookies, e-mails ou o conteúdo do seu currículo.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área
+      multiple: true
+      options:
+        - scraper
+        - post-processing
+        - storage
+        - discord-bot
+        - cv-updater
+        - web (site)
+        - infraestrutura (Docker, filas, banco)
+        - documentação
+    validations:
+      required: true
+  - type: textarea
+    id: aconteceu
+    attributes:
+      label: O que aconteceu
+    validations:
+      required: true
+  - type: textarea
+    id: esperado
+    attributes:
+      label: O que era esperado
+    validations:
+      required: true
+  - type: textarea
+    id: reproduzir
+    attributes:
+      label: Como reproduzir
+      description: Passos, o post ou a vaga envolvida (o `postId` ajuda) e os comandos usados.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: O trecho do log do serviço com o erro.
+      render: shell
+  - type: dropdown
+    id: ambiente
+    attributes:
+      label: Como estava rodando
+      options:
+        - Local (bun dev)
+        - Docker (docker compose)
+    validations:
+      required: true

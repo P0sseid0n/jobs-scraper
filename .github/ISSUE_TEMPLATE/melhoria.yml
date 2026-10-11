@@ -1,0 +1,49 @@
+name: Melhoria
+description: Uma funcionalidade nova ou uma mudança no que já existe
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Título com um verbo no infinitivo dizendo o resultado: "Identificar o regime de contratação da vaga", não "Regime de contratação".
+        Uma issue por mudança. Veja o [CONTRIBUTING.md](https://github.com/P0sseid0n/jobs-scraper/blob/main/CONTRIBUTING.md).
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área
+      multiple: true
+      options:
+        - scraper
+        - post-processing
+        - storage
+        - discord-bot
+        - cv-updater
+        - web (site)
+        - infraestrutura (Docker, filas, banco)
+        - documentação
+    validations:
+      required: true
+  - type: textarea
+    id: contexto
+    attributes:
+      label: Contexto
+      description: Como está hoje e por que mudar. Cite arquivos e funções quando ajudar.
+    validations:
+      required: true
+  - type: textarea
+    id: o-que-fazer
+    attributes:
+      label: O que fazer
+      description: As mudanças, separadas por serviço ou camada. Pode sugerir caminhos e apontar riscos.
+    validations:
+      required: true
+  - type: textarea
+    id: criterios
+    attributes:
+      label: Critérios de aceite
+      description: Como saber que está pronto. Itens verificáveis.
+      placeholder: |
+        - Vaga com "PJ" no texto sai com o regime PJ.
+        - Testes com textos reais de posts.
+    validations:
+      required: true
