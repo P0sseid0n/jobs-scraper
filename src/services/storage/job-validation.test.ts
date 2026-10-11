@@ -18,6 +18,7 @@ const job: ProcessedJob = {
 	postedAt: null,
 	author: null,
 	language: null,
+	sourcePostId: null,
 }
 
 describe('missingRequiredFields', () => {

@@ -4,6 +4,7 @@ import StealthPlugin from 'puppeteer-extra-plugin-stealth'
 
 import type { Logger } from '@shared/logging'
 
+import type { ScraperConfig } from './config'
 import { loadJson, saveJson } from './json-file'
 import { linkedinCookie, parseStoredCookies } from './linkedin/session-cookies'
 
@@ -23,6 +24,17 @@ type BrowserOptions = {
 }
 
 const NAVIGATION_ATTEMPTS = 3
+
+/** As opções do navegador a partir do .env. Com `HEADLESS=auto`, começa sem janela. */
+export function browserOptionsFrom(config: ScraperConfig, logger: Logger): BrowserOptions {
+	return {
+		headless: config.HEADLESS !== 'false',
+		noSandbox: config.BROWSER_NO_SANDBOX,
+		cookieFile: config.LINKEDIN_COOKIES_FILE,
+		fallbackLiAt: config.LINKEDIN_LI_AT,
+		logger,
+	}
+}
 
 /** Navegador com uma aba anônima e a sessão do LinkedIn salva em disco. */
 export class BrowserSession {

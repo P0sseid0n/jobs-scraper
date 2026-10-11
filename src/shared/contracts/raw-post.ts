@@ -8,5 +8,7 @@ export const RawPostSchema = z.object({
 	author: z.string().nullable().default(null),
 	postedAt: z.iso.datetime().nullable().default(null),
 	scrapedAt: z.iso.datetime(),
+	/** Post que listava várias vagas, de onde esta saiu (ver `JobLookupSchema`); `null` num post comum. */
+	sourcePostId: z.string().nullable().default(null),
 })
 export type RawPost = z.infer<typeof RawPostSchema>

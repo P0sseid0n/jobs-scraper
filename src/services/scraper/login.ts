@@ -1,9 +1,10 @@
+import path from 'node:path'
 import type { ElementHandle, Page } from 'puppeteer'
 
 import type { Logger } from '@shared/logging'
 
 import type { BrowserSession } from './browser-session'
-import type { HeadlessMode } from './config'
+import type { HeadlessMode, ScraperConfig } from './config'
 import { canOpenWindow } from './display'
 import { SELECTORS } from './linkedin/selectors'
 import { isAuthPage, isCheckpointPage, LOGIN_URL } from './linkedin/urls'
@@ -22,6 +23,17 @@ type LoginOptions = {
 	screenshotFile: string
 
 	logger: Logger
+}
+
+/** As opções do login a partir do .env (o screenshot da verificação fica ao lado do arquivo de cookies). */
+export function loginOptionsFrom(config: ScraperConfig, logger: Logger): LoginOptions {
+	return {
+		email: config.LINKEDIN_EMAIL,
+		password: config.LINKEDIN_PASSWORD,
+		headlessMode: config.HEADLESS,
+		screenshotFile: path.join(path.dirname(config.LINKEDIN_COOKIES_FILE), 'login-verification.png'),
+		logger,
+	}
 }
 
 const LOGIN_TIMEOUT_MS = 30_000

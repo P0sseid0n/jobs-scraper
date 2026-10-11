@@ -35,6 +35,12 @@ export const scraperEnv = {
 
 	/** Tempo máximo esperando novos posts aparecerem depois de rolar a página. */
 	SCRAPER_SCROLL_DELAY_MS: z.coerce.number().int().min(1_000).default(10_000),
+
+	/**
+	 * Pausa mínima depois de abrir o link de uma vaga de um post com várias (a pausa real fica entre 1x e 2x).
+	 * As vagas são abertas uma por vez, fora das coletas: quanto maior, menor o risco de bloqueio da conta.
+	 */
+	SCRAPER_LOOKUP_DELAY_MS: z.coerce.number().int().min(5_000).default(30_000),
 }
 
 export type ScraperConfig = z.infer<z.ZodObject<typeof scraperEnv>>

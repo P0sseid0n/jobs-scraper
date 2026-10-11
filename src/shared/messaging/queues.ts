@@ -11,6 +11,8 @@ export const QUEUES = {
 	scraper: 'scraper',
 	/** Códigos de verificação do login do LinkedIn, enviados por `bun scraper:verify <código>`. */
 	scraperVerification: 'scraper-verification',
+	/** Vagas de posts com várias vagas, para o scraper abrir o link de cada uma (`JobLookup`). */
+	scraperLookup: 'scraper-lookup',
 	/** Vagas para o site repassar ao navegador em tempo real (ligada à exchange `job-published`). */
 	web: 'web',
 	/** Currículos prontos pedidos pelo site (é o `replyTo.queue` dos pedidos dele). */

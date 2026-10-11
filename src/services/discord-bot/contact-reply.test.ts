@@ -19,6 +19,7 @@ const job: ProcessedJob = {
 	postedAt: '2026-10-07T17:18:50.712Z',
 	author: 'Mandar Wairkar',
 	language: 'pt',
+	sourcePostId: null,
 }
 
 describe('botão de contato', () => {

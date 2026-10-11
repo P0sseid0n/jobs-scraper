@@ -15,6 +15,28 @@ export function isCheckpointPage(url: string) {
 	return new URL(url, BASE_URL).pathname.startsWith('/checkpoint')
 }
 
+/** Diz se a URL é do LinkedIn (onde a sessão e o login valem). */
+export function isLinkedInUrl(url: string) {
+	const { hostname } = new URL(url)
+	return hostname === 'linkedin.com' || hostname.endsWith('.linkedin.com')
+}
+
+/** A URL limpa de uma vaga do LinkedIn (/jobs/view/<id>), sem os parâmetros de rastreio; `null` se não for uma. */
+export function canonicalJobUrl(url: string) {
+	if (!isLinkedInUrl(url)) return null
+
+	const id = new URL(url).pathname.match(/^\/jobs\/view\/(?:[^/]*-)?(\d+)/)?.[1]
+	return id ? `${BASE_URL}/jobs/view/${id}/` : null
+}
+
+/** O destino de um aviso de link externo do LinkedIn (/safety/go?url=...), ou `null`. */
+export function safetyRedirectTarget(url: string) {
+	const parsed = new URL(url)
+	if (!isLinkedInUrl(url) || !parsed.pathname.startsWith('/safety/go')) return null
+
+	return parsed.searchParams.get('url')
+}
+
 export function buildSearchUrl(opts: { keywords: string; datePosted: DatePostedFilter }) {
 	// O LinkedIn espera os valores dos filtros entre aspas, ex.: datePosted="past-24h"
 	const params = new URLSearchParams({ keywords: opts.keywords, sortBy: '"date_posted"' })

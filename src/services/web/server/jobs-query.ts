@@ -103,6 +103,7 @@ export function toWebJob(doc: JobDocument): WebJob {
 		createdAt: (doc.createdAt ?? new Date()).toISOString(),
 		aiJobConfidence: doc.aiJobConfidence,
 		language: doc.language ?? null,
+		sourcePostId: doc.sourcePostId ?? null,
 		rawContent: doc.rawContent,
 	}
 }

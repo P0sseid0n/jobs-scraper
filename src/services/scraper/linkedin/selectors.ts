@@ -12,6 +12,13 @@ export const SELECTORS = {
 	/** Link do perfil do autor; o nome é o primeiro link com texto. */
 	authorLink: 'a[href*="/in/"], a[href*="/company/"]',
 	loadMoreButton: 'button.scaffold-finite-scroll__load-button',
+	/** Página de uma vaga (/jobs/view): o topo (cargo, empresa, local) e a descrição. Sem eles, lê o `<main>` inteiro. */
+	jobTopCard:
+		'.job-details-jobs-unified-top-card__container--two-pane, .jobs-unified-top-card, .job-details-jobs-unified-top-card__job-title, .top-card-layout',
+	jobDescription:
+		'#job-details, .jobs-description__content, .jobs-box__html-content, .description__text, .show-more-less-html__markup',
+	/** Aviso do encurtador (lnkd.in) antes de um site fora do LinkedIn: o link para continuar. */
+	shortLinkTarget: 'a[data-tracking-control-name="external_url_click"], a[data-tracking-control-name*="external"]',
 	// A página de login atual (React) não tem id/name estáveis e renderiza o formulário duas vezes
 	// (uma cópia oculta): por isso usamos `autocomplete`/`type` e sempre o elemento visível.
 	loginUsername: '#username, input[name="session_key"], input[autocomplete~="username"]',

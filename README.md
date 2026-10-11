@@ -9,6 +9,7 @@ Os blocos são os serviços; os rótulos nas setas são as filas do RabbitMQ que
 ```mermaid
 flowchart LR
 	scraper["scraper<br/><small>Puppeteer</small>"] -- "fila: post-processing" --> processing["post-processing<br/><small>Ollama</small>"]
+	processing -. "fila: scraper-lookup<br/><small>posts com várias vagas</small>" .-> scraper
 	processing -- "fila: storage" --> storage["storage<br/><small>MongoDB</small>"]
 	storage --> event{{"evento: job-published"}}
 	event -- "fila: discord" --> bot["discord-bot<br/><small>Discord</small>"]
@@ -28,6 +29,7 @@ O núcleo (scraper → post-processing → storage → cv-updater) não depende 
 
 1. **Scraper** (`src/services/scraper`): usa Puppeteer para buscar posts no LinkedIn. Cada post recebe um `postId` (hash do texto normalizado) e é enviado para a fila `post-processing`.
 2. **Pós-processamento** (`src/services/post-processing`): ignora posts já vistos, usa um modelo do Ollama para extrair os dados da vaga e envia o resultado para a fila `storage`.
+   - **Posts com várias vagas** (agregadores: "📄 Cargo" + "🔗 Candidate-se: https://lnkd.in/..."): o post é dividido por regra, sem IA. Cada vaga cujo cargo passa no filtro de palavras-chave vai para a fila `scraper-lookup`. O scraper abre o link de cada uma no navegador logado, uma por vez, com pausa (`SCRAPER_LOOKUP_DELAY_MS`) e nunca durante uma coleta. O texto da página volta para a fila `post-processing` como um post comum, com `sourcePostId` apontando para o post original.
 3. **Armazenamento** (`src/services/storage`): salva a vaga no MongoDB (sem duplicar, por causa do índice único em `postId`) e publica o evento `job-published`.
 4. **Bot do Discord** (`src/services/discord-bot`): publica cada vaga como um card (embed) com cargo, empresa, local, modalidade, data, tecnologias e botões para o post e para o contato do recrutador.
    - Num **canal de texto**, cada vaga vira uma mensagem.
@@ -205,11 +207,13 @@ src/
       login.ts                 #   login e verificação (QR, código, captcha), sem janela ou com janela
       verification.ts          #   identifica a verificação pedida pelo LinkedIn
       feed-reader.ts           #   leitura dos posts e paginação
+      job-lookup.ts            #   abre o link das vagas de posts com várias (fila scraper-lookup)
       linkedin/                #   URLs, seletores, URN do post, cookies e limpeza de texto
     post-processing/           # extrai a vaga do post com IA
       job-extraction.ts        #   chamada ao modelo e montagem da vaga
       extraction-prompt.ts     #   prompt e schema enviados ao modelo
       model-response.ts        #   leitura e validação da resposta
+      multi-job-post.ts        #   divide posts que listam várias vagas
     storage/                   # salva no MongoDB e publica o evento job-published para os canais
     discord-bot/               # publica as vagas e entrega o currículo
       job-publisher.ts         #   canal das vagas (texto ou fórum) e envio do card

@@ -17,6 +17,7 @@ const job: WebJob = {
 	createdAt: '2026-10-10T11:00:00.000Z',
 	aiJobConfidence: 80,
 	language: 'pt',
+	sourcePostId: null,
 	rawContent: 'Vaga com Nuxt',
 }
 

@@ -1,4 +1,3 @@
-import path from 'node:path'
 import type { Page } from 'puppeteer'
 
 import type { RawPost, ScraperSettings } from '@shared/contracts'
@@ -6,14 +5,14 @@ import type { ScraperRunTerm } from '@shared/database'
 import type { Logger } from '@shared/logging'
 import { QUEUES, type QueueClient } from '@shared/messaging'
 
-import { BrowserSession } from './browser-session'
+import { browserOptionsFrom, BrowserSession } from './browser-session'
 import type { ScraperConfig } from './config'
 import { collectNewPosts, loadMorePosts, type ScrapedPost } from './feed-reader'
 import { cleanPostText } from './linkedin/post-text'
 import { postedAtFromUrn, postUrlFromUrn, resolvePostUrn } from './linkedin/post-urn'
 import { SELECTORS } from './linkedin/selectors'
 import { buildSearchUrl, LOGIN_URL } from './linkedin/urls'
-import { ensureLoggedIn, LoginError } from './login'
+import { ensureLoggedIn, LoginError, loginOptionsFrom } from './login'
 import { hashPost } from './post-id'
 import { postsPerTerm } from './schedule'
 
@@ -41,13 +40,7 @@ export async function scrapeOnce(options: ScrapeOptions): Promise<ScraperRunTerm
 	// Compartilhado entre os termos: um post que aparece em duas buscas só é enviado uma vez
 	const seen = new Set<string>()
 
-	const session = await BrowserSession.launch({
-		headless: config.HEADLESS !== 'false',
-		noSandbox: config.BROWSER_NO_SANDBOX,
-		cookieFile: config.LINKEDIN_COOKIES_FILE,
-		fallbackLiAt: config.LINKEDIN_LI_AT,
-		logger,
-	})
+	const session = await BrowserSession.launch(browserOptionsFrom(config, logger))
 	activeSession = session
 
 	try {
@@ -116,13 +109,7 @@ async function openSearchResults(session: BrowserSession, term: string, { config
 		await session.page.goto(LOGIN_URL, { waitUntil: 'domcontentloaded' })
 	}
 
-	const loggedInNow = await ensureLoggedIn(session, {
-		email: config.LINKEDIN_EMAIL,
-		password: config.LINKEDIN_PASSWORD,
-		headlessMode: config.HEADLESS,
-		screenshotFile: path.join(path.dirname(config.LINKEDIN_COOKIES_FILE), 'login-verification.png'),
-		logger,
-	})
+	const loggedInNow = await ensureLoggedIn(session, loginOptionsFrom(config, logger))
 	if (loggedInNow) await session.goto(searchUrl)
 
 	const page = session.page
@@ -185,10 +172,11 @@ function toRawPost(post: ScrapedPost): RawPost {
 		author: post.author,
 		postedAt: urn ? postedAtFromUrn(urn) : null,
 		scrapedAt: new Date().toISOString(),
+		sourcePostId: null,
 	}
 }
 
 /** Pausa por um tempo aleatório, para não ter ritmo de robô. */
-function humanPause() {
+export function humanPause() {
 	return Bun.sleep(1_500 + Math.random() * 2_500)
 }

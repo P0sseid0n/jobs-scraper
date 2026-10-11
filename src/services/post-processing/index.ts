@@ -1,7 +1,7 @@
 import { Ollama } from 'ollama'
 
 import { ollamaEnv } from '@shared/config'
-import { RawPostSchema, type RawPost } from '@shared/contracts'
+import { RawPostSchema, type JobLookup, type RawPost } from '@shared/contracts'
 import { SeenPost } from '@shared/database'
 import { QUEUES } from '@shared/messaging'
 import { startService } from '@shared/service'
@@ -11,6 +11,7 @@ import { extractionEnv, listFromEnv } from './config'
 import { buildProcessedJob, extractJobFromPost } from './job-extraction'
 import { relevanceRejection } from './job-relevance'
 import { rejectionReason } from './model-response'
+import { listingPostId, splitMultiJobPost, type JobListing } from './multi-job-post'
 import { checkPostLanguage } from './post-language'
 
 const { config, logger, queue } = await startService({
@@ -32,11 +33,13 @@ const settingsSeed = {
 await loadSettings('post-processing', settingsSeed)
 
 await queue.assertQueue(QUEUES.storage)
+await queue.assertQueue(QUEUES.scraperLookup)
 await queue.consume(QUEUES.postProcessing, RawPostSchema, processPost)
 
 /**
- * Descarta o post se ele estiver fora dos idiomas aceitos (sem chamar a IA); senão extrai a vaga e, se for
- * uma vaga relevante (palavras-chave), envia ao storage. Cada post é processado uma única vez.
+ * Post que lista várias vagas: pede ao scraper para abrir o link de cada uma. Senão, descarta o post se ele estiver
+ * fora dos idiomas aceitos (sem chamar a IA), extrai a vaga e, se for uma vaga relevante (palavras-chave), envia ao
+ * storage. Cada post é processado uma única vez.
  */
 async function processPost(post: RawPost) {
 	const log = logger.child({ postId: post.postId })
@@ -47,6 +50,15 @@ async function processPost(post: RawPost) {
 	}
 
 	const settings = await loadSettings('post-processing', settingsSeed)
+
+	// Antes do idioma: esses posts costumam misturar cargos em inglês; o idioma de cada vaga é visto na página dela
+	const listings = post.sourcePostId ? null : splitMultiJobPost(post.text)
+	if (listings) {
+		await requestLookups(post, listings, settings)
+		await markAsSeen(post, false)
+		return
+	}
+
 	const { language, rejection } = checkPostLanguage(post.text, settings.allowedLanguages)
 
 	if (rejection) {
@@ -77,6 +89,41 @@ async function processPost(post: RawPost) {
 
 	await markAsSeen(post, true)
 }
+
+/**
+ * Pede ao scraper para abrir o link de cada vaga relevante da lista. O filtro de palavras-chave olha só o cargo
+ * (é o que a lista mostra), para não abrir no LinkedIn páginas de vagas que seriam descartadas.
+ */
+async function requestLookups(post: RawPost, listings: JobListing[], settings: KeywordSettings) {
+	const log = logger.child({ postId: post.postId })
+	let requested = 0
+
+	for (const listing of listings) {
+		const irrelevant = relevanceRejection({ title: listing.title, necessary_knowledge: null }, settings)
+		if (irrelevant) {
+			log.debug({ title: listing.title, reason: irrelevant }, 'Vaga da lista descartada')
+			continue
+		}
+
+		const postId = listingPostId(listing.link)
+		if (await SeenPost.exists({ postId })) continue
+
+		const lookup: JobLookup = {
+			postId,
+			sourcePostId: post.postId,
+			...listing,
+			author: post.author,
+			postedAt: post.postedAt,
+			requestedAt: new Date().toISOString(),
+		}
+		await queue.publish(QUEUES.scraperLookup, lookup)
+		requested++
+	}
+
+	log.info({ listings: listings.length, requested }, '📋 Post com várias vagas: links enviados para o scraper abrir')
+}
+
+type KeywordSettings = { requiredKeywords: string[]; excludedKeywords: string[] }
 
 function markAsSeen(post: RawPost, isJob: boolean) {
 	return SeenPost.updateOne({ postId: post.postId }, { $setOnInsert: { postId: post.postId, isJob } }, { upsert: true })

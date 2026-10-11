@@ -1,11 +1,13 @@
-import { VerificationCodeSchema } from '@shared/contracts'
+import { JobLookupSchema, VerificationCodeSchema } from '@shared/contracts'
 import type { ScraperRunTrigger } from '@shared/database'
 import { onShutdown, shutdown } from '@shared/lifecycle'
 import { QUEUES } from '@shared/messaging'
 import { startService } from '@shared/service'
 import { loadSettings } from '@shared/settings'
 
+import { BrowserLock } from './browser-lock'
 import { scraperEnv } from './config'
+import { JobLookupWorker } from './job-lookup'
 import { markInterruptedRuns, recordRun } from './run-history'
 import { settingsSeedFromEnv } from './schedule'
 import { runOnSchedule } from './scheduler'
@@ -14,7 +16,12 @@ import { submitVerificationCode } from './verification-inbox'
 
 const { config, logger, queue } = await startService({ name: 'scraper', env: scraperEnv, database: true })
 
+// A coleta e as vagas de posts com várias usam o LinkedIn uma de cada vez
+const browserLock = new BrowserLock()
+const lookups = new JobLookupWorker({ config, queue, logger, lock: browserLock })
+
 onShutdown(closeActiveBrowser)
+onShutdown(() => lookups.close())
 await queue.assertQueue(QUEUES.postProcessing)
 await markInterruptedRuns()
 
@@ -23,6 +30,9 @@ await queue.consume(QUEUES.scraperVerification, VerificationCodeSchema, async ({
 	if (submitVerificationCode(code)) logger.info('🔢 Código de verificação recebido')
 	else logger.warn('Código de verificação ignorado: nenhum login está esperando um código')
 })
+
+// Vagas de posts com várias (enviadas pelo post-processing): cada uma é aberta no navegador, com pausa entre elas
+await queue.consume(QUEUES.scraperLookup, JobLookupSchema, lookup => lookups.handle(lookup))
 
 const settingsSeed = settingsSeedFromEnv(config)
 
@@ -45,7 +55,10 @@ try {
 async function collect(trigger: ScraperRunTrigger) {
 	const settings = await loadScraperSettings()
 
-	return recordRun(trigger, () => scrapeOnce({ config, settings, queue, logger }))
+	return browserLock.run(async () => {
+		await lookups.close()
+		return recordRun(trigger, () => scrapeOnce({ config, settings, queue, logger }))
+	})
 }
 
 function loadScraperSettings() {

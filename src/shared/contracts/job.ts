@@ -18,5 +18,7 @@ export const ProcessedJobSchema = z.object({
 	author: z.string().nullable().default(null),
 	/** Idioma do post (ISO 639-1), detectado no texto; `null` se curto demais. */
 	language: z.string().nullable().default(null),
+	/** Post que listava várias vagas, de onde esta saiu; `null` se a vaga é o próprio post. */
+	sourcePostId: z.string().nullable().default(null),
 })
 export type ProcessedJob = z.infer<typeof ProcessedJobSchema>

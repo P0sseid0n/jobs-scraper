@@ -89,6 +89,7 @@ describe('toWebJob', () => {
 			postedAt: null,
 			author: null,
 			language: null,
+			sourcePostId: null,
 			createdAt: NOW,
 		})
 

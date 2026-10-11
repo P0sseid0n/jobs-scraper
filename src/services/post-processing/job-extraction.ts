@@ -43,6 +43,7 @@ export function buildProcessedJob(post: RawPost, aiJob: AiJobOutput, language: s
 		postedAt: post.postedAt,
 		author: post.author,
 		language,
+		sourcePostId: post.sourcePostId,
 	}
 }
 
