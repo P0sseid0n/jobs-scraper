@@ -8,6 +8,7 @@ import { buildExtractionMessages, EXTRACTION_OUTPUT_FORMAT } from './extraction-
 import {
 	keepContractTypesInPost,
 	keepLinkIfInPost,
+	keepSenioritiesInPost,
 	keepSkillsInPost,
 	locationWithoutWorkMode,
 	parseModelResponse,
@@ -47,6 +48,8 @@ export function buildProcessedJob(post: RawPost, aiJob: AiJobOutput, language: s
 		workMode: aiJob.workMode,
 		// Só os regimes escritos no post; "CLT" e "PJ" entram pelo texto mesmo se o modelo não os devolver
 		contractTypes: keepContractTypesInPost(aiJob.contractTypes, post.text),
+		// O nível do cargo manda; sem ele, só o que o modelo indicou e está escrito no post
+		seniorities: keepSenioritiesInPost(aiJob.seniorities, aiJob.title, post.text),
 		aiJobConfidence: aiJob.aiJobConfidence,
 		postedAt: post.postedAt,
 		author: post.author,

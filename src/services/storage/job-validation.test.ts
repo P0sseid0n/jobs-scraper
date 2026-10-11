@@ -15,6 +15,7 @@ const job: ProcessedJob = {
 	recruiterEmail: null,
 	workMode: null,
 	contractTypes: null,
+	seniorities: null,
 	aiJobConfidence: 80,
 	postedAt: null,
 	author: null,

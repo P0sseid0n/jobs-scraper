@@ -16,6 +16,7 @@ const job: ProcessedJob = {
 	recruiterEmail: 'rh@citiustech.com',
 	workMode: 'hibrido',
 	contractTypes: ['clt', 'pj'],
+	seniorities: ['pleno', 'senior'],
 	aiJobConfidence: 85,
 	postedAt: '2026-10-07T17:18:50.712Z',
 	author: 'Mandar Wairkar',

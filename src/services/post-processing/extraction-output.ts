@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { CONTRACT_TYPES, WORK_MODES, type ContractType } from '@shared/contracts'
+import { CONTRACT_TYPES, SENIORITIES, WORK_MODES, type ContractType, type Seniority } from '@shared/contracts'
 
 /** Classificação do post feita pela IA; só `job_opening` vira vaga. */
 export const POST_TYPES = ['job_opening', 'job_seeker', 'course_or_graduation', 'tips_or_list', 'other'] as const
@@ -24,15 +24,46 @@ const CONTRACT_TYPE_ALIASES: Record<string, ContractType> = {
 	freela: 'freelance',
 }
 
-function toContractType(value: string): ContractType | null {
-	const normalized = value
-		.normalize('NFD')
-		.replace(/\p{Diacritic}/gu, '')
-		.toLowerCase()
-		.trim()
+/** Idem para os níveis ("Sr.", "Mid-level", "Tech Lead"). */
+const SENIORITY_ALIASES: Record<string, Seniority> = {
+	jr: 'junior',
+	pl: 'pleno',
+	mid: 'pleno',
+	'mid-level': 'pleno',
+	'mid level': 'pleno',
+	sr: 'senior',
+	lead: 'especialista',
+	'tech lead': 'especialista',
+	staff: 'especialista',
+	principal: 'especialista',
+	specialist: 'especialista',
+}
 
-	if ((CONTRACT_TYPES as readonly string[]).includes(normalized)) return normalized as ContractType
-	return CONTRACT_TYPE_ALIASES[normalized] ?? null
+/**
+ * Lista de valores de um enum, tolerante ao que o modelo devolve: aceita texto ("CLT ou PJ"), grafias alternativas
+ * (`aliases`), maiúsculas e acentos. Sai sem repetição, na ordem de `values`; sem nenhum valor válido vira `null`.
+ */
+function enumList<T extends string>(values: readonly T[], aliases: Record<string, T>) {
+	const toValue = (item: string): T | null => {
+		const normalized = item
+			.normalize('NFD')
+			.replace(/\p{Diacritic}/gu, '')
+			.toLowerCase()
+			.trim()
+			.replace(/\.$/, '')
+
+		return values.find(value => value === normalized) ?? aliases[normalized] ?? null
+	}
+
+	return z
+		.union([z.array(z.string()), z.string().transform(value => value.split(/,|\/| ou | or | a | to /i))])
+		.transform(items => {
+			const found = new Set(items.map(toValue))
+			const list = values.filter(value => found.has(value))
+			return list.length > 0 ? list : null
+		})
+		.nullable()
+		.catch(null)
 }
 
 /**
@@ -55,16 +86,8 @@ export const AiJobOutputSchema = z
 			.nullable()
 			.catch(null),
 		recruiter_email: nullableString,
-		// Lista sem repetição, na ordem de CONTRACT_TYPES; sem nenhum regime válido vira `null`
-		contractTypes: z
-			.union([z.array(z.string()), z.string().transform(value => value.split(/,|\/| ou | or /i))])
-			.transform(items => {
-				const found = new Set(items.map(toContractType))
-				const types = CONTRACT_TYPES.filter(type => found.has(type))
-				return types.length > 0 ? types : null
-			})
-			.nullable()
-			.catch(null),
+		contractTypes: enumList(CONTRACT_TYPES, CONTRACT_TYPE_ALIASES),
+		seniorities: enumList(SENIORITIES, SENIORITY_ALIASES),
 		workMode: z
 			.string()
 			.transform(value =>

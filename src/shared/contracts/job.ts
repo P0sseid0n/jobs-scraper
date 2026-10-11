@@ -6,6 +6,10 @@ export const WORK_MODES = ['remoto', 'presencial', 'hibrido'] as const
 export const CONTRACT_TYPES = ['clt', 'pj', 'estagio', 'freelance'] as const
 export type ContractType = (typeof CONTRACT_TYPES)[number]
 
+/** Níveis de senioridade; "especialista" cobre lead, staff, principal e afins. Estágio é regime, não nível. */
+export const SENIORITIES = ['junior', 'pleno', 'senior', 'especialista'] as const
+export type Seniority = (typeof SENIORITIES)[number]
+
 /** Mensagem das filas `storage` e `discord`: vaga já estruturada. */
 export const ProcessedJobSchema = z.object({
 	postId: z.string().min(1),
@@ -23,6 +27,8 @@ export const ProcessedJobSchema = z.object({
 	 * O padrão aceita mensagens de antes do campo existir.
 	 */
 	contractTypes: z.array(z.enum(CONTRACT_TYPES)).nullable().default(null),
+	/** Níveis citados para a vaga (um post "Pleno/Sênior" traz os dois); `null` quando o post não diz. */
+	seniorities: z.array(z.enum(SENIORITIES)).nullable().default(null),
 	aiJobConfidence: z.number().min(0).max(100),
 	postedAt: z.iso.datetime().nullable().default(null),
 	author: z.string().nullable().default(null),
