@@ -15,6 +15,7 @@ import { CONTACT_BUTTON_PREFIX } from './contact-reply'
 
 const WORK_MODE_LABELS = { remoto: 'Remoto', hibrido: 'Híbrido', presencial: 'Presencial' } as const
 const CONTRACT_TYPE_LABELS = { clt: 'CLT', pj: 'PJ', estagio: 'Estágio', freelance: 'Freelance' } as const
+const SENIORITY_LABELS = { junior: 'Júnior', pleno: 'Pleno', senior: 'Sênior', especialista: 'Especialista' } as const
 
 // Cor da barra lateral do embed por modalidade: ajuda a diferenciar as vagas de relance
 const WORK_MODE_COLORS = { remoto: 0x2ecc71, hibrido: 0x3498db, presencial: 0xe67e22 } as const
@@ -40,11 +41,14 @@ export function buildThreadName(job: ProcessedJob) {
 	return truncate(name, THREAD_NAME_MAX)
 }
 
-/** Escolhe até 5 tags existentes no fórum que batem com a modalidade, o regime ou as tecnologias da vaga. */
+/** Escolhe até 5 tags existentes no fórum que batem com a modalidade, o nível, o regime ou as tecnologias da vaga. */
 export function pickForumTags(job: ProcessedJob, availableTags: { id: string; name: string }[]) {
+	const seniorities = (job.seniorities ?? []).map(level => SENIORITY_LABELS[level])
 	const contractTypes = (job.contractTypes ?? []).map(type => CONTRACT_TYPE_LABELS[type])
 	const wanted = new Set(
-		[workModeLabel(job), ...contractTypes, ...(job.necessaryKnowledge ?? [])].filter(Boolean).map(value => normalizeTag(value!)),
+		[workModeLabel(job), ...seniorities, ...contractTypes, ...(job.necessaryKnowledge ?? [])]
+			.filter(Boolean)
+			.map(value => normalizeTag(value!)),
 	)
 
 	return availableTags
@@ -91,6 +95,7 @@ function jobFields(job: ProcessedJob) {
 		{ name: '🏢 Empresa', value: job.company, inline: true },
 		{ name: '📍 Local', value: job.location, inline: true },
 		{ name: '🏠 Modalidade', value: workModeLabel(job), inline: true },
+		{ name: '📊 Nível', value: senioritiesLabel(job), inline: true },
 		{ name: '📄 Regime', value: contractTypesLabel(job), inline: true },
 		{ name: '🕒 Publicada', value: postedAt, inline: true },
 		{ name: '📧 Contato', value: job.recruiterEmail, inline: true },
@@ -130,6 +135,11 @@ function buildJobComponents(job: ProcessedJob) {
 
 function workModeLabel(job: Pick<ProcessedJob, 'workMode'>) {
 	return job.workMode ? WORK_MODE_LABELS[job.workMode] : null
+}
+
+/** "Pleno", ou "Pleno/Sênior" quando o post aceita os dois. */
+function senioritiesLabel(job: Pick<ProcessedJob, 'seniorities'>) {
+	return job.seniorities?.length ? job.seniorities.map(level => SENIORITY_LABELS[level]).join('/') : null
 }
 
 /** "CLT", ou "CLT ou PJ" quando o post aceita os dois. */
