@@ -11,6 +11,10 @@ export const QUEUES = {
 	scraper: 'scraper',
 	/** Códigos de verificação do login do LinkedIn, enviados por `bun scraper:verify <código>`. */
 	scraperVerification: 'scraper-verification',
+	/** Vagas para o site repassar ao navegador em tempo real (ligada à exchange `job-published`). */
+	web: 'web',
+	/** Currículos prontos pedidos pelo site (é o `replyTo.queue` dos pedidos dele). */
+	webCv: 'web-cv',
 } as const
 
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES]
