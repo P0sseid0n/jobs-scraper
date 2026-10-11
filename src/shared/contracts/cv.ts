@@ -19,6 +19,10 @@ export const CvRequestSchema = z.object({
 
 export type CvRequest = z.infer<typeof CvRequestSchema>
 
+/** E-mail de candidatura sugerido para a vaga (gerado pela IA no cv-updater). */
+export const ApplicationMessageSchema = z.object({ subject: z.string().min(1), body: z.string().min(1) })
+export type ApplicationMessage = z.infer<typeof ApplicationMessageSchema>
+
 /** Mensagem da fila indicada em `replyTo.queue`: currículo gerado (ou o motivo da falha), com o contexto do pedido. */
 export const CvResultSchema = z.object({
 	postId: z.string().min(1),
@@ -26,6 +30,11 @@ export const CvResultSchema = z.object({
 	jobTitle: z.string().nullable(),
 	file: z.object({ name: z.string().min(1), base64: z.string().min(1) }).nullable(),
 	error: z.string().nullable(),
+	/**
+	 * E-mail de candidatura escrito para a vaga, quando ela tem e-mail de contato e a IA respondeu algo válido;
+	 * `null` nos outros casos (os canais mostram o modelo padrão). O padrão aceita resultados de antes do campo.
+	 */
+	message: ApplicationMessageSchema.nullable().default(null),
 })
 
 export type CvResult = z.infer<typeof CvResultSchema>

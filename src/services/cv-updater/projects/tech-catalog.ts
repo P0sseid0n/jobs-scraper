@@ -104,6 +104,38 @@ const LANGUAGE_NAMES: Record<string, string> = { vue: 'Vue.js', html: 'HTML', cs
 
 export const MAX_TECHNOLOGIES = 8
 
+/** Tecnologias comuns em vagas que não vêm do GitHub (nuvem, infraestrutura, outras stacks). */
+const OTHER_TECHNOLOGIES = [
+	'AWS',
+	'Azure',
+	'GCP',
+	'Google Cloud',
+	'Kubernetes',
+	'Terraform',
+	'Kafka',
+	'Spring',
+	'Spring Boot',
+	'.NET',
+	'C++',
+	'Ruby',
+	'Rails',
+	'Laravel',
+	'Swift',
+	'Scala',
+	'Elixir',
+	'Jenkins',
+	'GitHub Actions',
+	'Elasticsearch',
+	'DynamoDB',
+	'Oracle',
+	'SQL Server',
+]
+
+/** Nomes de exibição de todas as tecnologias conhecidas, para achar tecnologias citadas num texto. */
+export function knownTechnologies() {
+	return [...new Set([...Object.values(TECH_NAMES), ...Object.values(LANGUAGE_NAMES), ...OTHER_TECHNOLOGIES])]
+}
+
 /** Lista as tecnologias do repositório (topics, dependências e linguagens) com nomes de exibição. */
 export function repoTechnologies(repo: Pick<GithubRepo, 'topics' | 'dependencies' | 'languages' | 'language'>) {
 	const names: string[] = []

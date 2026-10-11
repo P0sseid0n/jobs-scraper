@@ -1,0 +1,151 @@
+import path from 'node:path'
+import { describe, expect, test } from 'bun:test'
+import type { Ollama } from 'ollama'
+
+import { createLogger } from '@shared/logging'
+
+import {
+	buildMessageRequest,
+	messageLanguage,
+	messageSubject,
+	parseMessageBody,
+	requestApplicationMessage,
+	validateMessageBody,
+} from './application-message'
+import { readResumeTex } from './resume/latex-reader'
+
+const { model: cv } = readResumeTex(await Bun.file(path.join(import.meta.dir, './assets/cv.example.tex')).text())
+
+const job = {
+	title: 'Desenvolvedor(a) Front-end Pleno',
+	company: 'Acme',
+	necessaryKnowledge: ['Vue 3', 'TypeScript', 'Pinia'],
+	rawContent: 'Vaga para Dev Front-end Pleno com Vue 3, TypeScript e Pinia. Envie o currículo para rh@acme.com',
+	language: 'pt',
+	recruiterEmail: 'rh@acme.com',
+}
+
+// No formato das respostas do modelo (texto do currículo de exemplo)
+const goodBody = `Olá! Tudo bem?
+
+Vi a vaga de Desenvolvedor(a) Front-end Pleno na Acme e tenho interesse. Trabalho com Vue.js e TypeScript no dia a dia e, no projeto Painel Exemplo, construí interfaces com foco em performance.
+
+Envio meu currículo em anexo e fico à disposição para conversarmos. Obrigado!`
+
+const log = createLogger('test')
+
+describe('validateMessageBody', () => {
+	test('aceita uma mensagem dentro das regras e limpa os espaços', () => {
+		const result = validateMessageBody(`  ${goodBody.replace('Tudo bem?', 'Tudo   bem?')}\n\n\n`, cv, job)
+
+		expect(result.rejected).toBeNull()
+		expect(result.body).toBe(goodBody)
+	})
+
+	test('tira o assunto repetido na primeira linha', () => {
+		expect(validateMessageBody(`Assunto: Candidatura – Dev\n\n${goodBody}`, cv, job).body).toBe(goodBody)
+	})
+
+	test('pode citar as tecnologias da vaga, mesmo as que o currículo não tinha', () => {
+		expect(validateMessageBody(goodBody.replace('Vue.js e TypeScript', 'Vue 3, TypeScript e Pinia'), cv, job).rejected).toBeNull()
+	})
+
+	test('rejeita tecnologia que não está no currículo nem na vaga', () => {
+		const result = validateMessageBody(goodBody.replace('Vue.js e TypeScript', 'Vue.js, Angular e Kubernetes'), cv, job)
+
+		expect(result.rejected).toContain('Angular, Kubernetes')
+	})
+
+	test('"express" como verbo não é a tecnologia Express', () => {
+		const english = `Hello,
+
+I would like to express my interest in the Front-end Developer position at Acme. I work with Vue.js and TypeScript, and in the Painel Exemplo project I built fast interfaces.
+
+My résumé is attached and I am available to talk. Thank you!`
+
+		expect(validateMessageBody(english, cv, { necessaryKnowledge: ['Vue'] }).rejected).toBeNull()
+	})
+
+	test('rejeita placeholders, markdown, anos de experiência e tamanho fora do limite', () => {
+		expect(validateMessageBody(goodBody.replace('Obrigado!', 'Obrigado! [Seu nome]'), cv, job).rejected).toContain('placeholder')
+		expect(validateMessageBody(goodBody.replace('Vue.js e TypeScript', '**Vue.js** e TypeScript'), cv, job).rejected).toContain(
+			'markdown',
+		)
+		expect(validateMessageBody(goodBody.replace('Trabalho com', 'Tenho 5 anos de experiência com'), cv, job).rejected).toContain(
+			'years',
+		)
+		expect(validateMessageBody('Olá! Tenho interesse na vaga.', cv, job).rejected).toContain('length')
+		expect(validateMessageBody(goodBody.repeat(3), cv, job).rejected).toContain('length')
+		expect(validateMessageBody(null, cv, job).rejected).toContain('empty')
+	})
+})
+
+describe('pedido à IA', () => {
+	test('idioma do post: inglês só quando o post é em inglês', () => {
+		expect(messageLanguage('en')).toBe('en')
+		expect(messageLanguage('pt')).toBe('pt')
+		expect(messageLanguage(null)).toBe('pt')
+	})
+
+	test('assunto fixo com o cargo', () => {
+		expect(messageSubject('Dev Vue', 'pt')).toBe('Candidatura – Dev Vue')
+		expect(messageSubject('Vue Developer', 'en')).toBe('Application – Vue Developer')
+		expect(messageSubject(null, 'pt')).toBe('Candidatura – a vaga')
+	})
+
+	test('manda a vaga, o currículo ajustado e o idioma', () => {
+		const { messages, format } = buildMessageRequest(cv, job, 'pt')
+		const content = messages.at(-1)?.content ?? ''
+
+		expect(content).toContain('## Message language\nBrazilian Portuguese')
+		expect(content).toContain('Company: Acme')
+		expect(content).toContain('Painel Exemplo')
+		expect(format.required).toEqual(['body'])
+	})
+
+	test('lê o corpo da resposta, ou null se não for o JSON esperado', () => {
+		expect(parseMessageBody(JSON.stringify({ body: 'Olá' }))).toBe('Olá')
+		expect(parseMessageBody('não é json')).toBeNull()
+		expect(parseMessageBody('{"texto": "Olá"}')).toBeNull()
+	})
+})
+
+describe('requestApplicationMessage', () => {
+	/** Simula o Ollama devolvendo as respostas na ordem. */
+	function fakeOllama(...bodies: (string | Error)[]) {
+		const calls: unknown[] = []
+		const ollama = {
+			chat: async (request: unknown) => {
+				calls.push(request)
+				const next = bodies.shift()
+				if (next instanceof Error) throw next
+				return { message: { content: JSON.stringify({ body: next }) } }
+			},
+		} as unknown as Ollama
+
+		return { ollama, calls }
+	}
+
+	test('devolve o assunto e o corpo quando a resposta passa nas validações', async () => {
+		const { ollama } = fakeOllama(goodBody)
+
+		expect(await requestApplicationMessage({ ollama, model: 'm' }, cv, job, log)).toEqual({
+			subject: 'Candidatura – Desenvolvedor(a) Front-end Pleno',
+			body: goodBody,
+		})
+	})
+
+	test('pede outra versão uma vez quando a primeira é rejeitada', async () => {
+		const { ollama, calls } = fakeOllama(goodBody.replace('Obrigado!', 'Obrigado! [Seu nome]'), goodBody)
+
+		expect((await requestApplicationMessage({ ollama, model: 'm' }, cv, job, log))?.body).toBe(goodBody)
+		expect(calls).toHaveLength(2)
+	})
+
+	test('null (modelo padrão) quando as duas versões são rejeitadas ou a IA falha', async () => {
+		const rejected = goodBody.replace('Trabalho com', 'Tenho 5 anos de experiência com')
+
+		expect(await requestApplicationMessage({ ollama: fakeOllama(rejected, rejected).ollama, model: 'm' }, cv, job, log)).toBeNull()
+		expect(await requestApplicationMessage({ ollama: fakeOllama(new Error('timeout')).ollama, model: 'm' }, cv, job, log)).toBeNull()
+	})
+})

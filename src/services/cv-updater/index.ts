@@ -8,6 +8,7 @@ import { Job } from '@shared/database'
 import { QUEUES } from '@shared/messaging'
 import { startService } from '@shared/service'
 
+import { requestApplicationMessage } from './application-message'
 import { checkBaseResume, loadBaseResume } from './base-resume'
 import { cvUpdaterEnv } from './config'
 import { LatexCompileError } from './latex-compiler'
@@ -16,7 +17,7 @@ import { GithubRepositories } from './projects/github-repositories'
 import { pdfFileName, renderOnePagePdf } from './resume-pdf'
 import { tailorResumeToJob } from './tailor-resume'
 import { requestTailoringSuggestions } from './tailoring-suggestions'
-import type { TargetJob } from './target-job'
+import type { CvJob } from './target-job'
 
 const { config, logger, queue } = await startService({
 	name: 'cv-updater',
@@ -47,7 +48,7 @@ async function generateCv(request: CvRequest) {
 	const job = await findTargetJob(request.postId)
 	if (!job) {
 		log.warn('Vaga não encontrada no banco')
-		await reply({ jobTitle: null, file: null, error: 'Não encontrei essa vaga no banco de dados.' })
+		await reply({ jobTitle: null, file: null, error: 'Não encontrei essa vaga no banco de dados.', message: null })
 		return
 	}
 
@@ -76,19 +77,30 @@ async function generateCv(request: CvRequest) {
 		if (!(error instanceof LatexCompileError)) throw error
 
 		log.error({ err: error }, 'Erro ao compilar o currículo')
-		await reply({ jobTitle: job.title, file: null, error: 'O LaTeX do currículo não compilou. Veja os logs do cv-updater.' })
+		await reply({
+			jobTitle: job.title,
+			file: null,
+			error: 'O LaTeX do currículo não compilou. Veja os logs do cv-updater.',
+			message: null,
+		})
 		return
 	}
 
 	const name = pdfFileName(job)
 	await savePdf(name, pdf)
 
-	await reply({ jobTitle: job.title, file: { name, base64: pdf.toString('base64') }, error: null })
+	// Só com e-mail de contato: sem ele, a candidatura é pelo site da vaga ou pelo post, e a mensagem não seria usada
+	const message = job.recruiterEmail ? await requestApplicationMessage({ ollama, model: config.OLLAMA_MODEL }, cv, job, log) : null
 
-	log.info({ file: name, added: report.addedSkills.map(entry => entry.skill), removed: report.removedSkills }, 'Currículo enviado')
+	await reply({ jobTitle: job.title, file: { name, base64: pdf.toString('base64') }, error: null, message })
+
+	log.info(
+		{ file: name, added: report.addedSkills.map(entry => entry.skill), removed: report.removedSkills, message: !!message },
+		'Currículo enviado',
+	)
 }
 
-async function findTargetJob(postId: string): Promise<TargetJob | null> {
+async function findTargetJob(postId: string): Promise<CvJob | null> {
 	const job = await Job.findOne({ postId }).lean()
 	if (!job) return null
 
@@ -97,6 +109,8 @@ async function findTargetJob(postId: string): Promise<TargetJob | null> {
 		company: job.company ?? null,
 		necessaryKnowledge: job.necessaryKnowledge ?? null,
 		rawContent: job.rawContent,
+		language: job.language ?? null,
+		recruiterEmail: job.recruiterEmail ?? null,
 	}
 }
 
