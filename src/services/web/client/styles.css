@@ -734,10 +734,20 @@ main {
 }
 
 .logo {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
 	font-size: 14px;
 	font-weight: 500;
 	text-decoration: none;
 	white-space: nowrap;
+}
+
+/* O ícone é escuro nos dois temas: a borda o separa do fundo no tema escuro */
+.project-icon {
+	flex: none;
+	border-radius: 25%;
+	box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 22%, transparent);
 }
 
 .logo-cursor {

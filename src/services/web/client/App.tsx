@@ -4,6 +4,7 @@ import type { ScraperStatus } from '../api-types'
 import { api } from './api'
 import { CvTray } from './components/CvTray'
 import { Icon, type IconName } from './components/Icon'
+import { ProjectIcon } from './components/ProjectIcon'
 import { formatDuration } from './lib/format'
 import { matchPath, onLinkClick, route } from './router'
 import { trayRequests } from './stores/cv'
@@ -116,6 +117,7 @@ export const App = defineComponent({
 					<header class="topbar">
 						<div class="topbar-inner">
 							<a class="logo mono" href="/" onClick={onLinkClick}>
+								<ProjectIcon />
 								jobs/scraper<span class="logo-cursor">_</span>
 							</a>
 							<nav class="topnav" aria-label="Principal">
