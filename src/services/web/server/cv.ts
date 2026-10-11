@@ -77,7 +77,8 @@ export async function getCvRequest(req: Request & { params: { requestId: string 
 
 /** `GET /api/cv/:requestId/pdf`: o PDF gerado; com `?download=1`, como anexo. */
 export async function getCvPdf(req: Request & { params: { requestId: string } }) {
-	const doc = await CvRequestRecord.findOne({ requestId: req.params.requestId, status: 'ready' }, { pdf: 1, fileName: 1 }).lean()
+	// Sem `.lean()`: com ele o `pdf` vem como `Binary` do BSON, e `new Uint8Array(binary)` dá um PDF vazio
+	const doc = await CvRequestRecord.findOne({ requestId: req.params.requestId, status: 'ready' }, { pdf: 1, fileName: 1 })
 	if (!doc?.pdf) throw new HttpError(404, 'Currículo não encontrado ou ainda não gerado')
 
 	const download = new URL(req.url).searchParams.has('download')
@@ -87,7 +88,8 @@ export async function getCvPdf(req: Request & { params: { requestId: string } })
 		headers: {
 			'Content-Type': 'application/pdf',
 			'Content-Disposition': `${download ? 'attachment' : 'inline'}; filename="${fileName.replace(/[^\w.-]/g, '_')}"`,
-			'Cache-Control': 'private, max-age=86400',
+			// Sempre confere com o servidor: um PDF com problema guardado no cache não ficaria preso por um dia
+			'Cache-Control': 'private, no-cache',
 		},
 	})
 }
