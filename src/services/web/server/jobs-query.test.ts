@@ -20,9 +20,10 @@ describe('JobsQuerySchema', () => {
 		})
 	})
 
-	test('rejeita modalidade, regime e limite inválidos', () => {
+	test('rejeita modalidade, regime, nível e limite inválidos', () => {
 		expect(JobsQuerySchema.safeParse({ workMode: 'home office' }).success).toBe(false)
 		expect(JobsQuerySchema.safeParse({ contractType: 'temporario' }).success).toBe(false)
+		expect(JobsQuerySchema.safeParse({ seniority: 'trainee' }).success).toBe(false)
 		expect(JobsQuerySchema.safeParse({ limit: '500' }).success).toBe(false)
 	})
 })
@@ -42,6 +43,13 @@ describe('buildJobsFilter', () => {
 			$or: [{ contractTypes: { $in: ['pj'] } }, { contractTypes: null }, { contractTypes: { $size: 0 } }],
 		})
 		expect(filterFor({ contractType: 'none' })).toContainEqual({ $or: [{ contractTypes: null }, { contractTypes: { $size: 0 } }] })
+	})
+
+	test('nível: qualquer um dos escolhidos; "none" inclui vagas sem o campo', () => {
+		expect(filterFor({ seniority: 'pleno,senior' })).toContainEqual({ $or: [{ seniorities: { $in: ['pleno', 'senior'] } }] })
+		expect(filterFor({ seniority: 'junior,none' })).toContainEqual({
+			$or: [{ seniorities: { $in: ['junior'] } }, { seniorities: null }, { seniorities: { $size: 0 } }],
+		})
 	})
 
 	test('busca escapa caracteres especiais e procura em cargo, empresa, tecnologias e texto', () => {
@@ -83,7 +91,7 @@ describe('buildJobsFilter', () => {
 })
 
 describe('toWebJob', () => {
-	// Vaga salva antes do campo `contractTypes` (o documento não o tem): regime não informado
+	// Vaga salva antes dos campos `contractTypes` e `seniorities` (o documento não os tem): não informados
 	const doc = {
 		postId: 'abc',
 		rawContent: 'texto',
@@ -112,9 +120,11 @@ describe('toWebJob', () => {
 		})
 	})
 
-	test('mantém os regimes da vaga', () => {
+	test('mantém os regimes e os níveis da vaga', () => {
 		expect(toWebJob({ ...doc, contractTypes: ['clt', 'pj'] }).contractTypes).toEqual(['clt', 'pj'])
 		expect(toWebJob({ ...doc, contractTypes: [] }).contractTypes).toBeNull()
+		expect(toWebJob({ ...doc, seniorities: ['pleno', 'senior'] }).seniorities).toEqual(['pleno', 'senior'])
+		expect(toWebJob(doc).seniorities).toBeNull()
 	})
 })
 

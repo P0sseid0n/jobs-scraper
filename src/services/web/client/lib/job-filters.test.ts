@@ -10,6 +10,7 @@ const job: WebJob = {
 	location: 'São Paulo, SP',
 	workMode: 'hibrido',
 	contractTypes: ['clt', 'pj'],
+	seniorities: ['pleno'],
 	necessaryKnowledge: ['Vue.js', 'TypeScript'],
 	applyLink: null,
 	recruiterEmail: null,
@@ -45,6 +46,12 @@ describe('matchesFilters (vagas que chegam em tempo real)', () => {
 		expect(matchesFilters({ ...job, contractTypes: null }, { ...DEFAULT_FILTERS, contractType: ['clt'] }, now)).toBe(false)
 	})
 
+	test('nível: qualquer um dos escolhidos; "none" pega as vagas sem nível', () => {
+		expect(matches({ seniority: ['pleno', 'senior'] })).toBe(true)
+		expect(matches({ seniority: ['junior'] })).toBe(false)
+		expect(matchesFilters({ ...job, seniorities: null }, { ...DEFAULT_FILTERS, seniority: ['none'] }, now)).toBe(true)
+	})
+
 	test('modalidade, tecnologias, e-mail, idioma, confiança e período', () => {
 		expect(matches({ workMode: ['remoto'] })).toBe(false)
 		expect(matches({ workMode: ['hibrido', 'none'] })).toBe(true)
@@ -62,4 +69,5 @@ test('hasActiveFilters', () => {
 	expect(hasActiveFilters(DEFAULT_FILTERS)).toBe(false)
 	expect(hasActiveFilters({ ...DEFAULT_FILTERS, workMode: ['remoto'] })).toBe(true)
 	expect(hasActiveFilters({ ...DEFAULT_FILTERS, contractType: ['pj'] })).toBe(true)
+	expect(hasActiveFilters({ ...DEFAULT_FILTERS, seniority: ['senior'] })).toBe(true)
 })

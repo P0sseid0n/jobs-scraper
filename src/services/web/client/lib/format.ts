@@ -1,4 +1,4 @@
-import type { ContractType, ProcessedJob } from '@shared/contracts'
+import type { ContractType, ProcessedJob, Seniority } from '@shared/contracts'
 
 import type { WebJob } from '../../api-types'
 
@@ -14,6 +14,20 @@ export const WORK_MODES: Record<WorkMode, { label: string; color: string }> = {
 
 export function workModeOf(job: Pick<WebJob, 'workMode'>) {
 	return WORK_MODES[job.workMode ?? 'none']
+}
+
+/** Rótulo de cada nível (os mesmos do card do Discord). */
+export const SENIORITIES: Record<Seniority | 'none', string> = {
+	junior: 'Júnior',
+	pleno: 'Pleno',
+	senior: 'Sênior',
+	especialista: 'Especialista',
+	none: 'Sem nível',
+}
+
+/** "Pleno", ou "Pleno/Sênior" quando o post aceita os dois; `null` se o post não diz. */
+export function senioritiesLabel(job: Pick<WebJob, 'seniorities'>) {
+	return job.seniorities?.length ? job.seniorities.map(level => SENIORITIES[level]).join('/') : null
 }
 
 /** Rótulo de cada regime de contratação (os mesmos do card do Discord). */

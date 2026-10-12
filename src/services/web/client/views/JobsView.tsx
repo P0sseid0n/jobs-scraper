@@ -5,7 +5,7 @@ import { Icon } from '../components/Icon'
 import { JobCard, JobCardSkeleton } from '../components/JobCard'
 import { JobDetail } from '../components/JobDetail'
 import { cx } from '../lib/cx'
-import { CONTRACT_TYPES, LANGUAGE_NAMES, WORK_MODES } from '../lib/format'
+import { CONTRACT_TYPES, LANGUAGE_NAMES, SENIORITIES, WORK_MODES } from '../lib/format'
 import { hasActiveFilters } from '../lib/job-filters'
 import { useWideLayout } from '../lib/media'
 import { jobPath, navigate, onLinkClick } from '../router'
@@ -89,6 +89,23 @@ function Filters({ open }: { open: boolean }) {
 							<span className="dot" style={{ background: WORK_MODES[mode].color }} />
 							<span className="grow">{WORK_MODES[mode].label}</span>
 							{facets && <span className="mono xsmall count">{facets.workModes[mode]}</span>}
+						</button>
+					))}
+				</div>
+			</fieldset>
+
+			<fieldset className="filter-group">
+				<legend className="label">nível_</legend>
+				<div className="pills">
+					{(Object.keys(SENIORITIES) as (keyof typeof SENIORITIES)[]).map(level => (
+						<button
+							type="button"
+							key={level}
+							className="pill"
+							aria-pressed={filters.seniority.includes(level)}
+							onClick={() => setFilters({ seniority: toggled(filters.seniority, level) })}
+						>
+							{SENIORITIES[level]} {facets && <span className="mono count">{facets.seniorities[level]}</span>}
 						</button>
 					))}
 				</div>

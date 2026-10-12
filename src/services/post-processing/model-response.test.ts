@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test'
 import {
 	keepContractTypesInPost,
 	keepLinkIfInPost,
+	keepSenioritiesInPost,
 	keepSkillsInPost,
 	locationWithoutWorkMode,
 	parseModelResponse,
@@ -27,6 +28,7 @@ describe('parseModelResponse', () => {
 			necessary_knowledge: ['Vue', 'TypeScript'],
 			recruiter_email: null,
 			contractTypes: null,
+			seniorities: null,
 			workMode: 'hibrido',
 			postType: null,
 			isJob: false,
@@ -54,6 +56,15 @@ describe('parseModelResponse', () => {
 		expect(parseModelResponse('{"contractTypes": ["null"]}')?.contractTypes).toBeNull()
 		expect(parseModelResponse('{"contractTypes": 3}')?.contractTypes).toBeNull()
 		expect(parseModelResponse('{"title": "Vaga"}')?.contractTypes).toBeNull()
+	})
+
+	test('níveis: aceita siglas e intervalos do modelo', () => {
+		expect(parseModelResponse('{"seniorities": ["Sênior", "Pleno"]}')?.seniorities).toEqual(['pleno', 'senior'])
+		expect(parseModelResponse('{"seniorities": "Pleno/Sênior"}')?.seniorities).toEqual(['pleno', 'senior'])
+		expect(parseModelResponse('{"seniorities": "Júnior a Pleno"}')?.seniorities).toEqual(['junior', 'pleno'])
+		expect(parseModelResponse('{"seniorities": ["Sr.", "Tech Lead"]}')?.seniorities).toEqual(['senior', 'especialista'])
+		expect(parseModelResponse('{"seniorities": ["trainee"]}')?.seniorities).toBeNull()
+		expect(parseModelResponse('{"title": "Vaga"}')?.seniorities).toBeNull()
 	})
 
 	test('repara JSON levemente quebrado', () => {
@@ -193,5 +204,55 @@ Requisitos: Python, Airflow, SQL e AWS. Envie seu currículo pelo link do post.`
 	test('não confunde a sigla com parte de outra palavra', () => {
 		expect(keepContractTypesInPost(null, 'Dev para o sistema PJe (Processo Judicial Eletrônico)')).toBeNull()
 		expect(keepContractTypesInPost(null, 'Experiência com CLTool e PJAX')).toBeNull()
+	})
+})
+
+// Textos no formato dos posts coletados (empresas e contatos trocados)
+describe('keepSenioritiesInPost', () => {
+	test('o nível do cargo manda, mesmo sem o modelo', () => {
+		expect(keepSenioritiesInPost(null, 'Desenvolvedor(a) Front-end Pleno', 'Vaga 100% remota')).toEqual(['pleno'])
+		expect(keepSenioritiesInPost(['pleno'], 'Sr. Backend Engineer (Node.js)', 'Vaga com Node')).toEqual(['senior'])
+		expect(keepSenioritiesInPost(null, 'Senior Software Engineer', '')).toEqual(['senior'])
+		expect(keepSenioritiesInPost(null, 'Analista de Sistemas PL', '')).toEqual(['pleno'])
+		expect(keepSenioritiesInPost(null, 'Tech Lead Java', '')).toEqual(['especialista'])
+		expect(keepSenioritiesInPost(null, 'Dev Front-end 𝐒𝐞̂𝐧𝐢𝐨𝐫', '')).toEqual(['senior'])
+	})
+
+	test('"Pleno/Sênior" no cargo guarda os dois', () => {
+		expect(keepSenioritiesInPost(['senior'], 'Desenvolvedor Java Pleno/Sênior', '')).toEqual(['pleno', 'senior'])
+		expect(keepSenioritiesInPost(null, 'Dev Júnior a Pleno', '')).toEqual(['junior', 'pleno'])
+	})
+
+	test('sem nível no cargo, vale o que o modelo indicou e está escrito no post', () => {
+		const text = `🚀 Estamos contratando: Desenvolvedor(a) Vue.js
+Buscamos uma pessoa de nível sênior para liderar a migração do nosso front-end.
+Requisitos: Vue 3, TypeScript, Pinia. Modelo: remoto.`
+
+		expect(keepSenioritiesInPost(['senior'], 'Desenvolvedor(a) Vue.js', text)).toEqual(['senior'])
+		// Escrito, mas o modelo não indicou: no corpo, a palavra sozinha não basta
+		expect(keepSenioritiesInPost(null, 'Desenvolvedor(a) Vue.js', text)).toBeNull()
+		// O modelo deduziu pelos anos de experiência: não está escrito
+		expect(keepSenioritiesInPost(['senior'], 'Dev Python', 'Requisitos: 5 anos de experiência com Python')).toBeNull()
+	})
+
+	test('"pleno domínio" e afins não são nível', () => {
+		const text = `Vaga: Desenvolvedor Python
+Requisitos: pleno domínio de Django, conhecimento pleno em SQL.
+Empresa em pleno crescimento!`
+
+		expect(keepSenioritiesInPost(['pleno'], 'Desenvolvedor Python', text)).toBeNull()
+		expect(keepSenioritiesInPost(['pleno'], 'Desenvolvedor Python', 'Vaga para dev de nível pleno')).toEqual(['pleno'])
+	})
+
+	test('siglas e palavras comuns não viram nível', () => {
+		expect(keepSenioritiesInPost(null, 'Desenvolvedor PL/SQL', '')).toBeNull()
+		expect(keepSenioritiesInPost(null, 'Engenheiro de Plataforma', '')).toBeNull()
+		expect(keepSenioritiesInPost(null, 'Senioridade a definir', '')).toBeNull()
+		expect(keepSenioritiesInPost(['especialista'], 'Dev Vue', 'Atividade principal: manter o design system')).toBeNull()
+	})
+
+	test('sem nível no post', () => {
+		expect(keepSenioritiesInPost(null, 'Desenvolvedor Back-end', 'Vaga para trabalhar com Go e Kafka')).toBeNull()
+		expect(keepSenioritiesInPost(null, null, '')).toBeNull()
 	})
 })

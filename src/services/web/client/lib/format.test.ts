@@ -8,6 +8,7 @@ import {
 	jobSubtitle,
 	languageLabel,
 	safeLink,
+	senioritiesLabel,
 	timeAgo,
 	workModeOf,
 } from './format'
@@ -34,6 +35,12 @@ test('regime: um ou os dois que o post aceita; nada quando o post não diz', () 
 	expect(contractTypesLabel({ contractTypes: ['clt', 'pj'] })).toBe('CLT ou PJ')
 	expect(contractTypesLabel({ contractTypes: ['estagio'] })).toBe('Estágio')
 	expect(contractTypesLabel({ contractTypes: null })).toBeNull()
+})
+
+test('nível: um ou os dois que o post aceita; nada quando o post não diz', () => {
+	expect(senioritiesLabel({ seniorities: ['senior'] })).toBe('Sênior')
+	expect(senioritiesLabel({ seniorities: ['pleno', 'senior'] })).toBe('Pleno/Sênior')
+	expect(senioritiesLabel({ seniorities: null })).toBeNull()
 })
 
 test('timeAgo relativo em português', () => {

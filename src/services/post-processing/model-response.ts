@@ -1,6 +1,6 @@
 import { jsonrepair } from 'jsonrepair'
 
-import { CONTRACT_TYPES, type ContractType } from '@shared/contracts'
+import { CONTRACT_TYPES, SENIORITIES, type ContractType, type Seniority } from '@shared/contracts'
 
 import { AiJobOutputSchema, type AiJobOutput } from './extraction-output'
 
@@ -89,6 +89,56 @@ export function keepContractTypesInPost(types: ContractType[] | null, text: stri
 		const { pattern, reliable } = CONTRACT_TYPE_TERMS[type]
 		return (reliable || fromModel.has(type)) && pattern.test(normalizedText)
 	})
+
+	return kept.length > 0 ? kept : null
+}
+
+const WORD_START = '(?<![a-z0-9])'
+const WORD_END = '(?![a-z0-9])'
+
+/** "pleno" que não é nível: "pleno domínio", "conhecimento pleno", "em pleno crescimento". */
+const PLENO_AS_LEVEL =
+	`(?<!(conhecimento|dominio|em)\\s+)${WORD_START}pleno${WORD_END}` +
+	'(?!\\s+(dominio|conhecimento|funcionamento|desenvolvimento|exercicio|emprego|crescimento|acordo|vigor))'
+
+/**
+ * Termos de cada nível no cargo e no resto do texto (sem acentos, em minúsculas). No cargo, o nível é quase sempre
+ * literal, então valem até siglas ("Sr.", "PL", fora "PL/SQL") e termos como "Lead" e "Principal". No texto, só os
+ * termos menos ambíguos: "principal" e "staff" soltos são comuns em português e inglês ("atividade principal").
+ */
+const SENIORITY_TERMS: Record<Seniority, { title: RegExp; text: RegExp }> = {
+	junior: {
+		title: new RegExp(`${WORD_START}(junior|jr)${WORD_END}`),
+		text: new RegExp(`${WORD_START}(junior|jr)${WORD_END}`),
+	},
+	pleno: {
+		title: new RegExp(`${WORD_START}(pleno|mid[- ]?level|pl${WORD_END}(?!\\s*[/-]?\\s*sql))`),
+		text: new RegExp(`${PLENO_AS_LEVEL}|${WORD_START}mid[- ]?level${WORD_END}`),
+	},
+	senior: {
+		title: new RegExp(`${WORD_START}(senior|sr)${WORD_END}`),
+		text: new RegExp(`${WORD_START}(senior|sr)${WORD_END}`),
+	},
+	especialista: {
+		title: new RegExp(`${WORD_START}(especialista|specialist|lead|staff|principal|lider tecnico)${WORD_END}`),
+		text: new RegExp(`${WORD_START}(especialista|specialist|tech lead|lider tecnico|staff engineer|principal engineer)${WORD_END}`),
+	},
+}
+
+/**
+ * Decide os níveis da vaga pelo texto (evita nível inventado pelo modelo). O cargo manda: se ele cita níveis
+ * ("Dev Pleno/Sênior"), ficam esses. Sem nível no cargo, fica cada nível que o modelo indicou e que está escrito
+ * no post, fora os falsos positivos como "pleno domínio".
+ * @returns Os níveis na ordem de `SENIORITIES`, ou `null` se o post não diz.
+ */
+export function keepSenioritiesInPost(levels: Seniority[] | null, title: string | null, text: string): Seniority[] | null {
+	const normalizedTitle = normalizeForMatch(title ?? '')
+	const fromTitle = SENIORITIES.filter(level => SENIORITY_TERMS[level].title.test(normalizedTitle))
+	if (fromTitle.length > 0) return fromTitle
+
+	const normalizedText = normalizeForMatch(text)
+	const fromModel = new Set(levels ?? [])
+	const kept = SENIORITIES.filter(level => fromModel.has(level) && SENIORITY_TERMS[level].text.test(normalizedText))
 
 	return kept.length > 0 ? kept : null
 }

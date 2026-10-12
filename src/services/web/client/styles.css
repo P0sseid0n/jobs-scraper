@@ -575,8 +575,8 @@ select.field {
 	background: var(--mode);
 }
 
-/* Regime sem cor própria: a cor fica para a modalidade, que diferencia as vagas de relance */
-.contract-badge {
+/* Nível e regime sem cor própria: a cor fica para a modalidade, que diferencia as vagas de relance */
+.text-badge {
 	display: inline-flex;
 	align-items: center;
 	padding: 3px 9px;
