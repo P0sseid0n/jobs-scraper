@@ -2,7 +2,14 @@
  * Formatos das respostas da API do site, compartilhados entre o servidor e o navegador (só tipos: nada daqui
  * vai para o bundle do cliente).
  */
-import type { ContractType, PostProcessingSettings, ProcessedJob, ScraperSettings, SettingsKey } from '@shared/contracts'
+import type {
+	ApplicationMessage,
+	ContractType,
+	PostProcessingSettings,
+	ProcessedJob,
+	ScraperSettings,
+	SettingsKey,
+} from '@shared/contracts'
 import type { ScraperRunStatus, ScraperRunTerm, ScraperRunTrigger } from '@shared/database'
 
 /** Vaga salva: o cargo nunca falta (o storage descarta as que vêm sem) e `createdAt` é quando entrou no sistema. */
@@ -31,6 +38,8 @@ export type WebCvRequest = {
 	status: CvStatus
 	fileName: string | null
 	error: string | null
+	/** E-mail de candidatura gerado pela IA para a vaga (só com e-mail de contato e resposta válida da IA). */
+	message: ApplicationMessage | null
 	requestedAt: string
 	finishedAt: string | null
 }

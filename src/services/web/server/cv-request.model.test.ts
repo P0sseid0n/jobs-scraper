@@ -24,3 +24,10 @@ test('sem resposta do cv-updater no prazo, aparece como falha com o motivo', () 
 
 	expect(result).toMatchObject({ status: 'failed', error: CV_TIMEOUT_ERROR, requestedAt: requestedAt.toISOString() })
 })
+
+test('mensagem gerada pela IA vai junto; pedidos antigos, sem o campo, ficam sem mensagem', () => {
+	const message = { subject: 'Candidatura – Dev', body: 'Olá! Tudo bem?' }
+
+	expect(toWebCvRequest({ ...doc, status: 'ready', message }).message).toEqual(message)
+	expect(toWebCvRequest(doc).message).toBeNull()
+})

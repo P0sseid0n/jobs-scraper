@@ -28,6 +28,7 @@ test('repassa os eventos para quem está conectado e esquece quem desconectou', 
 		status: 'pending',
 		fileName: null,
 		error: null,
+		message: null,
 		requestedAt: '2026-10-10T12:00:00.000Z',
 		finishedAt: null,
 	})
