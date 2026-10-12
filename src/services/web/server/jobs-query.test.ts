@@ -20,8 +20,9 @@ describe('JobsQuerySchema', () => {
 		})
 	})
 
-	test('rejeita modalidade e limite inválidos', () => {
+	test('rejeita modalidade, regime e limite inválidos', () => {
 		expect(JobsQuerySchema.safeParse({ workMode: 'home office' }).success).toBe(false)
+		expect(JobsQuerySchema.safeParse({ contractType: 'temporario' }).success).toBe(false)
 		expect(JobsQuerySchema.safeParse({ limit: '500' }).success).toBe(false)
 	})
 })
@@ -33,6 +34,14 @@ describe('buildJobsFilter', () => {
 
 	test('"none" vira as vagas sem modalidade', () => {
 		expect(filterFor({ workMode: 'remoto,none' })).toContainEqual({ workMode: { $in: ['remoto', null] } })
+	})
+
+	test('regime: qualquer um dos escolhidos; "none" inclui vagas sem o campo', () => {
+		expect(filterFor({ contractType: 'clt,pj' })).toContainEqual({ $or: [{ contractTypes: { $in: ['clt', 'pj'] } }] })
+		expect(filterFor({ contractType: 'pj,none' })).toContainEqual({
+			$or: [{ contractTypes: { $in: ['pj'] } }, { contractTypes: null }, { contractTypes: { $size: 0 } }],
+		})
+		expect(filterFor({ contractType: 'none' })).toContainEqual({ $or: [{ contractTypes: null }, { contractTypes: { $size: 0 } }] })
 	})
 
 	test('busca escapa caracteres especiais e procura em cargo, empresa, tecnologias e texto', () => {
@@ -74,27 +83,38 @@ describe('buildJobsFilter', () => {
 })
 
 describe('toWebJob', () => {
-	test('preenche os campos opcionais com null e lista de tecnologias vazia vira null', () => {
-		const job = toWebJob({
-			postId: 'abc',
-			rawContent: 'texto',
-			title: null,
-			company: null,
-			location: null,
-			applyLink: null,
-			necessaryKnowledge: [],
-			recruiterEmail: 'rh@x.com',
-			workMode: null,
-			aiJobConfidence: 80,
-			postedAt: null,
-			author: null,
-			language: null,
-			sourcePostId: null,
-			postLink: null,
-			createdAt: NOW,
-		})
+	// Vaga salva antes do campo `contractTypes` (o documento não o tem): regime não informado
+	const doc = {
+		postId: 'abc',
+		rawContent: 'texto',
+		title: null,
+		company: null,
+		location: null,
+		applyLink: null,
+		necessaryKnowledge: [],
+		recruiterEmail: 'rh@x.com',
+		workMode: null,
+		aiJobConfidence: 80,
+		postedAt: null,
+		author: null,
+		language: null,
+		sourcePostId: null,
+		postLink: null,
+		createdAt: NOW,
+	}
 
-		expect(job).toMatchObject({ title: 'Vaga sem título', necessaryKnowledge: null, createdAt: NOW.toISOString() })
+	test('preenche os campos opcionais com null e lista de tecnologias vazia vira null', () => {
+		expect(toWebJob(doc)).toMatchObject({
+			title: 'Vaga sem título',
+			necessaryKnowledge: null,
+			contractTypes: null,
+			createdAt: NOW.toISOString(),
+		})
+	})
+
+	test('mantém os regimes da vaga', () => {
+		expect(toWebJob({ ...doc, contractTypes: ['clt', 'pj'] }).contractTypes).toEqual(['clt', 'pj'])
+		expect(toWebJob({ ...doc, contractTypes: [] }).contractTypes).toBeNull()
 	})
 })
 

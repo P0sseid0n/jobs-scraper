@@ -9,6 +9,7 @@ const job: WebJob = {
 	company: 'Acme',
 	location: 'São Paulo, SP',
 	workMode: 'hibrido',
+	contractTypes: ['clt', 'pj'],
 	necessaryKnowledge: ['Vue.js', 'TypeScript'],
 	applyLink: null,
 	recruiterEmail: null,
@@ -36,6 +37,14 @@ describe('matchesFilters (vagas que chegam em tempo real)', () => {
 		expect(matches({ q: 'angular' })).toBe(false)
 	})
 
+	test('regime: qualquer um dos escolhidos; "none" pega as vagas sem regime', () => {
+		expect(matches({ contractType: ['pj'] })).toBe(true)
+		expect(matches({ contractType: ['estagio'] })).toBe(false)
+		expect(matches({ contractType: ['none'] })).toBe(false)
+		expect(matchesFilters({ ...job, contractTypes: null }, { ...DEFAULT_FILTERS, contractType: ['none'] }, now)).toBe(true)
+		expect(matchesFilters({ ...job, contractTypes: null }, { ...DEFAULT_FILTERS, contractType: ['clt'] }, now)).toBe(false)
+	})
+
 	test('modalidade, tecnologias, e-mail, idioma, confiança e período', () => {
 		expect(matches({ workMode: ['remoto'] })).toBe(false)
 		expect(matches({ workMode: ['hibrido', 'none'] })).toBe(true)
@@ -52,4 +61,5 @@ describe('matchesFilters (vagas que chegam em tempo real)', () => {
 test('hasActiveFilters', () => {
 	expect(hasActiveFilters(DEFAULT_FILTERS)).toBe(false)
 	expect(hasActiveFilters({ ...DEFAULT_FILTERS, workMode: ['remoto'] })).toBe(true)
+	expect(hasActiveFilters({ ...DEFAULT_FILTERS, contractType: ['pj'] })).toBe(true)
 })

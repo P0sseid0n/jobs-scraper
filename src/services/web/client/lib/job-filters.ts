@@ -4,6 +4,7 @@ import type { JobFilters } from '../api'
 export const DEFAULT_FILTERS: JobFilters = {
 	q: '',
 	workMode: [],
+	contractType: [],
 	skills: [],
 	since: 'all',
 	hasEmail: false,
@@ -29,6 +30,7 @@ export function matchesFilters(job: WebJob, filters: JobFilters, now = Date.now(
 
 	if (q && ![job.title, job.company ?? '', job.rawContent, ...skills].some(text => text.toLowerCase().includes(q))) return false
 	if (filters.workMode.length && !filters.workMode.includes(job.workMode ?? 'none')) return false
+	if (filters.contractType.length && !(job.contractTypes ?? ['none']).some(type => filters.contractType.includes(type))) return false
 	if (!filters.skills.every(skill => skills.includes(skill.toLowerCase()))) return false
 	if (filters.since !== 'all' && new Date(job.createdAt).getTime() < now - SINCE_MS[filters.since] * 24 * 60 * 60 * 1000) return false
 	if (filters.hasEmail && !job.recruiterEmail) return false

@@ -5,7 +5,13 @@ import { PermanentError } from '@shared/messaging'
 
 import type { AiJobOutput } from './extraction-output'
 import { buildExtractionMessages, EXTRACTION_OUTPUT_FORMAT } from './extraction-prompt'
-import { keepLinkIfInPost, keepSkillsInPost, locationWithoutWorkMode, parseModelResponse } from './model-response'
+import {
+	keepContractTypesInPost,
+	keepLinkIfInPost,
+	keepSkillsInPost,
+	locationWithoutWorkMode,
+	parseModelResponse,
+} from './model-response'
 
 /** Pede ao modelo os dados da vaga contidos no post (`null` se ele responder `null`). */
 export async function extractJobFromPost(ollama: Ollama, model: string, post: RawPost): Promise<AiJobOutput | null> {
@@ -39,6 +45,8 @@ export function buildProcessedJob(post: RawPost, aiJob: AiJobOutput, language: s
 		necessaryKnowledge: keepSkillsInPost(aiJob.necessary_knowledge, post.text),
 		recruiterEmail: aiJob.recruiter_email,
 		workMode: aiJob.workMode,
+		// Só os regimes escritos no post; "CLT" e "PJ" entram pelo texto mesmo se o modelo não os devolver
+		contractTypes: keepContractTypesInPost(aiJob.contractTypes, post.text),
 		aiJobConfidence: aiJob.aiJobConfidence,
 		postedAt: post.postedAt,
 		author: post.author,

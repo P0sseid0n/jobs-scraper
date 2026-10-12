@@ -1,4 +1,4 @@
-import type { ProcessedJob } from '@shared/contracts'
+import type { ContractType, ProcessedJob } from '@shared/contracts'
 
 import type { WebJob } from '../../api-types'
 
@@ -14,6 +14,20 @@ export const WORK_MODES: Record<WorkMode, { label: string; color: string }> = {
 
 export function workModeOf(job: Pick<WebJob, 'workMode'>) {
 	return WORK_MODES[job.workMode ?? 'none']
+}
+
+/** Rótulo de cada regime de contratação (os mesmos do card do Discord). */
+export const CONTRACT_TYPES: Record<ContractType | 'none', string> = {
+	clt: 'CLT',
+	pj: 'PJ',
+	estagio: 'Estágio',
+	freelance: 'Freelance',
+	none: 'Sem regime',
+}
+
+/** "CLT", ou "CLT ou PJ" quando o post aceita os dois; `null` se o post não diz. */
+export function contractTypesLabel(job: Pick<WebJob, 'contractTypes'>) {
+	return job.contractTypes?.length ? job.contractTypes.map(type => CONTRACT_TYPES[type]).join(' ou ') : null
 }
 
 /** "Empresa · Local"; sem os dois, quem publicou o post (os rótulos vazios nunca aparecem). */

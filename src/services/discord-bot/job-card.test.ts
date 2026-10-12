@@ -15,6 +15,7 @@ const job: ProcessedJob = {
 	necessaryKnowledge: ['Vue.js', 'TypeScript'],
 	recruiterEmail: 'rh@citiustech.com',
 	workMode: 'hibrido',
+	contractTypes: ['clt', 'pj'],
 	aiJobConfidence: 85,
 	postedAt: '2026-10-07T17:18:50.712Z',
 	author: 'Mandar Wairkar',
@@ -36,11 +37,13 @@ describe('buildJobCard', () => {
 			'🏢 Empresa',
 			'📍 Local',
 			'🏠 Modalidade',
+			'📄 Regime',
 			'🕒 Publicada',
 			'📧 Contato',
 			'🛠️ Conhecimentos',
 		])
 		expect(embed.fields?.find(field => field.name === '🏠 Modalidade')?.value).toBe('Híbrido')
+		expect(embed.fields?.find(field => field.name === '📄 Regime')?.value).toBe('CLT ou PJ')
 		expect(embed.fields?.find(field => field.name === '🕒 Publicada')?.value).toBe('<t:1791393530:R>')
 		expect(embed.fields?.at(-1)?.value).toBe('`Vue.js` `TypeScript`')
 	})
@@ -51,6 +54,7 @@ describe('buildJobCard', () => {
 			company: null,
 			location: null,
 			workMode: null,
+			contractTypes: null,
 			recruiterEmail: null,
 		}).embeds[0]!.toJSON()
 
@@ -95,13 +99,15 @@ describe('fórum', () => {
 		expect(buildThreadName(job)).toBe('Lead Engineer - Vue.js · CitiusTech')
 	})
 
-	test('escolhe tags existentes que batem com modalidade e tecnologias', () => {
+	test('escolhe tags existentes que batem com modalidade, regime e tecnologias', () => {
 		const tags = [
 			{ id: '1', name: 'Híbrido' },
 			{ id: '2', name: 'Remoto' },
 			{ id: '3', name: 'Vue' },
 			{ id: '4', name: 'React' },
+			{ id: '5', name: 'PJ' },
+			{ id: '6', name: 'Estágio' },
 		]
-		expect(pickForumTags(job, tags)).toEqual(['1', '3'])
+		expect(pickForumTags(job, tags)).toEqual(['1', '3', '5'])
 	})
 })
