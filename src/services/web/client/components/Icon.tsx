@@ -1,4 +1,4 @@
-import { defineComponent, type PropType } from 'vue'
+import { cx } from '../lib/cx'
 
 /** Ícones de traço (24×24, stroke = currentColor). */
 const PATHS = {
@@ -26,28 +26,21 @@ const PATHS = {
 
 export type IconName = keyof typeof PATHS
 
-export const Icon = defineComponent({
-	name: 'Icon',
-	props: {
-		name: { type: String as PropType<IconName>, required: true },
-		size: { type: Number, default: 16 },
-	},
-	setup(props) {
-		return () => (
-			<svg
-				class={['icon', props.name === 'spinner' && 'spin']}
-				width={props.size}
-				height={props.size}
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="1.8"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				aria-hidden="true"
-			>
-				<path d={PATHS[props.name]} />
-			</svg>
-		)
-	},
-})
+export function Icon({ name, size = 16, className }: { name: IconName; size?: number; className?: string }) {
+	return (
+		<svg
+			className={cx('icon', name === 'spinner' && 'spin', className)}
+			width={size}
+			height={size}
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			strokeWidth="1.8"
+			strokeLinecap="round"
+			strokeLinejoin="round"
+			aria-hidden="true"
+		>
+			<path d={PATHS[name]} />
+		</svg>
+	)
+}

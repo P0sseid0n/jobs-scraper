@@ -1,5 +1,3 @@
-import { defineComponent } from 'vue'
-
 // O desenho do ícone (viewBox 32×32): o fundo e o "cursor" do `jobs/scraper_`. Fonte única do header e do favicon.
 const BACKGROUND = { width: 32, height: 32, rx: 8 }
 const CURSOR = { x: 8, y: 20, width: 16, height: 4, rx: 1 }
@@ -29,15 +27,11 @@ export function setFavicon() {
 }
 
 /** O ícone do projeto, decorativo (o texto ao lado dá o nome). */
-export const ProjectIcon = defineComponent({
-	name: 'ProjectIcon',
-	props: { size: { type: Number, default: 22 } },
-	setup(props) {
-		return () => (
-			<svg class="project-icon" width={props.size} height={props.size} viewBox="0 0 32 32" aria-hidden="true">
-				<rect {...BACKGROUND} fill={INK} />
-				<rect {...CURSOR} fill={LIME} />
-			</svg>
-		)
-	},
-})
+export function ProjectIcon({ size = 22 }: { size?: number }) {
+	return (
+		<svg className="project-icon" width={size} height={size} viewBox="0 0 32 32" aria-hidden="true">
+			<rect {...BACKGROUND} fill={INK} />
+			<rect {...CURSOR} fill={LIME} />
+		</svg>
+	)
+}

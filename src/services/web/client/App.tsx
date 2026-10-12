@@ -1,16 +1,17 @@
-import { computed, defineComponent, onMounted, onUnmounted, ref, watchEffect } from 'vue'
+import { useEffect, useState } from 'react'
 
 import type { ScraperStatus } from '../api-types'
 import { api } from './api'
 import { CvTray } from './components/CvTray'
 import { Icon, type IconName } from './components/Icon'
 import { ProjectIcon } from './components/ProjectIcon'
+import { cx } from './lib/cx'
 import { formatDuration } from './lib/format'
-import { matchPath, onLinkClick, route } from './router'
-import { trayRequests } from './stores/cv'
-import { connected } from './stores/live'
+import { matchPath, onLinkClick, useRoute } from './router'
+import { useTrayRequests } from './stores/cv'
+import { useConnected } from './stores/live'
 import { toggleTheme } from './stores/theme'
-import { dismissToast, toasts } from './stores/toast'
+import { dismissToast, useToasts } from './stores/toast'
 import { CvsView } from './views/CvsView'
 import { JobPage } from './views/JobPage'
 import { JobsView } from './views/JobsView'
@@ -33,160 +34,157 @@ const TITLES: Record<string, string> = {
 
 /** Status do scraper no cabeçalho, atualizado a cada 30 s. */
 function useScraperPill() {
-	const status = ref<ScraperStatus | null>(null)
-	const now = ref(Date.now())
+	const [status, setStatus] = useState<ScraperStatus | null>(null)
+	const [now, setNow] = useState(Date.now())
 
-	const refresh = () =>
-		api
-			.scraperStatus()
-			.then(value => (status.value = value))
-			.catch(() => (status.value = null))
+	useEffect(() => {
+		let active = true
+		const refresh = () =>
+			api.scraperStatus().then(
+				value => active && setStatus(value),
+				() => active && setStatus(null),
+			)
 
-	let timer: ReturnType<typeof setInterval> | undefined
-	onMounted(() => {
 		void refresh()
-		timer = setInterval(() => {
-			now.value = Date.now()
+		const timer = setInterval(() => {
+			setNow(Date.now())
 			void refresh()
 		}, 30_000)
-	})
-	onUnmounted(() => clearInterval(timer))
-
-	return computed(() => {
-		const s = status.value
-		if (!s) return null
-		if (s.current) return { tone: 'running', text: 'coletando agora' }
-		if (s.last?.status === 'failed') return { tone: 'failed', text: 'última coleta falhou' }
-		if (s.paused) return { tone: 'paused', text: 'coletas pausadas' }
-
-		const next = s.nextRunAt ? new Date(s.nextRunAt).getTime() - now.value : 0
-		return {
-			tone: 'idle',
-			text: next > 60_000 ? `próxima em ${formatDuration(next).replace(/ \d+s$/, '')}` : 'próxima a qualquer momento',
-		}
-	})
-}
-
-export const App = defineComponent({
-	name: 'App',
-	setup() {
-		const pill = useScraperPill()
-
-		const view = computed(() => {
-			const job = matchPath('/vagas/:postId')
-			if (job?.postId) return <JobPage postId={job.postId} />
-
-			switch (route.path.replace(/\/$/, '') || '/') {
-				case '/':
-					return <JobsView />
-				case '/curriculos':
-					return <CvsView />
-				case '/coletas':
-					return <RunsView />
-				case '/configuracoes':
-					return <SettingsView />
-				default:
-					return (
-						<div class="page page-narrow">
-							<div class="card empty">
-								<p class="strong">Página não encontrada</p>
-								<a class="btn btn-lime" href="/" onClick={onLinkClick}>
-									ver vagas
-								</a>
-							</div>
-						</div>
-					)
-			}
-		})
-
-		const isActive = (path: string) =>
-			path === '/' ? route.path === '/' || route.path.startsWith('/vagas/') : route.path.startsWith(path)
-
-		const pendingCvs = computed(() => trayRequests.value.filter(request => request.status === 'pending').length)
-
-		watchEffect(() => {
-			document.title = `${TITLES[route.path] ?? (route.path.startsWith('/vagas/') ? 'Vaga' : 'Jobs Scraper')} · jobs/scraper`
-		})
 
 		return () => {
+			active = false
+			clearInterval(timer)
+		}
+	}, [])
+
+	if (!status) return null
+	if (status.current) return { tone: 'running', text: 'coletando agora' }
+	if (status.last?.status === 'failed') return { tone: 'failed', text: 'última coleta falhou' }
+	if (status.paused) return { tone: 'paused', text: 'coletas pausadas' }
+
+	const next = status.nextRunAt ? new Date(status.nextRunAt).getTime() - now : 0
+	return {
+		tone: 'idle',
+		text: next > 60_000 ? `próxima em ${formatDuration(next).replace(/ \d+s$/, '')}` : 'próxima a qualquer momento',
+	}
+}
+
+function View({ path }: { path: string }) {
+	const job = matchPath('/vagas/:postId', path)
+	if (job?.postId) return <JobPage postId={job.postId} />
+
+	switch (path.replace(/\/$/, '') || '/') {
+		case '/':
+			return <JobsView />
+		case '/curriculos':
+			return <CvsView />
+		case '/coletas':
+			return <RunsView />
+		case '/configuracoes':
+			return <SettingsView />
+		default:
 			return (
-				<div class="app">
-					<a class="skip-link" href="#main">
-						pular para o conteúdo
+				<div className="page page-narrow">
+					<div className="card empty">
+						<p className="strong">Página não encontrada</p>
+						<a className="btn btn-lime" href="/" onClick={onLinkClick}>
+							ver vagas
+						</a>
+					</div>
+				</div>
+			)
+	}
+}
+
+export function App() {
+	const { path } = useRoute()
+	const pill = useScraperPill()
+	const connected = useConnected()
+	const toasts = useToasts()
+	const pendingCvs = useTrayRequests().filter(request => request.status === 'pending').length
+
+	const isActive = (item: string) => (item === '/' ? path === '/' || path.startsWith('/vagas/') : path.startsWith(item))
+
+	useEffect(() => {
+		document.title = `${TITLES[path] ?? (path.startsWith('/vagas/') ? 'Vaga' : 'Jobs Scraper')} · jobs/scraper`
+	}, [path])
+
+	return (
+		<div className="app">
+			<a className="skip-link" href="#main">
+				pular para o conteúdo
+			</a>
+			<header className="topbar">
+				<div className="topbar-inner">
+					<a className="logo mono" href="/" onClick={onLinkClick}>
+						<ProjectIcon />
+						jobs/scraper<span className="logo-cursor">_</span>
 					</a>
-					<header class="topbar">
-						<div class="topbar-inner">
-							<a class="logo mono" href="/" onClick={onLinkClick}>
-								<ProjectIcon />
-								jobs/scraper<span class="logo-cursor">_</span>
-							</a>
-							<nav class="topnav" aria-label="Principal">
-								{NAV.map(item => (
-									<a
-										key={item.path}
-										class={['navlink', isActive(item.path) && 'active']}
-										href={item.path}
-										aria-current={isActive(item.path) ? 'page' : undefined}
-										onClick={onLinkClick}
-									>
-										{item.path === '/configuracoes' ? 'configurações' : item.label}
-									</a>
-								))}
-							</nav>
-							<div class="topbar-tools">
-								{pill.value && (
-									<a class={['status-pill mono', `pill-${pill.value.tone}`]} href="/coletas" onClick={onLinkClick}>
-										<span class="dot" />
-										{pill.value.text}
-									</a>
-								)}
-								{!connected.value && (
-									<span class="mono xsmall muted offline" title="Sem conexão em tempo real; reconectando…">
-										offline
-									</span>
-								)}
-								<button type="button" class="icon-btn bordered" aria-label="Alternar tema claro/escuro" onClick={toggleTheme}>
-									<Icon name="moon" class="theme-moon" />
-									<Icon name="sun" class="theme-sun" />
-								</button>
-							</div>
-						</div>
-					</header>
-
-					<main id="main" tabindex={-1}>
-						{view.value}
-					</main>
-
-					<nav class="bottomnav" aria-label="Principal (celular)">
+					<nav className="topnav" aria-label="Principal">
 						{NAV.map(item => (
 							<a
 								key={item.path}
-								class={['bottomnav-item', isActive(item.path) && 'active']}
+								className={cx('navlink', isActive(item.path) && 'active')}
 								href={item.path}
 								aria-current={isActive(item.path) ? 'page' : undefined}
 								onClick={onLinkClick}
 							>
-								<Icon name={item.icon} size={20} />
-								{item.label}
-								{item.path === '/curriculos' && pendingCvs.value > 0 && <span class="badge mono">{pendingCvs.value}</span>}
+								{item.path === '/configuracoes' ? 'configurações' : item.label}
 							</a>
 						))}
 					</nav>
-
-					<CvTray />
-
-					<div class="toasts" aria-live="polite">
-						{toasts.value.map(toast => (
-							<div key={toast.id} class={['toast', `toast-${toast.tone}`]} role={toast.tone === 'error' ? 'alert' : 'status'}>
-								<span class="grow">{toast.message}</span>
-								<button type="button" class="icon-btn" aria-label="Fechar aviso" onClick={() => dismissToast(toast.id)}>
-									<Icon name="close" size={14} />
-								</button>
-							</div>
-						))}
+					<div className="topbar-tools">
+						{pill && (
+							<a className={cx('status-pill mono', `pill-${pill.tone}`)} href="/coletas" onClick={onLinkClick}>
+								<span className="dot" />
+								{pill.text}
+							</a>
+						)}
+						{!connected && (
+							<span className="mono xsmall muted offline" title="Sem conexão em tempo real; reconectando…">
+								offline
+							</span>
+						)}
+						<button type="button" className="icon-btn bordered" aria-label="Alternar tema claro/escuro" onClick={toggleTheme}>
+							<Icon name="moon" className="theme-moon" />
+							<Icon name="sun" className="theme-sun" />
+						</button>
 					</div>
 				</div>
-			)
-		}
-	},
-})
+			</header>
+
+			<main id="main" tabIndex={-1}>
+				<View path={path} />
+			</main>
+
+			<nav className="bottomnav" aria-label="Principal (celular)">
+				{NAV.map(item => (
+					<a
+						key={item.path}
+						className={cx('bottomnav-item', isActive(item.path) && 'active')}
+						href={item.path}
+						aria-current={isActive(item.path) ? 'page' : undefined}
+						onClick={onLinkClick}
+					>
+						<Icon name={item.icon} size={20} />
+						{item.label}
+						{item.path === '/curriculos' && pendingCvs > 0 && <span className="badge mono">{pendingCvs}</span>}
+					</a>
+				))}
+			</nav>
+
+			<CvTray />
+
+			<div className="toasts" aria-live="polite">
+				{toasts.map(toast => (
+					<div key={toast.id} className={cx('toast', `toast-${toast.tone}`)} role={toast.tone === 'error' ? 'alert' : 'status'}>
+						<span className="grow">{toast.message}</span>
+						<button type="button" className="icon-btn" aria-label="Fechar aviso" onClick={() => dismissToast(toast.id)}>
+							<Icon name="close" size={14} />
+						</button>
+					</div>
+				))}
+			</div>
+		</div>
+	)
+}

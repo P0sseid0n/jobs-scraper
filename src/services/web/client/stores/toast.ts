@@ -1,19 +1,23 @@
-import { ref } from 'vue'
+import { createStore, useStore } from '../lib/store'
 
 export type Toast = { id: number; message: string; tone: 'info' | 'error' }
 
-export const toasts = ref<Toast[]>([])
+export const toasts = createStore<Toast[]>([])
 let nextId = 1
+
+export function useToasts() {
+	return useStore(toasts)
+}
 
 /** Aviso curto no canto da tela (some sozinho). */
 export function notify(message: string, tone: Toast['tone'] = 'info') {
 	const id = nextId++
-	toasts.value = [...toasts.value, { id, message, tone }]
+	toasts.set(current => [...current, { id, message, tone }])
 	setTimeout(() => dismissToast(id), tone === 'error' ? 8_000 : 3_500)
 }
 
 export function dismissToast(id: number) {
-	toasts.value = toasts.value.filter(toast => toast.id !== id)
+	toasts.set(current => current.filter(toast => toast.id !== id))
 }
 
 /** Copia para a área de transferência avisando o resultado. */

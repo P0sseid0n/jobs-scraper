@@ -1,22 +1,16 @@
-import { defineComponent, type PropType } from 'vue'
+import type { CSSProperties } from 'react'
 
 import type { WebJob } from '../../api-types'
 import { workModeOf } from '../lib/format'
 
 /** Selo da modalidade: a cor fica no ponto e na borda, o texto mantém o contraste do tema. */
-export const WorkModeBadge = defineComponent({
-	name: 'WorkModeBadge',
-	props: { job: { type: Object as PropType<Pick<WebJob, 'workMode'>>, required: true } },
-	setup(props) {
-		return () => {
-			const mode = workModeOf(props.job)
+export function WorkModeBadge({ job }: { job: Pick<WebJob, 'workMode'> }) {
+	const mode = workModeOf(job)
 
-			return (
-				<span class="mode-badge mono" style={{ '--mode': mode.color }}>
-					<span class="dot" />
-					{mode.label}
-				</span>
-			)
-		}
-	},
-})
+	return (
+		<span className="mode-badge mono" style={{ '--mode': mode.color } as CSSProperties}>
+			<span className="dot" />
+			{mode.label}
+		</span>
+	)
+}

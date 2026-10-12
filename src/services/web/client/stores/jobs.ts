@@ -1,90 +1,112 @@
-import { computed, reactive, ref, watch } from 'vue'
-
 import type { JobFacets, WebJob } from '../../api-types'
 import { api, type JobFilters } from '../api'
-import { DEFAULT_FILTERS, hasActiveFilters, matchesFilters } from '../lib/job-filters'
+import { DEFAULT_FILTERS, matchesFilters } from '../lib/job-filters'
+import { createStore, useStore } from '../lib/store'
 import { onLive } from './live'
-import { arrivedLive } from './seen'
+import { markArrived } from './seen'
+
+type JobsState = {
+	filters: JobFilters
+	jobs: WebJob[]
+	nextCursor: string | null
+	status: 'loading' | 'ready' | 'error'
+	loadingMore: boolean
+	error: string | null
+	facets: JobFacets | null
+	/** Vagas que chegaram em tempo real e esperam o clique em "N vagas novas" (a lista não muda sob o cursor). */
+	incoming: WebJob[]
+}
 
 /**
  * Estado da lista de vagas, fora do componente: voltar do detalhe (no celular) mantém filtros, páginas carregadas
  * e a posição.
  */
-export const filters = reactive<JobFilters>(structuredClone(DEFAULT_FILTERS))
+export const jobsStore = createStore<JobsState>({
+	filters: structuredClone(DEFAULT_FILTERS),
+	jobs: [],
+	nextCursor: null,
+	status: 'loading',
+	loadingMore: false,
+	error: null,
+	facets: null,
+	incoming: [],
+})
 
-export const jobs = ref<WebJob[]>([])
-export const nextCursor = ref<string | null>(null)
-export const status = ref<'loading' | 'ready' | 'error'>('loading')
-export const loadingMore = ref(false)
-export const error = ref<string | null>(null)
-export const facets = ref<JobFacets | null>(null)
+export function useJobs() {
+	return useStore(jobsStore)
+}
 
-/** Vagas que chegaram em tempo real e esperam o clique em "N vagas novas" (a lista não muda sob o cursor). */
-export const incoming = ref<WebJob[]>([])
-
-export const filtersActive = computed(() => hasActiveFilters(filters))
+const update = (patch: Partial<JobsState>) => jobsStore.set(current => ({ ...current, ...patch }))
 
 let requestId = 0
 let started = false
+let filtersTimer: ReturnType<typeof setTimeout> | undefined
 
 export async function loadJobs() {
 	const id = ++requestId
-	status.value = 'loading'
-	error.value = null
+	update({ status: 'loading', error: null })
 
 	try {
-		const page = await api.jobs(filters)
+		const page = await api.jobs(jobsStore.get().filters)
 		if (id !== requestId) return
 
-		jobs.value = page.jobs
-		nextCursor.value = page.nextCursor
-		incoming.value = []
-		status.value = 'ready'
+		update({ jobs: page.jobs, nextCursor: page.nextCursor, incoming: [], status: 'ready' })
 	} catch (cause) {
 		if (id !== requestId) return
-		error.value = (cause as Error).message
-		status.value = 'error'
+		update({ error: (cause as Error).message, status: 'error' })
 	}
 }
 
 export async function loadMoreJobs() {
-	if (!nextCursor.value || loadingMore.value || status.value !== 'ready') return
+	const { nextCursor, loadingMore, status, filters } = jobsStore.get()
+	if (!nextCursor || loadingMore || status !== 'ready') return
 
 	const id = requestId
-	loadingMore.value = true
+	update({ loadingMore: true })
 	try {
-		const page = await api.jobs(filters, nextCursor.value)
+		const page = await api.jobs(filters, nextCursor)
 		if (id !== requestId) return
 
-		const known = new Set(jobs.value.map(job => job.postId))
-		jobs.value = [...jobs.value, ...page.jobs.filter(job => !known.has(job.postId))]
-		nextCursor.value = page.nextCursor
+		const { jobs } = jobsStore.get()
+		const known = new Set(jobs.map(job => job.postId))
+		update({ jobs: [...jobs, ...page.jobs.filter(job => !known.has(job.postId))], nextCursor: page.nextCursor })
 	} catch (cause) {
-		error.value = (cause as Error).message
+		update({ error: (cause as Error).message })
 	} finally {
-		loadingMore.value = false
+		update({ loadingMore: false })
 	}
 }
 
 export async function loadFacets() {
 	try {
-		facets.value = await api.facets()
+		update({ facets: await api.facets() })
 	} catch {
 		// os filtros funcionam sem as contagens
 	}
 }
 
 export function showIncoming() {
-	const fresh = incoming.value.filter(job => !jobs.value.some(existing => existing.postId === job.postId))
-	jobs.value = [...fresh, ...jobs.value]
-	incoming.value = []
+	const { jobs, incoming } = jobsStore.get()
+	const fresh = incoming.filter(job => !jobs.some(existing => existing.postId === job.postId))
+	update({ jobs: [...fresh, ...jobs], incoming: [] })
+}
+
+/** Muda os filtros; a lista recarrega 250 ms depois da última mudança. */
+export function setFilters(patch: Partial<JobFilters>) {
+	const current = jobsStore.get().filters
+	const filters = { ...current, ...patch }
+	if (JSON.stringify(filters) === JSON.stringify(current)) return
+
+	update({ filters })
+	clearTimeout(filtersTimer)
+	filtersTimer = setTimeout(loadJobs, 250)
 }
 
 export function clearFilters() {
-	Object.assign(filters, structuredClone(DEFAULT_FILTERS))
+	setFilters(structuredClone(DEFAULT_FILTERS))
 }
 
-/** Carrega a primeira página e passa a acompanhar filtros e vagas novas (uma vez só, na primeira visita à lista). */
+/** Carrega a primeira página e passa a acompanhar as vagas novas (uma vez só, na primeira visita à lista). */
 export function startJobs() {
 	if (started) return
 	started = true
@@ -92,22 +114,15 @@ export function startJobs() {
 	void loadJobs()
 	void loadFacets()
 
-	let timer: ReturnType<typeof setTimeout> | undefined
-	watch(
-		() => JSON.stringify(filters),
-		() => {
-			clearTimeout(timer)
-			timer = setTimeout(loadJobs, 250)
-		},
-	)
-
 	onLive('job', job => {
-		arrivedLive.add(job.postId)
-		if (!matchesFilters(job, filters) || jobs.value.some(existing => existing.postId === job.postId)) return
+		markArrived(job.postId)
+
+		const { jobs, incoming, status, filters } = jobsStore.get()
+		if (!matchesFilters(job, filters) || jobs.some(existing => existing.postId === job.postId)) return
 
 		// Lista vazia: não há o que reordenar sob o cursor, entra direto
-		if (jobs.value.length === 0 && status.value === 'ready') jobs.value = [job]
-		else if (!incoming.value.some(existing => existing.postId === job.postId)) incoming.value = [job, ...incoming.value]
+		if (jobs.length === 0 && status === 'ready') update({ jobs: [job] })
+		else if (!incoming.some(existing => existing.postId === job.postId)) update({ incoming: [job, ...incoming] })
 
 		void loadFacets()
 	})

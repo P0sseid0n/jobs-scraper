@@ -1,100 +1,102 @@
-import { defineComponent, ref, type PropType } from 'vue'
+import { useState, type KeyboardEvent } from 'react'
 
+import { cx } from '../lib/cx'
 import { Icon } from './Icon'
 
 /** Interruptor liga/desliga (checkbox nativo, acessível pelo teclado). */
-export const Switch = defineComponent({
-	name: 'Switch',
-	props: {
-		checked: { type: Boolean, required: true },
-		label: { type: String, required: true },
-		id: { type: String },
-		disabled: { type: Boolean, default: false },
-		onChange: { type: Function as PropType<(value: boolean) => void>, required: true },
-	},
-	setup(props) {
-		return () => (
-			<input
-				type="checkbox"
-				role="switch"
-				id={props.id}
-				class="switch"
-				aria-checked={props.checked}
-				aria-label={props.label}
-				checked={props.checked}
-				disabled={props.disabled}
-				onChange={(event: Event) => props.onChange((event.target as HTMLInputElement).checked)}
-			/>
-		)
-	},
-})
+export function Switch({
+	checked,
+	label,
+	id,
+	disabled = false,
+	onChange,
+}: {
+	checked: boolean
+	label: string
+	id?: string
+	disabled?: boolean
+	onChange: (value: boolean) => void
+}) {
+	return (
+		<input
+			type="checkbox"
+			role="switch"
+			id={id}
+			className="switch"
+			aria-checked={checked}
+			aria-label={label}
+			checked={checked}
+			disabled={disabled}
+			onChange={event => onChange(event.target.checked)}
+		/>
+	)
+}
 
 /** Campo de chips: digite e Enter (ou vírgula) para adicionar; Backspace no campo vazio remove o último. */
-export const KeywordInput = defineComponent({
-	name: 'KeywordInput',
-	props: {
-		id: { type: String, required: true },
-		modelValue: { type: Array as PropType<string[]>, required: true },
-		max: { type: Number, required: true },
-		maxLength: { type: Number, default: 50 },
-		invalid: { type: Boolean, default: false },
-		describedBy: { type: String },
-		'onUpdate:modelValue': { type: Function as PropType<(value: string[]) => void>, required: true },
-	},
-	setup(props) {
-		const draft = ref('')
-		const update = (value: string[]) => props['onUpdate:modelValue'](value)
+export function KeywordInput({
+	id,
+	value,
+	max,
+	maxLength = 50,
+	invalid = false,
+	describedBy,
+	onChange,
+}: {
+	id: string
+	value: string[]
+	max: number
+	maxLength?: number
+	invalid?: boolean
+	describedBy?: string
+	onChange: (value: string[]) => void
+}) {
+	const [draft, setDraft] = useState('')
 
-		function add() {
-			const words = draft.value
-				.split(',')
-				.map(word => word.trim().toLowerCase())
-				.filter(Boolean)
-			const next = [...props.modelValue]
+	function add() {
+		const words = draft
+			.split(',')
+			.map(word => word.trim().toLowerCase())
+			.filter(Boolean)
+		const next = [...value]
 
-			for (const word of words) {
-				if (!next.includes(word) && next.length < props.max) next.push(word.slice(0, props.maxLength))
-			}
-			update(next)
-			draft.value = ''
+		for (const word of words) {
+			if (!next.includes(word) && next.length < max) next.push(word.slice(0, maxLength))
 		}
+		if (next.length !== value.length) onChange(next)
+		setDraft('')
+	}
 
-		function onKeydown(event: KeyboardEvent) {
-			if (event.key === 'Enter' || event.key === ',') {
-				event.preventDefault()
-				add()
-			} else if (event.key === 'Backspace' && !draft.value && props.modelValue.length) {
-				update(props.modelValue.slice(0, -1))
-			}
+	function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+		if (event.key === 'Enter' || event.key === ',') {
+			event.preventDefault()
+			add()
+		} else if (event.key === 'Backspace' && !draft && value.length) {
+			onChange(value.slice(0, -1))
 		}
+	}
 
-		return () => (
-			<div class={['chips-input', props.invalid && 'invalid']}>
-				{props.modelValue.map(word => (
-					<span class="kchip mono" key={word}>
-						{word}
-						<button
-							type="button"
-							aria-label={`Remover ${word}`}
-							onClick={() => update(props.modelValue.filter(item => item !== word))}
-						>
-							<Icon name="close" size={12} />
-						</button>
-					</span>
-				))}
-				<input
-					id={props.id}
-					value={draft.value}
-					onInput={(event: Event) => (draft.value = (event.target as HTMLInputElement).value)}
-					onKeydown={onKeydown}
-					onBlur={add}
-					placeholder={props.modelValue.length >= props.max ? `limite de ${props.max}` : 'digite e Enter'}
-					disabled={props.modelValue.length >= props.max}
-					maxlength={props.maxLength}
-					aria-describedby={props.describedBy}
-					aria-invalid={props.invalid}
-				/>
-			</div>
-		)
-	},
-})
+	return (
+		<div className={cx('chips-input', invalid && 'invalid')}>
+			{value.map(word => (
+				<span className="kchip mono" key={word}>
+					{word}
+					<button type="button" aria-label={`Remover ${word}`} onClick={() => onChange(value.filter(item => item !== word))}>
+						<Icon name="close" size={12} />
+					</button>
+				</span>
+			))}
+			<input
+				id={id}
+				value={draft}
+				onChange={event => setDraft(event.target.value)}
+				onKeyDown={onKeyDown}
+				onBlur={add}
+				placeholder={value.length >= max ? `limite de ${max}` : 'digite e Enter'}
+				disabled={value.length >= max}
+				maxLength={maxLength}
+				aria-describedby={describedBy}
+				aria-invalid={invalid}
+			/>
+		</div>
+	)
+}

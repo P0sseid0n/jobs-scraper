@@ -1,7 +1,13 @@
-import { reactive } from 'vue'
+import type { MouseEvent } from 'react'
+
+import { createStore, useStore } from './lib/store'
 
 /** Roteador mínimo sobre a History API: o servidor devolve a aplicação em qualquer caminho fora de `/api`. */
-export const route = reactive({ path: location.pathname, query: new URLSearchParams(location.search) })
+export const route = createStore({ path: location.pathname })
+
+export function useRoute() {
+	return useStore(route)
+}
 
 window.addEventListener('popstate', sync)
 
@@ -27,12 +33,11 @@ export function goBack(fallback: string) {
 }
 
 function sync() {
-	route.path = location.pathname
-	route.query = new URLSearchParams(location.search)
+	route.set({ path: location.pathname })
 }
 
 /** Lê `:param` de um padrão como `/vagas/:postId`; `null` se o caminho não casa. */
-export function matchPath(pattern: string, path = route.path) {
+export function matchPath(pattern: string, path = route.get().path) {
 	const names: string[] = []
 	const regex = new RegExp(
 		`^${pattern.replace(/:(\w+)/g, (_, name: string) => {
@@ -51,10 +56,10 @@ export function jobPath(postId: string) {
 }
 
 /** Clique normal num link interno navega sem recarregar; com Ctrl/Cmd/meio, o navegador abre outra aba. */
-export function onLinkClick(event: MouseEvent) {
+export function onLinkClick(event: MouseEvent<HTMLElement>) {
 	if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
 
-	const anchor = (event.currentTarget as HTMLElement).closest('a')
+	const anchor = event.currentTarget.closest('a')
 	const href = anchor?.getAttribute('href')
 	if (!href?.startsWith('/') || anchor?.target === '_blank') return
 

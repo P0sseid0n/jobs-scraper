@@ -1,6 +1,5 @@
-import './vue-flags'
-
-import { createApp } from 'vue'
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
 
 import { App } from './App'
 import { setFavicon } from './components/ProjectIcon'
@@ -14,4 +13,8 @@ setFavicon()
 connectLive()
 void loadCvRequests()
 
-createApp(App).mount('#app')
+createRoot(document.getElementById('app')!).render(
+	<StrictMode>
+		<App />
+	</StrictMode>,
+)

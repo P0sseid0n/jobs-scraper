@@ -47,7 +47,7 @@ Mais um canal, ao lado do Discord, com o que o Discord não faz bem: busca e fil
 - **Coletas:** coleta em andamento, próxima agendada, "coletar agora", pausar e o histórico com o resultado por termo. Falhas de login do LinkedIn aparecem como alerta.
 - **Configurações:** formulário da coleção `settings` (termos de busca, filtro de data, limites, intervalo, confiança, idiomas e palavras-chave), com as mesmas validações dos schemas.
 
-O frontend é Vue 3 escrito em TSX e empacotado pelo próprio Bun (`Bun.serve` com import de HTML): não há etapa de build nem Vite. Em desenvolvimento (`bun dev:web`) há hot reload; com `NODE_ENV=production` (como no Docker), o bundle é minificado na inicialização. Os erros de validação da API voltam por campo.
+O frontend é React 19 escrito em TSX e empacotado pelo próprio Bun (`Bun.serve` com import de HTML): não há etapa de build nem Vite. Em desenvolvimento (`bun dev:web`) há hot reload; com `NODE_ENV=production` (como no Docker), o bundle é minificado na inicialização. Os erros de validação da API voltam por campo.
 
 ### 📄 Currículo ajustado (cv-updater)
 
@@ -83,7 +83,7 @@ As mensagens são persistentes e validadas com os schemas de `src/shared/contrac
 - **MongoDB** + Mongoose (armazenamento)
 - **Ollama** (IA local)
 - **Discord.js** (bot)
-- **Vue 3** (site, em TSX, empacotado pelo Bun)
+- **React 19** (site, em TSX, empacotado pelo Bun)
 - **Tectonic** (LaTeX, para o currículo)
 - **Zod** (validação de configuração e mensagens), **Pino** (logs)
 - **Docker Compose** (infraestrutura e serviços)
@@ -233,12 +233,11 @@ src/
       skills/                  #   seção de habilidades e associação entre tecnologias da vaga e do currículo
       projects/                #   GitHub (API e cache), ranking, escolha e descrição dos projetos
       assets/                  #   fontes e cv.example.tex
-    web/                       # site: API, tempo real (SSE) e a aplicação Vue
+    web/                       # site: API, tempo real (SSE) e a aplicação React
       index.ts                 #   Bun.serve com as rotas da API e a aplicação
       api-types.ts             #   formato das respostas da API (compartilhado com o navegador)
       server/                  #   rotas (vagas, currículos, coletas, configurações), SSE e paginação
-      client/                  #   aplicação Vue em TSX: views/, components/, stores/ e lib/
-        jsx/                   #   runtime de JSX (o do Vue, sem renderizar `false` como texto)
+      client/                  #   aplicação React em TSX: views/, components/, stores/ e lib/
 data/                          # dados de execução, fora do git: cv/cv.tex, cv/generated/, cache/, scraper/
 ```
 

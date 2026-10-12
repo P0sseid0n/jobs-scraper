@@ -1,23 +1,24 @@
-import { ref, watchEffect } from 'vue'
-
 import { storage } from '../lib/storage'
+import { createStore } from '../lib/store'
 
 export type Theme = 'light' | 'dark' | 'system'
 
 const KEY = 'theme'
 const systemDark = matchMedia('(prefers-color-scheme: dark)')
 
-export const theme = ref<Theme>(storage.get<Theme>(KEY, 'system'))
-const prefersDark = ref(systemDark.matches)
-systemDark.addEventListener('change', event => (prefersDark.value = event.matches))
+export const theme = createStore<Theme>(storage.get<Theme>(KEY, 'system'))
 
-watchEffect(() => {
-	const dark = theme.value === 'dark' || (theme.value === 'system' && prefersDark.value)
+function apply() {
+	const dark = theme.get() === 'dark' || (theme.get() === 'system' && systemDark.matches)
 	document.documentElement.dataset.theme = dark ? 'dark' : 'light'
-	storage.set(KEY, theme.value)
-})
+	storage.set(KEY, theme.get())
+}
+
+apply()
+theme.subscribe(apply)
+systemDark.addEventListener('change', apply)
 
 /** Alterna entre claro e escuro a partir do tema que está na tela. */
 export function toggleTheme() {
-	theme.value = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'
+	theme.set(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark')
 }

@@ -14,11 +14,10 @@
 		"noUncheckedIndexedAccess": true,
 		"forceConsistentCasingInFileNames": true,
 		"skipLibCheck": true,
-		"jsx": "preserve",
-		"jsxImportSource": "@web-jsx",
+		"jsx": "react-jsx",
+		"jsxImportSource": "react",
 		"paths": {
-			"@shared/*": ["./src/shared/*"],
-			"@web-jsx/*": ["./src/services/web/client/jsx/*"]
+			"@shared/*": ["./src/shared/*"]
 		}
 	},
 	"include": ["src"]
