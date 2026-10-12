@@ -5,13 +5,14 @@ import { cx } from '../lib/cx'
 import { jobDate, jobSubtitle, safeLink, timeAgo } from '../lib/format'
 import { jobPath, onLinkClick } from '../router'
 import { useUnseen } from '../stores/seen'
+import { ContractTypeBadge } from './ContractTypeBadge'
 import { CvButton } from './CvButton'
 import { Icon } from './Icon'
 import { WorkModeBadge } from './WorkModeBadge'
 
 const VISIBLE_SKILLS = 4
 
-/** Card da lista: otimizado para escanear (cargo, empresa · local, modalidade, quando, tecnologias) e agir rápido. */
+/** Card da lista: otimizado para escanear (cargo, empresa · local, modalidade, regime, quando, tecnologias) e agir rápido. */
 export function JobCard({
 	job,
 	selected = false,
@@ -49,7 +50,10 @@ export function JobCard({
 					<span className="muted job-sub">{jobSubtitle(job)}</span>
 				</a>
 				<div className="job-card-meta">
-					<WorkModeBadge job={job} />
+					<div className="job-badges">
+						<ContractTypeBadge job={job} />
+						<WorkModeBadge job={job} />
+					</div>
 					<time className="mono muted small" dateTime={jobDate(job)}>
 						{timeAgo(jobDate(job))}
 					</time>

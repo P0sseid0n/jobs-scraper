@@ -2,7 +2,14 @@
  * Formatos das respostas da API do site, compartilhados entre o servidor e o navegador (só tipos: nada daqui
  * vai para o bundle do cliente).
  */
-import type { ApplicationMessage, PostProcessingSettings, ProcessedJob, ScraperSettings, SettingsKey } from '@shared/contracts'
+import type {
+	ApplicationMessage,
+	ContractType,
+	PostProcessingSettings,
+	ProcessedJob,
+	ScraperSettings,
+	SettingsKey,
+} from '@shared/contracts'
 import type { ScraperRunStatus, ScraperRunTerm, ScraperRunTrigger } from '@shared/database'
 
 /** Vaga salva: o cargo nunca falta (o storage descarta as que vêm sem) e `createdAt` é quando entrou no sistema. */
@@ -14,6 +21,8 @@ export type JobFacets = {
 	total: number
 	/** Quantidade por modalidade; `none` são as vagas sem modalidade. */
 	workModes: Record<NonNullable<ProcessedJob['workMode']> | 'none', number>
+	/** Quantidade por regime (uma vaga com dois regimes conta nos dois); `none` são as vagas sem regime. */
+	contractTypes: Record<ContractType | 'none', number>
 	skills: { name: string; count: number }[]
 }
 

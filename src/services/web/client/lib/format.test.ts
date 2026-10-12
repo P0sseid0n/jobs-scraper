@@ -1,6 +1,16 @@
 import { describe, expect, test } from 'bun:test'
 
-import { formatDuration, formatInterval, isLoginFailure, jobSubtitle, languageLabel, safeLink, timeAgo, workModeOf } from './format'
+import {
+	contractTypesLabel,
+	formatDuration,
+	formatInterval,
+	isLoginFailure,
+	jobSubtitle,
+	languageLabel,
+	safeLink,
+	timeAgo,
+	workModeOf,
+} from './format'
 
 describe('jobSubtitle', () => {
 	test('empresa · local, sem rótulos vazios', () => {
@@ -17,6 +27,13 @@ describe('jobSubtitle', () => {
 test('modalidade com rótulo e a cor do Discord', () => {
 	expect(workModeOf({ workMode: 'hibrido' })).toEqual({ label: 'Híbrido', color: '#3498db' })
 	expect(workModeOf({ workMode: null }).label).toBe('Sem modalidade')
+})
+
+test('regime: um ou os dois que o post aceita; nada quando o post não diz', () => {
+	expect(contractTypesLabel({ contractTypes: ['pj'] })).toBe('PJ')
+	expect(contractTypesLabel({ contractTypes: ['clt', 'pj'] })).toBe('CLT ou PJ')
+	expect(contractTypesLabel({ contractTypes: ['estagio'] })).toBe('Estágio')
+	expect(contractTypesLabel({ contractTypes: null })).toBeNull()
 })
 
 test('timeAgo relativo em português', () => {

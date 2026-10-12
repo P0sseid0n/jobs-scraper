@@ -8,6 +8,7 @@ import { cx } from '../lib/cx'
 import { jobDate, jobSubtitle, languageLabel, safeLink, timeAgo } from '../lib/format'
 import { useCvFor, useGeneratedMessage } from '../stores/cv'
 import { copyText, notify } from '../stores/toast'
+import { ContractTypeBadge } from './ContractTypeBadge'
 import { CvButton } from './CvButton'
 import { Icon } from './Icon'
 import { WorkModeBadge } from './WorkModeBadge'
@@ -61,7 +62,10 @@ function JobDetailContent({ job }: { job: WebJob }) {
 		<div className="job-detail">
 			<header className="stack-sm">
 				<div className="row-between">
-					<WorkModeBadge job={job} />
+					<div className="job-badges">
+						<WorkModeBadge job={job} />
+						<ContractTypeBadge job={job} />
+					</div>
 					<time className="mono muted small" dateTime={jobDate(job)}>
 						publicada {timeAgo(jobDate(job))}
 					</time>

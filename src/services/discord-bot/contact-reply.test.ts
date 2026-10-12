@@ -15,6 +15,7 @@ const job: ProcessedJob = {
 	necessaryKnowledge: ['Vue.js', 'TypeScript'],
 	recruiterEmail: 'rh@citiustech.com',
 	workMode: 'hibrido',
+	contractTypes: null,
 	aiJobConfidence: 85,
 	postedAt: '2026-10-07T17:18:50.712Z',
 	author: 'Mandar Wairkar',
