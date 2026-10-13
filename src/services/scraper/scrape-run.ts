@@ -11,7 +11,7 @@ import { collectNewPosts, loadMorePosts, type ScrapedPost } from './feed-reader'
 import { cleanPostText } from './linkedin/post-text'
 import { postedAtFromUrn, postUrlFromUrn, resolvePostUrn } from './linkedin/post-urn'
 import { SELECTORS } from './linkedin/selectors'
-import { buildSearchUrl, LOGIN_URL } from './linkedin/urls'
+import { buildSearchUrl, externalLink, LOGIN_URL } from './linkedin/urls'
 import { ensureLoggedIn, LoginError, loginOptionsFrom } from './login'
 import { hashPost } from './post-id'
 import { postsPerTerm } from './schedule'
@@ -189,6 +189,7 @@ function toRawPost(post: ScrapedPost): RawPost | null {
 		scrapedAt: new Date().toISOString(),
 		sourcePostId: null,
 		jobLink: null,
+		attachedLink: externalLink(post.cardLinks),
 	}
 }
 

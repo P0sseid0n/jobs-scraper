@@ -36,6 +36,7 @@ export function lookupToRawPost(lookup: JobLookup, page: ListingPage | null): Ra
 		postedAt: lookup.postedAt,
 		scrapedAt: new Date().toISOString(),
 		sourcePostId: lookup.sourcePostId,
+		attachedLink: null,
 	}
 }
 

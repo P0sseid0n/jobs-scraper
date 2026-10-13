@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { buildSearchUrl, canonicalJobUrl, isAuthPage, isCheckpointPage, safetyRedirectTarget } from './urls'
+import { buildSearchUrl, canonicalJobUrl, externalLink, isAuthPage, isCheckpointPage, safetyRedirectTarget } from './urls'
 
 describe('buildSearchUrl', () => {
 	test('busca de posts com filtro de data e ordenação', () => {
@@ -57,5 +57,32 @@ describe('safetyRedirectTarget', () => {
 		)
 		expect(safetyRedirectTarget('https://www.linkedin.com/jobs/view/1/')).toBeNull()
 		expect(safetyRedirectTarget('https://empresa.com/safety/go?url=x')).toBeNull()
+	})
+})
+
+describe('externalLink', () => {
+	test('tira o aviso de link externo do LinkedIn (cartão de pré-visualização)', () => {
+		const card =
+			'https://www.linkedin.com/safety/go/?url=http%3A%2F%2Fvagasbr%2Eempregonaweb%2Ecom%2Fbanco-de-talentos%2F&urlhash=x&isSdui=true'
+
+		expect(externalLink(['https://www.linkedin.com/company/vagas-brs/', card])).toBe(
+			'http://vagasbr.empregonaweb.com/banco-de-talentos/',
+		)
+	})
+
+	test('aceita link direto para fora e o encurtador lnkd.in', () => {
+		expect(externalLink(['https://empresa.com/vagas/1'])).toBe('https://empresa.com/vagas/1')
+		expect(externalLink(['https://lnkd.in/dVZKNZdw'])).toBe('https://lnkd.in/dVZKNZdw')
+	})
+
+	test('ignora links internos do LinkedIn e o que não é http', () => {
+		expect(
+			externalLink([
+				'https://www.linkedin.com/in/fulano/',
+				'https://www.linkedin.com/feed/hashtag/vagas',
+				'mailto:rh@empresa.com',
+				'nao é url',
+			]),
+		).toBeNull()
 	})
 })

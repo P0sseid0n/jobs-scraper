@@ -39,8 +39,9 @@ export function buildProcessedJob(post: RawPost, aiJob: AiJobOutput, language: s
 		title: aiJob.title,
 		company: aiJob.company,
 		location: locationWithoutWorkMode(aiJob.location),
-		// O da lista (vaga de um post com várias) tem prioridade; o da IA só vale se estiver escrito no texto
-		applyLink: post.jobLink ?? keepLinkIfInPost(aiJob.link, normalizePostText(post.text)),
+		// O da lista (vaga de um post com várias) tem prioridade; o da IA só vale se estiver escrito no texto; sem nenhum,
+		// o do cartão anexado (reposts de sites de vagas, com o texto cortado)
+		applyLink: post.jobLink ?? keepLinkIfInPost(aiJob.link, normalizePostText(post.text)) ?? post.attachedLink,
 		// Só os conhecimentos escritos no post: o modelo às vezes completa com tecnologias "típicas" do cargo
 		necessaryKnowledge: keepSkillsInPost(aiJob.necessary_knowledge, post.text),
 		recruiterEmail: aiJob.recruiter_email,

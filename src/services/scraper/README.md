@@ -1,6 +1,6 @@
 # 🕷️ scraper
 
-Busca posts de vagas no LinkedIn com o Puppeteer e envia cada um para a fila `post-processing`. O `postId` de cada post é o URN dele no LinkedIn; posts sem URN são pulados, porque sem ele não há link. Na mesma coleta, um hash do texto evita mandar duas vezes o mesmo post.
+Busca posts de vagas no LinkedIn com o Puppeteer e envia cada um para a fila `post-processing`. O `postId` de cada post é o URN dele no LinkedIn; posts sem URN são pulados, porque sem ele não há link. Na mesma coleta, um hash do texto evita mandar duas vezes o mesmo post. Junto com o texto vai o link do cartão anexado ao post (pré-visualização de um site), sem o aviso de link externo do LinkedIn (`/safety/go`): em reposts de sites de vagas o texto vem cortado e é esse link que leva à vaga.
 
 [← voltar ao README principal](../../../README.md)
 

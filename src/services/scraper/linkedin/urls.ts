@@ -37,6 +37,20 @@ export function safetyRedirectTarget(url: string) {
 	return parsed.searchParams.get('url')
 }
 
+/**
+ * O primeiro link para fora do LinkedIn entre os do card (ex.: o cartão de pré-visualização de um site), já sem o
+ * aviso de link externo; `null` se não houver. Links internos (perfil, empresa, hashtag, o próprio post) não contam.
+ */
+export function externalLink(hrefs: string[]) {
+	for (const href of hrefs) {
+		if (!URL.canParse(href)) continue
+
+		const target = isLinkedInUrl(href) ? safetyRedirectTarget(href) : href
+		if (target && /^https?:\/\//i.test(target)) return target
+	}
+	return null
+}
+
 export function buildSearchUrl(opts: { keywords: string; datePosted: DatePostedFilter }) {
 	// O LinkedIn espera os valores dos filtros entre aspas, ex.: datePosted="past-24h"
 	const params = new URLSearchParams({ keywords: opts.keywords, sortBy: '"date_posted"' })

@@ -8,6 +8,9 @@ export type ScrapedPost = {
 
 	text: string
 	author: string | null
+
+	/** Links do card fora do texto (o cartão anexado, entre outros); `externalLink` escolhe o que vale. */
+	cardLinks: string[]
 }
 
 const SCRAPED_ATTRIBUTE = 'data-jobs-scraped'
@@ -19,7 +22,7 @@ const SCRAPED_ATTRIBUTE = 'data-jobs-scraped'
 export function collectNewPosts(page: Page): Promise<ScrapedPost[]> {
 	return page.evaluate(
 		(selectors, scrapedAttribute) => {
-			const results: { urnCandidates: string[]; text: string; author: string | null }[] = []
+			const results: { urnCandidates: string[]; text: string; author: string | null; cardLinks: string[] }[] = []
 
 			// Posts compartilhados contêm o post original dentro: fica só com o card mais externo
 			let containers = Array.from(document.querySelectorAll<HTMLElement>(selectors.post))
@@ -53,7 +56,12 @@ export function collectNewPosts(page: Page): Promise<ScrapedPost[]> {
 					.map(link => link.innerText.trim().split('\n')[0]?.trim())
 					.find(Boolean)
 
-				results.push({ urnCandidates, text, author: author || null })
+				// Os links do texto a IA já lê; os de fora dele incluem o do cartão anexado (pré-visualização de um site)
+				const cardLinks = Array.from(container.querySelectorAll<HTMLAnchorElement>('a[href]'))
+					.filter(link => !textElement?.contains(link))
+					.map(link => link.href)
+
+				results.push({ urnCandidates, text, author: author || null, cardLinks })
 			}
 
 			return results
