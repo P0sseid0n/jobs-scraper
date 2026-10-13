@@ -10,7 +10,7 @@ import type {
 	ScraperSettings,
 	SettingsKey,
 } from '@shared/contracts'
-import type { ScraperRunStatus, ScraperRunTrigger } from '@shared/database'
+import type { ScraperRunStatus, ScraperRunTrigger, SeenPostOutcome } from '@shared/database'
 
 /** Vaga salva: o cargo nunca falta (o post-processing descarta as que vêm sem) e `createdAt` é quando entrou no sistema. */
 export type WebJob = Omit<ProcessedJob, 'title'> & { title: string; createdAt: string }
@@ -59,6 +59,11 @@ export type WebScraperRun = {
 	 * que não guardavam os posts enviados.
 	 */
 	newJobs: number | null
+	/**
+	 * O que o post-processing fez com os posts enviados (vaga salva ou o motivo do descarte) e quantos ainda estão na
+	 * fila; `null` nas coletas antigas.
+	 */
+	outcomes: { counts: Partial<Record<SeenPostOutcome | 'unknown', number>>; pending: number } | null
 	terms: WebScraperRunTerm[]
 	error: string | null
 }

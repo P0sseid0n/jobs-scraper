@@ -7,14 +7,17 @@ import { missingRequiredFields } from './job-validation'
 
 type Deps = { queue: QueueClient; logger: Logger }
 
-/** Salva a vaga (uma única vez) e publica o evento `job-published`, que cada canal (ex.: o discord-bot) recebe. */
+/**
+ * Salva a vaga (uma única vez) e publica o evento `job-published`, que cada canal (ex.: o discord-bot) recebe.
+ * @returns `false` se a vaga foi descartada por falta de campos obrigatórios.
+ */
 export async function saveJob(data: ProcessedJob, { queue, logger }: Deps) {
 	const log = logger.child({ postId: data.postId })
 
 	const missing = missingRequiredFields(data)
 	if (missing.length > 0) {
 		log.warn({ missing }, 'Vaga sem os campos obrigatórios, descartando')
-		return
+		return false
 	}
 
 	// Upsert idempotente: a mesma vaga nunca é salva duas vezes, mesmo se a mensagem for reprocessada
@@ -22,11 +25,12 @@ export async function saveJob(data: ProcessedJob, { queue, logger }: Deps) {
 
 	if (job.notifiedAt) {
 		log.info('Vaga já salva e anunciada anteriormente, ignorando')
-		return
+		return true
 	}
 
 	await announce(data, queue)
 	log.info('Vaga salva no MongoDB e publicada para os canais')
+	return true
 }
 
 /**

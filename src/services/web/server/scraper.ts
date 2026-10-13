@@ -1,7 +1,15 @@
 import { z } from 'zod'
 
 import type { ScraperCommand } from '@shared/contracts'
-import { Job, ScraperRun, type ScraperRunStatus, type ScraperRunTerm, type ScraperRunTrigger } from '@shared/database'
+import {
+	Job,
+	ScraperRun,
+	SeenPost,
+	type ScraperRunStatus,
+	type ScraperRunTerm,
+	type ScraperRunTrigger,
+	type SeenPostOutcome,
+} from '@shared/database'
 import { QUEUES, type QueueClient } from '@shared/messaging'
 
 import { nextRunAt } from '../../scraper/schedule'
@@ -84,11 +92,7 @@ async function toWebRun(doc: RunDocument): Promise<WebScraperRun> {
 	const tracked = terms.length > 0 && terms.every(term => term.postIds !== undefined)
 	const postIds = terms.flatMap(term => term.postIds ?? [])
 
-	const newJobs = !tracked
-		? null
-		: postIds.length === 0
-			? 0
-			: await Job.countDocuments({ $or: [{ postId: { $in: postIds } }, { sourcePostId: { $in: postIds } }] })
+	const [newJobs, outcomes] = tracked ? await Promise.all([countNewJobs(postIds), countOutcomes(postIds)]) : [null, null]
 
 	return {
 		id: String(doc._id),
@@ -99,7 +103,30 @@ async function toWebRun(doc: RunDocument): Promise<WebScraperRun> {
 		sent: doc.sent ?? 0,
 		skipped: terms.reduce((total, term) => total + (term.skipped ?? 0), 0),
 		newJobs,
+		outcomes,
 		terms: terms.map(term => ({ term: term.term, sent: term.sent ?? 0, skipped: term.skipped ?? 0, error: term.error ?? null })),
 		error: doc.error ?? null,
 	}
+}
+
+function countNewJobs(postIds: string[]) {
+	if (postIds.length === 0) return Promise.resolve(0)
+
+	return Job.countDocuments({ $or: [{ postId: { $in: postIds } }, { sourcePostId: { $in: postIds } }] })
+}
+
+/** Quantos posts tiveram cada destino no post-processing; os que ainda não passaram por ele estão na fila. */
+async function countOutcomes(postIds: string[]): Promise<NonNullable<WebScraperRun['outcomes']>> {
+	if (postIds.length === 0) return { counts: {}, pending: 0 }
+
+	const groups = await SeenPost.aggregate<{ _id: SeenPostOutcome | null; count: number }>([
+		{ $match: { postId: { $in: postIds } } },
+		{ $group: { _id: '$outcome', count: { $sum: 1 } } },
+	])
+
+	// Sem `outcome`: o post foi processado por uma versão anterior do post-processing
+	const counts = Object.fromEntries(groups.map(group => [group._id ?? 'unknown', group.count]))
+	const processed = groups.reduce((total, group) => total + group.count, 0)
+
+	return { counts, pending: postIds.length - processed }
 }

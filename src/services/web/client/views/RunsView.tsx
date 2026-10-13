@@ -13,6 +13,28 @@ import { notify } from '../stores/toast'
 
 const TRIGGERS: Record<WebScraperRun['trigger'], string> = { schedule: 'Agendada', manual: 'Manual', once: 'Execução única' }
 
+/** O que o post-processing fez com cada post, na ordem em que os filtros rodam. */
+const OUTCOMES: Record<keyof NonNullable<WebScraperRun['outcomes']>['counts'], string> = {
+	saved: 'viraram vaga',
+	'multi-job': 'listas de vagas (abertas uma a uma)',
+	language: 'idioma fora dos aceitos',
+	'job-seeker': 'candidato procurando vaga',
+	'not-a-job': 'não são vaga, segundo a IA',
+	'low-confidence': 'confiança da IA baixa',
+	keywords: 'fora das palavras-chave',
+	'missing-fields': 'sem cargo ou link do post',
+	unknown: 'processados por uma versão anterior',
+}
+
+// Não são descarte: as listas têm as vagas abertas à parte, e os posts sem destino registrado podem ter virado vaga
+const NOT_DISCARDED = new Set(['saved', 'multi-job', 'unknown'])
+
+/** Posts da coleta descartados pelo post-processing. */
+function discarded(run: WebScraperRun) {
+	const counts = run.outcomes?.counts ?? {}
+	return Object.entries(counts).reduce((total, [outcome, count]) => (NOT_DISCARDED.has(outcome) ? total : total + (count ?? 0)), 0)
+}
+
 const POLL_RUNNING_MS = 5_000
 const POLL_IDLE_MS = 30_000
 
@@ -66,7 +88,11 @@ function RunRows({ run, open, onToggle }: { run: WebScraperRun; open: boolean; o
 					{run.sent}
 					{run.skipped > 0 && <span className="muted xsmall"> · {run.skipped} já vistos</span>}
 				</td>
-				<td className="mono">{run.newJobs ?? '–'}</td>
+				<td className="mono">
+					{run.newJobs ?? '–'}
+					{discarded(run) > 0 && <span className="muted xsmall"> · {discarded(run)} descartados</span>}
+					{(run.outcomes?.pending ?? 0) > 0 && <span className="muted xsmall"> · {run.outcomes?.pending} na fila</span>}
+				</td>
 				<td className={cx('wrap-cell', (run.error || failedTerms > 0) && 'danger-text')}>
 					{run.error && run.status === 'failed'
 						? run.error
@@ -99,6 +125,25 @@ function RunRows({ run, open, onToggle }: { run: WebScraperRun; open: boolean; o
 								</li>
 							))}
 						</ul>
+						{run.outcomes && run.sent > 0 && (
+							<div className="stack-xs run-outcomes">
+								<span className="label">destino dos posts novos_</span>
+								<ul className="chips">
+									{(Object.keys(OUTCOMES) as (keyof typeof OUTCOMES)[])
+										.filter(outcome => run.outcomes?.counts[outcome])
+										.map(outcome => (
+											<li key={outcome} className={cx('chip', outcome === 'saved' && 'chip-ok')}>
+												<span className="mono">{run.outcomes?.counts[outcome]}</span> {OUTCOMES[outcome]}
+											</li>
+										))}
+									{run.outcomes.pending > 0 && (
+										<li className="chip">
+											<span className="mono">{run.outcomes.pending}</span> ainda na fila da IA
+										</li>
+									)}
+								</ul>
+							</div>
+						)}
 					</td>
 				</tr>
 			)}
