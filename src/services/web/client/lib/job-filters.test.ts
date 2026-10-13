@@ -21,6 +21,7 @@ const job: WebJob = {
 	sourcePostId: null,
 	postLink: 'https://www.linkedin.com/x',
 	rawContent: 'Vaga com Nuxt',
+	correctedAt: null,
 }
 
 const now = new Date('2026-10-10T12:00:00.000Z').getTime()

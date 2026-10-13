@@ -2,6 +2,7 @@ import { Types } from 'mongoose'
 import { z } from 'zod'
 
 import { CONTRACT_TYPES, WORK_MODES, type ProcessedJob } from '@shared/contracts'
+import type { JobCorrectionState, JobExtractionSource } from '@shared/database'
 
 import type { WebJob } from '../api-types'
 import { decodeCursor, type Cursor } from './http'
@@ -44,8 +45,15 @@ export const JobsQuerySchema = z.object({
 
 export type JobsQuery = z.output<typeof JobsQuerySchema>
 
-/** Vagas que a interface consegue mostrar: com `postId` (documentos antigos não têm) e cargo. */
-export const LISTABLE_JOBS = { postId: { $type: 'string' as const }, title: { $type: 'string' as const } }
+/**
+ * Vagas que a interface mostra: com `postId` (documentos antigos não têm) e cargo, e que não foram marcadas pelo
+ * site como "não é vaga".
+ */
+export const LISTABLE_JOBS = {
+	postId: { $type: 'string' as const },
+	title: { $type: 'string' as const },
+	notAJob: { $ne: true },
+}
 
 /** Monta o filtro do MongoDB para a lista de vagas (mais recentes primeiro, paginada por cursor). */
 export function buildJobsFilter(query: JobsQuery, now = new Date()) {
@@ -97,13 +105,14 @@ export function afterCursor(cursor: Cursor, field = 'createdAt') {
 
 /**
  * Documento da coleção `jobs` como o `lean()` devolve (com os timestamps do mongoose). Vagas salvas antes do
- * campo `contractTypes` não o têm.
+ * campo `contractTypes` e dos de correção não os têm.
  */
-export type JobDocument = Omit<ProcessedJob, 'title' | 'contractTypes'> & {
-	title: string | null
-	contractTypes?: ProcessedJob['contractTypes']
-	createdAt?: Date | null
-}
+export type JobDocument = Omit<ProcessedJob, 'title' | 'contractTypes'> &
+	Partial<JobExtractionSource & JobCorrectionState> & {
+		title: string | null
+		contractTypes?: ProcessedJob['contractTypes']
+		createdAt?: Date | null
+	}
 
 /** Converte o documento do MongoDB no formato da API (sem campos internos como `_id` e `notifiedAt`). */
 export function toWebJob(doc: JobDocument): WebJob {
@@ -125,6 +134,7 @@ export function toWebJob(doc: JobDocument): WebJob {
 		sourcePostId: doc.sourcePostId ?? null,
 		postLink: doc.postLink ?? null,
 		rawContent: doc.rawContent,
+		correctedAt: doc.correctedAt?.toISOString() ?? null,
 	}
 }
 

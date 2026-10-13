@@ -12,8 +12,11 @@ import type {
 } from '@shared/contracts'
 import type { ScraperRunStatus, ScraperRunTrigger, SeenPostOutcome } from '@shared/database'
 
-/** Vaga salva: o cargo nunca falta (o post-processing descarta as que vêm sem) e `createdAt` é quando entrou no sistema. */
-export type WebJob = Omit<ProcessedJob, 'title'> & { title: string; createdAt: string }
+/**
+ * Vaga salva: o cargo nunca falta (o post-processing descarta as que vêm sem), `createdAt` é quando entrou no sistema
+ * e `correctedAt`, quando foi corrigida pelo site pela última vez (`null` se nunca foi).
+ */
+export type WebJob = Omit<ProcessedJob, 'title'> & { title: string; createdAt: string; correctedAt: string | null }
 
 export type JobsPage = { jobs: WebJob[]; nextCursor: string | null }
 

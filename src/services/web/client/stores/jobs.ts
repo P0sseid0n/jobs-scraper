@@ -91,6 +91,23 @@ export function showIncoming() {
 	update({ jobs: [...fresh, ...jobs], incoming: [] })
 }
 
+/** Troca a vaga corrigida pelo site na lista (e nas que esperam para entrar), mantendo a posição. */
+export function replaceJob(job: WebJob) {
+	const { jobs, incoming } = jobsStore.get()
+	const swap = (list: WebJob[]) => list.map(item => (item.postId === job.postId ? job : item))
+
+	update({ jobs: swap(jobs), incoming: swap(incoming) })
+	void loadFacets()
+}
+
+/** Tira da lista a vaga marcada como "não é vaga" (o documento continua no banco). */
+export function removeJob(postId: string) {
+	const { jobs, incoming } = jobsStore.get()
+
+	update({ jobs: jobs.filter(job => job.postId !== postId), incoming: incoming.filter(job => job.postId !== postId) })
+	void loadFacets()
+}
+
 /** Muda os filtros; a lista recarrega 250 ms depois da última mudança. */
 export function setFilters(patch: Partial<JobFilters>) {
 	const current = jobsStore.get().filters

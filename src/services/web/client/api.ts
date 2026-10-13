@@ -1,3 +1,5 @@
+import type { JobCorrectionInput } from '@shared/contracts'
+
 import type {
 	ApiError,
 	JobFacets,
@@ -71,6 +73,9 @@ export const api = {
 	jobs: (filters: JobFilters, cursor?: string | null) => request<JobsPage>(`/api/jobs?${jobsQueryString(filters, cursor)}`),
 	facets: () => request<JobFacets>('/api/jobs/facets'),
 	job: (postId: string) => request<WebJob>(`/api/jobs/${encodeURIComponent(postId)}`),
+	/** Corrige campos da vaga ou a marca como "não é vaga"; devolve a vaga atualizada. */
+	correctJob: (postId: string, correction: JobCorrectionInput) =>
+		request<WebJob>(`/api/jobs/${encodeURIComponent(postId)}`, { method: 'PATCH', body: JSON.stringify(correction) }),
 	/** O documento da vaga no MongoDB, para depuração. */
 	rawJob: (postId: string) => request<Record<string, unknown>>(`/api/jobs/${encodeURIComponent(postId)}/raw`),
 

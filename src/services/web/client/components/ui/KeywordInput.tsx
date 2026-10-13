@@ -6,12 +6,16 @@ import { badge } from './Badge'
 import { IconButton } from './IconButton'
 import { field, FOCUS_WITHIN } from './Input'
 
-/** Campo de chips: digite e Enter (ou vírgula) para adicionar; Backspace no campo vazio remove o último. */
+/**
+ * Campo de chips: digite e Enter (ou vírgula) para adicionar; Backspace no campo vazio remove o último. Com
+ * `keepCase`, mantém a grafia digitada ("Vue.js") e só evita repetir sem diferenciar maiúsculas.
+ */
 export function KeywordInput({
 	id,
 	value,
 	max,
 	maxLength = 50,
+	keepCase = false,
 	invalid = false,
 	describedBy,
 	onChange,
@@ -20,6 +24,7 @@ export function KeywordInput({
 	value: string[]
 	max: number
 	maxLength?: number
+	keepCase?: boolean
 	invalid?: boolean
 	describedBy?: string
 	onChange: (value: string[]) => void
@@ -29,12 +34,13 @@ export function KeywordInput({
 	function add() {
 		const words = draft
 			.split(',')
-			.map(word => word.trim().toLowerCase())
+			.map(word => (keepCase ? word.trim() : word.trim().toLowerCase()))
 			.filter(Boolean)
 		const next = [...value]
 
 		for (const word of words) {
-			if (!next.includes(word) && next.length < max) next.push(word.slice(0, maxLength))
+			const known = next.some(item => item.toLowerCase() === word.toLowerCase())
+			if (!known && next.length < max) next.push(word.slice(0, maxLength))
 		}
 		if (next.length !== value.length) onChange(next)
 		setDraft('')

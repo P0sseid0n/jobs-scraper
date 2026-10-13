@@ -8,6 +8,7 @@ import { startService } from '@shared/service'
 import { loadSettings } from '@shared/settings'
 
 import { extractionEnv, listFromEnv } from './config'
+import { EXTRACTION_PROMPT_VERSION } from './extraction-prompt'
 import { buildProcessedJob, extractJobFromPost } from './job-extraction'
 import { relevanceRejection } from './job-relevance'
 import { resumeSavedJob, saveJob } from './job-store'
@@ -102,7 +103,11 @@ async function processPost(post: RawPost) {
 	}
 
 	log.info({ aiJobConfidence: job.aiJobConfidence, title: job.title }, 'Vaga estruturada')
-	const saved = await saveJob(job, { queue, logger })
+	const saved = await saveJob(
+		job,
+		{ queue, logger },
+		{ extractionModel: config.OLLAMA_MODEL, promptVersion: EXTRACTION_PROMPT_VERSION },
+	)
 	await markAsSeen(post, saved ? 'saved' : 'missing-fields')
 }
 

@@ -59,6 +59,16 @@ Every field must come from that same opening; never mix the title of one opening
 
 Never guess or invent values; use null when the information is not in the post. Copy emails and URLs exactly.`
 
+/**
+ * Versão do prompt: hash do texto e do formato pedidos ao modelo. Muda sozinha a cada edição do prompt, e é salva
+ * em cada vaga para comparar os erros corrigidos pelo site entre versões.
+ */
+export const EXTRACTION_PROMPT_VERSION = new Bun.CryptoHasher('sha256')
+	.update(SYSTEM_PROMPT)
+	.update(JSON.stringify(EXTRACTION_OUTPUT_FORMAT))
+	.digest('hex')
+	.slice(0, 12)
+
 export function buildExtractionMessages(post: { text: string; author: string | null }): Message[] {
 	return [
 		{ role: 'system', content: SYSTEM_PROMPT },

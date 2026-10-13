@@ -6,9 +6,12 @@ import type { WebJob } from '../../api-types'
 import { api, cvPdfUrl, RequestError } from '../api'
 import { cx } from '../lib/cx'
 import { jobDate, jobSubtitle, languageLabel, safeLink, timeAgo } from '../lib/format'
+import { navigate } from '../router'
 import { useCvFor, useGeneratedMessage } from '../stores/cv'
+import { removeJob, replaceJob } from '../stores/jobs'
 import { copyText, notify } from '../stores/toast'
 import { ContractTypeBadge } from './ContractTypeBadge'
+import { CorrectedBadge } from './CorrectedBadge'
 import { CvButton } from './CvButton'
 import { Icon } from './Icon'
 import { ReportJobDialog } from './ReportJobDialog'
@@ -33,11 +36,15 @@ const MESSAGE_TEXT = 'm-0 font-mono text-xs leading-relaxed whitespace-pre-wrap 
 
 /** Todos os dados da vaga, com as ações de candidatura (painel lateral no desktop, página própria no celular). */
 export function JobDetail({ job }: { job: WebJob }) {
+	// A vaga corrigida aqui vale mesmo que quem passou `job` (a lista, ou a vaga buscada pelo link) não a tenha
+	const [corrected, setCorrected] = useState<WebJob | null>(null)
+	const current = corrected?.postId === job.postId ? corrected : job
+
 	// Outra vaga começa do zero: post recolhido, sem o JSON da anterior e com a mensagem da IA
-	return <JobDetailContent key={job.postId} job={job} />
+	return <JobDetailContent key={job.postId} job={current} onCorrected={setCorrected} />
 }
 
-function JobDetailContent({ job }: { job: WebJob }) {
+function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job: WebJob) => void }) {
 	const [expanded, setExpanded] = useState(false)
 	const [reporting, setReporting] = useState(false)
 
@@ -80,6 +87,7 @@ function JobDetailContent({ job }: { job: WebJob }) {
 					<div className="flex flex-wrap items-center gap-1.5">
 						<WorkModeBadge job={job} />
 						<ContractTypeBadge job={job} />
+						<CorrectedBadge job={job} />
 					</div>
 					<div className="flex items-center">
 						<time className="font-mono text-muted text-sm whitespace-nowrap" dateTime={jobDate(job)}>
@@ -102,7 +110,22 @@ function JobDetailContent({ job }: { job: WebJob }) {
 				{jobSubtitle(job) && <p className="text-muted">{jobSubtitle(job)}</p>}
 				{job.author && (job.company || job.location) && <p className="font-mono text-muted text-sm">postado por {job.author}</p>}
 			</header>
-			{reporting && <ReportJobDialog job={job} onClose={() => setReporting(false)} />}
+			{reporting && (
+				<ReportJobDialog
+					job={job}
+					onClose={() => setReporting(false)}
+					onCorrected={saved => {
+						onCorrected(saved)
+						replaceJob(saved)
+						// O JSON aberto mostraria o documento de antes da correção
+						setRawJson(null)
+					}}
+					onRemoved={() => {
+						removeJob(job.postId)
+						navigate('/', { replace: true })
+					}}
+				/>
+			)}
 
 			{job.necessaryKnowledge && (
 				<BadgeList aria-label="Tecnologias">

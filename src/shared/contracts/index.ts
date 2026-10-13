@@ -1,5 +1,6 @@
 export * from './cv'
 export * from './job'
+export * from './job-correction'
 export * from './job-lookup'
 export * from './raw-post'
 export * from './scraper-command'

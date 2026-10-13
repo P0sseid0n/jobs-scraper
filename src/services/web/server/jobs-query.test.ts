@@ -109,6 +109,7 @@ describe('toWebJob', () => {
 			necessaryKnowledge: null,
 			contractTypes: null,
 			createdAt: NOW.toISOString(),
+			correctedAt: null,
 		})
 	})
 

@@ -6,6 +6,7 @@ import { jobDate, jobSubtitle, safeLink, timeAgo } from '../lib/format'
 import { jobPath, onLinkClick } from '../router'
 import { useUnseen } from '../stores/seen'
 import { ContractTypeBadge } from './ContractTypeBadge'
+import { CorrectedBadge } from './CorrectedBadge'
 import { CvButton } from './CvButton'
 import { Icon } from './Icon'
 import { badge, BadgeList } from './ui/Badge'
@@ -61,6 +62,7 @@ export function JobCard({
 				</a>
 				<div className="flex shrink-0 flex-col items-end gap-1.5">
 					<div className="flex flex-wrap items-center gap-1.5">
+						<CorrectedBadge job={job} />
 						<ContractTypeBadge job={job} />
 						<WorkModeBadge job={job} />
 					</div>
