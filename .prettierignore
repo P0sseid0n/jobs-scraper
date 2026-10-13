@@ -5,3 +5,6 @@ bun.lock
 src/services/post-processing/fixtures
 # Gerado pelo TanStack Router (`bun routes`)
 src/services/web/client/routeTree.gen.ts
+# Gerado por `bun design-system`
+src/services/web/design-system/dist
+src/services/web/design-system/previews

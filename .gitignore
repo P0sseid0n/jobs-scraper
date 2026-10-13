@@ -5,3 +5,7 @@ node_modules
 
 # Dados de execução: currículo pessoal, PDFs gerados, caches e sessão do LinkedIn
 data/
+
+# Gerado por `bun design-system`
+src/services/web/design-system/dist/
+src/services/web/design-system/previews/

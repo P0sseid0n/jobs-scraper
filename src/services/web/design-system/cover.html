@@ -1,0 +1,100 @@
+<!-- @dsCard height=288 -->
+<!doctype html>
+<html lang="pt-BR">
+	<head>
+		<meta charset="utf-8" />
+		<title>Capa</title>
+		<style>
+			html,
+			body {
+				margin: 0;
+				background: var(--color-bg);
+			}
+			.cover {
+				position: relative;
+				width: 960px;
+				height: 288px;
+				overflow: hidden;
+				font-family: var(--font-sans);
+			}
+			.name {
+				position: absolute;
+				left: 40px;
+				bottom: 40px;
+				width: 440px;
+			}
+			.name h1 {
+				margin: 0;
+				font-size: 88px;
+				line-height: 0.95;
+				font-weight: 700;
+				letter-spacing: -0.025em;
+				color: var(--color-ink);
+			}
+			.name p {
+				margin: 16px 0 0;
+				font-size: 14px;
+				line-height: 20px;
+				color: var(--color-muted);
+			}
+			svg {
+				position: absolute;
+				left: 480px;
+				top: 0;
+			}
+			.lime {
+				fill: var(--color-lime);
+			}
+			.ink {
+				fill: var(--color-inv-bg);
+			}
+			.soft {
+				fill: var(--color-lime-soft);
+			}
+			.surface {
+				fill: var(--color-surface);
+				stroke: var(--color-line);
+				stroke-width: 1;
+			}
+			.dot {
+				fill: var(--color-lime);
+			}
+			.dot-ok {
+				fill: var(--color-ok-dot);
+			}
+			.dot-muted {
+				fill: var(--color-muted-dot);
+			}
+			.bar {
+				fill: var(--color-inv-muted);
+			}
+		</style>
+	</head>
+	<body>
+		<div class="cover">
+			<!--
+		blocos: color-lime (pill 304×120), color-inv-bg (painel 240×176, radius-xl, com linhas em color-inv-muted), color-lime-soft (pill 168×64), color-surface com color-line (pills 176×64 e 128×64)
+		arranjo: a pill lime sangra pela direita no alto; o painel invertido embaixo, com as pills de filtro empilhadas ao lado
+		padrão: pills e pontos de status, porque a interface inteira é feita de cápsulas (radius-pill em botões, pills e badges) e de StatusDot
+		escalas: passos de 16px (spacing × 4), radius-pill (metade do lado curto), radius-xl 18px, pontos de 8px (o StatusDot)
+	-->
+			<svg width="480" height="288" viewBox="0 0 480 288" aria-hidden="true">
+				<rect class="lime" x="200" y="-24" width="304" height="120" rx="60" />
+				<rect class="ink" x="16" y="128" width="240" height="176" rx="18" />
+				<rect class="soft" x="16" y="32" width="168" height="64" rx="32" />
+				<rect class="surface" x="272" y="128" width="176" height="64" rx="32" />
+				<rect class="surface" x="272" y="208" width="128" height="64" rx="32" />
+				<circle class="dot" cx="56" cy="168" r="8" />
+				<circle class="dot-ok" cx="88" cy="168" r="8" />
+				<circle class="dot-muted" cx="120" cy="168" r="8" />
+				<rect class="bar" x="48" y="200" width="176" height="16" rx="8" />
+				<rect class="bar" x="48" y="232" width="112" height="16" rx="8" />
+				<circle class="dot" cx="304" cy="160" r="8" />
+			</svg>
+			<div class="name">
+				<h1>jobs-<br />scraper</h1>
+				<p>Vagas de front-end coletadas do LinkedIn e lidas por uma IA.</p>
+			</div>
+		</div>
+	</body>
+</html>

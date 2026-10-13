@@ -1,0 +1,41 @@
+/*
+ * O CSS do design system do Claude Design (o bundle.css): o tailwind.css do site inteiro (tokens, preflight, utilities e as classes
+ * que o cliente usa), mais utilitários comuns da escala padrão para o layout das telas do canvas.
+ */
+/* As fontes do site (no site, o <link> do index.html) */
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap');
+@import '../client/tailwind.css';
+
+/* As classes das prévias (previews/, geradas pelo make-previews.ts) */
+@source './previews';
+
+/* Layout */
+@source inline("{max-md:,md:,lg:,}{flex,inline-flex,grid,block,inline-block,hidden,contents}");
+@source inline("{max-md:,md:,lg:,}{flex-col,flex-row,flex-wrap,flex-1,grow,shrink-0,min-w-0}");
+@source inline("{max-md:,md:,lg:,}{items,justify,self,content}-{start,center,end,between,stretch,baseline}");
+@source inline("{max-md:,md:,lg:,}grid-cols-{1..6}");
+@source inline("{max-md:,md:,lg:,}col-span-{1..6}");
+@source inline("{max-md:,md:,lg:,}{gap,gap-x,gap-y,space-y,space-x}-{0,0.5,1,1.5,2,2.5,3,4,5,6,8,10,12,16}");
+@source inline("{max-md:,md:,}{p,px,py,pt,pb,pl,pr,m,mx,my,mt,mb,ml,mr}-{0,0.5,1,1.5,2,2.5,3,4,5,6,8,10,12,16,20,24}");
+@source inline("{mx,ml,mr,mt,m}-auto");
+@source inline("{w,h,min-h,max-w,size}-{full,screen,auto,fit,min,max}");
+@source inline("{w,h,size}-{1..12}");
+@source inline("{w,h}-{14,16,20,24,32,40,48,56,64,72,80,96}");
+@source inline("max-w-{xs,sm,md,lg,xl,2xl,3xl,4xl,5xl,6xl,7xl,prose}");
+@source inline("{relative,absolute,fixed,sticky,inset-0,top-0,bottom-0,left-0,right-0,z-10,z-20,z-50}");
+@source inline("overflow-{hidden,auto,x-auto,y-auto}");
+
+/* Texto */
+@source inline("{max-md:,md:,}text-{xs,sm,base,lg,xl,2xl,3xl,4xl,5xl}");
+@source inline("font-{normal,medium,semibold,bold,sans,mono}");
+@source inline("text-{left,center,right}");
+@source inline("{leading-tight,leading-snug,leading-normal,leading-relaxed,tracking-tight,tracking-wide,truncate,uppercase,whitespace-nowrap,break-words,tabular-nums}");
+
+/* Cores (só os tokens do projeto) */
+@source inline("{hover:,}{bg,text,border}-{bg,ink,surface,surface-2,line,line-strong,muted,lime,lime-ink,lime-soft,lime-text,lime-hover,ok,ok-bg,warn,warn-bg,danger,danger-bg,inv-bg,inv-ink,inv-muted,inv-line,focus}");
+@source inline("{divide,ring,outline}-{line,line-strong,lime,focus}");
+
+/* Bordas, raio, sombra e outros */
+@source inline("{border,border-0,border-2,border-t,border-b,border-l,border-r,border-dashed,divide-y,divide-x}");
+@source inline("rounded-{xs,sm,md,lg,xl,pill,none}");
+@source inline("{shadow-float,shadow-none,opacity-50,opacity-70,transition,transition-colors,cursor-pointer,select-none}");
