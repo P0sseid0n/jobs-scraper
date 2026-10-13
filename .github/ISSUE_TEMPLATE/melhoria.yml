@@ -15,7 +15,6 @@ body:
       options:
         - scraper
         - post-processing
-        - storage
         - discord-bot
         - cv-updater
         - web (site)

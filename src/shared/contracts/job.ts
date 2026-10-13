@@ -6,7 +6,7 @@ export const WORK_MODES = ['remoto', 'presencial', 'hibrido'] as const
 export const CONTRACT_TYPES = ['clt', 'pj', 'estagio', 'freelance'] as const
 export type ContractType = (typeof CONTRACT_TYPES)[number]
 
-/** Mensagem das filas `storage` e `discord`: vaga já estruturada. */
+/** Vaga já estruturada: salva pelo post-processing e enviada no evento `job-published`. */
 export const ProcessedJobSchema = z.object({
 	postId: z.string().min(1),
 	rawContent: z.string(),

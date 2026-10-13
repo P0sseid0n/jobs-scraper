@@ -1,6 +1,7 @@
 /** Filas do pipeline: cada uma tem o nome do serviço que a consome. */
 export const QUEUES = {
 	postProcessing: 'post-processing',
+	/** Legada: vagas enviadas ao antigo serviço storage; o post-processing esvazia e depois ela sai. */
 	storage: 'storage',
 	/** Vagas para o discord-bot publicar (ligada à exchange `job-published`). */
 	discord: 'discord',

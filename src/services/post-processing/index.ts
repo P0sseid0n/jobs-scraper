@@ -1,7 +1,7 @@
 import { Ollama } from 'ollama'
 
 import { ollamaEnv } from '@shared/config'
-import { RawPostSchema, type JobLookup, type RawPost } from '@shared/contracts'
+import { ProcessedJobSchema, RawPostSchema, type JobLookup, type RawPost } from '@shared/contracts'
 import { SeenPost } from '@shared/database'
 import { QUEUES } from '@shared/messaging'
 import { startService } from '@shared/service'
@@ -10,6 +10,7 @@ import { loadSettings } from '@shared/settings'
 import { extractionEnv, listFromEnv } from './config'
 import { buildProcessedJob, extractJobFromPost } from './job-extraction'
 import { relevanceRejection } from './job-relevance'
+import { resumeSavedJob, saveJob } from './job-store'
 import { rejectionReason } from './model-response'
 import { listingPostId, splitMultiJobPost, type JobListing } from './multi-job-post'
 import { checkPostLanguage } from './post-language'
@@ -32,20 +33,27 @@ const settingsSeed = {
 }
 await loadSettings('post-processing', settingsSeed)
 
-await queue.assertQueue(QUEUES.storage)
 await queue.assertQueue(QUEUES.scraperLookup)
 await queue.consume(QUEUES.postProcessing, RawPostSchema, processPost)
 
+// Esvazia a fila do antigo serviço storage (vagas enviadas antes da junção); remover na próxima versão
+await queue.consume(QUEUES.storage, ProcessedJobSchema, job => saveJob(job, { queue, logger }), { prefetch: 10 })
+
 /**
  * Post que lista várias vagas: pede ao scraper para abrir o link de cada uma. Senão, descarta o post se ele estiver
- * fora dos idiomas aceitos (sem chamar a IA), extrai a vaga e, se for uma vaga relevante (palavras-chave), envia ao
- * storage. Cada post é processado uma única vez.
+ * fora dos idiomas aceitos (sem chamar a IA), extrai a vaga e, se for uma vaga relevante (palavras-chave), salva no
+ * MongoDB e anuncia para os canais. Cada post é processado uma única vez.
  */
 async function processPost(post: RawPost) {
 	const log = logger.child({ postId: post.postId })
 
 	if (await SeenPost.exists({ postId: post.postId })) {
 		log.info('Post já processado anteriormente, ignorando')
+		return
+	}
+
+	if (await resumeSavedJob(post.postId, { queue, logger })) {
+		await markAsSeen(post, true)
 		return
 	}
 
@@ -83,8 +91,8 @@ async function processPost(post: RawPost) {
 	if (irrelevant) {
 		log.info({ reason: irrelevant, title: job.title }, 'Vaga descartada')
 	} else {
-		await queue.publish(QUEUES.storage, job)
-		log.info({ aiJobConfidence: job.aiJobConfidence, title: job.title }, 'Vaga estruturada enviada para o storage')
+		log.info({ aiJobConfidence: job.aiJobConfidence, title: job.title }, 'Vaga estruturada')
+		await saveJob(job, { queue, logger })
 	}
 
 	await markAsSeen(post, true)

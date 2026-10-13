@@ -132,22 +132,6 @@ services:
     healthcheck: *app-healthcheck
     restart: unless-stopped
 
-  storage:
-    profiles: [app]
-    build:
-      context: .
-      target: app
-    command: ['bun', 'src/services/storage/index.ts']
-    env_file: .env
-    environment: *app-env
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      mongo:
-        condition: service_healthy
-    healthcheck: *app-healthcheck
-    restart: unless-stopped
-
   discord-bot:
     profiles: [app]
     build:

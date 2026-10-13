@@ -33,7 +33,7 @@ await queue.consume(
 	QUEUES.web,
 	ProcessedJobSchema,
 	async job => {
-		// O storage salva antes de publicar: o documento traz o `createdAt`
+		// O post-processing salva antes de publicar: o documento traz o `createdAt`
 		const saved = await Job.findOne({ postId: job.postId }).lean<JobDocument>()
 		events.broadcast('job', toWebJob(saved ?? job))
 	},
