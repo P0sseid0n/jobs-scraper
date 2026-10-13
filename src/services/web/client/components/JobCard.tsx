@@ -9,6 +9,7 @@ import { ContractTypeBadge } from './ContractTypeBadge'
 import { CvButton } from './CvButton'
 import { Icon } from './Icon'
 import { WorkModeBadge } from './WorkModeBadge'
+import { Button } from './ui/Button'
 
 const VISIBLE_SKILLS = 4
 
@@ -90,17 +91,17 @@ export function JobCard({
 				</span>
 				{/* A candidatura: o site da vaga ou, sem site nem e-mail, o post (o link do post para conferir fica no detalhe) */}
 				{applyLink ? (
-					<a className="btn btn-ghost" href={applyLink} target="_blank" rel="noopener noreferrer">
+					<Button variant="ghost" href={applyLink} target="_blank" rel="noopener noreferrer">
 						<Icon name="external" size={14} />
 						candidatar-se
-					</a>
+					</Button>
 				) : (
 					postLink &&
 					!job.recruiterEmail && (
-						<a className="btn btn-ghost" href={postLink} target="_blank" rel="noopener noreferrer">
+						<Button variant="ghost" href={postLink} target="_blank" rel="noopener noreferrer">
 							<Icon name="external" size={14} />
 							abrir post
-						</a>
+						</Button>
 					)
 				)}
 				<CvButton job={job} />

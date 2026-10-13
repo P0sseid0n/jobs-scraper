@@ -7,6 +7,8 @@ import { jobPath, navigate } from '../router'
 import { dismissCv, requestCv, useTrayRequests } from '../stores/cv'
 import { notify } from '../stores/toast'
 import { Icon } from './Icon'
+import { Button } from './ui/Button'
+import { IconButton } from './ui/IconButton'
 
 const STATUS_TEXT: Record<WebCvRequest['status'], string> = {
 	pending: 'gerando · até ~1 min',
@@ -59,24 +61,23 @@ export function CvTray() {
 								</div>
 							</div>
 							{item.status === 'ready' && (
-								<a className="btn btn-tray" href={cvPdfUrl(item.requestId, true)} download={item.fileName ?? undefined}>
+								<Button variant="tray" href={cvPdfUrl(item.requestId, true)} download={item.fileName ?? undefined}>
 									baixar
-								</a>
+								</Button>
 							)}
 							{item.status === 'failed' && (
-								<button type="button" className="btn btn-tray" onClick={() => retry(item)}>
+								<Button variant="tray" onClick={() => retry(item)}>
 									tentar de novo
-								</button>
+								</Button>
 							)}
 							{item.status !== 'pending' && (
-								<button
-									type="button"
-									className="icon-btn tray-close"
-									aria-label="Dispensar"
+								<IconButton
+									label="Dispensar"
+									className="tray-close"
 									onClick={() => dismissCv(item.requestId)}
 								>
 									<Icon name="close" size={14} />
-								</button>
+								</IconButton>
 							)}
 						</li>
 					))}

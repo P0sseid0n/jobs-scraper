@@ -5,6 +5,8 @@ import { isJobRouteId } from '../../job-route-id'
 import { Icon } from '../components/Icon'
 import { JobCard, JobCardSkeleton } from '../components/JobCard'
 import { JobDetail } from '../components/JobDetail'
+import { Button } from '../components/ui/Button'
+import { Pill } from '../components/ui/Pill'
 import { cx } from '../lib/cx'
 import { CONTRACT_TYPES, LANGUAGE_NAMES, WORK_MODES } from '../lib/format'
 import { hasActiveFilters } from '../lib/job-filters'
@@ -64,15 +66,13 @@ function Filters({ open }: { open: boolean }) {
 				<legend className="label">período_</legend>
 				<div className="pills">
 					{PERIODS.map(([value, label]) => (
-						<button
-							type="button"
+						<Pill
 							key={value}
-							className="pill"
-							aria-pressed={filters.since === value}
+							pressed={filters.since === value}
 							onClick={() => setFilters({ since: value })}
 						>
 							{label}
-						</button>
+						</Pill>
 					))}
 				</div>
 			</fieldset>
@@ -81,17 +81,16 @@ function Filters({ open }: { open: boolean }) {
 				<legend className="label">modalidade_</legend>
 				<div className="stack-xs">
 					{(Object.keys(WORK_MODES) as (keyof typeof WORK_MODES)[]).map(mode => (
-						<button
-							type="button"
+						<Pill
 							key={mode}
-							className="pill pill-row"
-							aria-pressed={filters.workMode.includes(mode)}
+							shape="row"
+							pressed={filters.workMode.includes(mode)}
 							onClick={() => setFilters({ workMode: toggled(filters.workMode, mode) })}
 						>
 							<span className="dot" style={{ background: WORK_MODES[mode].color }} />
 							<span className="grow">{WORK_MODES[mode].label}</span>
 							{facets && <span className="mono xsmall count">{facets.workModes[mode]}</span>}
-						</button>
+						</Pill>
 					))}
 				</div>
 			</fieldset>
@@ -100,15 +99,13 @@ function Filters({ open }: { open: boolean }) {
 				<legend className="label">regime_</legend>
 				<div className="pills">
 					{(Object.keys(CONTRACT_TYPES) as (keyof typeof CONTRACT_TYPES)[]).map(type => (
-						<button
-							type="button"
+						<Pill
 							key={type}
-							className="pill"
-							aria-pressed={filters.contractType.includes(type)}
+							pressed={filters.contractType.includes(type)}
 							onClick={() => setFilters({ contractType: toggled(filters.contractType, type) })}
 						>
 							{CONTRACT_TYPES[type]} {facets && <span className="mono count">{facets.contractTypes[type]}</span>}
-						</button>
+						</Pill>
 					))}
 				</div>
 			</fieldset>
@@ -118,35 +115,31 @@ function Filters({ open }: { open: boolean }) {
 					<legend className="label">tecnologias_</legend>
 					<div className="pills">
 						{selectedSkills.map(skill => (
-							<button
-								type="button"
+							<Pill
 								key={skill}
-								className="pill"
-								aria-pressed="true"
+								pressed
 								onClick={() => setFilters({ skills: toggled(filters.skills, skill) })}
 							>
 								{skill}
-							</button>
+							</Pill>
 						))}
 						{visibleSkills.map(skill => {
 							const current = filters.skills.find(item => item.toLowerCase() === skill.name.toLowerCase())
 
 							return (
-								<button
-									type="button"
+								<Pill
 									key={skill.name}
-									className="pill"
-									aria-pressed={current !== undefined}
+									pressed={current !== undefined}
 									onClick={() => setFilters({ skills: toggled(filters.skills, current ?? skill.name) })}
 								>
 									{skill.name} <span className="mono count">{skill.count}</span>
-								</button>
+								</Pill>
 							)
 						})}
 						{skills.length > VISIBLE_SKILL_FILTERS && (
-							<button type="button" className="pill pill-dashed" onClick={() => setAllSkills(!allSkills)}>
+							<Pill shape="dashed" onClick={() => setAllSkills(!allSkills)}>
 								{allSkills ? 'menos' : `+ ${skills.length - VISIBLE_SKILL_FILTERS}`}
-							</button>
+							</Pill>
 						)}
 					</div>
 				</fieldset>
@@ -190,9 +183,9 @@ function Filters({ open }: { open: boolean }) {
 			</div>
 
 			{hasActiveFilters(filters) && (
-				<button type="button" className="btn btn-ghost" onClick={clearFilters}>
+				<Button variant="ghost" onClick={clearFilters}>
 					limpar filtros
-				</button>
+				</Button>
 			)}
 		</aside>
 	)
@@ -211,9 +204,9 @@ function JobList({ selectedId, onSelect }: { selectedId: string | null; onSelect
 				<Icon name="alert" size={22} />
 				<p className="strong">Não consegui carregar as vagas</p>
 				<p className="muted small">{error}</p>
-				<button type="button" className="btn btn-lime" onClick={loadJobs}>
+				<Button variant="lime" onClick={loadJobs}>
 					tentar de novo
-				</button>
+				</Button>
 			</div>
 		)
 	}
@@ -223,17 +216,17 @@ function JobList({ selectedId, onSelect }: { selectedId: string | null; onSelect
 			<div className="card empty">
 				<p className="strong">Nenhuma vaga com esses filtros</p>
 				<p className="muted small">Tente outra busca ou volte a mostrar todas as vagas.</p>
-				<button type="button" className="btn btn-lime" onClick={clearFilters}>
+				<Button variant="lime" onClick={clearFilters}>
 					limpar filtros
-				</button>
+				</Button>
 			</div>
 		) : (
 			<div className="card empty">
 				<p className="strong">Nenhuma vaga ainda</p>
 				<p className="muted small">Rode uma coleta: as vagas aparecem aqui assim que a IA terminar de ler os posts.</p>
-				<a className="btn btn-lime" href="/coletas" onClick={onLinkClick}>
+				<Button variant="lime" href="/coletas" onClick={onLinkClick}>
 					ir para coletas
-				</a>
+				</Button>
 			</div>
 		)
 	}
@@ -245,9 +238,9 @@ function JobList({ selectedId, onSelect }: { selectedId: string | null; onSelect
 			))}
 			{nextCursor ? (
 				<div ref={observeEnd} className="load-more">
-					<button type="button" className="btn btn-ghost" disabled={loadingMore} onClick={loadMoreJobs}>
+					<Button variant="ghost" disabled={loadingMore} onClick={loadMoreJobs}>
 						{loadingMore ? 'carregando…' : 'carregar mais vagas'}
-					</button>
+					</Button>
 				</div>
 			) : (
 				<p className="mono muted xsmall end-of-list">fim da lista</p>
@@ -318,16 +311,16 @@ export function JobsView({ selectedRouteId }: { selectedRouteId: string | null }
 			)}
 
 			<div className="jobs-layout">
-				<button
-					type="button"
-					className="btn btn-ghost filters-toggle"
+				<Button
+					variant="ghost"
+					className="filters-toggle"
 					aria-expanded={filtersOpen}
 					aria-controls="filters"
 					onClick={() => setFiltersOpen(!filtersOpen)}
 				>
 					<Icon name="filter" />
 					filtros{hasActiveFilters(filters) ? ' · ativos' : ''}
-				</button>
+				</Button>
 				<Filters open={filtersOpen} />
 
 				<section className="job-list" aria-label="Lista de vagas" aria-busy={status === 'loading'}>
@@ -353,9 +346,9 @@ export function JobsView({ selectedRouteId }: { selectedRouteId: string | null }
 						{routeJob.error ? (
 							<div className="empty" role="alert">
 								<p className="strong">{routeJob.error}</p>
-								<a className="btn btn-lime" href="/" onClick={onLinkClick}>
+								<Button variant="lime" href="/" onClick={onLinkClick}>
 									ver todas as vagas
-								</a>
+								</Button>
 							</div>
 						) : (
 							<div className="skeleton detail-skeleton" />

@@ -4,6 +4,7 @@ import type { ScraperStatus, WebScraperRun } from '../../api-types'
 import { api, type RequestError } from '../api'
 import { Switch } from '../components/forms'
 import { Icon } from '../components/Icon'
+import { Button } from '../components/ui/Button'
 import { cx } from '../lib/cx'
 import { formatDateTime, formatDuration, formatInterval, isLoginFailure } from '../lib/format'
 import { onLinkClick } from '../router'
@@ -61,9 +62,9 @@ function RunRows({ run, open, onToggle }: { run: WebScraperRun; open: boolean; o
 				</td>
 				<td>
 					{run.terms.length > 0 && (
-						<button type="button" className="btn btn-ghost btn-xs" aria-expanded={open} onClick={onToggle}>
+						<Button variant="ghost" size="xs" aria-expanded={open} onClick={onToggle}>
 							{open ? 'recolher' : 'detalhar'}
-						</button>
+						</Button>
 					)}
 				</td>
 			</tr>
@@ -245,10 +246,10 @@ export function RunsView() {
 						<span className="mono xsmall on-dark-muted">
 							{status.paused ? '“coletar agora” continua funcionando' : formatInterval(status.intervalMinutes)}
 						</span>
-						<button type="button" className="btn btn-lime btn-lg" disabled={!!running || requesting} onClick={runNow}>
+						<Button variant="lime" size="lg" disabled={!!running || requesting} onClick={runNow}>
 							<Icon name={running ? 'spinner' : 'refresh'} />
 							{running ? 'coletando…' : requesting ? 'pedindo…' : 'coletar agora'}
-						</button>
+						</Button>
 					</div>
 				</section>
 
@@ -343,9 +344,9 @@ export function RunsView() {
 					</div>
 				)}
 				{runsCursor && (
-					<button type="button" className="btn btn-ghost center" onClick={() => loadRuns(true)}>
+					<Button variant="ghost" className="center" onClick={() => loadRuns(true)}>
 						carregar coletas anteriores
-					</button>
+					</Button>
 				)}
 			</section>
 		</div>

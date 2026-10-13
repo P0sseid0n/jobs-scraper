@@ -6,6 +6,8 @@ import type { WebSettings } from '../../api-types'
 import { api, RequestError } from '../api'
 import { KeywordInput, Switch } from '../components/forms'
 import { Icon } from '../components/Icon'
+import { Button } from '../components/ui/Button'
+import { IconButton } from '../components/ui/IconButton'
 import { cx } from '../lib/cx'
 import { formatInterval, LANGUAGE_NAMES, languageLabel } from '../lib/format'
 import { LIMITS, validateDraft, type SettingsDraft } from '../lib/settings-form'
@@ -208,10 +210,9 @@ export function SettingsView() {
 										})
 									}}
 								/>
-								<button
-									type="button"
-									className="icon-btn bordered"
-									aria-label={`Remover o termo ${term.term}`}
+								<IconButton
+									label={`Remover o termo ${term.term}`}
+									bordered
 									onClick={() =>
 										edit(next => {
 											next.scraper.searchTerms.splice(index, 1)
@@ -219,7 +220,7 @@ export function SettingsView() {
 									}
 								>
 									<Icon name="trash" />
-								</button>
+								</IconButton>
 								{fieldError(`searchTerms.${index}.term`)}
 							</li>
 						))}
@@ -234,10 +235,10 @@ export function SettingsView() {
 							disabled={terms.length >= LIMITS.searchTerms}
 							onChange={event => setNewTerm(event.target.value)}
 						/>
-						<button type="submit" className="btn btn-ghost" disabled={terms.length >= LIMITS.searchTerms || !newTerm.trim()}>
+						<Button variant="ghost" type="submit" disabled={terms.length >= LIMITS.searchTerms || !newTerm.trim()}>
 							<Icon name="plus" />
 							adicionar
-						</button>
+						</Button>
 					</form>
 					{fieldError('searchTerms')}
 					<p className="help">
@@ -338,7 +339,7 @@ export function SettingsView() {
 					<legend className="field-label">idiomas aceitos</legend>
 					<div className="pills">
 						{languages.map(code => (
-							<label key={code} className="check-pill">
+							<label key={code} className="check-pill outlined">
 								<input
 									type="checkbox"
 									className="checkbox"
@@ -440,9 +441,9 @@ export function SettingsView() {
 				<div className="card empty" role="alert">
 					<p className="strong">Não consegui carregar as configurações</p>
 					<p className="muted small">{loadError}</p>
-					<button type="button" className="btn btn-lime" onClick={load}>
+					<Button variant="lime" onClick={load}>
 						tentar de novo
-					</button>
+					</Button>
 				</div>
 			)}
 			{!loadError && !draft && <div className="card skeleton settings-skeleton" aria-busy="true" />}
@@ -488,12 +489,12 @@ export function SettingsView() {
 										? 'alterações não salvas'
 										: 'tudo salvo'}
 						</span>
-						<button type="button" className="btn btn-ghost" disabled={!dirty || saveState === 'saving'} onClick={() => reset()}>
+						<Button variant="ghost" disabled={!dirty || saveState === 'saving'} onClick={() => reset()}>
 							descartar
-						</button>
-						<button type="button" className="btn btn-lime btn-lg" disabled={!dirty || saveState === 'saving'} onClick={save}>
+						</Button>
+						<Button variant="lime" size="lg" disabled={!dirty || saveState === 'saving'} onClick={save}>
 							{saveState === 'saving' ? 'salvando…' : 'salvar alterações'}
-						</button>
+						</Button>
 					</div>
 				</div>
 			)}

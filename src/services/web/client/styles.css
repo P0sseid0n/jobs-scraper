@@ -318,11 +318,15 @@ button:disabled {
 	color: var(--ink);
 }
 
-.btn-ghost:hover:not(:disabled),
-.icon-btn.bordered:hover,
-.pill:not([aria-pressed='true']):hover,
-.check-pill:hover {
-	/* Botões com borda e sem preenchimento: o mesmo hover em todos (fundo e borda mais forte, como o card de vaga) */
+/* Botões com borda e sem preenchimento (ver components/ui): o mesmo hover em todos, como o card de vaga */
+.outlined {
+	transition:
+		background 0.15s,
+		border-color 0.15s,
+		opacity 0.15s;
+}
+
+.outlined:not([aria-pressed='true']):not(:disabled):hover {
 	background: var(--surface-2);
 	border-color: color-mix(in srgb, var(--ink) 30%, var(--line));
 }
@@ -345,9 +349,6 @@ button:disabled {
 
 .icon-btn.bordered {
 	border: 1px solid var(--line);
-	transition:
-		background 0.15s,
-		border-color 0.15s;
 }
 
 .icon-btn:hover {
@@ -507,9 +508,6 @@ select.field {
 	background: var(--surface);
 	color: var(--ink);
 	font-size: 12.5px;
-	transition:
-		background 0.15s,
-		border-color 0.15s;
 }
 
 .pill[aria-pressed='true'] {
@@ -544,9 +542,6 @@ select.field {
 	border-radius: 999px;
 	font-size: 13px;
 	cursor: pointer;
-	transition:
-		background 0.15s,
-		border-color 0.15s;
 }
 
 .dot {

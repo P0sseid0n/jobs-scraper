@@ -5,6 +5,7 @@ import { isJobRouteId } from '../../job-route-id'
 import { api } from '../api'
 import { Icon } from '../components/Icon'
 import { JobDetail } from '../components/JobDetail'
+import { Button } from '../components/ui/Button'
 import { goBack, onLinkClick } from '../router'
 import { jobsStore } from '../stores/jobs'
 import { markSeen } from '../stores/seen'
@@ -67,9 +68,9 @@ export function JobPage({ routeId }: { routeId: string }) {
 			{error && (
 				<div className="card empty" role="alert">
 					<p className="strong">{error}</p>
-					<a className="btn btn-lime" href="/" onClick={onLinkClick}>
+					<Button variant="lime" href="/" onClick={onLinkClick}>
 						ver todas as vagas
-					</a>
+					</Button>
 				</div>
 			)}
 			{!error && !job && <div className="card skeleton detail-skeleton" aria-busy="true" />}

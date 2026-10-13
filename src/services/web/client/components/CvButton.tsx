@@ -2,16 +2,15 @@ import { useState } from 'react'
 
 import type { WebJob } from '../../api-types'
 import { cvPdfUrl } from '../api'
-import { cx } from '../lib/cx'
 import { requestCv, useCvFor } from '../stores/cv'
 import { notify } from '../stores/toast'
 import { Icon } from './Icon'
+import { Button } from './ui/Button'
 
 /** Ação de currículo da vaga, conforme o último pedido: gerar → gerando… → baixar, ou tentar de novo se falhou. */
-export function CvButton({ job, size = 'sm' }: { job: Pick<WebJob, 'postId'>; size?: 'sm' | 'lg' }) {
+export function CvButton({ job, size = 'md' }: { job: Pick<WebJob, 'postId'>; size?: 'md' | 'lg' }) {
 	const [sending, setSending] = useState(false)
 	const cv = useCvFor(job.postId)
-	const className = cx('btn', size === 'lg' && 'btn-lg', 'btn-lime')
 
 	async function generate() {
 		setSending(true)
@@ -26,26 +25,26 @@ export function CvButton({ job, size = 'sm' }: { job: Pick<WebJob, 'postId'>; si
 
 	if (cv?.status === 'ready') {
 		return (
-			<a className={className} href={cvPdfUrl(cv.requestId, true)} download={cv.fileName ?? undefined}>
+			<Button variant="lime" size={size} href={cvPdfUrl(cv.requestId, true)} download={cv.fileName ?? undefined}>
 				<Icon name="download" />
 				baixar currículo
-			</a>
+			</Button>
 		)
 	}
 
 	if (sending || cv?.status === 'pending') {
 		return (
-			<button type="button" className={className} disabled aria-live="polite">
+			<Button variant="lime" size={size} disabled aria-live="polite">
 				<Icon name="spinner" />
 				gerando…
-			</button>
+			</Button>
 		)
 	}
 
 	return (
-		<button type="button" className={className} onClick={generate} title={cv?.error ?? undefined}>
+		<Button variant="lime" size={size} onClick={generate} title={cv?.error ?? undefined}>
 			<Icon name={cv?.status === 'failed' ? 'refresh' : 'file'} />
 			{cv?.status === 'failed' ? 'tentar de novo' : 'gerar currículo'}
-		</button>
+		</Button>
 	)
 }

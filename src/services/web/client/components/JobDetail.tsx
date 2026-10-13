@@ -13,6 +13,8 @@ import { CvButton } from './CvButton'
 import { Icon } from './Icon'
 import { ReportJobDialog } from './ReportJobDialog'
 import { WorkModeBadge } from './WorkModeBadge'
+import { Button } from './ui/Button'
+import { IconButton } from './ui/IconButton'
 
 /** Posts maiores que isso começam recolhidos. */
 const LONG_POST_CHARS = 600
@@ -72,16 +74,16 @@ function JobDetailContent({ job }: { job: WebJob }) {
 						<time className="mono muted small nowrap" dateTime={jobDate(job)}>
 							publicada {timeAgo(jobDate(job))}
 						</time>
-						<button
-							type="button"
-							className="icon-btn icon-btn-sm bordered report-btn"
-							aria-label="reportar problema na vaga"
-							title="reportar problema na vaga"
+						<IconButton
+							label="reportar problema na vaga"
+							size="sm"
+							bordered
+							className="report-btn"
 							aria-haspopup="dialog"
 							onClick={() => setReporting(true)}
 						>
 							<Icon name="flag" size={15} />
-						</button>
+						</IconButton>
 					</div>
 				</div>
 				<h2 className="detail-title">{job.title}</h2>
@@ -103,17 +105,17 @@ function JobDetailContent({ job }: { job: WebJob }) {
 			<div className="detail-actions">
 				<CvButton job={job} size="lg" />
 				{applyLink && (
-					<a className="btn btn-ghost btn-lg" href={applyLink} target="_blank" rel="noopener noreferrer">
+					<Button variant="ghost" size="lg" href={applyLink} target="_blank" rel="noopener noreferrer">
 						<Icon name="external" />
 						ir para a candidatura
-					</a>
+					</Button>
 				)}
 				{/* Sem site nem e-mail, a candidatura é pelo próprio post: aí ele é um botão */}
 				{postLink && appliesThroughPost && (
-					<a className="btn btn-ghost btn-lg" href={postLink} target="_blank" rel="noopener noreferrer">
+					<Button variant="ghost" size="lg" href={postLink} target="_blank" rel="noopener noreferrer">
 						<Icon name="external" />
 						ver post e se candidatar
-					</a>
+					</Button>
 				)}
 			</div>
 
@@ -144,18 +146,18 @@ function JobDetailContent({ job }: { job: WebJob }) {
 						<a className="mono ellipsis grow" href={`mailto:${job.recruiterEmail}`}>
 							{job.recruiterEmail}
 						</a>
-						<button type="button" className="btn btn-ghost" onClick={() => copyText(job.recruiterEmail!, 'E-mail')}>
+						<Button variant="ghost" onClick={() => copyText(job.recruiterEmail!, 'E-mail')}>
 							<Icon name="copy" size={14} />
 							copiar
-						</button>
+						</Button>
 					</div>
 					<div className="message-box">
 						<div className="row-between">
 							<span className="label">{showGenerated ? 'mensagem gerada pela IA' : 'modelo de mensagem'}</span>
-							<button type="button" className="btn btn-ghost btn-xs" onClick={() => copyText(message, 'Mensagem')}>
+							<Button variant="ghost" size="xs" onClick={() => copyText(message, 'Mensagem')}>
 								<Icon name="copy" size={13} />
 								copiar
-							</button>
+							</Button>
 						</div>
 						<pre className="mono message-text">{message}</pre>
 						{generated ? (
@@ -215,10 +217,10 @@ function JobDetailContent({ job }: { job: WebJob }) {
 					<div className="message-box">
 						<div className="row-between">
 							<span className="label">documento no mongodb</span>
-							<button type="button" className="btn btn-ghost btn-xs" onClick={() => copyText(rawJson, 'JSON da vaga')}>
+							<Button variant="ghost" size="xs" onClick={() => copyText(rawJson, 'JSON da vaga')}>
 								<Icon name="copy" size={13} />
 								copiar
-							</button>
+							</Button>
 						</div>
 						<pre className="mono message-text json-text">{rawJson}</pre>
 					</div>

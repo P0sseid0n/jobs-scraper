@@ -3,6 +3,9 @@ import { useEffect, useRef, useState } from 'react'
 import type { WebJob } from '../../api-types'
 import { notify } from '../stores/toast'
 import { Icon } from './Icon'
+import { Button } from './ui/Button'
+import { IconButton } from './ui/IconButton'
+import { Pill } from './ui/Pill'
 
 /** Campos da vaga que podem ter vindo errados da extração da IA. */
 export const REPORTABLE_FIELDS = {
@@ -58,9 +61,9 @@ export function ReportJobDialog({ job, onClose }: { job: WebJob; onClose: () => 
 					<h2 className="dialog-title" id="report-title">
 						O que saiu errado?
 					</h2>
-					<button type="button" className="icon-btn" aria-label="Fechar" onClick={() => ref.current?.close()}>
+					<IconButton label="Fechar" onClick={() => ref.current?.close()}>
 						<Icon name="close" />
-					</button>
+					</IconButton>
 				</div>
 				<p className="muted small ellipsis">{job.title}</p>
 
@@ -68,38 +71,35 @@ export function ReportJobDialog({ job, onClose }: { job: WebJob; onClose: () => 
 					<legend className="label">dados errados_</legend>
 					<div className="pills">
 						{(Object.keys(REPORTABLE_FIELDS) as ReportableField[]).map(field => (
-							<button
-								type="button"
+							<Pill
 								key={field}
-								className="pill"
-								aria-pressed={report?.kind === 'fields' && report.fields.includes(field)}
+								pressed={report?.kind === 'fields' && report.fields.includes(field)}
 								onClick={() => setReport(toggleReportField(report, field))}
 							>
 								{REPORTABLE_FIELDS[field]}
-							</button>
+							</Pill>
 						))}
 					</div>
 				</fieldset>
 
 				<div className="dialog-or label">ou</div>
 
-				<button
-					type="button"
-					className="pill pill-row"
-					aria-pressed={report?.kind === 'not-a-job'}
+				<Pill
+					shape="row"
+					pressed={report?.kind === 'not-a-job'}
 					onClick={() => setReport(report?.kind === 'not-a-job' ? null : { kind: 'not-a-job' })}
 				>
 					<span className="grow">não é vaga</span>
 					<span className="xsmall">sai da lista, sem apagar</span>
-				</button>
+				</Pill>
 
 				<div className="dialog-actions">
-					<button type="button" className="btn btn-ghost" onClick={() => ref.current?.close()}>
+					<Button variant="ghost" onClick={() => ref.current?.close()}>
 						cancelar
-					</button>
-					<button type="button" className="btn btn-lime" disabled={!report} onClick={submit}>
+					</Button>
+					<Button variant="lime" disabled={!report} onClick={submit}>
 						continuar
-					</button>
+					</Button>
 				</div>
 			</div>
 		</dialog>

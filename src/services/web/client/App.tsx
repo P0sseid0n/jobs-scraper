@@ -5,6 +5,8 @@ import { api } from './api'
 import { CvTray } from './components/CvTray'
 import { Icon, type IconName } from './components/Icon'
 import { ProjectIcon } from './components/ProjectIcon'
+import { Button } from './components/ui/Button'
+import { IconButton } from './components/ui/IconButton'
 import { cx } from './lib/cx'
 import { formatDuration } from './lib/format'
 import { useWideLayout } from './lib/media'
@@ -91,9 +93,9 @@ function View({ path }: { path: string }) {
 				<div className="page page-narrow">
 					<div className="card empty">
 						<p className="strong">Página não encontrada</p>
-						<a className="btn btn-lime" href="/" onClick={onLinkClick}>
+						<Button variant="lime" href="/" onClick={onLinkClick}>
 							ver vagas
-						</a>
+						</Button>
 					</div>
 				</div>
 			)
@@ -149,10 +151,10 @@ export function App() {
 								offline
 							</span>
 						)}
-						<button type="button" className="icon-btn bordered" aria-label="Alternar tema claro/escuro" onClick={toggleTheme}>
+						<IconButton label="Alternar tema claro/escuro" bordered onClick={toggleTheme}>
 							<Icon name="moon" className="theme-moon" />
 							<Icon name="sun" className="theme-sun" />
-						</button>
+						</IconButton>
 					</div>
 				</div>
 			</header>
@@ -183,9 +185,9 @@ export function App() {
 				{toasts.map(toast => (
 					<div key={toast.id} className={cx('toast', `toast-${toast.tone}`)} role={toast.tone === 'error' ? 'alert' : 'status'}>
 						<span className="grow">{toast.message}</span>
-						<button type="button" className="icon-btn" aria-label="Fechar aviso" onClick={() => dismissToast(toast.id)}>
+						<IconButton label="Fechar aviso" onClick={() => dismissToast(toast.id)}>
 							<Icon name="close" size={14} />
-						</button>
+						</IconButton>
 					</div>
 				))}
 			</div>

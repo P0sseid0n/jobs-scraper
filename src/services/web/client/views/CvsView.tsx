@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import type { WebCvRequest } from '../../api-types'
 import { cvPdfUrl } from '../api'
 import { Icon } from '../components/Icon'
+import { Button } from '../components/ui/Button'
 import { cx } from '../lib/cx'
 import { formatDateTime } from '../lib/format'
 import { jobPath, onLinkClick } from '../router'
@@ -36,19 +37,19 @@ function CvItem({ request }: { request: WebCvRequest }) {
 			</div>
 			{request.status === 'ready' && (
 				<div className="row-actions">
-					<a className="btn btn-ghost" href={cvPdfUrl(request.requestId)} target="_blank" rel="noopener">
+					<Button variant="ghost" href={cvPdfUrl(request.requestId)} target="_blank" rel="noopener">
 						abrir
-					</a>
-					<a className="btn btn-lime" href={cvPdfUrl(request.requestId, true)} download={request.fileName ?? undefined}>
+					</Button>
+					<Button variant="lime" href={cvPdfUrl(request.requestId, true)} download={request.fileName ?? undefined}>
 						<Icon name="download" size={14} />
 						baixar
-					</a>
+					</Button>
 				</div>
 			)}
 			{request.status === 'failed' && (
-				<button type="button" className="btn btn-ghost" onClick={() => retry(request)}>
+				<Button variant="ghost" onClick={() => retry(request)}>
 					tentar de novo
-				</button>
+				</Button>
 			)}
 		</li>
 	)
@@ -89,9 +90,9 @@ export function CvsView() {
 				<div className="card empty">
 					<p className="strong">Nenhum currículo gerado pelo site ainda</p>
 					<p className="muted small">Em qualquer vaga, clique em “gerar currículo”. Ele fica pronto em até ~1 minuto.</p>
-					<a className="btn btn-lime" href="/" onClick={onLinkClick}>
+					<Button variant="lime" href="/" onClick={onLinkClick}>
 						ver vagas
-					</a>
+					</Button>
 				</div>
 			)}
 
