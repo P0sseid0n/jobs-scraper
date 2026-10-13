@@ -16,7 +16,7 @@ O site: mais um canal, ao lado do Discord, com o que o Discord não faz bem. Bus
 ## Como funciona
 
 - **Servidor** (`index.ts`, `server/`): `Bun.serve` com as rotas de `/api` e a aplicação. As vagas novas chegam pela fila `web` (ligada no evento `job-published`) e vão para o navegador por Server-Sent Events (`/api/jobs/stream`). Os currículos voltam pela fila `web-cv`.
-- **Aplicação** (`client/`): React 19 em TSX, empacotada pelo próprio Bun a partir do import do `index.html`, sem Vite nem etapa de build. Em desenvolvimento (`bun dev:web`) há hot reload; com `NODE_ENV=production`, o bundle é minificado na inicialização.
+- **Aplicação** (`client/`): React 19 em TSX, empacotada pelo próprio Bun a partir do import do `index.html`, sem Vite nem etapa de build. Em desenvolvimento (`bun dev:app`; só o site com `APP_MODULES=web`) há hot reload; com `NODE_ENV=production`, o bundle é minificado na inicialização.
   - `views/`: as telas;
   - `components/`: card, detalhe, botões e campos;
   - `stores/`: estado global (vagas, currículos, tempo real, tema, avisos) sobre um store mínimo em `lib/store.ts`;

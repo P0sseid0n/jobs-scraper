@@ -18,7 +18,7 @@ Coleta posts de vagas no LinkedIn, estrutura cada um com IA local (Ollama) e pub
 
 ## 🗺️ Como funciona
 
-Os serviços conversam por filas do RabbitMQ; cada fila tem o nome do serviço que a consome.
+São dois processos: o **scraper**, à parte porque precisa do Chromium e não reinicia sozinho (para não arriscar a conta do LinkedIn), e o **app** (`src/app.ts`), que sobe post-processing, cv-updater, discord-bot e o site juntos, com uma só conexão com o RabbitMQ e o MongoDB. Os módulos conversam por filas do RabbitMQ; cada fila tem o nome do módulo que a consome.
 
 ```mermaid
 flowchart LR
@@ -77,14 +77,15 @@ cd jobs-scraper
 bun install
 cp .env.example .env      # preencha LinkedIn, Discord e troque as senhas
 docker compose up -d      # RabbitMQ, MongoDB, mongo-express e Ollama
-bun dev                   # todos os serviços, com hot reload
+bun dev                   # scraper + app, com hot reload
 ```
 
 - **GPU NVIDIA:** descomente `COMPOSE_FILE` no `.env`. Sem isso, o Ollama roda na CPU e consome muita RAM. Para conferir, `docker compose exec ollama ollama ps` deve mostrar `100% GPU`.
 - **Primeira subida:** o `ollama-init` baixa o modelo de `OLLAMA_MODEL` (padrão `gemma3:4b`). Acompanhe com `docker compose logs -f ollama-init`.
 - **Currículo:** para gerar currículos, coloque o seu em `data/cv/cv.tex` e configure o Tectonic, como no [README do cv-updater](src/services/cv-updater/README.md#configuração).
 - **Configurações:** termos de busca, filtros e intervalo são editados pelo site; o `.env` só preenche os valores iniciais (veja [shared](src/shared/README.md#configurações-em-tempo-de-execução)).
-- **Tudo em containers:** `docker compose --profile app up -d --build`.
+- **Tudo em containers:** `docker compose --profile app up -d --build` sobe os containers `scraper` e `app`.
+- **Só parte dos módulos:** `APP_MODULES` no `.env` escolhe o que o app sobe (ex.: `post-processing,web` para rodar sem Discord nem currículo).
 - **Coleta única ou periódica:** por padrão o scraper coleta uma vez e encerra. Com `SCRAPER_INTERVAL_MINUTES` (ex.: `180`), ele fica rodando e coleta periodicamente.
 
 Painéis, todos só em `127.0.0.1`:
@@ -98,9 +99,9 @@ Painéis, todos só em `127.0.0.1`:
 
 | Script                                        | Descrição                                                          |
 | --------------------------------------------- | ------------------------------------------------------------------ |
-| `bun dev`                                     | Todos os serviços com `--watch`                                    |
-| `bun dev:scraped`                             | Todos menos o scraper                                              |
-| `bun dev:<serviço>` / `bun start:<serviço>`   | Um serviço (`scraper`, `processing`, `bot`, `cv`, `web`)            |
+| `bun dev`                                     | Scraper e app com `--watch`                                        |
+| `bun dev:app` / `bun start:app`               | Só o app (sem o scraper)                                           |
+| `bun dev:scraper` / `bun start:scraper`       | Só o scraper                                                       |
 | `bun scraper:run`                             | Pede uma coleta imediata                                           |
 | `bun scraper:verify <código>`                 | Envia o código de verificação do login                             |
 | `bun db:migrate-jobs`                         | Atualiza as vagas salvas para o formato atual                      |

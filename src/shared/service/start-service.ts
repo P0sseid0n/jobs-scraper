@@ -8,6 +8,9 @@ import { onShutdown, setupGracefulShutdown } from '../lifecycle/graceful-shutdow
 import { createLogger } from '../logging/logger'
 import { QueueClient } from '../messaging/queue-client'
 
+/** O que o processo `app` entrega a cada módulo (post-processing, cv-updater, discord-bot, web): a conexão com o RabbitMQ. */
+export type ModuleContext = { queue: QueueClient }
+
 type ServiceOptions<Env extends z.ZodRawShape> = {
 	/** Nome usado nos logs. */
 	name: string

@@ -6,7 +6,7 @@ Código usado por mais de um serviço, importado pelo barrel de cada módulo (`@
 
 | Módulo | O que tem |
 | --- | --- |
-| `service/` | `startService()`: logger, `.env`, MongoDB e RabbitMQ prontos em uma chamada |
+| `service/` | `startService()`: logger, `.env`, MongoDB e RabbitMQ prontos em uma chamada (usado pelo scraper e pelo `src/app.ts`, que passa a conexão para cada módulo) |
 | `config/` | carregamento e validação do `.env` (zod) e as variáveis de infraestrutura |
 | `contracts/` | formato das mensagens das filas |
 | `database/` | conexão com o MongoDB e os modelos (`Job`, `SeenPost`, `Settings`, `ScraperRun`, `ExtractionFeedback`) |
@@ -34,4 +34,4 @@ Os termos de busca, o filtro de data, o limite de posts, o intervalo, a pausa da
 
 ## Healthcheck
 
-Cada serviço da aplicação tem um healthcheck no Docker: ele aparece como `unhealthy` no `docker compose ps` quando fica sem conexão com o RabbitMQ (ou com o MongoDB, se usa) por mais de 45 segundos. O Docker Compose só marca o estado; não reinicia o container sozinho.
+Os containers `scraper` e `app` têm um healthcheck no Docker: ele aparece como `unhealthy` no `docker compose ps` quando fica sem conexão com o RabbitMQ (ou com o MongoDB, se usa) por mais de 45 segundos. O Docker Compose só marca o estado; não reinicia o container sozinho.
