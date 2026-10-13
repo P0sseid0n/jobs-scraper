@@ -98,7 +98,7 @@ function JobDetailContent({ job }: { job: WebJob }) {
 						</IconButton>
 					</div>
 				</div>
-				<h2 className="text-2xl leading-tight">{job.title}</h2>
+				<h2 className="text-2xl leading-tight font-bold">{job.title}</h2>
 				{jobSubtitle(job) && <p className="text-muted">{jobSubtitle(job)}</p>}
 				{job.author && (job.company || job.location) && <p className="font-mono text-muted text-sm">postado por {job.author}</p>}
 			</header>

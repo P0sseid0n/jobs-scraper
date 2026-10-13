@@ -31,7 +31,7 @@ Regras para todas as fases:
 | 4 | 1.097 |
 | 5 | 1.039 |
 | 6 | 52 (só a base, para a fase 7) |
-| 7 | 0 (arquivo apagado) |
+| 7 | 0 (arquivo apagado; o CSS é todo o `tailwind.css`) |
 
 ---
 
@@ -281,9 +281,16 @@ O que sobra depois das fases anteriores é o layout de cada tela. Migrar seção
 
 ## Fase 7: apagar o `styles.css` 🟡
 
-- [ ] Mover a base que sobrar (`body`, reset de `h1`–`p`, `a`, `button`, `:focus-visible`, `@keyframes spin/pulse`, `prefers-reduced-motion`) para o `@layer base` do `tailwind.css`, ou ligar o preflight do Tailwind (`@import 'tailwindcss/preflight.css' layer(base)`) e manter só o que for diferente dele
-- [ ] Conferir que o `styles.css` está vazio, apagar o arquivo e remover o `@import './styles.css'` do `tailwind.css`
-- [ ] Atualizar o README do web (a frase sobre o `styles.css` na camada `components`)
+- [x] Mover a base que sobrar (`body`, reset de `h1`–`p`, `a`, `button`, `:focus-visible`, `@keyframes spin/pulse`, `prefers-reduced-motion`) para o `@layer base` do `tailwind.css`, ou ligar o preflight do Tailwind (`@import 'tailwindcss/preflight.css' layer(base)`) e manter só o que for diferente dele
+- [x] Conferir que o `styles.css` está vazio, apagar o arquivo e remover o `@import './styles.css'` do `tailwind.css`
+- [x] Atualizar o README do web (a frase sobre o `styles.css` na camada `components`)
+
+### Notas da fase 7
+
+- **Preflight ligado:** `@import 'tailwindcss/preflight.css' layer(base)` no `tailwind.css`. O que ficou na base, por ser do projeto: as cores e a suavização da fonte do `body`, o contorno de foco (`:focus-visible`), o cursor de mão nos botões (o Tailwind 4 deixa o cursor padrão) e `min-width: 0` no `fieldset`.
+- **Ajustes que o preflight pediu:** ele tira o negrito e o tamanho dos títulos e a margem de todos os elementos; o título do detalhe da vaga e o da modal ganharam `font-bold`, e o `<dialog>` ganhou `m-auto` para continuar centralizado.
+- **Diferenças vistas na comparação:** o link "pular para o conteúdo" (só aparece com o foco) perdeu o sublinhado padrão dos links; o cabeçalho da bandeja de currículos voltou a ter padding lateral 0, como no CSS original (a fase 6 tinha deixado o padding padrão do botão do navegador); os campos sem borda dentro de outros (busca e palavras-chave) perderam 1–2px de padding do navegador.
+- **O `styles.css` saiu.** O CSS do site é todo o `tailwind.css`.
 
 ---
 

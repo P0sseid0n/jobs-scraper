@@ -52,7 +52,7 @@ export function ReportJobDialog({ job, onClose }: { job: WebJob; onClose: () => 
 		// biome-ignore lint/a11y/useKeyWithClickEvents: pelo teclado, o Esc já fecha o <dialog>
 		<dialog
 			ref={ref}
-			className="w-120 rounded-lg border border-line bg-surface p-0 text-ink shadow-float backdrop:bg-backdrop"
+			className="m-auto w-120 rounded-lg border border-line bg-surface p-0 text-ink shadow-float backdrop:bg-backdrop"
 			aria-labelledby="report-title"
 			onClose={onClose}
 			// Clique no fundo escurecido (fora do conteúdo) fecha
@@ -60,7 +60,7 @@ export function ReportJobDialog({ job, onClose }: { job: WebJob; onClose: () => 
 		>
 			<div className="flex flex-col gap-2.5 px-5 pt-4 pb-5">
 				<div className="flex items-center justify-between gap-3">
-					<h2 className="m-0 text-lg" id="report-title">
+					<h2 className="text-lg font-bold" id="report-title">
 						O que saiu errado?
 					</h2>
 					<IconButton label="Fechar" onClick={() => ref.current?.close()}>
