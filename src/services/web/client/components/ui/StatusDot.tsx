@@ -15,9 +15,9 @@ const statusDot = tv({
 			current: 'bg-current',
 		},
 		/** Halo em volta, para chamar atenção (vaga nova, coleta em andamento). */
-		glow: { true: 'shadow-[0_0_0_3px_var(--color-lime-glow)]' },
+		glow: { true: 'ring-3 ring-lime-glow' },
 		/** Pulsando enquanto algo está em andamento. */
-		pulse: { true: 'animate-[pulse_1.2s_ease-in-out_infinite] motion-reduce:animate-none' },
+		pulse: { true: 'animate-pulse motion-reduce:animate-none' },
 	},
 	defaultVariants: { tone: 'current' },
 })

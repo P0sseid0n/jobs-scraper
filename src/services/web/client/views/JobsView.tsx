@@ -8,7 +8,8 @@ import { JobDetail } from '../components/JobDetail'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
-import { Pill } from '../components/ui/Pill'
+import { Checkbox, Range, SearchInput, Select } from '../components/ui/Input'
+import { Pill, PILL_COUNT, PillGroup } from '../components/ui/Pill'
 import { Skeleton } from '../components/ui/Skeleton'
 import { StatusDot } from '../components/ui/StatusDot'
 import { cx } from '../lib/cx'
@@ -55,26 +56,22 @@ function Filters({ open }: { open: boolean }) {
 
 	return (
 		<aside className={cx('filters', open && 'open')} aria-label="Filtros" id="filters">
-			<label className="search-field">
-				<Icon name="search" />
-				<span className="sr-only">Buscar vagas</span>
-				<input
-					type="search"
-					value={filters.q}
-					onChange={event => setFilters({ q: event.target.value })}
-					placeholder="cargo, empresa, tecnologia…"
-				/>
-			</label>
+			<SearchInput
+				label="Buscar vagas"
+				value={filters.q}
+				onChange={event => setFilters({ q: event.target.value })}
+				placeholder="cargo, empresa, tecnologia…"
+			/>
 
 			<fieldset className="filter-group">
 				<legend className="label">período_</legend>
-				<div className="pills">
+				<PillGroup>
 					{PERIODS.map(([value, label]) => (
 						<Pill key={value} pressed={filters.since === value} onClick={() => setFilters({ since: value })}>
 							{label}
 						</Pill>
 					))}
-				</div>
+				</PillGroup>
 			</fieldset>
 
 			<fieldset className="filter-group">
@@ -89,7 +86,7 @@ function Filters({ open }: { open: boolean }) {
 						>
 							<StatusDot style={{ background: WORK_MODES[mode].color }} />
 							<span className="grow">{WORK_MODES[mode].label}</span>
-							{facets && <span className="mono xsmall count">{facets.workModes[mode]}</span>}
+							{facets && <span className={PILL_COUNT}>{facets.workModes[mode]}</span>}
 						</Pill>
 					))}
 				</div>
@@ -97,23 +94,23 @@ function Filters({ open }: { open: boolean }) {
 
 			<fieldset className="filter-group">
 				<legend className="label">regime_</legend>
-				<div className="pills">
+				<PillGroup>
 					{(Object.keys(CONTRACT_TYPES) as (keyof typeof CONTRACT_TYPES)[]).map(type => (
 						<Pill
 							key={type}
 							pressed={filters.contractType.includes(type)}
 							onClick={() => setFilters({ contractType: toggled(filters.contractType, type) })}
 						>
-							{CONTRACT_TYPES[type]} {facets && <span className="mono count">{facets.contractTypes[type]}</span>}
+							{CONTRACT_TYPES[type]} {facets && <span className={PILL_COUNT}>{facets.contractTypes[type]}</span>}
 						</Pill>
 					))}
-				</div>
+				</PillGroup>
 			</fieldset>
 
 			{(skills.length > 0 || filters.skills.length > 0) && (
 				<fieldset className="filter-group">
 					<legend className="label">tecnologias_</legend>
-					<div className="pills">
+					<PillGroup>
 						{selectedSkills.map(skill => (
 							<Pill key={skill} pressed onClick={() => setFilters({ skills: toggled(filters.skills, skill) })}>
 								{skill}
@@ -128,7 +125,7 @@ function Filters({ open }: { open: boolean }) {
 									pressed={current !== undefined}
 									onClick={() => setFilters({ skills: toggled(filters.skills, current ?? skill.name) })}
 								>
-									{skill.name} <span className="mono count">{skill.count}</span>
+									{skill.name} <span className={PILL_COUNT}>{skill.count}</span>
 								</Pill>
 							)
 						})}
@@ -137,38 +134,31 @@ function Filters({ open }: { open: boolean }) {
 								{allSkills ? 'menos' : `+ ${skills.length - VISIBLE_SKILL_FILTERS}`}
 							</Pill>
 						)}
-					</div>
+					</PillGroup>
 				</fieldset>
 			)}
 
 			<div className="filter-group filter-extra">
 				<label className="row-between">
 					tem e-mail de contato
-					<input
-						type="checkbox"
-						className="checkbox"
-						checked={filters.hasEmail}
-						onChange={event => setFilters({ hasEmail: event.target.checked })}
-					/>
+					<Checkbox checked={filters.hasEmail} onChange={event => setFilters({ hasEmail: event.target.checked })} />
 				</label>
 				<label className="row-between">
 					idioma
-					<select className="select" value={filters.language} onChange={event => setFilters({ language: event.target.value })}>
+					<Select size="sm" value={filters.language} onChange={event => setFilters({ language: event.target.value })}>
 						<option value="">todos</option>
 						{Object.entries(LANGUAGE_NAMES).map(([code, name]) => (
 							<option value={code} key={code}>
 								{name} ({code})
 							</option>
 						))}
-					</select>
+					</Select>
 				</label>
 				<label className="stack-xs">
 					<span className="row-between">
 						confiança mínima <span className="mono">{filters.minConfidence}%</span>
 					</span>
-					<input
-						type="range"
-						className="range"
+					<Range
 						min={0}
 						max={100}
 						step={5}

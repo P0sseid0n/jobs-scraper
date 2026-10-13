@@ -19,6 +19,7 @@ Regras para todas as fases:
 - **As classes ficam nos componentes:** o que se repete vira componente em `components/ui` (como `Button`, `IconButton` e `Pill`), com as classes do Tailwind dentro dele. Não usar `@apply` para recriar as classes antigas.
 - **O que as classes não expressam vai para o `tailwind.css`:** `@keyframes`, pseudo-elementos complexos (`.switch::after`, `::backdrop`), `mask-image` e seletores com `:has()` viram `@utility` ou ficam no `tailwind.css`, nunca de volta no `styles.css`.
 - **Conferir o visual a cada etapa:** comparar os estilos calculados antes e depois (vagas, currículos, coletas e configurações, nos dois temas), como foi feito na instalação do Tailwind.
+- **Sem valores arbitrários:** nada de `text-[12.5px]`, `px-[18px]`, `min-h-[38px]`… Usar as classes da escala padrão do Tailwind (texto `text-xs`, `text-sm`, `text-base`…; espaços e tamanhos em passos de 2px, como `px-4.5` e `min-h-9.5`) e as classes prontas (`transition`, `rounded-full`, `ring-3`, `animate-pulse`, `w-2/3`). Quando o valor antigo não existir na escala, ir para o degrau igual ou logo acima: **na dúvida entre diminuir e aumentar, aumentar**.
 - **Acompanhar o tamanho:** registrar ao fim de cada fase quantas linhas o `styles.css` ainda tem (começou com 1.899).
 
 | Fase | Linhas do `styles.css` ao final |
@@ -26,7 +27,7 @@ Regras para todas as fases:
 | Início | 1.899 |
 | 1 | 1.613 (com as 9 linhas pendentes de `.run-outcomes` e `.chip-ok`) |
 | 2 | 1.364 |
-| 3 | |
+| 3 | 1.126 |
 | 4 | |
 | 5 | |
 | 6 | |
@@ -175,11 +176,23 @@ E o ícone de alerta só existe em `views/JobsView.tsx:204`.
 - **`.check-pill`:** em `views/SettingsView.tsx:342` tem cara de `Pill`, mas com outro tamanho (40px contra 34px, fonte 13 contra 12.5, padding 8/14 contra 6/12)
 - **"Pausar coletas automáticas":** aparece em `views/RunsView.tsx:318` (rótulo com descrição, `row-between`) e em `views/SettingsView.tsx:461` (rótulo curto, `row gap-sm small`)
 
-- [ ] Criar `components/ui/Input.tsx` e `components/ui/Select.tsx` (com `size: 'sm' | 'md'`), estilizados com Tailwind, e usar nos lugares de `.field`, `.search-field`, `.chips-input` e `.select`
-- [ ] Deixar `.check-pill` com o tamanho do `Pill` (migrado para Tailwind junto com ele)
-- [ ] Migrar `Switch`, `KeywordInput`, `.checkbox`, `.range`, `.field-label`, `.field-error` e `.help` para Tailwind (o `.switch::after` pode virar um elemento ou um `@utility` no `tailwind.css`)
-- [ ] Criar um componente `SwitchField` (rótulo, descrição opcional, `Switch`) e usar nos dois lugares
-- [ ] Apagar do `styles.css` todas as regras de controles de formulário (271–553)
+- [x] Criar `components/ui/Input.tsx` e `components/ui/Select.tsx` (com `size: 'sm' | 'md'`), estilizados com Tailwind, e usar nos lugares de `.field`, `.search-field`, `.chips-input` e `.select`
+- [x] Deixar `.check-pill` com o tamanho do `Pill` (migrado para Tailwind junto com ele)
+- [x] Migrar `Switch`, `KeywordInput`, `.checkbox`, `.range`, `.field-label`, `.field-error` e `.help` para Tailwind (o `.switch::after` pode virar um elemento ou um `@utility` no `tailwind.css`)
+- [x] Criar um componente `SwitchField` (rótulo, descrição opcional, `Switch`) e usar nos dois lugares
+- [x] Apagar do `styles.css` todas as regras de controles de formulário (271–553)
+
+### Notas da fase 3
+
+- **Componentes:** `Input`, `Select`, `SearchInput`, `Checkbox` e `Range` (`ui/Input.tsx`, com o `field()` para contêineres que fazem papel de campo), `FieldLabel`, `FieldHelp` e `FieldError` (`ui/Field.tsx`), `Switch` e `SwitchField` (`ui/Switch.tsx`) e `KeywordInput` (`ui/KeywordInput.tsx`). O `components/forms.tsx` saiu. O `Pill` passou a ser só Tailwind, com `PillGroup`, `pill()` (para o `<label>` com checkbox dos idiomas) e `PILL_COUNT`.
+- **Lint:** o `biome.json` ensina à regra `noLabelWithoutControl` quais componentes são campos e que o `FieldLabel` é um rótulo; o `htmlFor` do `FieldLabel` é obrigatório.
+- **Mudanças visuais (aprovadas antes do commit):**
+  - campo de busca: raio de 12px para 10px e texto de 13,5px para 14px, como os outros campos;
+  - campo de palavras-chave: raio de 12px para 10px;
+  - select de idioma dos filtros: raio de 8px para 10px;
+  - idiomas aceitos: do tamanho das pills dos filtros (34px de altura, antes 40px);
+  - "pausar coletas" nas configurações: com o mesmo `SwitchField` das coletas (texto em negrito ao lado do interruptor).
+- **Escala padrão do Tailwind nos componentes de `ui`:** os valores arbitrários saíram (veja a regra no início). Com isso, textos e tamanhos cresceram até o degrau padrão: botões e pills de 12,5–13px para 14px (`text-sm`), badges de 10–11,5px para 12px (`text-xs`), paddings ímpares para o par de cima (ex.: 3px para 4px nos badges) e o switch de 26px para 28px de altura. O `animate-pulse` voltou à duração padrão (2 s).
 
 ---
 
@@ -204,25 +217,25 @@ O card de vaga selecionado (`.job-card.selected`, 1053) redefine os tokens (`--m
 
 São 16 tamanhos em uso: 9, 10, 11, 11.5, 12, 12.5, 13, 13.5, 14, 15, 16, 17, 18, 20, 24, 28. Só `.small` (13) e `.xsmall` (11.5) viraram classe; `.help` usa 12.5, `.field-error` usa 12 e `.btn-xs` usa 12.
 
-Proposta de escala:
+**Usar a escala padrão do Tailwind, sem criar uma própria**, mesmo que os textos cresçam. Cada tamanho vai para o degrau padrão igual ou logo acima (na dúvida entre diminuir e aumentar, aumentar):
 
-| Token | Tamanho | Absorve |
+| Classe padrão | Tamanho | Absorve |
 |---|---|---|
-| `--text-2xs` | 10px | 9, 10 |
-| `--text-xs` | 11.5px | 11, 11.5 |
-| `--text-sm` | 12.5px | 12, 12.5 |
-| `--text-md` | 13.5px | 13, 13.5, 14 |
-| `--text-base` | 15px | 15, 16 |
-| `--text-lg` | 18px | 17, 18 |
-| `--text-xl` | 20px | 20 |
-| `--text-2xl` | 24px | 24 |
-| `--text-3xl` | 28px | 28 |
+| `text-xs` | 12px | 9, 10, 11, 11.5, 12 |
+| `text-sm` | 14px | 12.5, 13, 13.5, 14 |
+| `text-base` | 16px | 15, 16 |
+| `text-lg` | 18px | 17, 18 |
+| `text-xl` | 20px | 20 |
+| `text-2xl` | 24px | 24 |
+| `text-3xl` | 30px | 28 |
 
-- [ ] Definir a escala no `@theme` (`--text-2xs` … `--text-3xl`), substituindo a escala padrão do Tailwind, para que `text-xs`, `text-sm` etc. sigam esses valores
-- [ ] Trocar `.small`, `.xsmall`, `.label`, `.help` e os `font-size` fixos pelas classes `text-*`
+Os componentes de `components/ui` já usam essa escala (desde a fase 3). Falta o que ainda está no `styles.css`:
+
+- [ ] Trocar `.small`, `.xsmall`, `.label`, `.mono` com tamanho e os `font-size` fixos do `styles.css` pelas classes `text-*` da tabela (o `body` vai de 15px para `text-base`, 16px)
+- [ ] Não criar `--text-*` no `@theme`: a escala é a padrão
 - [ ] Revisar telas, principalmente cards de vaga, tabela de coletas e configurações
 
-Os espaçamentos também não seguem uma escala (gaps de 2, 3, 6, 7, 8, 10, 12, 14, 16, 20, 22, 24, 26, 28, 40). A escala do Tailwind (múltiplos de 4px) resolve isso conforme cada elemento for migrado: arredondar para o valor mais próximo (`gap-1.5`, `gap-2.5`, `gap-3`…) e usar valor arbitrário (`gap-[7px]`) só quando a diferença aparecer na tela.
+Os espaçamentos seguem a mesma regra: a escala padrão do Tailwind (`gap-1.5`, `px-2.5`, `min-h-9.5`…, em passos de 2px), arredondando para cima os valores ímpares (3px vira `1`, 7px vira `2`, 9px vira `2.5`).
 
 ---
 

@@ -5,18 +5,18 @@ import { tv } from '../../lib/cx'
 import { OUTLINED } from './outlined'
 
 const button = tv({
-	base: 'inline-flex items-center justify-center gap-[7px] min-h-[38px] px-3.5 py-2 rounded-pill border border-transparent bg-transparent text-[13px] font-medium no-underline whitespace-nowrap transition-[background-color,border-color,opacity] duration-150 ease-[ease] disabled:opacity-60',
+	base: 'inline-flex items-center justify-center gap-2 min-h-9.5 px-3.5 py-2 rounded-pill border border-transparent bg-transparent text-sm font-medium no-underline whitespace-nowrap transition disabled:opacity-60',
 	variants: {
 		/** `lime`: ação principal da tela. `ghost`: borda, sem preenchimento. `tray`: na bandeja escura de currículos. */
 		variant: {
 			lime: 'bg-lime text-lime-ink font-semibold not-disabled:hover:bg-lime-hover',
 			ghost: ['border-line text-ink', OUTLINED],
-			tray: 'min-h-8 px-[11px] py-[5px] border-inv-line text-inv-ink text-[12px]',
+			tray: 'min-h-8 px-3 py-1.5 border-inv-line text-inv-ink text-xs',
 		},
 		size: {
-			xs: 'min-h-[30px] px-2.5 py-1 text-[12px]',
+			xs: 'min-h-7.5 px-2.5 py-1 text-xs',
 			md: '',
-			lg: 'min-h-[46px] px-[18px] py-[11px] text-[14px]',
+			lg: 'min-h-11.5 px-4.5 py-3 text-sm',
 		},
 	},
 	defaultVariants: { size: 'md' },

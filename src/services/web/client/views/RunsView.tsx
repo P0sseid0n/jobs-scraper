@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 
 import type { ScraperStatus, WebScraperRun } from '../../api-types'
 import { api, type RequestError } from '../api'
-import { Switch } from '../components/forms'
 import { Icon } from '../components/Icon'
 import { Badge, badge, BadgeList, type BadgeTone } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
@@ -10,6 +9,7 @@ import { EmptyState } from '../components/ui/EmptyState'
 import { Notice } from '../components/ui/Notice'
 import { Skeleton } from '../components/ui/Skeleton'
 import { StatusDot, type StatusDotTone } from '../components/ui/StatusDot'
+import { SwitchField } from '../components/ui/Switch'
 import { TextLink } from '../components/ui/TextLink'
 import { cx } from '../lib/cx'
 import { formatDateTime, formatDuration, formatInterval, isLoginFailure } from '../lib/format'
@@ -324,19 +324,14 @@ export function RunsView() {
 
 				<section className="card stack-sm">
 					<h2 className="label">agenda_</h2>
-					<div className="row-between">
-						<label htmlFor="runs-paused">
-							<span className="strong">pausar coletas automáticas</span>
-							<span className="muted xsmall block">o intervalo para de contar até você retomar</span>
-						</label>
-						<Switch
-							id="runs-paused"
-							checked={status.paused}
-							label="Pausar coletas automáticas"
-							disabled={savingPause}
-							onChange={setPaused}
-						/>
-					</div>
+					<SwitchField
+						id="runs-paused"
+						title="pausar coletas automáticas"
+						description="o intervalo para de contar até você retomar"
+						checked={status.paused}
+						disabled={savingPause}
+						onChange={setPaused}
+					/>
 					{status.last && (
 						<p className="muted small">
 							última coleta: {formatDateTime(status.last.startedAt)} ·{' '}

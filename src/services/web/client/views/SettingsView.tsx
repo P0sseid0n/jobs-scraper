@@ -4,13 +4,16 @@ import { DATE_POSTED_FILTERS, type DatePostedFilter } from '@shared/contracts'
 
 import type { WebSettings } from '../../api-types'
 import { api, RequestError } from '../api'
-import { KeywordInput, Switch } from '../components/forms'
 import { Icon } from '../components/Icon'
 import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
+import { FieldError, FieldHelp, FieldLabel } from '../components/ui/Field'
 import { IconButton } from '../components/ui/IconButton'
-import { OUTLINED } from '../components/ui/outlined'
+import { Checkbox, Input, Range, Select } from '../components/ui/Input'
+import { KeywordInput } from '../components/ui/KeywordInput'
+import { pill, PillGroup } from '../components/ui/Pill'
 import { Skeleton } from '../components/ui/Skeleton'
+import { Switch, SwitchField } from '../components/ui/Switch'
 import { cx } from '../lib/cx'
 import { formatInterval, LANGUAGE_NAMES, languageLabel } from '../lib/format'
 import { LIMITS, validateDraft, type SettingsDraft } from '../lib/settings-form'
@@ -141,12 +144,12 @@ export function SettingsView() {
 		setNewTerm('')
 	}
 
-	function fieldError(path: string) {
+	function fieldError(path: string, className?: string) {
 		const message = errors[path]
 		return message ? (
-			<p className="field-error" id={`${path}-error`} role="alert">
+			<FieldError id={`${path}-error`} className={className}>
 				{message}
-			</p>
+			</FieldError>
 		) : null
 	}
 
@@ -154,15 +157,15 @@ export function SettingsView() {
 		value: number,
 		onValue: (draft: SettingsDraft, value: number) => void,
 		id: string,
-		attrs: InputHTMLAttributes<HTMLInputElement>,
+		attrs: Omit<InputHTMLAttributes<HTMLInputElement>, 'size'>,
 	) => (
-		<input
+		<Input
 			id={id}
-			className={cx('field mono', errors[id] && 'invalid')}
+			className="font-mono"
 			type="number"
 			inputMode="numeric"
 			value={Number.isNaN(value) ? '' : value}
-			aria-invalid={!!errors[id]}
+			invalid={!!errors[id]}
 			aria-describedby={errors[id] ? `${id}-error` : `${id}-help`}
 			onChange={event => {
 				const number = event.target.valueAsNumber
@@ -187,7 +190,7 @@ export function SettingsView() {
 				</div>
 
 				<fieldset className="stack-sm">
-					<legend className="field-label">termos de busca</legend>
+					<legend className="p-0 text-sm font-medium">termos de busca</legend>
 					<ul className="stack-xs plain">
 						{terms.map((term, index) => (
 							<li key={index} className="term-row">
@@ -200,12 +203,12 @@ export function SettingsView() {
 										})
 									}
 								/>
-								<input
-									className={cx('field grow', !term.enabled && 'faded', errors[`searchTerms.${index}.term`] && 'invalid')}
+								<Input
+									className={cx('grow', !term.enabled && 'opacity-55')}
 									value={term.term}
 									maxLength={LIMITS.termLength}
 									aria-label={`Termo de busca ${index + 1}`}
-									aria-invalid={!!errors[`searchTerms.${index}.term`]}
+									invalid={!!errors[`searchTerms.${index}.term`]}
 									onChange={event => {
 										const value = event.target.value
 										edit(next => {
@@ -224,13 +227,13 @@ export function SettingsView() {
 								>
 									<Icon name="trash" />
 								</IconButton>
-								{fieldError(`searchTerms.${index}.term`)}
+								{fieldError(`searchTerms.${index}.term`, 'basis-full pl-13.5 max-md:pl-0')}
 							</li>
 						))}
 					</ul>
 					<form className="row gap-sm" onSubmit={addTerm}>
-						<input
-							className="field grow"
+						<Input
+							className="grow"
 							value={newTerm}
 							maxLength={LIMITS.termLength}
 							placeholder="novo termo, ex.: Front-end Nuxt"
@@ -244,18 +247,17 @@ export function SettingsView() {
 						</Button>
 					</form>
 					{fieldError('searchTerms')}
-					<p className="help">
+					<FieldHelp>
 						De 1 a 10 termos, até 100 caracteres, sem repetidos e ao menos um ativo. Os posts por coleta são divididos entre os
 						termos ativos.
-					</p>
+					</FieldHelp>
 				</fieldset>
 
 				<div className="grid-3">
-					<label className="stack-xs" htmlFor="datePosted">
-						<span className="field-label">publicadas em</span>
-						<select
+					<div className="stack-xs">
+						<FieldLabel htmlFor="datePosted">publicadas em</FieldLabel>
+						<Select
 							id="datePosted"
-							className="field"
 							value={d.scraper.datePosted}
 							onChange={event => {
 								const value = event.target.value as DatePostedFilter
@@ -269,36 +271,28 @@ export function SettingsView() {
 									{DATE_POSTED_LABELS[value]}
 								</option>
 							))}
-						</select>
-					</label>
+						</Select>
+					</div>
 					<div className="stack-xs">
-						<label className="field-label" htmlFor="maxPostsPerRun">
-							máx. de posts por coleta
-						</label>
+						<FieldLabel htmlFor="maxPostsPerRun">máx. de posts por coleta</FieldLabel>
 						{numberInput(d.scraper.maxPostsPerRun, (next, value) => (next.scraper.maxPostsPerRun = value), 'maxPostsPerRun', {
 							min: 1,
 							max: 200,
 						})}
-						{fieldError('maxPostsPerRun') ?? (
-							<p className="help" id="maxPostsPerRun-help">
-								de 1 a 200, somando todos os termos
-							</p>
-						)}
+						{fieldError('maxPostsPerRun') ?? <FieldHelp id="maxPostsPerRun-help">de 1 a 200, somando todos os termos</FieldHelp>}
 					</div>
 					<div className="stack-xs">
-						<label className="field-label" htmlFor="intervalMinutes">
-							intervalo entre coletas (min)
-						</label>
+						<FieldLabel htmlFor="intervalMinutes">intervalo entre coletas (min)</FieldLabel>
 						{numberInput(d.scraper.intervalMinutes, (next, value) => (next.scraper.intervalMinutes = value), 'intervalMinutes', {
 							min: 1,
 							max: 10_080,
 						})}
 						{fieldError('intervalMinutes') ?? (
-							<p className="help" id="intervalMinutes-help">
+							<FieldHelp id="intervalMinutes-help">
 								{Number.isInteger(d.scraper.intervalMinutes) && d.scraper.intervalMinutes > 0
 									? `${formatInterval(d.scraper.intervalMinutes)} · máx. 7 dias`
 									: 'máx. 7 dias'}
-							</p>
+							</FieldHelp>
 						)}
 					</div>
 				</div>
@@ -316,15 +310,14 @@ export function SettingsView() {
 					filtros das vagas <span className="mono muted xsmall">pós-processamento</span>
 				</h2>
 
-				<label className="stack-xs" htmlFor="minJobConfidence">
+				<div className="stack-xs">
 					<span className="row-between">
-						<span className="field-label">confiança mínima da IA</span>
+						<FieldLabel htmlFor="minJobConfidence">confiança mínima da IA</FieldLabel>
 						<span className="mono">{p.minJobConfidence}%</span>
 					</span>
-					<input
+					<Range
 						id="minJobConfidence"
-						className="range"
-						type="range"
+						aria-describedby="minJobConfidence-help"
 						min={0}
 						max={100}
 						value={p.minJobConfidence}
@@ -335,17 +328,15 @@ export function SettingsView() {
 							})
 						}}
 					/>
-					<span className="help">Posts abaixo disso são descartados como “não é vaga”.</span>
-				</label>
+					<FieldHelp id="minJobConfidence-help">Posts abaixo disso são descartados como “não é vaga”.</FieldHelp>
+				</div>
 
 				<fieldset className="stack-sm">
-					<legend className="field-label">idiomas aceitos</legend>
-					<div className="pills">
+					<legend className="p-0 text-sm font-medium">idiomas aceitos</legend>
+					<PillGroup>
 						{languages.map(code => (
-							<label key={code} className={cx('check-pill', OUTLINED)}>
-								<input
-									type="checkbox"
-									className="checkbox"
+							<label key={code} className={pill({ className: 'cursor-pointer' })}>
+								<Checkbox
 									checked={p.allowedLanguages.includes(code)}
 									onChange={event => {
 										const checked = event.target.checked
@@ -360,9 +351,9 @@ export function SettingsView() {
 								{languageLabel(code)}
 							</label>
 						))}
-					</div>
+					</PillGroup>
 					{fieldError('allowedLanguages')}
-					<p className="help">Nenhum marcado aceita todos os idiomas. O idioma é detectado no texto do post.</p>
+					<FieldHelp>Nenhum marcado aceita todos os idiomas. O idioma é detectado no texto do post.</FieldHelp>
 				</fieldset>
 
 				<div className="grid-2">
@@ -382,9 +373,7 @@ export function SettingsView() {
 					).map(([field, label, help]) => (
 						<div className="stack-xs" key={field}>
 							<span className="row-between">
-								<label className="field-label" htmlFor={field}>
-									{label}
-								</label>
+								<FieldLabel htmlFor={field}>{label}</FieldLabel>
 								<span className="mono muted xsmall">
 									{p[field].length} / {LIMITS.keywords}
 								</span>
@@ -402,11 +391,7 @@ export function SettingsView() {
 									})
 								}
 							/>
-							{fieldError(field) ?? (
-								<p className="help" id={`${field}-help`}>
-									{help}
-								</p>
-							)}
+							{fieldError(field) ?? <FieldHelp id={`${field}-help`}>{help}</FieldHelp>}
 						</div>
 					))}
 				</div>
@@ -415,10 +400,10 @@ export function SettingsView() {
 					<span className="mono" aria-hidden="true">
 						?
 					</span>
-					<p className="help">
+					<FieldHelp className="text-ink">
 						A comparação é por palavra inteira (“java” não pega “javascript”) e ignora maiúsculas, acentos, hífen e “.js”. Ou
 						seja, “Vue.js” = “vue” e “Front-End” = “frontend”.
-					</p>
+					</FieldHelp>
 				</div>
 			</section>
 		)
@@ -462,18 +447,9 @@ export function SettingsView() {
 								? 'Coletas automáticas pausadas'
 								: `Coletas automáticas ligadas · ${formatInterval(loaded.scraper.intervalMinutes)}`}
 						</p>
-						<p className="help">“Coletar agora” continua funcionando mesmo com as coletas pausadas.</p>
+						<FieldHelp>“Coletar agora” continua funcionando mesmo com as coletas pausadas.</FieldHelp>
 					</div>
-					<div className="row gap-sm small">
-						<label htmlFor="settings-paused">pausar coletas</label>
-						<Switch
-							id="settings-paused"
-							checked={paused}
-							label="Pausar coletas automáticas"
-							disabled={savingPause}
-							onChange={setPaused}
-						/>
-					</div>
+					<SwitchField id="settings-paused" title="pausar coletas" checked={paused} disabled={savingPause} onChange={setPaused} />
 				</div>
 			)}
 

@@ -196,7 +196,7 @@ export function App() {
 						<Icon name={item.icon} size={20} />
 						{item.label}
 						{item.path === '/curriculos' && pendingCvs > 0 && (
-							<Badge tone="lime" size="xs" className="absolute top-1 left-[calc(50%+6px)]">
+							<Badge tone="lime" size="xs" className="absolute top-1 left-1/2 ml-1.5">
 								{pendingCvs}
 							</Badge>
 						)}

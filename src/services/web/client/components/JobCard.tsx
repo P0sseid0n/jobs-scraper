@@ -116,8 +116,8 @@ export function JobCard({
 export function JobCardSkeleton() {
 	return (
 		<div className="card job-card" aria-hidden="true">
-			<Skeleton className="h-3.5 w-[62%] rounded-xs bg-surface-2" />
-			<Skeleton className="h-2.5 w-[40%] rounded-xs bg-surface-2" />
+			<Skeleton className="h-3.5 w-2/3 rounded-xs bg-surface-2" />
+			<Skeleton className="h-2.5 w-2/5 rounded-xs bg-surface-2" />
 			<div className="flex gap-1.5">
 				{[1, 2, 3].map(key => (
 					<Skeleton key={key} className="h-5 w-16 rounded-pill bg-surface-2" />

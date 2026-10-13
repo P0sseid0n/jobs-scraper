@@ -22,11 +22,11 @@ export const badge = tv({
 		},
 		size: {
 			/** Contador sobre um ícone. */
-			xs: 'px-1.5 py-px text-[10px]',
-			sm: 'px-2 py-[3px] text-[10px]',
-			md: 'px-[9px] py-[3px] text-[11.5px]',
+			xs: 'px-1.5 py-px text-xs',
+			sm: 'px-2 py-1 text-xs',
+			md: 'px-2.5 py-1 text-xs',
 			/** Com cara de botão (ex.: o status do scraper no cabeçalho). */
-			lg: 'gap-2 px-3 py-[7px] text-[12px] no-underline',
+			lg: 'gap-2 px-3 py-2 text-xs no-underline',
 		},
 		/** Contorno na cor `--color-line` (troque com `border-*` no `className`). */
 		bordered: { true: 'border border-line', dashed: 'border border-dashed border-line', false: '' },

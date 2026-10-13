@@ -24,7 +24,7 @@ export function EmptyState({ title, description, action, tone = 'neutral', bare 
 		>
 			{tone === 'error' && <Icon name="alert" size={22} />}
 			<p className="font-semibold">{title}</p>
-			{description && <p className="text-[13px] text-muted">{description}</p>}
+			{description && <p className="text-sm text-muted">{description}</p>}
 			{action && <div className="mt-1.5">{action}</div>}
 		</div>
 	)

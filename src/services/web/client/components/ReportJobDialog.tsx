@@ -5,7 +5,7 @@ import { notify } from '../stores/toast'
 import { Icon } from './Icon'
 import { Button } from './ui/Button'
 import { IconButton } from './ui/IconButton'
-import { Pill } from './ui/Pill'
+import { Pill, PillGroup } from './ui/Pill'
 
 /** Campos da vaga que podem ter vindo errados da extração da IA. */
 export const REPORTABLE_FIELDS = {
@@ -69,7 +69,7 @@ export function ReportJobDialog({ job, onClose }: { job: WebJob; onClose: () => 
 
 				<fieldset className="filter-group">
 					<legend className="label">dados errados_</legend>
-					<div className="pills">
+					<PillGroup>
 						{(Object.keys(REPORTABLE_FIELDS) as ReportableField[]).map(field => (
 							<Pill
 								key={field}
@@ -79,7 +79,7 @@ export function ReportJobDialog({ job, onClose }: { job: WebJob; onClose: () => 
 								{REPORTABLE_FIELDS[field]}
 							</Pill>
 						))}
-					</div>
+					</PillGroup>
 				</fieldset>
 
 				<div className="dialog-or label">ou</div>

@@ -20,6 +20,15 @@
 		"rules": {
 			"style": {
 				"noNonNullAssertion": "off"
+			},
+			"a11y": {
+				"noLabelWithoutControl": {
+					"level": "error",
+					"options": {
+						"inputComponents": ["Input", "Select", "Checkbox", "Range", "Switch"],
+						"labelComponents": ["FieldLabel"]
+					}
+				}
 			}
 		}
 	},

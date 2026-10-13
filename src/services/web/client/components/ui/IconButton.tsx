@@ -5,9 +5,9 @@ import { tv } from '../../lib/cx'
 import { OUTLINED } from './outlined'
 
 const iconButton = tv({
-	base: 'inline-grid place-items-center p-0 border-0 rounded-[50%] bg-transparent',
+	base: 'inline-grid place-items-center p-0 border-0 rounded-full bg-transparent',
 	variants: {
-		size: { xs: 'size-[26px]', sm: 'size-8', md: 'size-10' },
+		size: { xs: 'size-6.5', sm: 'size-8', md: 'size-10' },
 		bordered: {
 			true: ['border border-line', OUTLINED],
 			// Sem borda, o hover escurece a cor do próprio texto: funciona em qualquer fundo (toast, bandeja escura)

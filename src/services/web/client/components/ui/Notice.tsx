@@ -9,7 +9,7 @@ const notice = tv({
 	variants: {
 		tone: { warn: 'bg-warn-bg text-warn', danger: 'bg-danger-bg text-danger' },
 		/** `lg`: aviso de destaque da tela, com ícone maior (ex.: a última coleta falhou). */
-		size: { md: 'gap-2.5 px-3 py-2.5', lg: 'gap-3.5 rounded-lg px-[18px] py-4' },
+		size: { md: 'gap-2.5 px-3 py-2.5', lg: 'gap-3.5 rounded-lg px-4.5 py-4' },
 	},
 	defaultVariants: { size: 'md' },
 })
