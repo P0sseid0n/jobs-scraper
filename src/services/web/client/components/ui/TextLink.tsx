@@ -1,6 +1,7 @@
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes } from 'react'
 
 import { tv } from '../../lib/cx'
+import { NEW_TAB } from './link'
 
 const textLink = tv({
 	base: 'text-ink underline underline-offset-3 hover:text-lime-text',
@@ -10,20 +11,29 @@ const textLink = tv({
 	},
 })
 
+type LinkProps = {
+	href: string
+	/** Abre em outra aba (sem dar acesso a esta página) e mostra "↗" depois do texto. */
+	external?: boolean
+} & AnchorHTMLAttributes<HTMLAnchorElement>
+
 type TextLinkProps = { className?: string } & (
-	({ href: string } & AnchorHTMLAttributes<HTMLAnchorElement>) | ({ href?: never } & ButtonHTMLAttributes<HTMLButtonElement>)
+	LinkProps | ({ href?: never; external?: never } & ButtonHTMLAttributes<HTMLButtonElement>)
 )
 
 /** Link sublinhado no meio do texto; sem `href`, vira um botão com a mesma cara (ex.: "mostrar post completo"). */
-export function TextLink({ className, ...props }: TextLinkProps) {
+export function TextLink({ className, external, children, ...props }: TextLinkProps) {
 	if (props.href !== undefined) {
-		return <a {...(props as AnchorHTMLAttributes<HTMLAnchorElement>)} className={textLink({ as: 'a', className })} />
+		return (
+			<a {...(external ? NEW_TAB : {})} {...(props as LinkProps)} className={textLink({ as: 'a', className })}>
+				{children}
+				{external && <span aria-hidden="true"> ↗</span>}
+			</a>
+		)
 	}
 	return (
-		<button
-			type="button"
-			{...(props as ButtonHTMLAttributes<HTMLButtonElement>)}
-			className={textLink({ as: 'button', className })}
-		/>
+		<button type="button" {...(props as ButtonHTMLAttributes<HTMLButtonElement>)} className={textLink({ as: 'button', className })}>
+			{children}
+		</button>
 	)
 }

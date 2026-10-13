@@ -2,6 +2,8 @@ import type { AnchorHTMLAttributes, ButtonHTMLAttributes } from 'react'
 import type { VariantProps } from 'tailwind-variants'
 
 import { tv } from '../../lib/cx'
+import { Icon } from '../Icon'
+import { NEW_TAB } from './link'
 import { OUTLINED } from './outlined'
 
 const button = tv({
@@ -28,13 +30,29 @@ type ButtonLook = Required<Pick<VariantProps<typeof button>, 'variant'>> &
 		className?: string
 	}
 
-type ButtonProps = ButtonLook &
-	(({ href: string } & AnchorHTMLAttributes<HTMLAnchorElement>) | ({ href?: never } & ButtonHTMLAttributes<HTMLButtonElement>))
+type LinkProps = {
+	href: string
+	/** Abre em outra aba (sem dar acesso a esta página) e mostra o ícone de link externo antes do texto. */
+	external?: boolean
+} & AnchorHTMLAttributes<HTMLAnchorElement>
+
+type ButtonProps = ButtonLook & (LinkProps | ({ href?: never; external?: never } & ButtonHTMLAttributes<HTMLButtonElement>))
 
 /** Botão com texto; com `href`, vira um link com a mesma cara. */
-export function Button({ variant, size, className, ...props }: ButtonProps) {
+export function Button({ variant, size, className, external, children, ...props }: ButtonProps) {
 	const classes = button({ variant, size, className })
 
-	if (props.href !== undefined) return <a {...(props as AnchorHTMLAttributes<HTMLAnchorElement>)} className={classes} />
-	return <button type="button" {...(props as ButtonHTMLAttributes<HTMLButtonElement>)} className={classes} />
+	if (props.href !== undefined) {
+		return (
+			<a {...(external ? NEW_TAB : {})} {...(props as LinkProps)} className={classes}>
+				{external && <Icon name="external" size={size === 'lg' ? 16 : 14} />}
+				{children}
+			</a>
+		)
+	}
+	return (
+		<button type="button" {...(props as ButtonHTMLAttributes<HTMLButtonElement>)} className={classes}>
+			{children}
+		</button>
+	)
 }

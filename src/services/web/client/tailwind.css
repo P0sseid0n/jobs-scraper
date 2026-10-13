@@ -18,6 +18,33 @@
 /* `dark:` segue o tema escolhido no site (data-theme), não só o do sistema */
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
+/* A barra de salvar das configurações (`data-save-bar`) está na tela: os elementos fixos embaixo sobem para não cobri-la */
+@custom-variant with-save-bar (&:where(body:has([data-save-bar]) *));
+
+/* Distância da borda de baixo somando a área segura do iPhone: `bottom-safe-19` é 76px mais a área */
+@utility bottom-safe-* {
+	bottom: calc(--spacing(--value(number)) + env(safe-area-inset-bottom));
+}
+
+@utility pb-safe-* {
+	padding-bottom: calc(--spacing(--value(number)) + env(safe-area-inset-bottom));
+}
+
+/* Grade que encaixa quantas colunas couberem, cada uma com pelo menos o tamanho dado: `grid-cols-fill-55` (220px) */
+@utility grid-cols-fill-* {
+	grid-template-columns: repeat(auto-fill, minmax(--spacing(--value(number)), 1fr));
+}
+
+/* Lista que rola por dentro sem passar da metade da tela (a bandeja de currículos) */
+@utility max-h-half-screen {
+	max-height: 50vh;
+}
+
+/* Painel fixo abaixo do cabeçalho (`sticky top-19`): cabe na tela, com a margem de baixo */
+@utility max-h-below-topbar {
+	max-height: calc(100vh - --spacing(24));
+}
+
 /* Só as cores e os raios do projeto: sem a paleta e a escala padrão do Tailwind */
 @theme {
 	--color-*: initial;
@@ -26,6 +53,9 @@
 	/* O CSS do site é desktop-first: `max-md:` é o celular (até 860px) e `max-lg:` vai até 1099px */
 	--breakpoint-md: 861px;
 	--breakpoint-lg: 1100px;
+
+	/* Sombra dos elementos flutuantes (toast, bandeja, modal); `--elevation` troca com o tema */
+	--shadow-float: var(--elevation);
 }
 
 /* Os tokens (tema claro). `static` gera todas as variáveis, também as usadas só no styles.css */

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 
 import { cx } from '../../lib/cx'
 import { Icon } from '../Icon'
+import { card } from './Card'
 
 type EmptyStateProps = {
 	title: ReactNode
@@ -20,7 +21,7 @@ export function EmptyState({ title, description, action, tone = 'neutral', bare 
 	return (
 		<div
 			role={tone === 'error' ? 'alert' : undefined}
-			className={cx('flex flex-col items-center gap-2.5 px-6 py-12 text-center', !bare && 'card', className)}
+			className={cx('flex flex-col items-center gap-2.5 px-6 py-12 text-center', !bare && card(), className)}
 		>
 			{tone === 'error' && <Icon name="alert" size={22} />}
 			<p className="font-semibold">{title}</p>

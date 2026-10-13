@@ -30,7 +30,7 @@ Regras para todas as fases:
 | 3 | 1.126 |
 | 4 | 1.097 |
 | 5 | 1.039 |
-| 6 | |
+| 6 | 52 (só a base, para a fase 7) |
 | 7 | 0 (arquivo apagado) |
 
 ---
@@ -259,15 +259,25 @@ Os espaçamentos seguem a mesma regra: a escala padrão do Tailwind (`gap-1.5`, 
 
 O que sobra depois das fases anteriores é o layout de cada tela. Migrar seção por seção do `styles.css`, apagando cada uma ao terminar:
 
-- [ ] **Utilitários** (113–270): `.mono`, `.muted`, `.strong`, `.row`, `.row-between`, `.stack-*`, `.grow`, `.ellipsis`, `.plain`, `.sr-only` etc. viram `font-mono`, `text-muted`, `font-semibold`, `flex items-center`, `flex flex-col gap-*`, `truncate`, `list-none`… Fazer por último dentro da fase, porque estão em quase todo arquivo
-- [ ] **Superfícies** (555–697): `.card`, `.pdf-icon` → componente `Card` e classes
-- [ ] **Layout** (746–937): `.topbar`, `.topnav`, `.navlink`, `.logo`, `.page*`, `.hero`, `.display`, `.lead`, `.stats`, `.section-title` (em `App.tsx` e nas views; `.page` e `.hero` podem virar componentes `Page` e `Hero`)
-- [ ] **Vagas** (939–1259): `.new-jobs`, `.jobs-layout`, `.filters*`, `.job-list`, `.job-card*`, `.detail-*`, `.cv-ready`, `.copy-field`, `.message-box`, `.raw-post` (o `mask-image` do post recolhido vira `mask-b-from-60%` ou um `@utility`)
-- [ ] **Currículos** (1261–1376): `.cv-tray*`, `.cv-row`, `.row-actions`
-- [ ] **Coletas** (1378–1510): `.status-grid`, `.status-card`, `.runs-table`, `.terms-*`, `.run-outcomes`, `.chip-ok`
-- [ ] **Configurações** (1512–1662): `.settings-*`, `.pause-card`, `.term-row`, `.grid-2/3`, `.hint-box`, `.save-bar*` (o `.app:has(.save-bar) .cv-tray` vira `has-[.save-bar]:` ou fica no `tailwind.css`)
-- [ ] **Modal e avisos** (1664–1764): `.dialog*`, `.toasts`, `.toast*`, `.report-btn`, `.bottomnav`, `.badge`
-- [ ] **Responsivo** (1766–1899): definir os breakpoints no `@theme` (`--breakpoint-md: 860px`, `--breakpoint-lg: 1100px`) e trocar os `@media (max-width: …)` por variantes nos elementos. O CSS atual é desktop-first (`max-width`); usar `max-md:` para não ter que inverter tudo
+- [x] **Utilitários** (113–270): `.mono`, `.muted`, `.strong`, `.row`, `.row-between`, `.stack-*`, `.grow`, `.ellipsis`, `.plain`, `.sr-only` etc. viram `font-mono`, `text-muted`, `font-semibold`, `flex items-center`, `flex flex-col gap-*`, `truncate`, `list-none`… Fazer por último dentro da fase, porque estão em quase todo arquivo
+- [x] **Superfícies** (555–697): `.card`, `.pdf-icon` → componente `Card` e classes
+- [x] **Layout** (746–937): `.topbar`, `.topnav`, `.navlink`, `.logo`, `.page*`, `.hero`, `.display`, `.lead`, `.stats`, `.section-title` (em `App.tsx` e nas views; `.page` e `.hero` podem virar componentes `Page` e `Hero`)
+- [x] **Vagas** (939–1259): `.new-jobs`, `.jobs-layout`, `.filters*`, `.job-list`, `.job-card*`, `.detail-*`, `.cv-ready`, `.copy-field`, `.message-box`, `.raw-post` (o `mask-image` do post recolhido vira `mask-b-from-60%` ou um `@utility`)
+- [x] **Currículos** (1261–1376): `.cv-tray*`, `.cv-row`, `.row-actions`
+- [x] **Coletas** (1378–1510): `.status-grid`, `.status-card`, `.runs-table`, `.terms-*`, `.run-outcomes`, `.chip-ok`
+- [x] **Configurações** (1512–1662): `.settings-*`, `.pause-card`, `.term-row`, `.grid-2/3`, `.hint-box`, `.save-bar*` (o `.app:has(.save-bar) .cv-tray` vira `has-[.save-bar]:` ou fica no `tailwind.css`)
+- [x] **Modal e avisos** (1664–1764): `.dialog*`, `.toasts`, `.toast*`, `.report-btn`, `.bottomnav`, `.badge`
+- [x] **Responsivo** (1766–1899): definir os breakpoints no `@theme` (`--breakpoint-md: 860px`, `--breakpoint-lg: 1100px`) e trocar os `@media (max-width: …)` por variantes nos elementos. O CSS atual é desktop-first (`max-width`); usar `max-md:` para não ter que inverter tudo
+
+### Notas da fase 6
+
+- **Componentes novos:** `Page` e `Hero` (`ui/Page.tsx`, a moldura e a abertura das quatro telas), `card()` (`ui/Card.tsx`, a caixa com borda, com `failed` para o contorno vermelho) e `PdfIcon`. Constantes em `ui/text.ts`: `FIELDSET` (grupo de opções) e `SECTION_TITLE`.
+- **No `tailwind.css`:** `bottom-safe-*` e `pb-safe-*` (área segura do iPhone), `grid-cols-fill-*` (a grade de termos), `max-h-half-screen` (a lista da bandeja), `max-h-below-topbar` (o painel da vaga), a variante `with-save-bar:` (no lugar do `.app:has(.save-bar) .cv-tray`; a barra leva `data-save-bar`) e o token `shadow-float`.
+- **Arredondamentos visíveis:** o desfoque do cabeçalho foi de 10px para 12px (`backdrop-blur-md`), o espaçamento das letras dos títulos grandes para `tracking-tight` (−0,025em, antes −0,02em) e o dos cargos para o normal (antes −0,01em), as células da tabela de coletas de 13px para 14px de padding e a bandeja sobe 152px (antes 150px) com a barra de salvar no celular. O ícone girando deixa de girar com "reduzir movimento" (antes só ficava mais lento).
+- **Bug antigo corrigido:** a linha de currículo pronto recebia a classe `cv-ready` (de `` cv-${status} ``), o mesmo nome da caixa verde "currículo pronto" do detalhe da vaga; por isso as linhas prontas ficavam com fundo verde-claro sem querer. Agora são cards brancos como as outras.
+- **Pendências da fase 5 resolvidas:** o cargo com palavra longa quebra a linha (`wrap-break-word`) em vez de passar da coluna no celular, e o slider dos filtros perdeu a margem padrão do navegador (`m-0`), que o fazia passar 2px da largura.
+- **Conferido:** comparando com a versão do commit anterior (servida ao lado, com os mesmos dados), as quatro telas nos dois temas e três telas no celular (390px), elemento por elemento.
+- **Links para outra aba:** `Button` e `TextLink` ganharam a prop `external` (só junto com `href`): abre em outra aba com `rel="noopener noreferrer"` (`NEW_TAB`, em `ui/link.ts`) e mostra o indicador, o ícone de link externo no botão e "↗" no link de texto. Os sete links que repetiam `target`/`rel` (e o ícone) passaram a usá-la; o "abrir" da lista de currículos e o "pré-visualizar" ganharam o indicador.
 
 ## Fase 7: apagar o `styles.css` 🟡
 

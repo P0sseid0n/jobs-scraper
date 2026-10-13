@@ -7,12 +7,14 @@ import { JobCard, JobCardSkeleton } from '../components/JobCard'
 import { JobDetail } from '../components/JobDetail'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
+import { card } from '../components/ui/Card'
 import { EmptyState } from '../components/ui/EmptyState'
 import { Checkbox, Range, SearchInput, Select } from '../components/ui/Input'
+import { Hero, Page } from '../components/ui/Page'
 import { Pill, PILL_COUNT, PillGroup } from '../components/ui/Pill'
 import { Skeleton } from '../components/ui/Skeleton'
 import { StatusDot } from '../components/ui/StatusDot'
-import { LABEL } from '../components/ui/text'
+import { FIELDSET, LABEL } from '../components/ui/text'
 import { cx } from '../lib/cx'
 import { CONTRACT_TYPES, LANGUAGE_NAMES, WORK_MODES } from '../lib/format'
 import { hasActiveFilters } from '../lib/job-filters'
@@ -31,6 +33,9 @@ const PERIODS = [
 ] as const
 
 const VISIBLE_SKILL_FILTERS = 12
+
+/** Painel do detalhe da vaga ao lado da lista (desktop): acompanha a rolagem e rola por dentro. */
+const DETAIL_PANEL = card({ className: 'sticky top-19 max-h-below-topbar max-w-115 flex-1 basis-100 overflow-y-auto p-6' })
 
 /** A lista com `value` incluído ou removido. */
 const toggled = (list: string[], value: string) => (list.includes(value) ? list.filter(item => item !== value) : [...list, value])
@@ -56,7 +61,15 @@ function Filters({ open }: { open: boolean }) {
 	const visibleSkills = allSkills ? skills : skills.slice(0, VISIBLE_SKILL_FILTERS)
 
 	return (
-		<aside className={cx('filters', open && 'open')} aria-label="Filtros" id="filters">
+		// No celular os filtros ficam recolhidos num card, abertos pelo botão "filtros"
+		<aside
+			className={cx(
+				'flex max-w-67.5 flex-1 basis-60 flex-col gap-5.5 max-lg:max-w-none max-md:rounded-lg max-md:border max-md:border-line max-md:bg-surface max-md:p-4',
+				!open && 'max-md:hidden',
+			)}
+			aria-label="Filtros"
+			id="filters"
+		>
 			<SearchInput
 				label="Buscar vagas"
 				value={filters.q}
@@ -64,8 +77,8 @@ function Filters({ open }: { open: boolean }) {
 				placeholder="cargo, empresa, tecnologia…"
 			/>
 
-			<fieldset className="filter-group">
-				<legend className={LABEL}>período_</legend>
+			<fieldset className={FIELDSET}>
+				<legend className={cx(LABEL, 'mb-2.5')}>período_</legend>
 				<PillGroup>
 					{PERIODS.map(([value, label]) => (
 						<Pill key={value} pressed={filters.since === value} onClick={() => setFilters({ since: value })}>
@@ -75,9 +88,9 @@ function Filters({ open }: { open: boolean }) {
 				</PillGroup>
 			</fieldset>
 
-			<fieldset className="filter-group">
-				<legend className={LABEL}>modalidade_</legend>
-				<div className="stack-xs">
+			<fieldset className={FIELDSET}>
+				<legend className={cx(LABEL, 'mb-2.5')}>modalidade_</legend>
+				<div className="flex flex-col gap-1.5">
 					{(Object.keys(WORK_MODES) as (keyof typeof WORK_MODES)[]).map(mode => (
 						<Pill
 							key={mode}
@@ -93,8 +106,8 @@ function Filters({ open }: { open: boolean }) {
 				</div>
 			</fieldset>
 
-			<fieldset className="filter-group">
-				<legend className={LABEL}>regime_</legend>
+			<fieldset className={FIELDSET}>
+				<legend className={cx(LABEL, 'mb-2.5')}>regime_</legend>
 				<PillGroup>
 					{(Object.keys(CONTRACT_TYPES) as (keyof typeof CONTRACT_TYPES)[]).map(type => (
 						<Pill
@@ -109,8 +122,8 @@ function Filters({ open }: { open: boolean }) {
 			</fieldset>
 
 			{(skills.length > 0 || filters.skills.length > 0) && (
-				<fieldset className="filter-group">
-					<legend className={LABEL}>tecnologias_</legend>
+				<fieldset className={FIELDSET}>
+					<legend className={cx(LABEL, 'mb-2.5')}>tecnologias_</legend>
 					<PillGroup>
 						{selectedSkills.map(skill => (
 							<Pill key={skill} pressed onClick={() => setFilters({ skills: toggled(filters.skills, skill) })}>
@@ -139,12 +152,12 @@ function Filters({ open }: { open: boolean }) {
 				</fieldset>
 			)}
 
-			<div className="filter-group filter-extra text-sm">
-				<label className="row-between">
+			<div className={cx(FIELDSET, 'gap-3 border-t border-line pt-4 text-sm')}>
+				<label className="flex items-center justify-between gap-3">
 					tem e-mail de contato
 					<Checkbox checked={filters.hasEmail} onChange={event => setFilters({ hasEmail: event.target.checked })} />
 				</label>
-				<label className="row-between">
+				<label className="flex items-center justify-between gap-3">
 					idioma
 					<Select size="sm" value={filters.language} onChange={event => setFilters({ language: event.target.value })}>
 						<option value="">todos</option>
@@ -155,9 +168,9 @@ function Filters({ open }: { open: boolean }) {
 						))}
 					</Select>
 				</label>
-				<label className="stack-xs">
-					<span className="row-between">
-						confiança mínima <span className="mono">{filters.minConfidence}%</span>
+				<label className="flex flex-col gap-1.5">
+					<span className="flex items-center justify-between gap-3">
+						confiança mínima <span className="font-mono">{filters.minConfidence}%</span>
 					</span>
 					<Range
 						min={0}
@@ -230,13 +243,13 @@ function JobList({ selectedId, onSelect }: { selectedId: string | null; onSelect
 				<JobCard key={job.postId} job={job} selected={selectedId === job.postId} onSelect={onSelect} />
 			))}
 			{nextCursor ? (
-				<div ref={observeEnd} className="load-more">
+				<div ref={observeEnd} className="flex justify-center py-2">
 					<Button variant="ghost" disabled={loadingMore} onClick={loadMoreJobs}>
 						{loadingMore ? 'carregando…' : 'carregar mais vagas'}
 					</Button>
 				</div>
 			) : (
-				<p className="mono muted text-xs end-of-list">fim da lista</p>
+				<p className="font-mono text-muted py-2 text-center text-xs">fim da lista</p>
 			)}
 		</>
 	)
@@ -270,42 +283,45 @@ export function JobsView({ selectedRouteId }: { selectedRouteId: string | null }
 	}
 
 	return (
-		<div className="page">
-			<section className="hero">
-				<div>
-					<h1 className="display text-4xl md:text-5xl">
+		<Page>
+			<Hero
+				title={
+					<>
 						vagas de front-end,
 						<br />
-						<span className="mono display-mono">coletadas.</span>
-					</h1>
-					<p className="muted lead text-sm">
-						Posts do LinkedIn lidos pela IA, filtrados e prontos pra você agir: abrir o post, copiar o contato, gerar o
-						currículo.
-					</p>
-				</div>
-				<dl className="stats">
-					<div>
-						<dt className="muted text-sm">no histórico</dt>
-						<dd className="mono text-3xl">{facets ? facets.total.toLocaleString('pt-BR') : '–'}</dd>
-					</div>
-					<div>
-						<dt className="muted text-sm">currículos gerando</dt>
-						<dd className="mono text-3xl">{pendingCvs}</dd>
-					</div>
-				</dl>
-			</section>
+						<Hero.Mono>coletadas.</Hero.Mono>
+					</>
+				}
+				lead="Posts do LinkedIn lidos pela IA, filtrados e prontos pra você agir: abrir o post, copiar o contato, gerar o currículo."
+				aside={
+					<dl className="m-0 flex gap-10 max-md:gap-7">
+						<div className="flex flex-col-reverse">
+							<dt className="text-muted text-sm">no histórico</dt>
+							<dd className="m-0 font-mono text-3xl">{facets ? facets.total.toLocaleString('pt-BR') : '–'}</dd>
+						</div>
+						<div className="flex flex-col-reverse">
+							<dt className="text-muted text-sm">currículos gerando</dt>
+							<dd className="m-0 font-mono text-3xl">{pendingCvs}</dd>
+						</div>
+					</dl>
+				}
+			/>
 
 			{incoming.length > 0 && (
-				<button type="button" className="new-jobs text-sm" onClick={showIncoming}>
+				<button
+					type="button"
+					className="sticky top-19 z-10 inline-flex min-h-10 items-center gap-2.5 self-center rounded-pill border border-line bg-lime-soft py-1.5 pr-4 pl-2 text-sm text-ink shadow-float max-md:top-17.5"
+					onClick={showIncoming}
+				>
 					<Badge tone="lime" size="sm">
 						ao vivo
 					</Badge>
 					{incoming.length === 1 ? '1 vaga nova' : `${incoming.length} vagas novas`}
-					<span className="mono text-xs underline">mostrar no topo</span>
+					<span className="font-mono text-xs underline">mostrar no topo</span>
 				</button>
 			)}
 
-			<div className="jobs-layout">
+			<div className="flex flex-wrap items-start gap-6 max-md:flex-col max-md:items-stretch max-md:gap-3.5">
 				<Button
 					variant="ghost"
 					className="hidden self-start max-md:inline-flex"
@@ -318,9 +334,13 @@ export function JobsView({ selectedRouteId }: { selectedRouteId: string | null }
 				</Button>
 				<Filters open={filtersOpen} />
 
-				<section className="job-list" aria-label="Lista de vagas" aria-busy={status === 'loading'}>
+				<section
+					className="flex min-w-0 grow-999 basis-110 flex-col gap-2.5 max-md:basis-auto"
+					aria-label="Lista de vagas"
+					aria-busy={status === 'loading'}
+				>
 					{status === 'ready' && jobs.length > 0 && (
-						<div className="row-between mono muted text-xs">
+						<div className="flex items-center justify-between gap-3 font-mono text-muted text-xs">
 							<span>
 								{jobs.length}
 								{nextCursor ? '+' : ''} vagas
@@ -332,12 +352,12 @@ export function JobsView({ selectedRouteId }: { selectedRouteId: string | null }
 				</section>
 
 				{wide && selected && (
-					<aside className="card detail-panel" aria-label="Detalhe da vaga">
+					<aside className={DETAIL_PANEL} aria-label="Detalhe da vaga">
 						<JobDetail job={selected} />
 					</aside>
 				)}
 				{wide && !selected && selectedRouteId && (
-					<aside className="card detail-panel" aria-label="Detalhe da vaga" aria-busy={!routeJob.error}>
+					<aside className={DETAIL_PANEL} aria-label="Detalhe da vaga" aria-busy={!routeJob.error}>
 						{routeJob.error ? (
 							<EmptyState
 								bare
@@ -355,6 +375,6 @@ export function JobsView({ selectedRouteId }: { selectedRouteId: string | null }
 					</aside>
 				)}
 			</div>
-		</div>
+		</Page>
 	)
 }

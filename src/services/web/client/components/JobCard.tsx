@@ -10,11 +10,14 @@ import { CvButton } from './CvButton'
 import { Icon } from './Icon'
 import { badge, BadgeList } from './ui/Badge'
 import { Button } from './ui/Button'
+import { card } from './ui/Card'
 import { Skeleton } from './ui/Skeleton'
 import { StatusDot } from './ui/StatusDot'
 import { WorkModeBadge } from './WorkModeBadge'
 
 const VISIBLE_SKILLS = 4
+
+const JOB_CARD = card({ className: 'flex flex-col gap-3 px-4.5 py-4 transition-colors max-md:p-3.5' })
 
 /** Card da lista: otimizado para escanear (cargo, empresa · local, modalidade, regime, quando, tecnologias) e agir rápido. */
 export function JobCard({
@@ -43,22 +46,25 @@ export function JobCard({
 	}
 
 	return (
-		<article className={cx('card job-card', selected && 'inverted border-inv-bg')} aria-current={selected ? 'true' : undefined}>
-			<div className="job-card-head">
-				<a className="job-card-title" href={jobPath(job.postId)} onClick={open}>
-					<span className="job-title text-base leading-snug">
+		<article
+			className={cx(JOB_CARD, selected ? 'inverted border-inv-bg' : 'hover:border-line-strong')}
+			aria-current={selected ? 'true' : undefined}
+		>
+			<div className="flex items-start gap-3">
+				<a className="group flex min-w-0 flex-1 flex-col gap-1 no-underline" href={jobPath(job.postId)} onClick={open}>
+					<span className="flex items-center gap-2 text-base leading-snug font-semibold wrap-break-word group-hover:underline group-hover:underline-offset-3">
 						{unseen && <StatusDot tone="lime" glow />}
 						{unseen && <span className="sr-only">vaga nova:</span>}
 						{job.title}
 					</span>
-					<span className="muted text-sm">{jobSubtitle(job)}</span>
+					<span className="text-muted text-sm">{jobSubtitle(job)}</span>
 				</a>
-				<div className="job-card-meta">
-					<div className="job-badges">
+				<div className="flex shrink-0 flex-col items-end gap-1.5">
+					<div className="flex flex-wrap items-center gap-1.5">
 						<ContractTypeBadge job={job} />
 						<WorkModeBadge job={job} />
 					</div>
-					<time className="mono muted text-sm" dateTime={jobDate(job)}>
+					<time className="font-mono text-muted text-sm" dateTime={jobDate(job)}>
 						{timeAgo(jobDate(job))}
 					</time>
 				</div>
@@ -79,8 +85,8 @@ export function JobCard({
 				</BadgeList>
 			)}
 
-			<div className="job-card-actions">
-				<span className="mono muted text-sm contact-hint">
+			<div className="flex flex-wrap items-center gap-2">
+				<span className="font-mono text-muted inline-flex flex-auto items-center gap-1.5 text-sm max-md:basis-full">
 					{job.recruiterEmail ? (
 						<>
 							<Icon name="mail" size={14} />
@@ -94,20 +100,18 @@ export function JobCard({
 				</span>
 				{/* A candidatura: o site da vaga ou, sem site nem e-mail, o post (o link do post para conferir fica no detalhe) */}
 				{applyLink ? (
-					<Button variant="ghost" href={applyLink} target="_blank" rel="noopener noreferrer">
-						<Icon name="external" size={14} />
+					<Button variant="ghost" className="max-md:flex-auto" href={applyLink} external>
 						candidatar-se
 					</Button>
 				) : (
 					postLink &&
 					!job.recruiterEmail && (
-						<Button variant="ghost" href={postLink} target="_blank" rel="noopener noreferrer">
-							<Icon name="external" size={14} />
+						<Button variant="ghost" className="max-md:flex-auto" href={postLink} external>
 							abrir post
 						</Button>
 					)
 				)}
-				<CvButton job={job} />
+				<CvButton job={job} className="max-md:flex-auto" />
 			</div>
 		</article>
 	)
@@ -115,7 +119,7 @@ export function JobCard({
 
 export function JobCardSkeleton() {
 	return (
-		<div className="card job-card" aria-hidden="true">
+		<div className={JOB_CARD} aria-hidden="true">
 			<Skeleton className="h-3.5 w-2/3 rounded-xs bg-surface-2" />
 			<Skeleton className="h-2.5 w-2/5 rounded-xs bg-surface-2" />
 			<div className="flex gap-1.5">

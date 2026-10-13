@@ -41,10 +41,13 @@ export function CvTray() {
 	const pending = items.filter(item => item.status === 'pending').length
 
 	return (
-		<aside className="cv-tray inverted" aria-label="Currículos em andamento">
+		<aside
+			className="inverted fixed right-5 bottom-5 left-4 z-30 ml-auto max-w-90 rounded-xl px-3.5 py-3 shadow-float with-save-bar:bottom-23 max-md:right-4 max-md:bottom-safe-19 max-md:with-save-bar:bottom-safe-38"
+			aria-label="Currículos em andamento"
+		>
 			<button
 				type="button"
-				className="cv-tray-head mono text-xs text-muted"
+				className="flex w-full justify-between border-0 bg-transparent py-1 font-mono text-xs text-muted"
 				aria-expanded={!collapsed}
 				onClick={() => setCollapsed(!collapsed)}
 			>
@@ -52,13 +55,17 @@ export function CvTray() {
 				<span>{pending ? `${pending} gerando` : `${items.length} ${items.length === 1 ? 'pronto' : 'prontos'}`}</span>
 			</button>
 			{!collapsed && (
-				<ul className="cv-tray-list" role="status" aria-live="polite">
+				<ul
+					className="m-0 mt-2 flex max-h-half-screen list-none flex-col gap-2.5 overflow-y-auto p-0"
+					role="status"
+					aria-live="polite"
+				>
 					{items.map(item => (
-						<li key={item.requestId} className="cv-tray-item">
+						<li key={item.requestId} className="flex items-center gap-2.5">
 							<StatusDot {...TRAY_DOTS[item.status]} />
-							<div className="grow min-0">
+							<div className="grow min-w-0">
 								<a
-									className="ellipsis cv-tray-title text-sm"
+									className="block truncate text-sm no-underline"
 									href={jobPath(item.postId)}
 									onClick={event => {
 										event.preventDefault()
@@ -67,7 +74,7 @@ export function CvTray() {
 								>
 									{item.jobTitle ?? 'Vaga'}
 								</a>
-								<div className="mono text-xs truncate text-muted" title={item.error ?? undefined}>
+								<div className="font-mono text-xs truncate text-muted" title={item.error ?? undefined}>
 									{item.status === 'failed' && item.error ? `falhou: ${item.error}` : STATUS_TEXT[item.status]}
 								</div>
 							</div>

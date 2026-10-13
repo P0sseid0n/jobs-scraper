@@ -6,7 +6,9 @@ import { api } from '../api'
 import { Icon } from '../components/Icon'
 import { JobDetail } from '../components/JobDetail'
 import { Button } from '../components/ui/Button'
+import { card } from '../components/ui/Card'
 import { EmptyState } from '../components/ui/EmptyState'
+import { Page } from '../components/ui/Page'
 import { Skeleton } from '../components/ui/Skeleton'
 import { goBack, onLinkClick } from '../router'
 import { jobsStore } from '../stores/jobs'
@@ -55,7 +57,7 @@ export function JobPage({ routeId }: { routeId: string }) {
 	const { job, error } = useJob(routeId)
 
 	return (
-		<div className="page page-narrow">
+		<Page width="narrow">
 			<Button
 				variant="ghost"
 				href="/"
@@ -79,12 +81,12 @@ export function JobPage({ routeId }: { routeId: string }) {
 					}
 				/>
 			)}
-			{!error && !job && <Skeleton className="card min-h-60" aria-busy="true" />}
+			{!error && !job && <Skeleton className={card({ className: 'min-h-60' })} aria-busy="true" />}
 			{job && (
-				<article className="card detail-page">
+				<article className={card({ className: 'p-6 max-md:p-4.5' })}>
 					<JobDetail job={job} />
 				</article>
 			)}
-		</div>
+		</Page>
 	)
 }

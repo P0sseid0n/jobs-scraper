@@ -7,7 +7,7 @@ import { Icon } from './Icon'
 import { Button } from './ui/Button'
 import { IconButton } from './ui/IconButton'
 import { Pill, PillGroup } from './ui/Pill'
-import { LABEL } from './ui/text'
+import { FIELDSET, LABEL } from './ui/text'
 
 /** Campos da vaga que podem ter vindo errados da extração da IA. */
 export const REPORTABLE_FIELDS = {
@@ -52,25 +52,25 @@ export function ReportJobDialog({ job, onClose }: { job: WebJob; onClose: () => 
 		// biome-ignore lint/a11y/useKeyWithClickEvents: pelo teclado, o Esc já fecha o <dialog>
 		<dialog
 			ref={ref}
-			className="dialog"
+			className="w-120 rounded-lg border border-line bg-surface p-0 text-ink shadow-float backdrop:bg-backdrop"
 			aria-labelledby="report-title"
 			onClose={onClose}
 			// Clique no fundo escurecido (fora do conteúdo) fecha
 			onClick={event => event.target === ref.current && ref.current.close()}
 		>
-			<div className="dialog-body stack-sm">
-				<div className="row-between">
-					<h2 className="dialog-title text-lg" id="report-title">
+			<div className="flex flex-col gap-2.5 px-5 pt-4 pb-5">
+				<div className="flex items-center justify-between gap-3">
+					<h2 className="m-0 text-lg" id="report-title">
 						O que saiu errado?
 					</h2>
 					<IconButton label="Fechar" onClick={() => ref.current?.close()}>
 						<Icon name="close" />
 					</IconButton>
 				</div>
-				<p className="muted text-sm ellipsis">{job.title}</p>
+				<p className="text-muted text-sm block truncate">{job.title}</p>
 
-				<fieldset className="filter-group">
-					<legend className={LABEL}>dados errados_</legend>
+				<fieldset className={FIELDSET}>
+					<legend className={cx(LABEL, 'mb-2.5')}>dados errados_</legend>
 					<PillGroup>
 						{(Object.keys(REPORTABLE_FIELDS) as ReportableField[]).map(field => (
 							<Pill
@@ -84,7 +84,7 @@ export function ReportJobDialog({ job, onClose }: { job: WebJob; onClose: () => 
 					</PillGroup>
 				</fieldset>
 
-				<div className={cx('dialog-or', LABEL)}>ou</div>
+				<div className={cx('text-center', LABEL)}>ou</div>
 
 				<Pill
 					shape="row"
@@ -95,7 +95,7 @@ export function ReportJobDialog({ job, onClose }: { job: WebJob; onClose: () => 
 					<span className="text-xs">sai da lista, sem apagar</span>
 				</Pill>
 
-				<div className="dialog-actions">
+				<div className="flex justify-end gap-2 pt-2">
 					<Button variant="ghost" onClick={() => ref.current?.close()}>
 						cancelar
 					</Button>

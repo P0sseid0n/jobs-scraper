@@ -8,7 +8,7 @@ import { Icon } from './Icon'
 import { Button } from './ui/Button'
 
 /** Ação de currículo da vaga, conforme o último pedido: gerar → gerando… → baixar, ou tentar de novo se falhou. */
-export function CvButton({ job, size = 'md' }: { job: Pick<WebJob, 'postId'>; size?: 'md' | 'lg' }) {
+export function CvButton({ job, size = 'md', className }: { job: Pick<WebJob, 'postId'>; size?: 'md' | 'lg'; className?: string }) {
 	const [sending, setSending] = useState(false)
 	const cv = useCvFor(job.postId)
 
@@ -25,7 +25,13 @@ export function CvButton({ job, size = 'md' }: { job: Pick<WebJob, 'postId'>; si
 
 	if (cv?.status === 'ready') {
 		return (
-			<Button variant="lime" size={size} href={cvPdfUrl(cv.requestId, true)} download={cv.fileName ?? undefined}>
+			<Button
+				variant="lime"
+				size={size}
+				className={className}
+				href={cvPdfUrl(cv.requestId, true)}
+				download={cv.fileName ?? undefined}
+			>
 				<Icon name="download" />
 				baixar currículo
 			</Button>
@@ -34,7 +40,7 @@ export function CvButton({ job, size = 'md' }: { job: Pick<WebJob, 'postId'>; si
 
 	if (sending || cv?.status === 'pending') {
 		return (
-			<Button variant="lime" size={size} disabled aria-live="polite">
+			<Button variant="lime" size={size} className={className} disabled aria-live="polite">
 				<Icon name="spinner" />
 				gerando…
 			</Button>
@@ -42,7 +48,7 @@ export function CvButton({ job, size = 'md' }: { job: Pick<WebJob, 'postId'>; si
 	}
 
 	return (
-		<Button variant="lime" size={size} onClick={generate} title={cv?.error ?? undefined}>
+		<Button variant="lime" size={size} className={className} onClick={generate} title={cv?.error ?? undefined}>
 			<Icon name={cv?.status === 'failed' ? 'refresh' : 'file'} />
 			{cv?.status === 'failed' ? 'tentar de novo' : 'gerar currículo'}
 		</Button>

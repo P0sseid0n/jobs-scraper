@@ -6,14 +6,17 @@ import type { WebSettings } from '../../api-types'
 import { api, RequestError } from '../api'
 import { Icon } from '../components/Icon'
 import { Button } from '../components/ui/Button'
+import { card } from '../components/ui/Card'
 import { EmptyState } from '../components/ui/EmptyState'
 import { FieldError, FieldHelp, FieldLabel } from '../components/ui/Field'
 import { IconButton } from '../components/ui/IconButton'
 import { Checkbox, Input, Range, Select } from '../components/ui/Input'
 import { KeywordInput } from '../components/ui/KeywordInput'
+import { Hero, Page } from '../components/ui/Page'
 import { pill, PillGroup } from '../components/ui/Pill'
 import { Skeleton } from '../components/ui/Skeleton'
 import { Switch, SwitchField } from '../components/ui/Switch'
+import { SECTION_TITLE } from '../components/ui/text'
 import { cx } from '../lib/cx'
 import { formatInterval, LANGUAGE_NAMES, languageLabel } from '../lib/format'
 import { LIMITS, validateDraft, type SettingsDraft } from '../lib/settings-form'
@@ -25,6 +28,8 @@ const DATE_POSTED_LABELS: Record<DatePostedFilter, string> = {
 	'past-month': 'Último mês',
 	any: 'Qualquer data',
 }
+
+const SETTINGS_CARD = card({ className: 'flex flex-col gap-6.5 p-7 max-md:p-4.5' })
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
@@ -179,21 +184,21 @@ export function SettingsView() {
 		const terms = d.scraper.searchTerms
 
 		return (
-			<section className="card settings-card" aria-labelledby="scraper-title">
-				<div className="row-between wrap">
-					<h2 id="scraper-title" className="section-title text-xl">
-						coleta <span className="mono muted text-xs">scraper</span>
+			<section className={SETTINGS_CARD} aria-labelledby="scraper-title">
+				<div className="flex items-center justify-between gap-3 flex-wrap">
+					<h2 id="scraper-title" className={SECTION_TITLE}>
+						coleta <span className="font-mono text-xs font-normal text-muted">scraper</span>
 					</h2>
-					<span className="mono muted text-xs">
+					<span className="font-mono text-muted text-xs">
 						{terms.length} / {LIMITS.searchTerms} termos
 					</span>
 				</div>
 
-				<fieldset className="stack-sm">
-					<legend className="p-0 text-sm font-medium">termos de busca</legend>
-					<ul className="stack-xs plain">
+				<fieldset className="flex flex-col gap-2.5">
+					<legend className="mb-2.5 p-0 text-sm font-medium">termos de busca</legend>
+					<ul className="flex flex-col gap-1.5 m-0 list-none p-0">
 						{terms.map((term, index) => (
-							<li key={index} className="term-row">
+							<li key={index} className="flex flex-wrap items-center gap-2.5">
 								<Switch
 									checked={term.enabled}
 									label={`Termo ${term.term || index + 1} ativo`}
@@ -231,7 +236,7 @@ export function SettingsView() {
 							</li>
 						))}
 					</ul>
-					<form className="row gap-sm" onSubmit={addTerm}>
+					<form className="flex items-center gap-2.5" onSubmit={addTerm}>
 						<Input
 							className="grow"
 							value={newTerm}
@@ -253,8 +258,8 @@ export function SettingsView() {
 					</FieldHelp>
 				</fieldset>
 
-				<div className="grid-3">
-					<div className="stack-xs">
+				<div className="grid grid-cols-3 gap-5 max-md:grid-cols-1">
+					<div className="flex flex-col gap-1.5">
 						<FieldLabel htmlFor="datePosted">publicadas em</FieldLabel>
 						<Select
 							id="datePosted"
@@ -273,7 +278,7 @@ export function SettingsView() {
 							))}
 						</Select>
 					</div>
-					<div className="stack-xs">
+					<div className="flex flex-col gap-1.5">
 						<FieldLabel htmlFor="maxPostsPerRun">máx. de posts por coleta</FieldLabel>
 						{numberInput(d.scraper.maxPostsPerRun, (next, value) => (next.scraper.maxPostsPerRun = value), 'maxPostsPerRun', {
 							min: 1,
@@ -281,7 +286,7 @@ export function SettingsView() {
 						})}
 						{fieldError('maxPostsPerRun') ?? <FieldHelp id="maxPostsPerRun-help">de 1 a 200, somando todos os termos</FieldHelp>}
 					</div>
-					<div className="stack-xs">
+					<div className="flex flex-col gap-1.5">
 						<FieldLabel htmlFor="intervalMinutes">intervalo entre coletas (min)</FieldLabel>
 						{numberInput(d.scraper.intervalMinutes, (next, value) => (next.scraper.intervalMinutes = value), 'intervalMinutes', {
 							min: 1,
@@ -305,15 +310,15 @@ export function SettingsView() {
 		const languages = [...new Set([...Object.keys(LANGUAGE_NAMES), ...p.allowedLanguages])]
 
 		return (
-			<section className="card settings-card" aria-labelledby="processing-title">
-				<h2 id="processing-title" className="section-title text-xl">
-					filtros das vagas <span className="mono muted text-xs">pós-processamento</span>
+			<section className={SETTINGS_CARD} aria-labelledby="processing-title">
+				<h2 id="processing-title" className={SECTION_TITLE}>
+					filtros das vagas <span className="font-mono text-xs font-normal text-muted">pós-processamento</span>
 				</h2>
 
-				<div className="stack-xs">
-					<span className="row-between">
+				<div className="flex flex-col gap-1.5">
+					<span className="flex items-center justify-between gap-3">
 						<FieldLabel htmlFor="minJobConfidence">confiança mínima da IA</FieldLabel>
-						<span className="mono">{p.minJobConfidence}%</span>
+						<span className="font-mono">{p.minJobConfidence}%</span>
 					</span>
 					<Range
 						id="minJobConfidence"
@@ -331,8 +336,8 @@ export function SettingsView() {
 					<FieldHelp id="minJobConfidence-help">Posts abaixo disso são descartados como “não é vaga”.</FieldHelp>
 				</div>
 
-				<fieldset className="stack-sm">
-					<legend className="p-0 text-sm font-medium">idiomas aceitos</legend>
+				<fieldset className="flex flex-col gap-2.5">
+					<legend className="mb-2.5 p-0 text-sm font-medium">idiomas aceitos</legend>
 					<PillGroup>
 						{languages.map(code => (
 							<label key={code} className={pill({ className: 'cursor-pointer' })}>
@@ -356,7 +361,7 @@ export function SettingsView() {
 					<FieldHelp>Nenhum marcado aceita todos os idiomas. O idioma é detectado no texto do post.</FieldHelp>
 				</fieldset>
 
-				<div className="grid-2">
+				<div className="grid grid-cols-2 gap-5 max-md:grid-cols-1">
 					{(
 						[
 							[
@@ -371,10 +376,10 @@ export function SettingsView() {
 							],
 						] as const
 					).map(([field, label, help]) => (
-						<div className="stack-xs" key={field}>
-							<span className="row-between">
+						<div className="flex flex-col gap-1.5" key={field}>
+							<span className="flex items-center justify-between gap-3">
 								<FieldLabel htmlFor={field}>{label}</FieldLabel>
-								<span className="mono muted text-xs">
+								<span className="font-mono text-muted text-xs">
 									{p[field].length} / {LIMITS.keywords}
 								</span>
 							</span>
@@ -396,8 +401,8 @@ export function SettingsView() {
 					))}
 				</div>
 
-				<div className="hint-box">
-					<span className="mono" aria-hidden="true">
+				<div className="flex gap-3 rounded-md bg-surface-2 px-4 py-3.5">
+					<span className="font-mono" aria-hidden="true">
 						?
 					</span>
 					<FieldHelp className="text-ink">
@@ -413,17 +418,15 @@ export function SettingsView() {
 	const dirty = dirtyKeys.length > 0
 
 	return (
-		<div className="page page-medium settings-page">
-			<section className="hero">
-				<div>
-					<h1 className="display text-4xl md:text-5xl">
-						configurações <span className="mono display-mono">da máquina.</span>
-					</h1>
-					<p className="muted lead text-sm">
-						As mudanças valem a partir da próxima coleta, sem reiniciar nada. Os filtros não reprocessam vagas antigas.
-					</p>
-				</div>
-			</section>
+		<Page width="medium" className="pb-40">
+			<Hero
+				title={
+					<>
+						configurações <Hero.Mono>da máquina.</Hero.Mono>
+					</>
+				}
+				lead="As mudanças valem a partir da próxima coleta, sem reiniciar nada. Os filtros não reprocessam vagas antigas."
+			/>
 
 			{loadError && (
 				<EmptyState
@@ -437,12 +440,12 @@ export function SettingsView() {
 					}
 				/>
 			)}
-			{!loadError && !draft && <Skeleton className="card min-h-60" aria-busy="true" />}
+			{!loadError && !draft && <Skeleton className={card({ className: 'min-h-60' })} aria-busy="true" />}
 
 			{loaded && (
-				<div className={cx('card pause-card', paused && 'paused')}>
+				<div className={card({ className: cx('flex flex-wrap items-center gap-4 px-5 py-4.5', paused && 'bg-lime-soft') })}>
 					<div className="grow">
-						<p className="strong">
+						<p className="font-semibold">
 							{paused
 								? 'Coletas automáticas pausadas'
 								: `Coletas automáticas ligadas · ${formatInterval(loaded.scraper.intervalMinutes)}`}
@@ -457,11 +460,15 @@ export function SettingsView() {
 			{draft && renderProcessing(draft)}
 
 			{draft && (
-				<div className="save-bar">
-					<div className="save-bar-inner">
+				<div data-save-bar className="fixed inset-x-0 bottom-0 z-25 border-t border-line bg-bg max-md:bottom-safe-16">
+					<div className="mx-auto flex max-w-270 flex-wrap items-center gap-3 px-6 py-3 max-md:px-4">
 						<span
 							role="status"
-							className={cx('mono text-sm grow', saveState === 'error' && 'danger-text', saveState === 'saved' && 'ok-text')}
+							className={cx(
+								'font-mono text-sm grow',
+								saveState === 'error' && 'text-danger',
+								saveState === 'saved' && 'text-ok',
+							)}
 						>
 							{saveState === 'saving'
 								? 'salvando…'
@@ -480,6 +487,6 @@ export function SettingsView() {
 					</div>
 				</div>
 			)}
-		</div>
+		</Page>
 	)
 }

@@ -46,5 +46,5 @@ export function Checkbox({ className, ...props }: Omit<InputHTMLAttributes<HTMLI
 }
 
 export function Range({ className, ...props }: Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>) {
-	return <input type="range" {...props} className={cx('w-full accent-lime-accent', className)} />
+	return <input type="range" {...props} className={cx('m-0 w-full accent-lime-accent', className)} />
 }

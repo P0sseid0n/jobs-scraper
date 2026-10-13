@@ -30,7 +30,7 @@ export type IconName = keyof typeof PATHS
 export function Icon({ name, size = 16, className }: { name: IconName; size?: number; className?: string }) {
 	return (
 		<svg
-			className={cx('icon', name === 'spinner' && 'spin', className)}
+			className={cx('shrink-0', name === 'spinner' && 'animate-spin motion-reduce:animate-none', className)}
 			width={size}
 			height={size}
 			viewBox="0 0 24 24"
