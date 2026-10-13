@@ -2,13 +2,19 @@ import { useState } from 'react'
 
 import type { WebCvRequest } from '../../api-types'
 import { cvPdfUrl } from '../api'
-import { cx } from '../lib/cx'
 import { jobPath, navigate } from '../router'
 import { dismissCv, requestCv, useTrayRequests } from '../stores/cv'
 import { notify } from '../stores/toast'
 import { Icon } from './Icon'
 import { Button } from './ui/Button'
 import { IconButton } from './ui/IconButton'
+import { StatusDot, type StatusDotTone } from './ui/StatusDot'
+
+const TRAY_DOTS: Record<WebCvRequest['status'], { tone: StatusDotTone; pulse?: boolean }> = {
+	pending: { tone: 'lime', pulse: true },
+	ready: { tone: 'ok' },
+	failed: { tone: 'danger' },
+}
 
 const STATUS_TEXT: Record<WebCvRequest['status'], string> = {
 	pending: 'gerando · até ~1 min',
@@ -44,7 +50,7 @@ export function CvTray() {
 				<ul className="cv-tray-list" role="status" aria-live="polite">
 					{items.map(item => (
 						<li key={item.requestId} className="cv-tray-item">
-							<span className={cx('status-dot', `status-${item.status}`)} aria-hidden="true" />
+							<StatusDot {...TRAY_DOTS[item.status]} />
 							<div className="grow min-0">
 								<a
 									className="ellipsis cv-tray-title"

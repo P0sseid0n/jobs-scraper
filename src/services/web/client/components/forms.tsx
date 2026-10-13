@@ -2,6 +2,7 @@ import { useState, type KeyboardEvent } from 'react'
 
 import { cx } from '../lib/cx'
 import { Icon } from './Icon'
+import { badge } from './ui/Badge'
 import { IconButton } from './ui/IconButton'
 
 /** Interruptor liga/desliga (checkbox nativo, acessível pelo teclado). */
@@ -79,7 +80,7 @@ export function KeywordInput({
 	return (
 		<div className={cx('chips-input', invalid && 'invalid')}>
 			{value.map(word => (
-				<span className="kchip mono" key={word}>
+				<span className={badge({ className: 'gap-0.5 py-0.5 pr-0.5 pl-2.5 text-[12px] whitespace-normal' })} key={word}>
 					{word}
 					<IconButton
 						label={`Remover ${word}`}

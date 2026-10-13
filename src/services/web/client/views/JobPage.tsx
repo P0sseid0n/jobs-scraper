@@ -6,6 +6,7 @@ import { api } from '../api'
 import { Icon } from '../components/Icon'
 import { JobDetail } from '../components/JobDetail'
 import { Button } from '../components/ui/Button'
+import { EmptyState } from '../components/ui/EmptyState'
 import { Skeleton } from '../components/ui/Skeleton'
 import { goBack, onLinkClick } from '../router'
 import { jobsStore } from '../stores/jobs'
@@ -68,12 +69,15 @@ export function JobPage({ routeId }: { routeId: string }) {
 				vagas
 			</Button>
 			{error && (
-				<div className="card empty" role="alert">
-					<p className="strong">{error}</p>
-					<Button variant="lime" href="/" onClick={onLinkClick}>
-						ver todas as vagas
-					</Button>
-				</div>
+				<EmptyState
+					tone="error"
+					title={error}
+					action={
+						<Button variant="lime" href="/" onClick={onLinkClick}>
+							ver todas as vagas
+						</Button>
+					}
+				/>
 			)}
 			{!error && !job && <Skeleton className="card min-h-60" aria-busy="true" />}
 			{job && (

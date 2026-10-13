@@ -12,8 +12,11 @@ import { ContractTypeBadge } from './ContractTypeBadge'
 import { CvButton } from './CvButton'
 import { Icon } from './Icon'
 import { ReportJobDialog } from './ReportJobDialog'
+import { badge, BadgeList } from './ui/Badge'
 import { Button } from './ui/Button'
 import { IconButton } from './ui/IconButton'
+import { Notice } from './ui/Notice'
+import { TextLink } from './ui/TextLink'
 import { WorkModeBadge } from './WorkModeBadge'
 
 /** Posts maiores que isso começam recolhidos. */
@@ -94,13 +97,13 @@ function JobDetailContent({ job }: { job: WebJob }) {
 			{reporting && <ReportJobDialog job={job} onClose={() => setReporting(false)} />}
 
 			{job.necessaryKnowledge && (
-				<ul className="chips" aria-label="Tecnologias">
+				<BadgeList aria-label="Tecnologias">
 					{job.necessaryKnowledge.map(skill => (
-						<li className="chip" key={skill}>
+						<li className={badge()} key={skill}>
 							{skill}
 						</li>
 					))}
-				</ul>
+				</BadgeList>
 			)}
 
 			<div className="detail-actions">
@@ -129,15 +132,15 @@ function JobDetailContent({ job }: { job: WebJob }) {
 						<div className="strong small">currículo pronto</div>
 						<div className="mono muted xsmall ellipsis">{cv.fileName}</div>
 					</div>
-					<a className="link small" href={cvPdfUrl(cv.requestId)} target="_blank" rel="noopener">
+					<TextLink className="small" href={cvPdfUrl(cv.requestId)} target="_blank" rel="noopener">
 						pré-visualizar
-					</a>
+					</TextLink>
 				</div>
 			)}
 			{cv?.status === 'failed' && (
-				<p className="notice notice-danger small" role="alert">
+				<Notice tone="danger" className="small">
 					O currículo falhou: {cv.error}
-				</p>
+				</Notice>
 			)}
 
 			{job.recruiterEmail && (
@@ -164,9 +167,9 @@ function JobDetailContent({ job }: { job: WebJob }) {
 						{generated ? (
 							<div className="row-between muted xsmall">
 								<span>{showGenerated ? 'revise antes de enviar' : ''}</span>
-								<button type="button" className="link-btn xsmall" onClick={() => setUseDefaultMessage(!useDefaultMessage)}>
+								<TextLink className="xsmall" onClick={() => setUseDefaultMessage(!useDefaultMessage)}>
 									{showGenerated ? 'usar o modelo padrão' : 'usar a mensagem da IA'}
-								</button>
+								</TextLink>
 							</div>
 						) : (
 							<p className="muted xsmall">
@@ -184,36 +187,32 @@ function JobDetailContent({ job }: { job: WebJob }) {
 					<h3 className="label">post original_</h3>
 					{/* Com outra forma de candidatura, o post serve mais para conferir (debug): link discreto */}
 					{postLink && !appliesThroughPost && (
-						<a className="link xsmall mono muted" href={postLink} target="_blank" rel="noopener noreferrer">
+						<TextLink className="xsmall mono" href={postLink} target="_blank" rel="noopener noreferrer">
 							ir para o post ↗
-						</a>
+						</TextLink>
 					)}
 				</div>
 				<div className={cx('raw-post', isLong && !expanded && 'collapsed')}>{job.rawContent}</div>
 				{isLong && (
-					<button type="button" className="link-btn small" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
+					<TextLink className="small" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
 						{expanded ? 'recolher post' : 'mostrar post completo'}
-					</button>
+					</TextLink>
 				)}
 			</section>
 
 			<footer className="detail-footer">
 				{job.aiJobConfidence < LOW_CONFIDENCE && (
-					<p className="notice notice-warn small">A IA não tem certeza de que isto é uma vaga. Confira o post.</p>
+					<Notice tone="warn" className="small">
+						A IA não tem certeza de que isto é uma vaga. Confira o post.
+					</Notice>
 				)}
 				<div className="row-between mono muted xsmall">
 					<span>confiança da IA: {Math.round(job.aiJobConfidence)}%</span>
 					{job.language && <span>idioma: {languageLabel(job.language)}</span>}
 				</div>
-				<button
-					type="button"
-					className="link-btn xsmall mono"
-					aria-expanded={rawJson !== null}
-					disabled={loadingRaw}
-					onClick={toggleRawJson}
-				>
+				<TextLink className="xsmall mono" aria-expanded={rawJson !== null} disabled={loadingRaw} onClick={toggleRawJson}>
 					{loadingRaw ? 'carregando json…' : rawJson !== null ? 'esconder json da vaga' : 'ver json da vaga (debug)'}
-				</button>
+				</TextLink>
 				{rawJson !== null && (
 					<div className="message-box">
 						<div className="row-between">

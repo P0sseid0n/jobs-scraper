@@ -7,6 +7,7 @@ import { api, RequestError } from '../api'
 import { KeywordInput, Switch } from '../components/forms'
 import { Icon } from '../components/Icon'
 import { Button } from '../components/ui/Button'
+import { EmptyState } from '../components/ui/EmptyState'
 import { IconButton } from '../components/ui/IconButton'
 import { OUTLINED } from '../components/ui/outlined'
 import { Skeleton } from '../components/ui/Skeleton'
@@ -440,13 +441,16 @@ export function SettingsView() {
 			</section>
 
 			{loadError && (
-				<div className="card empty" role="alert">
-					<p className="strong">Não consegui carregar as configurações</p>
-					<p className="muted small">{loadError}</p>
-					<Button variant="lime" onClick={load}>
-						tentar de novo
-					</Button>
-				</div>
+				<EmptyState
+					tone="error"
+					title="Não consegui carregar as configurações"
+					description={loadError}
+					action={
+						<Button variant="lime" onClick={load}>
+							tentar de novo
+						</Button>
+					}
+				/>
 			)}
 			{!loadError && !draft && <Skeleton className="card min-h-60" aria-busy="true" />}
 

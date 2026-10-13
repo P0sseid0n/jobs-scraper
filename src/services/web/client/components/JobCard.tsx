@@ -8,8 +8,10 @@ import { useUnseen } from '../stores/seen'
 import { ContractTypeBadge } from './ContractTypeBadge'
 import { CvButton } from './CvButton'
 import { Icon } from './Icon'
+import { badge, BadgeList } from './ui/Badge'
 import { Button } from './ui/Button'
 import { Skeleton } from './ui/Skeleton'
+import { StatusDot } from './ui/StatusDot'
 import { WorkModeBadge } from './WorkModeBadge'
 
 const VISIBLE_SKILLS = 4
@@ -45,7 +47,7 @@ export function JobCard({
 			<div className="job-card-head">
 				<a className="job-card-title" href={jobPath(job.postId)} onClick={open}>
 					<span className="job-title">
-						{unseen && <span className="unseen-dot" />}
+						{unseen && <StatusDot tone="lime" glow />}
 						{unseen && <span className="sr-only">vaga nova:</span>}
 						{job.title}
 					</span>
@@ -63,18 +65,18 @@ export function JobCard({
 			</div>
 
 			{skills.length > 0 && (
-				<ul className="chips" aria-label="Tecnologias">
+				<BadgeList aria-label="Tecnologias">
 					{skills.slice(0, VISIBLE_SKILLS).map(skill => (
-						<li className="chip" key={skill}>
+						<li className={badge()} key={skill}>
 							{skill}
 						</li>
 					))}
 					{hidden > 0 && (
-						<li className="chip chip-more" title={skills.slice(VISIBLE_SKILLS).join(', ')}>
+						<li className={badge({ className: 'opacity-80' })} title={skills.slice(VISIBLE_SKILLS).join(', ')}>
 							+{hidden}
 						</li>
 					)}
-				</ul>
+				</BadgeList>
 			)}
 
 			<div className="job-card-actions">

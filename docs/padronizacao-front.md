@@ -25,7 +25,7 @@ Regras para todas as fases:
 |---|---|
 | Início | 1.899 |
 | 1 | 1.613 (com as 9 linhas pendentes de `.run-outcomes` e `.chip-ok`) |
-| 2 | |
+| 2 | 1.364 |
 | 3 | |
 | 4 | |
 | 5 | |
@@ -127,11 +127,11 @@ Os nomes de status também variam: `tag-ok` / `run-success` / `pill-idle` para "
 
 E os pontos de status são três classes: `.dot` (547), `.status-dot` (1334) e `.unseen-dot` (1100, uma `.dot` com brilho).
 
-- [ ] Criar `components/ui/Badge.tsx` (estilizado só com classes do Tailwind): `tone: 'neutral' | 'ok' | 'running' | 'danger' | 'muted'`, `size: 'sm' | 'md'`, `outlined?`
-- [ ] Criar `components/ui/StatusDot.tsx`: `tone` igual ao do `Badge` e `glow?` (substitui `.unseen-dot` e o brilho do `pill-running`)
-- [ ] Migrar `.chip`, `.tag`, `.contract-badge`, `.live-tag`, `.badge`, `.offline` e `.status-pill`, e apagar essas classes, `.dot`, `.status-dot`, `.unseen-dot`, `.run-*`, `.tag-*` e `.pill-idle/running/paused/failed` do `styles.css`
-- [ ] Manter `.mode-badge`, que usa a cor própria da modalidade, como `Badge` com `style={{ '--mode': … }}`
-- [ ] Usar um vocabulário único de status: `ok`, `running`, `muted`, `danger`
+- [x] Criar `components/ui/Badge.tsx` (estilizado só com classes do Tailwind): `tone: 'neutral' | 'ok' | 'running' | 'danger' | 'muted'`, `size: 'sm' | 'md'`, `outlined?`
+- [x] Criar `components/ui/StatusDot.tsx`: `tone` igual ao do `Badge` e `glow?` (substitui `.unseen-dot` e o brilho do `pill-running`)
+- [x] Migrar `.chip`, `.tag`, `.contract-badge`, `.live-tag`, `.badge`, `.offline` e `.status-pill`, e apagar essas classes, `.dot`, `.status-dot`, `.unseen-dot`, `.run-*`, `.tag-*` e `.pill-idle/running/paused/failed` do `styles.css`
+- [x] Manter `.mode-badge`, que usa a cor própria da modalidade, como `Badge` com `style={{ '--mode': … }}`
+- [x] Usar um vocabulário único de status: `ok`, `running`, `muted`, `danger`
 
 ### 2.2 `TextLink` 🟢
 
@@ -140,8 +140,8 @@ Botões e links com cara de link, sem componente:
 - `<button className="link-btn">`: `views/RunsView.tsx:370`, `components/JobDetail.tsx:166`, `:193` e `:207`
 - `<a className="link">`: `views/RunsView.tsx:337`, `components/JobDetail.tsx:131` e `:186`
 
-- [ ] Criar `components/ui/TextLink.tsx`: `<a>` com `href` e `<button>` sem ele, como o `Button`
-- [ ] Migrar os 7 usos e apagar `.link` e `.link-btn` do `styles.css`
+- [x] Criar `components/ui/TextLink.tsx`: `<a>` com `href` e `<button>` sem ele, como o `Button`
+- [x] Migrar os 7 usos e apagar `.link` e `.link-btn` do `styles.css`
 
 ### 2.3 `EmptyState` 🟡
 
@@ -153,9 +153,18 @@ O erro de carregamento aparece de dois jeitos:
 
 E o ícone de alerta só existe em `views/JobsView.tsx:204`.
 
-- [ ] Criar `components/ui/EmptyState.tsx`: `title`, `description?`, `action?`, `tone?: 'neutral' | 'error'` (com `error`, mostra o ícone e usa `role="alert"`)
-- [ ] Escolher um formato só para "não consegui carregar X" com "tentar de novo" e aplicar nos 5 lugares
-- [ ] Apagar `.empty`, `.notice*` e `.alert` do `styles.css` (o `FailureAlert` de `views/RunsView.tsx:40` passa a usar o `EmptyState` de erro ou um `Notice` com Tailwind)
+- [x] Criar `components/ui/EmptyState.tsx`: `title`, `description?`, `action?`, `tone?: 'neutral' | 'error'` (com `error`, mostra o ícone e usa `role="alert"`)
+- [x] Escolher um formato só para "não consegui carregar X" com "tentar de novo" e aplicar nos 5 lugares
+- [x] Apagar `.empty`, `.notice*` e `.alert` do `styles.css` (o `FailureAlert` de `views/RunsView.tsx:40` passa a usar o `EmptyState` de erro ou um `Notice` com Tailwind)
+
+### Notas da fase 2
+
+- **`tailwind-variants`:** as variantes dos componentes de `ui` são declaradas com `tv()` (exportado por `lib/cx.ts`, com a mesma configuração do `tailwind-merge` do `cx`). `Button`, `IconButton` e `Pill` passaram a usá-lo também. O `Pill` ainda aponta para as classes `pill*` do `styles.css` (fase 3).
+- **Componentes novos:** `Badge` (e `BadgeList`, a lista que quebra linha; use `badge()` direto no `className` de um `<li>` ou `<a>`), `StatusDot`, `TextLink`, `EmptyState` e `Notice` (avisos dentro da tela: currículo que falhou, IA em dúvida e a falha da última coleta).
+- **Status:** os pontos usam `ok`, `lime`, `muted`, `danger` e `current`; os badges usam `ok`, `running`, `danger` e `muted` (mais `neutral`, `lime` e `plain`). O card escuro de coletas redefine `--color-line` e `--color-ok-bg` para os badges dele, até a fase 4.
+- **Erros de carregamento:** todos viraram `EmptyState` com o ícone de alerta e "tentar de novo" (vagas, currículos, configurações e histórico); o status do scraper não tem botão, porque ele já é consultado de novo a cada 30 s. Os currículos ganharam o "tentar de novo", que não existia.
+- **Pequenas mudanças:** os badges de status e o aviso "offline" ficaram com o padding dos outros (3px 9px, antes 3px 10px e 4px 8px).
+- **Link "ir para o post ↗":** tinha a classe `muted`, mas ela perdia para a cor do `.link` e o link sempre apareceu na cor do texto. A migração manteve assim; decidir se ele deve ficar discreto (`text-muted`).
 
 ---
 

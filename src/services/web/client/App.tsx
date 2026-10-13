@@ -5,8 +5,11 @@ import { api } from './api'
 import { CvTray } from './components/CvTray'
 import { Icon, type IconName } from './components/Icon'
 import { ProjectIcon } from './components/ProjectIcon'
+import { Badge, badge } from './components/ui/Badge'
 import { Button } from './components/ui/Button'
+import { EmptyState } from './components/ui/EmptyState'
 import { IconButton } from './components/ui/IconButton'
+import { StatusDot, type StatusDotTone } from './components/ui/StatusDot'
 import { cx } from './lib/cx'
 import { formatDuration } from './lib/format'
 import { useWideLayout } from './lib/media'
@@ -35,6 +38,13 @@ const TITLES: Record<string, string> = {
 	'/configuracoes': 'Configurações',
 }
 
+const PILL_DOTS: Record<'running' | 'failed' | 'paused' | 'idle', { tone: StatusDotTone; glow?: boolean }> = {
+	running: { tone: 'lime', glow: true },
+	failed: { tone: 'current' },
+	paused: { tone: 'muted' },
+	idle: { tone: 'ok' },
+}
+
 /** Status do scraper no cabeçalho, atualizado a cada 30 s. */
 function useScraperPill() {
 	const [status, setStatus] = useState<ScraperStatus | null>(null)
@@ -61,13 +71,13 @@ function useScraperPill() {
 	}, [])
 
 	if (!status) return null
-	if (status.current) return { tone: 'running', text: 'coletando agora' }
-	if (status.last?.status === 'failed') return { tone: 'failed', text: 'última coleta falhou' }
-	if (status.paused) return { tone: 'paused', text: 'coletas pausadas' }
+	if (status.current) return { tone: 'running' as const, text: 'coletando agora' }
+	if (status.last?.status === 'failed') return { tone: 'failed' as const, text: 'última coleta falhou' }
+	if (status.paused) return { tone: 'paused' as const, text: 'coletas pausadas' }
 
 	const next = status.nextRunAt ? new Date(status.nextRunAt).getTime() - now : 0
 	return {
-		tone: 'idle',
+		tone: 'idle' as const,
 		text: next > 60_000 ? `próxima em ${formatDuration(next).replace(/ \d+s$/, '')}` : 'próxima a qualquer momento',
 	}
 }
@@ -91,12 +101,14 @@ function View({ path }: { path: string }) {
 		default:
 			return (
 				<div className="page page-narrow">
-					<div className="card empty">
-						<p className="strong">Página não encontrada</p>
-						<Button variant="lime" href="/" onClick={onLinkClick}>
-							ver vagas
-						</Button>
-					</div>
+					<EmptyState
+						title="Página não encontrada"
+						action={
+							<Button variant="lime" href="/" onClick={onLinkClick}>
+								ver vagas
+							</Button>
+						}
+					/>
 				</div>
 			)
 	}
@@ -141,15 +153,24 @@ export function App() {
 					</nav>
 					<div className="topbar-tools">
 						{pill && (
-							<a className={cx('status-pill mono', `pill-${pill.tone}`)} href="/coletas" onClick={onLinkClick}>
-								<span className="dot" />
+							<a
+								className={badge({
+									tone: 'plain',
+									size: 'lg',
+									bordered: true,
+									className: cx('text-muted max-md:hidden', pill.tone === 'failed' && 'border-danger text-danger'),
+								})}
+								href="/coletas"
+								onClick={onLinkClick}
+							>
+								<StatusDot {...PILL_DOTS[pill.tone]} />
 								{pill.text}
 							</a>
 						)}
 						{!connected && (
-							<span className="mono xsmall muted offline" title="Sem conexão em tempo real; reconectando…">
+							<Badge tone="plain" bordered="dashed" className="text-muted" title="Sem conexão em tempo real; reconectando…">
 								offline
-							</span>
+							</Badge>
 						)}
 						<IconButton label="Alternar tema claro/escuro" bordered onClick={toggleTheme}>
 							<Icon name="moon" className="theme-moon" />
@@ -174,7 +195,11 @@ export function App() {
 					>
 						<Icon name={item.icon} size={20} />
 						{item.label}
-						{item.path === '/curriculos' && pendingCvs > 0 && <span className="badge mono">{pendingCvs}</span>}
+						{item.path === '/curriculos' && pendingCvs > 0 && (
+							<Badge tone="lime" size="xs" className="absolute top-1 left-[calc(50%+6px)]">
+								{pendingCvs}
+							</Badge>
+						)}
 					</a>
 				))}
 			</nav>

@@ -5,9 +5,12 @@ import { isJobRouteId } from '../../job-route-id'
 import { Icon } from '../components/Icon'
 import { JobCard, JobCardSkeleton } from '../components/JobCard'
 import { JobDetail } from '../components/JobDetail'
+import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
+import { EmptyState } from '../components/ui/EmptyState'
 import { Pill } from '../components/ui/Pill'
 import { Skeleton } from '../components/ui/Skeleton'
+import { StatusDot } from '../components/ui/StatusDot'
 import { cx } from '../lib/cx'
 import { CONTRACT_TYPES, LANGUAGE_NAMES, WORK_MODES } from '../lib/format'
 import { hasActiveFilters } from '../lib/job-filters'
@@ -84,7 +87,7 @@ function Filters({ open }: { open: boolean }) {
 							pressed={filters.workMode.includes(mode)}
 							onClick={() => setFilters({ workMode: toggled(filters.workMode, mode) })}
 						>
-							<span className="dot" style={{ background: WORK_MODES[mode].color }} />
+							<StatusDot style={{ background: WORK_MODES[mode].color }} />
 							<span className="grow">{WORK_MODES[mode].label}</span>
 							{facets && <span className="mono xsmall count">{facets.workModes[mode]}</span>}
 						</Pill>
@@ -193,34 +196,40 @@ function JobList({ selectedId, onSelect }: { selectedId: string | null; onSelect
 
 	if (status === 'error') {
 		return (
-			<div className="card empty" role="alert">
-				<Icon name="alert" size={22} />
-				<p className="strong">Não consegui carregar as vagas</p>
-				<p className="muted small">{error}</p>
-				<Button variant="lime" onClick={loadJobs}>
-					tentar de novo
-				</Button>
-			</div>
+			<EmptyState
+				tone="error"
+				title="Não consegui carregar as vagas"
+				description={error}
+				action={
+					<Button variant="lime" onClick={loadJobs}>
+						tentar de novo
+					</Button>
+				}
+			/>
 		)
 	}
 
 	if (jobs.length === 0) {
 		return hasActiveFilters(filters) ? (
-			<div className="card empty">
-				<p className="strong">Nenhuma vaga com esses filtros</p>
-				<p className="muted small">Tente outra busca ou volte a mostrar todas as vagas.</p>
-				<Button variant="lime" onClick={clearFilters}>
-					limpar filtros
-				</Button>
-			</div>
+			<EmptyState
+				title="Nenhuma vaga com esses filtros"
+				description="Tente outra busca ou volte a mostrar todas as vagas."
+				action={
+					<Button variant="lime" onClick={clearFilters}>
+						limpar filtros
+					</Button>
+				}
+			/>
 		) : (
-			<div className="card empty">
-				<p className="strong">Nenhuma vaga ainda</p>
-				<p className="muted small">Rode uma coleta: as vagas aparecem aqui assim que a IA terminar de ler os posts.</p>
-				<Button variant="lime" href="/coletas" onClick={onLinkClick}>
-					ir para coletas
-				</Button>
-			</div>
+			<EmptyState
+				title="Nenhuma vaga ainda"
+				description="Rode uma coleta: as vagas aparecem aqui assim que a IA terminar de ler os posts."
+				action={
+					<Button variant="lime" href="/coletas" onClick={onLinkClick}>
+						ir para coletas
+					</Button>
+				}
+			/>
 		)
 	}
 
@@ -297,7 +306,9 @@ export function JobsView({ selectedRouteId }: { selectedRouteId: string | null }
 
 			{incoming.length > 0 && (
 				<button type="button" className="new-jobs" onClick={showIncoming}>
-					<span className="mono live-tag">ao vivo</span>
+					<Badge tone="lime" size="sm">
+						ao vivo
+					</Badge>
 					{incoming.length === 1 ? '1 vaga nova' : `${incoming.length} vagas novas`}
 					<span className="mono xsmall underline">mostrar no topo</span>
 				</button>
@@ -337,12 +348,16 @@ export function JobsView({ selectedRouteId }: { selectedRouteId: string | null }
 				{wide && !selected && selectedRouteId && (
 					<aside className="card detail-panel" aria-label="Detalhe da vaga" aria-busy={!routeJob.error}>
 						{routeJob.error ? (
-							<div className="empty" role="alert">
-								<p className="strong">{routeJob.error}</p>
-								<Button variant="lime" href="/" onClick={onLinkClick}>
-									ver todas as vagas
-								</Button>
-							</div>
+							<EmptyState
+								bare
+								tone="error"
+								title={routeJob.error}
+								action={
+									<Button variant="lime" href="/" onClick={onLinkClick}>
+										ver todas as vagas
+									</Button>
+								}
+							/>
 						) : (
 							<Skeleton className="min-h-60" />
 						)}

@@ -4,6 +4,7 @@ import type { WebCvRequest } from '../../api-types'
 import { cvPdfUrl } from '../api'
 import { Icon } from '../components/Icon'
 import { Button } from '../components/ui/Button'
+import { EmptyState } from '../components/ui/EmptyState'
 import { cx } from '../lib/cx'
 import { formatDateTime } from '../lib/format'
 import { jobPath, onLinkClick } from '../router'
@@ -81,19 +82,28 @@ export function CvsView() {
 			</section>
 
 			{error && (
-				<div className="notice notice-danger" role="alert">
-					Não consegui carregar os currículos: {error}
-				</div>
+				<EmptyState
+					tone="error"
+					title="Não consegui carregar os currículos"
+					description={error}
+					action={
+						<Button variant="lime" onClick={() => loadCvRequests()}>
+							tentar de novo
+						</Button>
+					}
+				/>
 			)}
 
 			{loaded && requests.length === 0 && !error && (
-				<div className="card empty">
-					<p className="strong">Nenhum currículo gerado pelo site ainda</p>
-					<p className="muted small">Em qualquer vaga, clique em “gerar currículo”. Ele fica pronto em até ~1 minuto.</p>
-					<Button variant="lime" href="/" onClick={onLinkClick}>
-						ver vagas
-					</Button>
-				</div>
+				<EmptyState
+					title="Nenhum currículo gerado pelo site ainda"
+					description="Em qualquer vaga, clique em “gerar currículo”. Ele fica pronto em até ~1 minuto."
+					action={
+						<Button variant="lime" href="/" onClick={onLinkClick}>
+							ver vagas
+						</Button>
+					}
+				/>
 			)}
 
 			{pending.length > 0 && (

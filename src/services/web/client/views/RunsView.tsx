@@ -4,8 +4,13 @@ import type { ScraperStatus, WebScraperRun } from '../../api-types'
 import { api, type RequestError } from '../api'
 import { Switch } from '../components/forms'
 import { Icon } from '../components/Icon'
+import { Badge, badge, BadgeList, type BadgeTone } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
+import { EmptyState } from '../components/ui/EmptyState'
+import { Notice } from '../components/ui/Notice'
 import { Skeleton } from '../components/ui/Skeleton'
+import { StatusDot, type StatusDotTone } from '../components/ui/StatusDot'
+import { TextLink } from '../components/ui/TextLink'
 import { cx } from '../lib/cx'
 import { formatDateTime, formatDuration, formatInterval, isLoginFailure } from '../lib/format'
 import { onLinkClick } from '../router'
@@ -35,6 +40,12 @@ function discarded(run: WebScraperRun) {
 	return Object.entries(counts).reduce((total, [outcome, count]) => (NOT_DISCARDED.has(outcome) ? total : total + (count ?? 0)), 0)
 }
 
+const RUN_STATUS: Record<WebScraperRun['status'], { label: string; tone: BadgeTone; dot: StatusDotTone }> = {
+	running: { label: 'em andamento', tone: 'running', dot: 'current' },
+	success: { label: 'sucesso', tone: 'ok', dot: 'ok' },
+	failed: { label: 'falha', tone: 'danger', dot: 'current' },
+}
+
 const POLL_RUNNING_MS = 5_000
 const POLL_IDLE_MS = 30_000
 
@@ -45,17 +56,14 @@ function FailureAlert({ status }: { status: ScraperStatus | null }) {
 	const login = isLoginFailure(last.error)
 
 	return (
-		<div className="alert" role="alert">
-			<Icon name="alert" size={20} />
-			<div className="grow">
-				<p className="strong">{login ? 'Ação necessária: o LinkedIn pediu verificação' : 'A última coleta falhou'}</p>
-				<p className="small">
-					{formatDateTime(last.startedAt)} · {last.error ?? 'sem detalhes'}
-					{login &&
-						' Resolva o captcha/2FA na sessão do scraper (rode com HEADLESS=false ou renove o LINKEDIN_LI_AT); as próximas coletas vão falhar até lá.'}
-				</p>
-			</div>
-		</div>
+		<Notice tone="danger" size="lg" icon="alert">
+			<p className="strong">{login ? 'Ação necessária: o LinkedIn pediu verificação' : 'A última coleta falhou'}</p>
+			<p className="small">
+				{formatDateTime(last.startedAt)} · {last.error ?? 'sem detalhes'}
+				{login &&
+					' Resolva o captcha/2FA na sessão do scraper (rode com HEADLESS=false ou renove o LINKEDIN_LI_AT); as próximas coletas vão falhar até lá.'}
+			</p>
+		</Notice>
 	)
 }
 
@@ -76,10 +84,10 @@ function RunRows({ run, open, onToggle }: { run: WebScraperRun; open: boolean; o
 		<>
 			<tr>
 				<td>
-					<span className={cx('tag', `run-${run.status}`)}>
-						<span className="dot" />
-						{run.status === 'running' ? 'em andamento' : run.status === 'success' ? 'sucesso' : 'falha'}
-					</span>
+					<Badge tone={RUN_STATUS[run.status].tone}>
+						<StatusDot tone={RUN_STATUS[run.status].dot} />
+						{RUN_STATUS[run.status].label}
+					</Badge>
 				</td>
 				<td>{TRIGGERS[run.trigger]}</td>
 				<td className="mono">{formatDateTime(run.startedAt)}</td>
@@ -128,20 +136,16 @@ function RunRows({ run, open, onToggle }: { run: WebScraperRun; open: boolean; o
 						{run.outcomes && run.sent > 0 && (
 							<div className="stack-xs run-outcomes">
 								<span className="label">destino dos posts novos_</span>
-								<ul className="chips">
+								<BadgeList>
 									{(Object.keys(OUTCOMES) as (keyof typeof OUTCOMES)[])
 										.filter(outcome => run.outcomes?.counts[outcome])
 										.map(outcome => (
-											<li key={outcome} className={cx('chip', outcome === 'saved' && 'chip-ok')}>
-												<span className="mono">{run.outcomes?.counts[outcome]}</span> {OUTCOMES[outcome]}
+											<li key={outcome} className={badge({ tone: outcome === 'saved' ? 'running' : 'neutral' })}>
+												{run.outcomes?.counts[outcome]} {OUTCOMES[outcome]}
 											</li>
 										))}
-									{run.outcomes.pending > 0 && (
-										<li className="chip">
-											<span className="mono">{run.outcomes.pending}</span> ainda na fila da IA
-										</li>
-									)}
-								</ul>
+									{run.outcomes.pending > 0 && <li className={badge()}>{run.outcomes.pending} ainda na fila da IA</li>}
+								</BadgeList>
 							</div>
 						)}
 					</td>
@@ -256,10 +260,7 @@ export function RunsView() {
 	function renderCurrent() {
 		if (!status) {
 			return statusError ? (
-				<div className="card empty" role="alert">
-					<p className="strong">Não consegui ler o status do scraper</p>
-					<p className="muted small">{statusError}</p>
-				</div>
+				<EmptyState tone="error" title="Não consegui ler o status do scraper" description={statusError} />
 			) : (
 				<Skeleton className="card min-h-60" aria-busy="true" />
 			)
@@ -273,9 +274,9 @@ export function RunsView() {
 				<section className={cx('status-card', running ? 'status-running' : 'status-idle')} aria-live="polite">
 					<div className="row-between wrap">
 						<div className="row gap-sm">
-							<span className={cx('tag', running ? 'tag-lime' : status.paused ? 'tag-muted' : 'tag-ok')}>
+							<Badge tone={running ? 'lime' : status.paused ? 'muted' : 'ok'}>
 								{running ? 'em andamento' : status.paused ? 'pausada' : 'ociosa'}
-							</span>
+							</Badge>
 							{running && (
 								<span className="mono xsmall on-dark-muted">
 									{TRIGGERS[running.trigger].toLowerCase()} · iniciada {formatDateTime(running.startedAt)}
@@ -342,9 +343,9 @@ export function RunsView() {
 							{status.last.status === 'success' ? lastRunSummary(status.last) : 'falhou'}
 						</p>
 					)}
-					<a className="link small" href="/configuracoes" onClick={onLinkClick}>
+					<TextLink className="small" href="/configuracoes" onClick={onLinkClick}>
 						editar termos e intervalo
-					</a>
+					</TextLink>
 				</section>
 			</div>
 		)
@@ -373,19 +374,22 @@ export function RunsView() {
 				</div>
 
 				{runsState === 'error' && (
-					<div className="notice notice-danger" role="alert">
-						Não consegui carregar o histórico.{' '}
-						<button type="button" className="link-btn" onClick={() => loadRuns()}>
-							tentar de novo
-						</button>
-					</div>
+					<EmptyState
+						tone="error"
+						title="Não consegui carregar o histórico"
+						action={
+							<Button variant="lime" onClick={() => loadRuns()}>
+								tentar de novo
+							</Button>
+						}
+					/>
 				)}
 				{runsState === 'loading' && <Skeleton className="card min-h-60" aria-busy="true" />}
 				{runsState === 'ready' && runs.length === 0 && (
-					<div className="card empty">
-						<p className="strong">Nenhuma coleta nos últimos 90 dias</p>
-						<p className="muted small">Use “coletar agora” ou rode o scraper com SCRAPER_INTERVAL_MINUTES maior que 0.</p>
-					</div>
+					<EmptyState
+						title="Nenhuma coleta nos últimos 90 dias"
+						description="Use “coletar agora” ou rode o scraper com SCRAPER_INTERVAL_MINUTES maior que 0."
+					/>
 				)}
 				{runsState === 'ready' && runs.length > 0 && (
 					<div className="card table-wrap">
