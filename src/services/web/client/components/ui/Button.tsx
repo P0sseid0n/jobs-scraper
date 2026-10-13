@@ -1,26 +1,58 @@
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes } from 'react'
+import type { VariantProps } from 'tailwind-variants'
 
-import { cx } from '../../lib/cx'
+import { tv } from '../../lib/cx'
+import { Icon } from '../Icon'
+import { NEW_TAB } from './link'
+import { OUTLINED } from './outlined'
 
-/*
- * Botões com borda e sem preenchimento (Button `ghost`, IconButton `bordered`, Pill) levam a classe `outlined`, que dá
- * o mesmo hover a todos. Elementos fora destes componentes com esse visual (ex.: `check-pill`) usam a classe também.
- */
+const button = tv({
+	base: 'inline-flex items-center justify-center gap-2 min-h-9.5 px-3.5 py-2 rounded-pill border border-transparent bg-transparent text-sm font-medium no-underline whitespace-nowrap transition disabled:opacity-60',
+	variants: {
+		/** `lime`: ação principal da tela. `ghost`: borda, sem preenchimento (numa superfície `inverted`, já sai clara). */
+		variant: {
+			lime: 'bg-lime text-lime-ink font-semibold not-disabled:hover:bg-lime-hover',
+			ghost: ['border-line text-ink', OUTLINED],
+		},
+		size: {
+			xs: 'min-h-7.5 px-2.5 py-1 text-xs',
+			sm: 'min-h-8 px-3 py-1.5 text-xs',
+			md: '',
+			lg: 'min-h-11.5 px-4.5 py-3 text-sm',
+		},
+	},
+	defaultVariants: { size: 'md' },
+})
 
-type ButtonLook = {
-	/** `lime`: ação principal da tela. `ghost`: borda, sem preenchimento. `tray`: na bandeja escura de currículos. */
-	variant: 'lime' | 'ghost' | 'tray'
-	size?: 'xs' | 'md' | 'lg'
-	className?: string
-}
+type ButtonLook = Required<Pick<VariantProps<typeof button>, 'variant'>> &
+	Pick<VariantProps<typeof button>, 'size'> & {
+		/** Classes do Tailwind que completam ou substituem as do botão (ex.: `self-start`, `hidden max-md:inline-flex`). */
+		className?: string
+	}
 
-type ButtonProps = ButtonLook &
-	(({ href: string } & AnchorHTMLAttributes<HTMLAnchorElement>) | ({ href?: never } & ButtonHTMLAttributes<HTMLButtonElement>))
+type LinkProps = {
+	href: string
+	/** Abre em outra aba (sem dar acesso a esta página) e mostra o ícone de link externo antes do texto. */
+	external?: boolean
+} & AnchorHTMLAttributes<HTMLAnchorElement>
+
+type ButtonProps = ButtonLook & (LinkProps | ({ href?: never; external?: never } & ButtonHTMLAttributes<HTMLButtonElement>))
 
 /** Botão com texto; com `href`, vira um link com a mesma cara. */
-export function Button({ variant, size = 'md', className, ...props }: ButtonProps) {
-	const classes = cx('btn', `btn-${variant}`, variant === 'ghost' && 'outlined', size !== 'md' && `btn-${size}`, className)
+export function Button({ variant, size, className, external, children, ...props }: ButtonProps) {
+	const classes = button({ variant, size, className })
 
-	if (props.href !== undefined) return <a {...(props as AnchorHTMLAttributes<HTMLAnchorElement>)} className={classes} />
-	return <button type="button" {...(props as ButtonHTMLAttributes<HTMLButtonElement>)} className={classes} />
+	if (props.href !== undefined) {
+		return (
+			<a {...(external ? NEW_TAB : {})} {...(props as LinkProps)} className={classes}>
+				{external && <Icon name="external" size={size === 'lg' ? 16 : 14} />}
+				{children}
+			</a>
+		)
+	}
+	return (
+		<button type="button" {...(props as ButtonHTMLAttributes<HTMLButtonElement>)} className={classes}>
+			{children}
+		</button>
+	)
 }

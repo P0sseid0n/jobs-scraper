@@ -15,13 +15,24 @@ import { CorrectedBadge } from './CorrectedBadge'
 import { CvButton } from './CvButton'
 import { Icon } from './Icon'
 import { ReportJobDialog } from './ReportJobDialog'
+import { badge, BadgeList } from './ui/Badge'
 import { Button } from './ui/Button'
 import { IconButton } from './ui/IconButton'
+import { Notice } from './ui/Notice'
+import { PdfIcon } from './ui/PdfIcon'
+import { LABEL } from './ui/text'
+import { TextLink } from './ui/TextLink'
 import { WorkModeBadge } from './WorkModeBadge'
 
 /** Posts maiores que isso começam recolhidos. */
 const LONG_POST_CHARS = 600
 const LOW_CONFIDENCE = 75
+
+/** Os botões de candidatura dividem a linha e quebram quando não cabem. */
+const DETAIL_ACTION = 'flex-1 basis-45'
+
+const MESSAGE_BOX = 'flex flex-col gap-2.5 rounded-sm bg-surface-2 p-3.5'
+const MESSAGE_TEXT = 'm-0 font-mono text-xs leading-relaxed whitespace-pre-wrap wrap-break-word'
 
 /** Todos os dados da vaga, com as ações de candidatura (painel lateral no desktop, página própria no celular). */
 export function JobDetail({ job }: { job: WebJob }) {
@@ -70,23 +81,24 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 	}
 
 	return (
-		<div className="job-detail">
-			<header className="stack-sm">
-				<div className="row-between">
-					<div className="job-badges">
+		<div className="flex flex-col gap-5.5">
+			<header className="flex flex-col gap-2.5">
+				<div className="flex items-center justify-between gap-3">
+					<div className="flex flex-wrap items-center gap-1.5">
 						<WorkModeBadge job={job} />
 						<ContractTypeBadge job={job} />
 						<CorrectedBadge job={job} />
 					</div>
-					<div className="row">
-						<time className="mono muted small nowrap" dateTime={jobDate(job)}>
+					<div className="flex items-center">
+						<time className="font-mono text-muted text-sm whitespace-nowrap" dateTime={jobDate(job)}>
 							publicada {timeAgo(jobDate(job))}
 						</time>
 						<IconButton
 							label="reportar problema na vaga"
 							size="sm"
 							bordered
-							className="report-btn"
+							// Na cor do texto, para não sumir ao lado da data
+							className="ml-3 text-ink"
 							aria-haspopup="dialog"
 							onClick={() => setReporting(true)}
 						>
@@ -94,9 +106,9 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 						</IconButton>
 					</div>
 				</div>
-				<h2 className="detail-title">{job.title}</h2>
-				{jobSubtitle(job) && <p className="muted">{jobSubtitle(job)}</p>}
-				{job.author && (job.company || job.location) && <p className="mono muted small">postado por {job.author}</p>}
+				<h2 className="text-2xl leading-tight font-bold">{job.title}</h2>
+				{jobSubtitle(job) && <p className="text-muted">{jobSubtitle(job)}</p>}
+				{job.author && (job.company || job.location) && <p className="font-mono text-muted text-sm">postado por {job.author}</p>}
 			</header>
 			{reporting && (
 				<ReportJobDialog
@@ -116,57 +128,53 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 			)}
 
 			{job.necessaryKnowledge && (
-				<ul className="chips" aria-label="Tecnologias">
+				<BadgeList aria-label="Tecnologias">
 					{job.necessaryKnowledge.map(skill => (
-						<li className="chip" key={skill}>
+						<li className={badge()} key={skill}>
 							{skill}
 						</li>
 					))}
-				</ul>
+				</BadgeList>
 			)}
 
-			<div className="detail-actions">
-				<CvButton job={job} size="lg" />
+			<div className="flex flex-wrap gap-2">
+				<CvButton job={job} size="lg" className={DETAIL_ACTION} />
 				{applyLink && (
-					<Button variant="ghost" size="lg" href={applyLink} target="_blank" rel="noopener noreferrer">
-						<Icon name="external" />
+					<Button variant="ghost" size="lg" className={DETAIL_ACTION} href={applyLink} external>
 						ir para a candidatura
 					</Button>
 				)}
 				{/* Sem site nem e-mail, a candidatura é pelo próprio post: aí ele é um botão */}
 				{postLink && appliesThroughPost && (
-					<Button variant="ghost" size="lg" href={postLink} target="_blank" rel="noopener noreferrer">
-						<Icon name="external" />
+					<Button variant="ghost" size="lg" className={DETAIL_ACTION} href={postLink} external>
 						ver post e se candidatar
 					</Button>
 				)}
 			</div>
 
 			{cv?.status === 'ready' && (
-				<div className="cv-ready">
-					<span className="pdf-icon mono" aria-hidden="true">
-						PDF
-					</span>
-					<div className="grow min-0">
-						<div className="strong small">currículo pronto</div>
-						<div className="mono muted xsmall ellipsis">{cv.fileName}</div>
+				<div className="flex items-center gap-3 rounded-md bg-lime-soft p-3">
+					<PdfIcon>PDF</PdfIcon>
+					<div className="grow min-w-0">
+						<div className="font-semibold text-sm">currículo pronto</div>
+						<div className="font-mono text-muted text-xs block truncate">{cv.fileName}</div>
 					</div>
-					<a className="link small" href={cvPdfUrl(cv.requestId)} target="_blank" rel="noopener">
+					<TextLink className="text-sm" href={cvPdfUrl(cv.requestId)} external>
 						pré-visualizar
-					</a>
+					</TextLink>
 				</div>
 			)}
 			{cv?.status === 'failed' && (
-				<p className="notice notice-danger small" role="alert">
+				<Notice tone="danger" className="text-sm">
 					O currículo falhou: {cv.error}
-				</p>
+				</Notice>
 			)}
 
 			{job.recruiterEmail && (
-				<section className="stack-sm" aria-label="Contato">
-					<h3 className="label">contato_</h3>
-					<div className="copy-field">
-						<a className="mono ellipsis grow" href={`mailto:${job.recruiterEmail}`}>
+				<section className="flex flex-col gap-2.5" aria-label="Contato">
+					<h3 className={LABEL}>contato_</h3>
+					<div className="flex min-w-0 items-center gap-2 rounded-sm border border-line py-1.5 pr-1.5 pl-3 text-sm">
+						<a className="font-mono block truncate grow no-underline" href={`mailto:${job.recruiterEmail}`}>
 							{job.recruiterEmail}
 						</a>
 						<Button variant="ghost" onClick={() => copyText(job.recruiterEmail!, 'E-mail')}>
@@ -174,24 +182,24 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 							copiar
 						</Button>
 					</div>
-					<div className="message-box">
-						<div className="row-between">
-							<span className="label">{showGenerated ? 'mensagem gerada pela IA' : 'modelo de mensagem'}</span>
+					<div className={MESSAGE_BOX}>
+						<div className="flex items-center justify-between gap-3">
+							<span className={LABEL}>{showGenerated ? 'mensagem gerada pela IA' : 'modelo de mensagem'}</span>
 							<Button variant="ghost" size="xs" onClick={() => copyText(message, 'Mensagem')}>
 								<Icon name="copy" size={13} />
 								copiar
 							</Button>
 						</div>
-						<pre className="mono message-text">{message}</pre>
+						<pre className={MESSAGE_TEXT}>{message}</pre>
 						{generated ? (
-							<div className="row-between muted xsmall">
+							<div className="flex items-center justify-between gap-3 text-muted text-xs">
 								<span>{showGenerated ? 'revise antes de enviar' : ''}</span>
-								<button type="button" className="link-btn xsmall" onClick={() => setUseDefaultMessage(!useDefaultMessage)}>
+								<TextLink className="text-xs" onClick={() => setUseDefaultMessage(!useDefaultMessage)}>
 									{showGenerated ? 'usar o modelo padrão' : 'usar a mensagem da IA'}
-								</button>
+								</TextLink>
 							</div>
 						) : (
-							<p className="muted xsmall">
+							<p className="text-muted text-xs">
 								{cv?.status === 'pending'
 									? 'A mensagem escrita para esta vaga chega junto com o currículo.'
 									: 'Gere o currículo para receber uma mensagem escrita para esta vaga.'}
@@ -201,51 +209,54 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 				</section>
 			)}
 
-			<section className="stack-sm" aria-label="Post original">
-				<div className="row-between">
-					<h3 className="label">post original_</h3>
+			<section className="flex flex-col gap-2.5" aria-label="Post original">
+				<div className="flex items-center justify-between gap-3">
+					<h3 className={LABEL}>post original_</h3>
 					{/* Com outra forma de candidatura, o post serve mais para conferir (debug): link discreto */}
 					{postLink && !appliesThroughPost && (
-						<a className="link xsmall mono muted" href={postLink} target="_blank" rel="noopener noreferrer">
-							ir para o post ↗
-						</a>
+						<TextLink className="text-xs font-mono" href={postLink} external>
+							ir para o post
+						</TextLink>
 					)}
 				</div>
-				<div className={cx('raw-post', isLong && !expanded && 'collapsed')}>{job.rawContent}</div>
+				<div
+					className={cx(
+						'text-sm leading-relaxed whitespace-pre-line wrap-anywhere',
+						isLong && !expanded && 'max-h-34 overflow-hidden mask-b-from-60%',
+					)}
+				>
+					{job.rawContent}
+				</div>
 				{isLong && (
-					<button type="button" className="link-btn small" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
+					<TextLink className="text-sm" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
 						{expanded ? 'recolher post' : 'mostrar post completo'}
-					</button>
+					</TextLink>
 				)}
 			</section>
 
-			<footer className="detail-footer">
+			<footer className="flex flex-col gap-2 border-t border-line pt-3.5">
 				{job.aiJobConfidence < LOW_CONFIDENCE && (
-					<p className="notice notice-warn small">A IA não tem certeza de que isto é uma vaga. Confira o post.</p>
+					<Notice tone="warn" className="text-sm">
+						A IA não tem certeza de que isto é uma vaga. Confira o post.
+					</Notice>
 				)}
-				<div className="row-between mono muted xsmall">
+				<div className="flex items-center justify-between gap-3 font-mono text-muted text-xs">
 					<span>confiança da IA: {Math.round(job.aiJobConfidence)}%</span>
 					{job.language && <span>idioma: {languageLabel(job.language)}</span>}
 				</div>
-				<button
-					type="button"
-					className="link-btn xsmall mono"
-					aria-expanded={rawJson !== null}
-					disabled={loadingRaw}
-					onClick={toggleRawJson}
-				>
+				<TextLink className="text-xs font-mono" aria-expanded={rawJson !== null} disabled={loadingRaw} onClick={toggleRawJson}>
 					{loadingRaw ? 'carregando json…' : rawJson !== null ? 'esconder json da vaga' : 'ver json da vaga (debug)'}
-				</button>
+				</TextLink>
 				{rawJson !== null && (
-					<div className="message-box">
-						<div className="row-between">
-							<span className="label">documento no mongodb</span>
+					<div className={MESSAGE_BOX}>
+						<div className="flex items-center justify-between gap-3">
+							<span className={LABEL}>documento no mongodb</span>
 							<Button variant="ghost" size="xs" onClick={() => copyText(rawJson, 'JSON da vaga')}>
 								<Icon name="copy" size={13} />
 								copiar
 							</Button>
 						</div>
-						<pre className="mono message-text json-text">{rawJson}</pre>
+						<pre className={cx(MESSAGE_TEXT, 'max-h-90 overflow-auto')}>{rawJson}</pre>
 					</div>
 				)}
 			</footer>

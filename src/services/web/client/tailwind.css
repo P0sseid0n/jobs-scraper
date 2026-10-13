@@ -1,0 +1,188 @@
+/*
+ * O CSS do site: Tailwind com o preflight (o reset padrão), os tokens do projeto e o pouco que as classes não expressam.
+ * O estilo de cada elemento fica nas classes do JSX (veja docs/padronizacao-front.md).
+ */
+
+@layer theme, base, components, utilities;
+
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/preflight.css' layer(base);
+@import 'tailwindcss/utilities.css' layer(utilities) source(none);
+
+/* Só os arquivos do cliente geram classes */
+@source './';
+
+/* `dark:` segue o tema escolhido no site (data-theme), não só o do sistema */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+/* A barra de salvar das configurações (`data-save-bar`) está na tela: os elementos fixos embaixo sobem para não cobri-la */
+@custom-variant with-save-bar (&:where(body:has([data-save-bar]) *));
+
+/* Distância da borda de baixo somando a área segura do iPhone: `bottom-safe-19` é 76px mais a área */
+@utility bottom-safe-* {
+	bottom: calc(--spacing(--value(number)) + env(safe-area-inset-bottom));
+}
+
+@utility pb-safe-* {
+	padding-bottom: calc(--spacing(--value(number)) + env(safe-area-inset-bottom));
+}
+
+/* Grade que encaixa quantas colunas couberem, cada uma com pelo menos o tamanho dado: `grid-cols-fill-55` (220px) */
+@utility grid-cols-fill-* {
+	grid-template-columns: repeat(auto-fill, minmax(--spacing(--value(number)), 1fr));
+}
+
+/* Lista que rola por dentro sem passar da metade da tela (a bandeja de currículos) */
+@utility max-h-half-screen {
+	max-height: 50vh;
+}
+
+/* Painel fixo abaixo do cabeçalho (`sticky top-19`): cabe na tela, com a margem de baixo */
+@utility max-h-below-topbar {
+	max-height: calc(100vh - --spacing(24));
+}
+
+/* Só as cores e os raios do projeto: sem a paleta e a escala padrão do Tailwind */
+@theme {
+	--color-*: initial;
+	--radius-*: initial;
+
+	/* O CSS do site é desktop-first: `max-md:` é o celular (até 860px) e `max-lg:` vai até 1099px */
+	--breakpoint-md: 861px;
+	--breakpoint-lg: 1100px;
+
+	/* Sombra dos elementos flutuantes (toast, bandeja, modal); `--elevation` troca com o tema */
+	--shadow-float: var(--elevation);
+}
+
+/* Os tokens (tema claro). `static` gera todas as variáveis, também as usadas só aqui (ex.: no `inverted`) */
+@theme static {
+	--color-bg: #f5f6ef;
+	--color-surface: #ffffff;
+	--color-surface-2: #eceee4;
+	--color-ink: #141613;
+	--color-muted: #585c52;
+	--color-line: #dcdfd2;
+	--color-lime: #c8f542;
+	--color-lime-ink: #141613;
+	--color-lime-soft: #eefbc4;
+	--color-lime-text: #3b6400;
+	--color-lime-hover: #b9e632;
+	--color-lime-accent: #8fc20c;
+	--color-lime-glow: rgb(200 245 66 / 0.35);
+	--color-inv-bg: #141613;
+	--color-inv-ink: #f5f6ef;
+	--color-inv-muted: #b4b9ac;
+	--color-inv-line: rgb(255 255 255 / 0.16);
+	--color-inv-surface-2: rgb(255 255 255 / 0.1);
+	--color-warn: #7a4300;
+	--color-warn-bg: #fff1dc;
+	--color-danger: #a3261b;
+	--color-danger-bg: #fde7e4;
+	--color-ok: #1d7a45;
+	/* Contorno de foco: o lime de texto, com contraste de pelo menos 3:1 com o fundo nos dois temas */
+	--color-focus: var(--color-lime-text);
+	--color-switch-knob: #ffffff;
+	--color-backdrop: rgb(20 22 19 / 0.45);
+
+	/* Pontos de status: as mesmas cores nos dois temas */
+	--color-ok-dot: #2ecc71;
+	--color-ok-bg: rgb(46 204 113 / 0.14);
+	--color-ok-bg-strong: rgb(46 204 113 / 0.2);
+	--color-muted-dot: #95a5a6;
+	--color-danger-dot: #ff6b5b;
+
+	--font-sans: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+	--font-mono: 'Geist Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+
+	--radius-xs: 6px;
+	--radius-sm: 10px;
+	--radius-md: 12px;
+	--radius-lg: 14px;
+	--radius-xl: 18px;
+	--radius-pill: 999px;
+}
+
+/* Calculadas no próprio elemento: acompanham os tokens redefinidos dentro dele (ex.: o card de vaga selecionado) */
+@theme inline {
+	--color-line-strong: color-mix(in srgb, var(--color-ink) 30%, var(--color-line));
+}
+
+/*
+ * Superfície escura nos dois temas (card de vaga selecionado, card da coleta, bandeja de currículos). Redefine os
+ * tokens, então `bg-surface-2`, `text-muted`, `border-line` etc. dentro dela já saem na versão escura.
+ */
+@utility inverted {
+	background-color: var(--color-inv-bg);
+	color: var(--color-inv-ink);
+	--color-bg: var(--color-inv-bg);
+	--color-surface: var(--color-inv-bg);
+	--color-surface-2: var(--color-inv-surface-2);
+	--color-ink: var(--color-inv-ink);
+	--color-muted: var(--color-inv-muted);
+	--color-line: var(--color-inv-line);
+	--color-ok-bg: var(--color-ok-bg-strong);
+	/* O lime escuro do tema claro sumiria no fundo escuro */
+	--color-focus: var(--color-lime);
+}
+
+@layer base {
+	:root {
+		/* Sombra dos elementos flutuantes; fora do @theme para trocar com o tema (use `shadow-(--elevation)`) */
+		--elevation: 0 18px 40px rgb(20 22 19 / 0.18);
+
+		color-scheme: light;
+
+		/* Tema escuro: os mesmos tokens com outros valores, na mesma variante do `dark:` */
+		@variant dark {
+			& {
+				--color-bg: #0e100c;
+				--color-surface: #161913;
+				--color-surface-2: #1f231b;
+				--color-ink: #eceee4;
+				--color-muted: #a0a698;
+				--color-line: #2b3026;
+				--color-lime-soft: #26300f;
+				--color-lime-text: #c8f542;
+				--color-inv-bg: #232a18;
+				--color-inv-ink: #f2f5ea;
+				--color-inv-muted: #b9c0ae;
+				--color-warn: #ffc37a;
+				--color-warn-bg: #3a2a12;
+				--color-danger: #ff9c90;
+				--color-danger-bg: #3d1915;
+				--color-ok: #6ee39b;
+				--elevation: 0 18px 40px rgb(0 0 0 / 0.5);
+
+				color-scheme: dark;
+			}
+		}
+	}
+
+	/* O que é do projeto, além do preflight */
+	body {
+		background-color: var(--color-bg);
+		color: var(--color-ink);
+		-webkit-font-smoothing: antialiased;
+	}
+
+	:focus-visible {
+		outline: 2px solid var(--color-focus);
+		outline-offset: 2px;
+	}
+
+	/* O preflight do Tailwind 4 deixa o cursor padrão nos botões; aqui eles continuam com a mãozinha */
+	button:not(:disabled),
+	[role='button']:not(:disabled) {
+		cursor: pointer;
+	}
+
+	button:disabled {
+		cursor: not-allowed;
+	}
+
+	/* Sem isso, um grupo de opções não encolhe abaixo da largura do conteúdo (os filtros num painel estreito) */
+	fieldset {
+		min-width: 0;
+	}
+}

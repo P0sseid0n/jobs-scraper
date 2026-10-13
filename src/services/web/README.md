@@ -20,5 +20,6 @@ O site: mais um canal, ao lado do Discord, com o que o Discord não faz bem. Bus
   - `views/`: as telas;
   - `components/`: card, detalhe, botões e campos;
   - `stores/`: estado global (vagas, currículos, tempo real, tema, avisos) sobre um store mínimo em `lib/store.ts`;
-  - `lib/`: formatação, filtros e validação do formulário.
+  - `lib/`: formatação, filtros e validação do formulário;
+  - `tailwind.css`: o CSS inteiro do site. O Tailwind 4 entra pelo `bun-plugin-tailwind` (configurado no `bunfig.toml`), com o preflight; o estilo de cada elemento fica nas classes do JSX, sem valores arbitrários (`text-[13px]`): só a escala padrão (veja `docs/padronizacao-front.md`). Os tokens ficam no `@theme` e viram classes (`bg-surface`, `text-muted`, `border-line`, `rounded-pill`); o tema escuro redefine os mesmos tokens num `@variant dark`, e `dark:` segue o `data-theme`. O que as classes não expressam fica ali como `@utility` (ex.: `inverted`, `bottom-safe-*`). Junte classes com o `cx` (`lib/cx.ts`), que resolve conflitos entre classes do Tailwind com o `tailwind-merge`, e declare as variantes dos componentes de `components/ui` com o `tv` (`tailwind-variants`), exportado pelo mesmo arquivo.
 - **Tipos da API** (`api-types.ts`): compartilhados entre o servidor e o navegador.

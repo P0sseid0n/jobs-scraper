@@ -6,7 +6,7 @@ ENV NODE_ENV=production \
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile --production
 
-COPY tsconfig.json ./
+COPY tsconfig.json bunfig.toml ./
 COPY src ./src
 
 # Serviços que não precisam de navegador (post-processing, discord-bot)

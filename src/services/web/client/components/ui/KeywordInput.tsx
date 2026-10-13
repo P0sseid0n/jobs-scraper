@@ -1,36 +1,10 @@
 import { useState, type KeyboardEvent } from 'react'
 
-import { cx } from '../lib/cx'
-import { Icon } from './Icon'
-
-/** Interruptor liga/desliga (checkbox nativo, acessível pelo teclado). */
-export function Switch({
-	checked,
-	label,
-	id,
-	disabled = false,
-	onChange,
-}: {
-	checked: boolean
-	label: string
-	id?: string
-	disabled?: boolean
-	onChange: (value: boolean) => void
-}) {
-	return (
-		<input
-			type="checkbox"
-			role="switch"
-			id={id}
-			className="switch"
-			aria-checked={checked}
-			aria-label={label}
-			checked={checked}
-			disabled={disabled}
-			onChange={event => onChange(event.target.checked)}
-		/>
-	)
-}
+import { cx } from '../../lib/cx'
+import { Icon } from '../Icon'
+import { badge } from './Badge'
+import { IconButton } from './IconButton'
+import { field, FOCUS_WITHIN } from './Input'
 
 /**
  * Campo de chips: digite e Enter (ou vírgula) para adicionar; Backspace no campo vazio remove o último. Com
@@ -82,17 +56,23 @@ export function KeywordInput({
 	}
 
 	return (
-		<div className={cx('chips-input', invalid && 'invalid')}>
+		<div className={field({ invalid, className: cx('flex min-h-24 flex-wrap content-start gap-1.5 p-2', FOCUS_WITHIN) })}>
 			{value.map(word => (
-				<span className="kchip mono" key={word}>
+				<span className={badge({ className: 'gap-0.5 py-0.5 pr-0.5 pl-2.5 text-xs whitespace-normal' })} key={word}>
 					{word}
-					<button type="button" aria-label={`Remover ${word}`} onClick={() => onChange(value.filter(item => item !== word))}>
+					<IconButton
+						label={`Remover ${word}`}
+						size="xs"
+						className="text-muted hover:text-ink"
+						onClick={() => onChange(value.filter(item => item !== word))}
+					>
 						<Icon name="close" size={12} />
-					</button>
+					</IconButton>
 				</span>
 			))}
 			<input
 				id={id}
+				className="h-7.5 min-w-25 flex-1 basis-30 border-0 bg-transparent text-sm outline-none"
 				value={draft}
 				onChange={event => setDraft(event.target.value)}
 				onKeyDown={onKeyDown}

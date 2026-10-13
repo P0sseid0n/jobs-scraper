@@ -8,6 +8,11 @@
 	"files": {
 		"includes": ["src/**", "*.json", "!bun.lock"]
 	},
+	"css": {
+		"parser": {
+			"tailwindDirectives": true
+		}
+	},
 	"formatter": {
 		"enabled": false
 	},
@@ -15,6 +20,15 @@
 		"rules": {
 			"style": {
 				"noNonNullAssertion": "off"
+			},
+			"a11y": {
+				"noLabelWithoutControl": {
+					"level": "error",
+					"options": {
+						"inputComponents": ["Input", "Select", "Checkbox", "Range", "Switch"],
+						"labelComponents": ["FieldLabel"]
+					}
+				}
 			}
 		}
 	},

@@ -10,7 +10,7 @@ import type {
 	ScraperSettings,
 	SettingsKey,
 } from '@shared/contracts'
-import type { ScraperRunStatus, ScraperRunTerm, ScraperRunTrigger } from '@shared/database'
+import type { ScraperRunStatus, ScraperRunTrigger, SeenPostOutcome } from '@shared/database'
 
 /**
  * Vaga salva: o cargo nunca falta (o post-processing descarta as que vêm sem), `createdAt` é quando entrou no sistema
@@ -53,10 +53,25 @@ export type WebScraperRun = {
 	status: ScraperRunStatus
 	startedAt: string
 	finishedAt: string | null
+	/** Posts novos enviados para a IA. */
 	sent: number
-	terms: ScraperRunTerm[]
+	/** Posts da busca que já tinham passado pela IA (não enviados de novo). */
+	skipped: number
+	/**
+	 * Vagas salvas a partir dos posts da coleta (cresce enquanto a IA processa a fila); `null` nas coletas antigas,
+	 * que não guardavam os posts enviados.
+	 */
+	newJobs: number | null
+	/**
+	 * O que o post-processing fez com os posts enviados (vaga salva ou o motivo do descarte) e quantos ainda estão na
+	 * fila; `null` nas coletas antigas.
+	 */
+	outcomes: { counts: Partial<Record<SeenPostOutcome | 'unknown', number>>; pending: number } | null
+	terms: WebScraperRunTerm[]
 	error: string | null
 }
+
+export type WebScraperRunTerm = { term: string; sent: number; skipped: number; error: string | null }
 
 export type ScraperStatus = {
 	/** Coleta em andamento, se houver. */

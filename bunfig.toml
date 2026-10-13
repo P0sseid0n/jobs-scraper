@@ -1,0 +1,3 @@
+# Tailwind no CSS do site (rotas HTML do Bun.serve, em dev e em produção)
+[serve.static]
+plugins = ["bun-plugin-tailwind"]

@@ -6,6 +6,10 @@ import { api } from '../api'
 import { Icon } from '../components/Icon'
 import { JobDetail } from '../components/JobDetail'
 import { Button } from '../components/ui/Button'
+import { card } from '../components/ui/Card'
+import { EmptyState } from '../components/ui/EmptyState'
+import { Page } from '../components/ui/Page'
+import { Skeleton } from '../components/ui/Skeleton'
 import { goBack, onLinkClick } from '../router'
 import { jobsStore } from '../stores/jobs'
 import { markSeen } from '../stores/seen'
@@ -53,10 +57,11 @@ export function JobPage({ routeId }: { routeId: string }) {
 	const { job, error } = useJob(routeId)
 
 	return (
-		<div className="page page-narrow">
-			<a
-				className="back-link"
+		<Page width="narrow">
+			<Button
+				variant="ghost"
 				href="/"
+				className="self-start"
 				onClick={event => {
 					event.preventDefault()
 					goBack('/')
@@ -64,21 +69,24 @@ export function JobPage({ routeId }: { routeId: string }) {
 			>
 				<Icon name="back" />
 				vagas
-			</a>
+			</Button>
 			{error && (
-				<div className="card empty" role="alert">
-					<p className="strong">{error}</p>
-					<Button variant="lime" href="/" onClick={onLinkClick}>
-						ver todas as vagas
-					</Button>
-				</div>
+				<EmptyState
+					tone="error"
+					title={error}
+					action={
+						<Button variant="lime" href="/" onClick={onLinkClick}>
+							ver todas as vagas
+						</Button>
+					}
+				/>
 			)}
-			{!error && !job && <div className="card skeleton detail-skeleton" aria-busy="true" />}
+			{!error && !job && <Skeleton className={card({ className: 'min-h-60' })} aria-busy="true" />}
 			{job && (
-				<article className="card detail-page">
+				<article className={card({ className: 'p-6 max-md:p-4.5' })}>
 					<JobDetail job={job} />
 				</article>
 			)}
-		</div>
+		</Page>
 	)
 }

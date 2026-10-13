@@ -4,7 +4,11 @@ import type { WebCvRequest } from '../../api-types'
 import { cvPdfUrl } from '../api'
 import { Icon } from '../components/Icon'
 import { Button } from '../components/ui/Button'
-import { cx } from '../lib/cx'
+import { card } from '../components/ui/Card'
+import { EmptyState } from '../components/ui/EmptyState'
+import { Hero, Page } from '../components/ui/Page'
+import { PdfIcon } from '../components/ui/PdfIcon'
+import { LABEL } from '../components/ui/text'
 import { formatDateTime } from '../lib/format'
 import { jobPath, onLinkClick } from '../router'
 import { loadCvRequests, requestCv, useCvRequests } from '../stores/cv'
@@ -22,22 +26,26 @@ function CvItem({ request }: { request: WebCvRequest }) {
 	const meta = [request.company, formatDateTime(request.finishedAt ?? request.requestedAt)].filter(Boolean).join(' · ')
 
 	return (
-		<li className={cx('card cv-row', `cv-${request.status}`)}>
-			<span className={cx('pdf-icon mono', request.status === 'pending' && 'dashed')} aria-hidden="true">
+		<li className={card({ failed: request.status === 'failed', className: 'flex items-center gap-3.5 px-4 py-3.5' })}>
+			<PdfIcon dashed={request.status === 'pending'}>
 				{request.status === 'pending' ? <Icon name="spinner" size={14} /> : request.status === 'failed' ? 'erro' : 'PDF'}
-			</span>
-			<div className="grow min-0 stack-xxs">
-				<a className="strong ellipsis" href={jobPath(request.postId)} onClick={onLinkClick}>
+			</PdfIcon>
+			<div className="grow min-w-0 flex flex-col gap-0.5">
+				<a
+					className="font-semibold block truncate no-underline hover:underline"
+					href={jobPath(request.postId)}
+					onClick={onLinkClick}
+				>
 					{request.jobTitle ?? 'Vaga'}
 				</a>
-				<span className="mono muted xsmall">
+				<span className="font-mono text-muted text-xs">
 					{request.status === 'pending' ? `gerando · pedido ${formatDateTime(request.requestedAt)}` : meta}
 				</span>
-				{request.status === 'failed' && <span className="small danger-text">{request.error}</span>}
+				{request.status === 'failed' && <span className="text-sm text-danger">{request.error}</span>}
 			</div>
 			{request.status === 'ready' && (
-				<div className="row-actions">
-					<Button variant="ghost" href={cvPdfUrl(request.requestId)} target="_blank" rel="noopener">
+				<div className="flex gap-2">
+					<Button variant="ghost" href={cvPdfUrl(request.requestId)} external>
 						abrir
 					</Button>
 					<Button variant="lime" href={cvPdfUrl(request.requestId, true)} download={request.fileName ?? undefined}>
@@ -67,39 +75,45 @@ export function CvsView() {
 	const done = requests.filter(request => request.status !== 'pending')
 
 	return (
-		<div className="page page-medium">
-			<section className="hero">
-				<div>
-					<h1 className="display">
-						meus <span className="mono display-mono">currículos.</span>
-					</h1>
-					<p className="muted lead">
-						Um PDF de uma página por vaga: apresentação reescrita para a vaga, tecnologias pedidas nas habilidades, projetos do
-						GitHub mais relevantes e a experiência reordenada.
-					</p>
-				</div>
-			</section>
+		<Page width="medium">
+			<Hero
+				title={
+					<>
+						meus <Hero.Mono>currículos.</Hero.Mono>
+					</>
+				}
+				lead="Um PDF de uma página por vaga: apresentação reescrita para a vaga, tecnologias pedidas nas habilidades, projetos do GitHub mais relevantes e a experiência reordenada."
+			/>
 
 			{error && (
-				<div className="notice notice-danger" role="alert">
-					Não consegui carregar os currículos: {error}
-				</div>
+				<EmptyState
+					tone="error"
+					title="Não consegui carregar os currículos"
+					description={error}
+					action={
+						<Button variant="lime" onClick={() => loadCvRequests()}>
+							tentar de novo
+						</Button>
+					}
+				/>
 			)}
 
 			{loaded && requests.length === 0 && !error && (
-				<div className="card empty">
-					<p className="strong">Nenhum currículo gerado pelo site ainda</p>
-					<p className="muted small">Em qualquer vaga, clique em “gerar currículo”. Ele fica pronto em até ~1 minuto.</p>
-					<Button variant="lime" href="/" onClick={onLinkClick}>
-						ver vagas
-					</Button>
-				</div>
+				<EmptyState
+					title="Nenhum currículo gerado pelo site ainda"
+					description="Em qualquer vaga, clique em “gerar currículo”. Ele fica pronto em até ~1 minuto."
+					action={
+						<Button variant="lime" href="/" onClick={onLinkClick}>
+							ver vagas
+						</Button>
+					}
+				/>
 			)}
 
 			{pending.length > 0 && (
-				<section className="stack-sm">
-					<h2 className="label">em andamento_</h2>
-					<ul className="stack-sm plain">
+				<section className="flex flex-col gap-2.5">
+					<h2 className={LABEL}>em andamento_</h2>
+					<ul className="flex flex-col gap-2.5 m-0 list-none p-0">
 						{pending.map(request => (
 							<CvItem key={request.requestId} request={request} />
 						))}
@@ -107,15 +121,15 @@ export function CvsView() {
 				</section>
 			)}
 			{done.length > 0 && (
-				<section className="stack-sm">
-					<h2 className="label">gerados_</h2>
-					<ul className="stack-sm plain">
+				<section className="flex flex-col gap-2.5">
+					<h2 className={LABEL}>gerados_</h2>
+					<ul className="flex flex-col gap-2.5 m-0 list-none p-0">
 						{done.map(request => (
 							<CvItem key={request.requestId} request={request} />
 						))}
 					</ul>
 				</section>
 			)}
-		</div>
+		</Page>
 	)
 }

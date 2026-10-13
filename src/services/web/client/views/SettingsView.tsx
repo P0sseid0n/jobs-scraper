@@ -4,10 +4,19 @@ import { DATE_POSTED_FILTERS, type DatePostedFilter } from '@shared/contracts'
 
 import type { WebSettings } from '../../api-types'
 import { api, RequestError } from '../api'
-import { KeywordInput, Switch } from '../components/forms'
 import { Icon } from '../components/Icon'
 import { Button } from '../components/ui/Button'
+import { card } from '../components/ui/Card'
+import { EmptyState } from '../components/ui/EmptyState'
+import { FieldError, FieldHelp, FieldLabel } from '../components/ui/Field'
 import { IconButton } from '../components/ui/IconButton'
+import { Checkbox, Input, Range, Select } from '../components/ui/Input'
+import { KeywordInput } from '../components/ui/KeywordInput'
+import { Hero, Page } from '../components/ui/Page'
+import { pill, PillGroup } from '../components/ui/Pill'
+import { Skeleton } from '../components/ui/Skeleton'
+import { Switch, SwitchField } from '../components/ui/Switch'
+import { SECTION_TITLE } from '../components/ui/text'
 import { cx } from '../lib/cx'
 import { formatInterval, LANGUAGE_NAMES, languageLabel } from '../lib/format'
 import { LIMITS, validateDraft, type SettingsDraft } from '../lib/settings-form'
@@ -19,6 +28,8 @@ const DATE_POSTED_LABELS: Record<DatePostedFilter, string> = {
 	'past-month': 'Último mês',
 	any: 'Qualquer data',
 }
+
+const SETTINGS_CARD = card({ className: 'flex flex-col gap-6.5 p-7 max-md:p-4.5' })
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
@@ -138,12 +149,12 @@ export function SettingsView() {
 		setNewTerm('')
 	}
 
-	function fieldError(path: string) {
+	function fieldError(path: string, className?: string) {
 		const message = errors[path]
 		return message ? (
-			<p className="field-error" id={`${path}-error`} role="alert">
+			<FieldError id={`${path}-error`} className={className}>
 				{message}
-			</p>
+			</FieldError>
 		) : null
 	}
 
@@ -151,15 +162,15 @@ export function SettingsView() {
 		value: number,
 		onValue: (draft: SettingsDraft, value: number) => void,
 		id: string,
-		attrs: InputHTMLAttributes<HTMLInputElement>,
+		attrs: Omit<InputHTMLAttributes<HTMLInputElement>, 'size'>,
 	) => (
-		<input
+		<Input
 			id={id}
-			className={cx('field mono', errors[id] && 'invalid')}
+			className="font-mono"
 			type="number"
 			inputMode="numeric"
 			value={Number.isNaN(value) ? '' : value}
-			aria-invalid={!!errors[id]}
+			invalid={!!errors[id]}
 			aria-describedby={errors[id] ? `${id}-error` : `${id}-help`}
 			onChange={event => {
 				const number = event.target.valueAsNumber
@@ -173,21 +184,21 @@ export function SettingsView() {
 		const terms = d.scraper.searchTerms
 
 		return (
-			<section className="card settings-card" aria-labelledby="scraper-title">
-				<div className="row-between wrap">
-					<h2 id="scraper-title" className="section-title">
-						coleta <span className="mono muted xsmall">scraper</span>
+			<section className={SETTINGS_CARD} aria-labelledby="scraper-title">
+				<div className="flex items-center justify-between gap-3 flex-wrap">
+					<h2 id="scraper-title" className={SECTION_TITLE}>
+						coleta <span className="font-mono text-xs font-normal text-muted">scraper</span>
 					</h2>
-					<span className="mono muted xsmall">
+					<span className="font-mono text-muted text-xs">
 						{terms.length} / {LIMITS.searchTerms} termos
 					</span>
 				</div>
 
-				<fieldset className="stack-sm">
-					<legend className="field-label">termos de busca</legend>
-					<ul className="stack-xs plain">
+				<fieldset className="flex flex-col gap-2.5">
+					<legend className="mb-2.5 p-0 text-sm font-medium">termos de busca</legend>
+					<ul className="flex flex-col gap-1.5 m-0 list-none p-0">
 						{terms.map((term, index) => (
-							<li key={index} className="term-row">
+							<li key={index} className="flex flex-wrap items-center gap-2.5">
 								<Switch
 									checked={term.enabled}
 									label={`Termo ${term.term || index + 1} ativo`}
@@ -197,12 +208,12 @@ export function SettingsView() {
 										})
 									}
 								/>
-								<input
-									className={cx('field grow', !term.enabled && 'faded', errors[`searchTerms.${index}.term`] && 'invalid')}
+								<Input
+									className={cx('grow', !term.enabled && 'opacity-55')}
 									value={term.term}
 									maxLength={LIMITS.termLength}
 									aria-label={`Termo de busca ${index + 1}`}
-									aria-invalid={!!errors[`searchTerms.${index}.term`]}
+									invalid={!!errors[`searchTerms.${index}.term`]}
 									onChange={event => {
 										const value = event.target.value
 										edit(next => {
@@ -221,13 +232,13 @@ export function SettingsView() {
 								>
 									<Icon name="trash" />
 								</IconButton>
-								{fieldError(`searchTerms.${index}.term`)}
+								{fieldError(`searchTerms.${index}.term`, 'basis-full pl-13.5 max-md:pl-0')}
 							</li>
 						))}
 					</ul>
-					<form className="row gap-sm" onSubmit={addTerm}>
-						<input
-							className="field grow"
+					<form className="flex items-center gap-2.5" onSubmit={addTerm}>
+						<Input
+							className="grow"
 							value={newTerm}
 							maxLength={LIMITS.termLength}
 							placeholder="novo termo, ex.: Front-end Nuxt"
@@ -241,18 +252,17 @@ export function SettingsView() {
 						</Button>
 					</form>
 					{fieldError('searchTerms')}
-					<p className="help">
+					<FieldHelp>
 						De 1 a 10 termos, até 100 caracteres, sem repetidos e ao menos um ativo. Os posts por coleta são divididos entre os
 						termos ativos.
-					</p>
+					</FieldHelp>
 				</fieldset>
 
-				<div className="grid-3">
-					<label className="stack-xs" htmlFor="datePosted">
-						<span className="field-label">publicadas em</span>
-						<select
+				<div className="grid grid-cols-3 gap-5 max-md:grid-cols-1">
+					<div className="flex flex-col gap-1.5">
+						<FieldLabel htmlFor="datePosted">publicadas em</FieldLabel>
+						<Select
 							id="datePosted"
-							className="field"
 							value={d.scraper.datePosted}
 							onChange={event => {
 								const value = event.target.value as DatePostedFilter
@@ -266,36 +276,28 @@ export function SettingsView() {
 									{DATE_POSTED_LABELS[value]}
 								</option>
 							))}
-						</select>
-					</label>
-					<div className="stack-xs">
-						<label className="field-label" htmlFor="maxPostsPerRun">
-							máx. de posts por coleta
-						</label>
+						</Select>
+					</div>
+					<div className="flex flex-col gap-1.5">
+						<FieldLabel htmlFor="maxPostsPerRun">máx. de posts por coleta</FieldLabel>
 						{numberInput(d.scraper.maxPostsPerRun, (next, value) => (next.scraper.maxPostsPerRun = value), 'maxPostsPerRun', {
 							min: 1,
 							max: 200,
 						})}
-						{fieldError('maxPostsPerRun') ?? (
-							<p className="help" id="maxPostsPerRun-help">
-								de 1 a 200, somando todos os termos
-							</p>
-						)}
+						{fieldError('maxPostsPerRun') ?? <FieldHelp id="maxPostsPerRun-help">de 1 a 200, somando todos os termos</FieldHelp>}
 					</div>
-					<div className="stack-xs">
-						<label className="field-label" htmlFor="intervalMinutes">
-							intervalo entre coletas (min)
-						</label>
+					<div className="flex flex-col gap-1.5">
+						<FieldLabel htmlFor="intervalMinutes">intervalo entre coletas (min)</FieldLabel>
 						{numberInput(d.scraper.intervalMinutes, (next, value) => (next.scraper.intervalMinutes = value), 'intervalMinutes', {
 							min: 1,
 							max: 10_080,
 						})}
 						{fieldError('intervalMinutes') ?? (
-							<p className="help" id="intervalMinutes-help">
+							<FieldHelp id="intervalMinutes-help">
 								{Number.isInteger(d.scraper.intervalMinutes) && d.scraper.intervalMinutes > 0
 									? `${formatInterval(d.scraper.intervalMinutes)} · máx. 7 dias`
 									: 'máx. 7 dias'}
-							</p>
+							</FieldHelp>
 						)}
 					</div>
 				</div>
@@ -308,20 +310,19 @@ export function SettingsView() {
 		const languages = [...new Set([...Object.keys(LANGUAGE_NAMES), ...p.allowedLanguages])]
 
 		return (
-			<section className="card settings-card" aria-labelledby="processing-title">
-				<h2 id="processing-title" className="section-title">
-					filtros das vagas <span className="mono muted xsmall">pós-processamento</span>
+			<section className={SETTINGS_CARD} aria-labelledby="processing-title">
+				<h2 id="processing-title" className={SECTION_TITLE}>
+					filtros das vagas <span className="font-mono text-xs font-normal text-muted">pós-processamento</span>
 				</h2>
 
-				<label className="stack-xs" htmlFor="minJobConfidence">
-					<span className="row-between">
-						<span className="field-label">confiança mínima da IA</span>
-						<span className="mono">{p.minJobConfidence}%</span>
+				<div className="flex flex-col gap-1.5">
+					<span className="flex items-center justify-between gap-3">
+						<FieldLabel htmlFor="minJobConfidence">confiança mínima da IA</FieldLabel>
+						<span className="font-mono">{p.minJobConfidence}%</span>
 					</span>
-					<input
+					<Range
 						id="minJobConfidence"
-						className="range"
-						type="range"
+						aria-describedby="minJobConfidence-help"
 						min={0}
 						max={100}
 						value={p.minJobConfidence}
@@ -332,17 +333,15 @@ export function SettingsView() {
 							})
 						}}
 					/>
-					<span className="help">Posts abaixo disso são descartados como “não é vaga”.</span>
-				</label>
+					<FieldHelp id="minJobConfidence-help">Posts abaixo disso são descartados como “não é vaga”.</FieldHelp>
+				</div>
 
-				<fieldset className="stack-sm">
-					<legend className="field-label">idiomas aceitos</legend>
-					<div className="pills">
+				<fieldset className="flex flex-col gap-2.5">
+					<legend className="mb-2.5 p-0 text-sm font-medium">idiomas aceitos</legend>
+					<PillGroup>
 						{languages.map(code => (
-							<label key={code} className="check-pill outlined">
-								<input
-									type="checkbox"
-									className="checkbox"
+							<label key={code} className={pill({ className: 'cursor-pointer' })}>
+								<Checkbox
 									checked={p.allowedLanguages.includes(code)}
 									onChange={event => {
 										const checked = event.target.checked
@@ -357,12 +356,12 @@ export function SettingsView() {
 								{languageLabel(code)}
 							</label>
 						))}
-					</div>
+					</PillGroup>
 					{fieldError('allowedLanguages')}
-					<p className="help">Nenhum marcado aceita todos os idiomas. O idioma é detectado no texto do post.</p>
+					<FieldHelp>Nenhum marcado aceita todos os idiomas. O idioma é detectado no texto do post.</FieldHelp>
 				</fieldset>
 
-				<div className="grid-2">
+				<div className="grid grid-cols-2 gap-5 max-md:grid-cols-1">
 					{(
 						[
 							[
@@ -377,12 +376,10 @@ export function SettingsView() {
 							],
 						] as const
 					).map(([field, label, help]) => (
-						<div className="stack-xs" key={field}>
-							<span className="row-between">
-								<label className="field-label" htmlFor={field}>
-									{label}
-								</label>
-								<span className="mono muted xsmall">
+						<div className="flex flex-col gap-1.5" key={field}>
+							<span className="flex items-center justify-between gap-3">
+								<FieldLabel htmlFor={field}>{label}</FieldLabel>
+								<span className="font-mono text-muted text-xs">
 									{p[field].length} / {LIMITS.keywords}
 								</span>
 							</span>
@@ -399,23 +396,19 @@ export function SettingsView() {
 									})
 								}
 							/>
-							{fieldError(field) ?? (
-								<p className="help" id={`${field}-help`}>
-									{help}
-								</p>
-							)}
+							{fieldError(field) ?? <FieldHelp id={`${field}-help`}>{help}</FieldHelp>}
 						</div>
 					))}
 				</div>
 
-				<div className="hint-box">
-					<span className="mono" aria-hidden="true">
+				<div className="flex gap-3 rounded-md bg-surface-2 px-4 py-3.5">
+					<span className="font-mono" aria-hidden="true">
 						?
 					</span>
-					<p className="help">
+					<FieldHelp className="text-ink">
 						A comparação é por palavra inteira (“java” não pega “javascript”) e ignora maiúsculas, acentos, hífen e “.js”. Ou
 						seja, “Vue.js” = “vue” e “Front-End” = “frontend”.
-					</p>
+					</FieldHelp>
 				</div>
 			</section>
 		)
@@ -425,49 +418,41 @@ export function SettingsView() {
 	const dirty = dirtyKeys.length > 0
 
 	return (
-		<div className="page page-medium settings-page">
-			<section className="hero">
-				<div>
-					<h1 className="display">
-						configurações <span className="mono display-mono">da máquina.</span>
-					</h1>
-					<p className="muted lead">
-						As mudanças valem a partir da próxima coleta, sem reiniciar nada. Os filtros não reprocessam vagas antigas.
-					</p>
-				</div>
-			</section>
+		<Page width="medium" className="pb-40">
+			<Hero
+				title={
+					<>
+						configurações <Hero.Mono>da máquina.</Hero.Mono>
+					</>
+				}
+				lead="As mudanças valem a partir da próxima coleta, sem reiniciar nada. Os filtros não reprocessam vagas antigas."
+			/>
 
 			{loadError && (
-				<div className="card empty" role="alert">
-					<p className="strong">Não consegui carregar as configurações</p>
-					<p className="muted small">{loadError}</p>
-					<Button variant="lime" onClick={load}>
-						tentar de novo
-					</Button>
-				</div>
+				<EmptyState
+					tone="error"
+					title="Não consegui carregar as configurações"
+					description={loadError}
+					action={
+						<Button variant="lime" onClick={load}>
+							tentar de novo
+						</Button>
+					}
+				/>
 			)}
-			{!loadError && !draft && <div className="card skeleton settings-skeleton" aria-busy="true" />}
+			{!loadError && !draft && <Skeleton className={card({ className: 'min-h-60' })} aria-busy="true" />}
 
 			{loaded && (
-				<div className={cx('card pause-card', paused && 'paused')}>
+				<div className={card({ className: cx('flex flex-wrap items-center gap-4 px-5 py-4.5', paused && 'bg-lime-soft') })}>
 					<div className="grow">
-						<p className="strong">
+						<p className="font-semibold">
 							{paused
 								? 'Coletas automáticas pausadas'
 								: `Coletas automáticas ligadas · ${formatInterval(loaded.scraper.intervalMinutes)}`}
 						</p>
-						<p className="help">“Coletar agora” continua funcionando mesmo com as coletas pausadas.</p>
+						<FieldHelp>“Coletar agora” continua funcionando mesmo com as coletas pausadas.</FieldHelp>
 					</div>
-					<div className="row gap-sm small">
-						<label htmlFor="settings-paused">pausar coletas</label>
-						<Switch
-							id="settings-paused"
-							checked={paused}
-							label="Pausar coletas automáticas"
-							disabled={savingPause}
-							onChange={setPaused}
-						/>
-					</div>
+					<SwitchField id="settings-paused" title="pausar coletas" checked={paused} disabled={savingPause} onChange={setPaused} />
 				</div>
 			)}
 
@@ -475,11 +460,15 @@ export function SettingsView() {
 			{draft && renderProcessing(draft)}
 
 			{draft && (
-				<div className="save-bar">
-					<div className="save-bar-inner">
+				<div data-save-bar className="fixed inset-x-0 bottom-0 z-25 border-t border-line bg-bg max-md:bottom-safe-16">
+					<div className="mx-auto flex max-w-270 flex-wrap items-center gap-3 px-6 py-3 max-md:px-4">
 						<span
 							role="status"
-							className={cx('mono small grow', saveState === 'error' && 'danger-text', saveState === 'saved' && 'ok-text')}
+							className={cx(
+								'font-mono text-sm grow',
+								saveState === 'error' && 'text-danger',
+								saveState === 'saved' && 'text-ok',
+							)}
 						>
 							{saveState === 'saving'
 								? 'salvando…'
@@ -498,6 +487,6 @@ export function SettingsView() {
 					</div>
 				</div>
 			)}
-		</div>
+		</Page>
 	)
 }

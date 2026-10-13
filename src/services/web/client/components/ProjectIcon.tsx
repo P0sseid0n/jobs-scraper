@@ -29,7 +29,8 @@ export function setFavicon() {
 /** O ícone do projeto, decorativo (o texto ao lado dá o nome). */
 export function ProjectIcon({ size = 22 }: { size?: number }) {
 	return (
-		<svg className="project-icon" width={size} height={size} viewBox="0 0 32 32" aria-hidden="true">
+		// O ícone é escuro nos dois temas: o contorno o separa do fundo no tema escuro
+		<svg className="flex-none rounded-xs ring-1 ring-ink/22" width={size} height={size} viewBox="0 0 32 32" aria-hidden="true">
 			<rect {...BACKGROUND} fill={INK} />
 			<rect {...CURSOR} fill={LIME} />
 		</svg>

@@ -8,11 +8,14 @@ import { cx } from '../lib/cx'
 import { CONTRACT_TYPES, WORK_MODES } from '../lib/format'
 import { correctionBody, draftFromJob, type CorrectionDraft } from '../lib/job-correction'
 import { notify } from '../stores/toast'
-import { KeywordInput } from './forms'
 import { Icon } from './Icon'
 import { Button } from './ui/Button'
+import { FieldError, FieldLabel } from './ui/Field'
 import { IconButton } from './ui/IconButton'
-import { Pill } from './ui/Pill'
+import { Input, Select } from './ui/Input'
+import { KeywordInput } from './ui/KeywordInput'
+import { Pill, PillGroup } from './ui/Pill'
+import { FIELDSET, LABEL } from './ui/text'
 
 /** Campos da vaga que podem ter vindo errados da extração da IA. */
 export const REPORTABLE_FIELDS = {
@@ -37,6 +40,8 @@ export function toggleReportField(report: JobReport | null, field: ReportableFie
 	const next = fields.includes(field) ? fields.filter(item => item !== field) : [...fields, field]
 	return next.length ? { kind: 'fields', fields: next } : null
 }
+
+const DIALOG_ACTIONS = 'flex justify-end gap-2 pt-2'
 
 const CONTRACT_OPTIONS = (Object.keys(CONTRACT_TYPES) as (keyof typeof CONTRACT_TYPES)[]).filter(type => type !== 'none')
 const WORK_MODE_OPTIONS = (Object.keys(WORK_MODES) as (keyof typeof WORK_MODES)[]).filter(mode => mode !== 'none')
@@ -117,24 +122,18 @@ export function ReportJobDialog({
 		const content = (
 			<>
 				{input({ id, invalid: !!error, describedBy: error ? `${id}-error` : undefined })}
-				{error && (
-					<p className="field-error" id={`${id}-error`} role="alert">
-						{error}
-					</p>
-				)}
+				{error && <FieldError id={`${id}-error`}>{error}</FieldError>}
 			</>
 		)
 
 		return group ? (
-			<fieldset className="stack-xs" key={name}>
-				<legend className="field-label">{REPORTABLE_FIELDS[name]}</legend>
+			<fieldset className="flex flex-col gap-1.5" key={name}>
+				<legend className="mb-1.5 p-0 text-sm font-medium">{REPORTABLE_FIELDS[name]}</legend>
 				{content}
 			</fieldset>
 		) : (
-			<div className="stack-xs" key={name}>
-				<label className="field-label" htmlFor={id}>
-					{REPORTABLE_FIELDS[name]}
-				</label>
+			<div className="flex flex-col gap-1.5" key={name}>
+				<FieldLabel htmlFor={id}>{REPORTABLE_FIELDS[name]}</FieldLabel>
 				{content}
 			</div>
 		)
@@ -142,14 +141,13 @@ export function ReportJobDialog({
 
 	const textInput = (name: 'title' | 'company' | 'location' | 'recruiterEmail' | 'applyLink', type = 'text') =>
 		field(name, ({ id, invalid, describedBy }) => (
-			<input
+			<Input
 				id={id}
 				type={type}
-				className={cx('field', invalid && 'invalid')}
+				invalid={invalid}
 				value={draft[name]}
 				placeholder={name === 'title' ? undefined : 'vazio = não informado'}
 				maxLength={name === 'applyLink' ? 2000 : 200}
-				aria-invalid={invalid}
 				aria-describedby={describedBy}
 				onChange={event => edit({ [name]: event.target.value })}
 			/>
@@ -161,11 +159,10 @@ export function ReportJobDialog({
 		location: () => textInput('location'),
 		workMode: () =>
 			field('workMode', ({ id, invalid, describedBy }) => (
-				<select
+				<Select
 					id={id}
-					className={cx('field', invalid && 'invalid')}
+					invalid={invalid}
 					value={draft.workMode ?? ''}
-					aria-invalid={invalid}
 					aria-describedby={describedBy}
 					onChange={event => edit({ workMode: (event.target.value || null) as CorrectionDraft['workMode'] })}
 				>
@@ -175,13 +172,13 @@ export function ReportJobDialog({
 							{WORK_MODES[mode].label}
 						</option>
 					))}
-				</select>
+				</Select>
 			)),
 		contractTypes: () =>
 			field(
 				'contractTypes',
 				({ id, describedBy }) => (
-					<div className="pills" id={id} aria-describedby={describedBy}>
+					<PillGroup id={id} aria-describedby={describedBy}>
 						{CONTRACT_OPTIONS.map(type => (
 							<Pill
 								key={type}
@@ -197,7 +194,7 @@ export function ReportJobDialog({
 								{CONTRACT_TYPES[type]}
 							</Pill>
 						))}
-					</div>
+					</PillGroup>
 				),
 				true,
 			),
@@ -222,34 +219,30 @@ export function ReportJobDialog({
 		// biome-ignore lint/a11y/useKeyWithClickEvents: pelo teclado, o Esc já fecha o <dialog>
 		<dialog
 			ref={ref}
-			className="dialog"
+			className="m-auto w-120 rounded-lg border border-line bg-surface p-0 text-ink shadow-float backdrop:bg-backdrop"
 			aria-labelledby="report-title"
 			onClose={onClose}
 			// Clique no fundo escurecido (fora do conteúdo) fecha
 			onClick={event => event.target === ref.current && ref.current.close()}
 		>
-			<div className="dialog-body stack-sm">
-				<div className="row-between">
-					<h2 className="dialog-title" id="report-title">
+			<div className="flex flex-col gap-2.5 px-5 pt-4 pb-5">
+				<div className="flex items-center justify-between gap-3">
+					<h2 className="text-lg font-bold" id="report-title">
 						{step === 'edit' ? 'Corrigir a vaga' : 'O que saiu errado?'}
 					</h2>
 					<IconButton label="Fechar" onClick={close}>
 						<Icon name="close" />
 					</IconButton>
 				</div>
-				<p className="muted small ellipsis">{job.title}</p>
+				<p className="text-muted text-sm block truncate">{job.title}</p>
 
 				{step === 'edit' && report?.kind === 'fields' ? (
-					<form className="stack-sm" onSubmit={save} noValidate>
+					<form className="flex flex-col gap-2.5" onSubmit={save} noValidate>
 						{(Object.keys(REPORTABLE_FIELDS) as ReportableField[])
 							.filter(name => report.fields.includes(name))
 							.map(name => inputs[name]())}
-						{errors._ && (
-							<p className="field-error" role="alert">
-								{errors._}
-							</p>
-						)}
-						<div className="dialog-actions">
+						{errors._ && <FieldError>{errors._}</FieldError>}
+						<div className={DIALOG_ACTIONS}>
 							<Button variant="ghost" onClick={() => setStep('choose')}>
 								voltar
 							</Button>
@@ -260,9 +253,9 @@ export function ReportJobDialog({
 					</form>
 				) : (
 					<>
-						<fieldset className="filter-group">
-							<legend className="label">dados errados_</legend>
-							<div className="pills">
+						<fieldset className={FIELDSET}>
+							<legend className={cx(LABEL, 'mb-2.5')}>dados errados_</legend>
+							<PillGroup>
 								{(Object.keys(REPORTABLE_FIELDS) as ReportableField[]).map(name => (
 									<Pill
 										key={name}
@@ -272,10 +265,10 @@ export function ReportJobDialog({
 										{REPORTABLE_FIELDS[name]}
 									</Pill>
 								))}
-							</div>
+							</PillGroup>
 						</fieldset>
 
-						<div className="dialog-or label">ou</div>
+						<div className={cx('text-center', LABEL)}>ou</div>
 
 						<Pill
 							shape="row"
@@ -283,10 +276,10 @@ export function ReportJobDialog({
 							onClick={() => setReport(report?.kind === 'not-a-job' ? null : { kind: 'not-a-job' })}
 						>
 							<span className="grow">não é vaga</span>
-							<span className="xsmall">sai da lista, sem apagar</span>
+							<span className="text-xs">sai da lista, sem apagar</span>
 						</Pill>
 
-						<div className="dialog-actions">
+						<div className={DIALOG_ACTIONS}>
 							<Button variant="ghost" onClick={close}>
 								cancelar
 							</Button>

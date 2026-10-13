@@ -1,7 +1,15 @@
 import { z } from 'zod'
 
 import type { ScraperCommand } from '@shared/contracts'
-import { ScraperRun, type ScraperRunStatus, type ScraperRunTerm, type ScraperRunTrigger } from '@shared/database'
+import {
+	Job,
+	ScraperRun,
+	SeenPost,
+	type ScraperRunStatus,
+	type ScraperRunTerm,
+	type ScraperRunTrigger,
+	type SeenPostOutcome,
+} from '@shared/database'
 import { QUEUES, type QueueClient } from '@shared/messaging'
 
 import { nextRunAt } from '../../scraper/schedule'
@@ -22,7 +30,8 @@ type RunDocument = {
 	startedAt: Date
 	finishedAt: Date | null
 	sent: number
-	terms: ScraperRunTerm[]
+	// Coletas antigas não têm `skipped` nem `postIds`
+	terms: (Omit<ScraperRunTerm, 'skipped' | 'postIds'> & Partial<Pick<ScraperRunTerm, 'skipped' | 'postIds'>>)[]
 	error: string | null
 }
 
@@ -41,8 +50,8 @@ export async function scraperStatus() {
 	const next = settings.paused ? null : nextRunAt(lastStartedAt, settings.intervalMinutes)
 
 	return Response.json({
-		current: current ? toWebRun(current) : null,
-		last: last ? toWebRun(last) : null,
+		current: current ? await toWebRun(current) : null,
+		last: last ? await toWebRun(last) : null,
 		nextRunAt: next?.toISOString() ?? null,
 		paused: settings.paused,
 		intervalMinutes: settings.intervalMinutes,
@@ -63,7 +72,7 @@ export async function listRuns(req: Request) {
 	const last = page.at(-1)
 	const nextCursor = docs.length > query.limit && last ? encodeCursor({ at: last.startedAt, id: String(last._id) }) : null
 
-	return Response.json({ runs: page.map(toWebRun), nextCursor } satisfies RunsPage)
+	return Response.json({ runs: await Promise.all(page.map(toWebRun)), nextCursor } satisfies RunsPage)
 }
 
 /** `POST /api/scraper/run`: "coletar agora" (funciona mesmo com as coletas pausadas). */
@@ -77,7 +86,14 @@ export async function requestRun(queue: QueueClient) {
 	return Response.json({ requested: true }, { status: 202 })
 }
 
-function toWebRun(doc: RunDocument): WebScraperRun {
+/** A coleta para o site, com as vagas que saíram dela (as de posts com várias vagas apontam o post em `sourcePostId`). */
+async function toWebRun(doc: RunDocument): Promise<WebScraperRun> {
+	const terms = doc.terms ?? []
+	const tracked = terms.length > 0 && terms.every(term => term.postIds !== undefined)
+	const postIds = terms.flatMap(term => term.postIds ?? [])
+
+	const [newJobs, outcomes] = tracked ? await Promise.all([countNewJobs(postIds), countOutcomes(postIds)]) : [null, null]
+
 	return {
 		id: String(doc._id),
 		trigger: doc.trigger,
@@ -85,7 +101,32 @@ function toWebRun(doc: RunDocument): WebScraperRun {
 		startedAt: doc.startedAt.toISOString(),
 		finishedAt: doc.finishedAt?.toISOString() ?? null,
 		sent: doc.sent ?? 0,
-		terms: (doc.terms ?? []).map(term => ({ term: term.term, sent: term.sent ?? 0, error: term.error ?? null })),
+		skipped: terms.reduce((total, term) => total + (term.skipped ?? 0), 0),
+		newJobs,
+		outcomes,
+		terms: terms.map(term => ({ term: term.term, sent: term.sent ?? 0, skipped: term.skipped ?? 0, error: term.error ?? null })),
 		error: doc.error ?? null,
 	}
+}
+
+function countNewJobs(postIds: string[]) {
+	if (postIds.length === 0) return Promise.resolve(0)
+
+	return Job.countDocuments({ $or: [{ postId: { $in: postIds } }, { sourcePostId: { $in: postIds } }] })
+}
+
+/** Quantos posts tiveram cada destino no post-processing; os que ainda não passaram por ele estão na fila. */
+async function countOutcomes(postIds: string[]): Promise<NonNullable<WebScraperRun['outcomes']>> {
+	if (postIds.length === 0) return { counts: {}, pending: 0 }
+
+	const groups = await SeenPost.aggregate<{ _id: SeenPostOutcome | null; count: number }>([
+		{ $match: { postId: { $in: postIds } } },
+		{ $group: { _id: '$outcome', count: { $sum: 1 } } },
+	])
+
+	// Sem `outcome`: o post foi processado por uma versão anterior do post-processing
+	const counts = Object.fromEntries(groups.map(group => [group._id ?? 'unknown', group.count]))
+	const processed = groups.reduce((total, group) => total + group.count, 0)
+
+	return { counts, pending: postIds.length - processed }
 }

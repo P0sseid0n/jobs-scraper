@@ -2,7 +2,7 @@ import { Ollama } from 'ollama'
 
 import { ollamaEnv } from '@shared/config'
 import { ProcessedJobSchema, RawPostSchema, type JobLookup, type RawPost } from '@shared/contracts'
-import { SeenPost } from '@shared/database'
+import { SeenPost, type SeenPostOutcome } from '@shared/database'
 import { QUEUES } from '@shared/messaging'
 import { startService } from '@shared/service'
 import { loadSettings } from '@shared/settings'
@@ -38,7 +38,14 @@ await queue.assertQueue(QUEUES.scraperLookup)
 await queue.consume(QUEUES.postProcessing, RawPostSchema, processPost)
 
 // Esvazia a fila do antigo serviço storage (vagas enviadas antes da junção); remover na próxima versão
-await queue.consume(QUEUES.storage, ProcessedJobSchema, job => saveJob(job, { queue, logger }), { prefetch: 10 })
+await queue.consume(
+	QUEUES.storage,
+	ProcessedJobSchema,
+	async job => {
+		await saveJob(job, { queue, logger })
+	},
+	{ prefetch: 10 },
+)
 
 /**
  * Post que lista várias vagas: pede ao scraper para abrir o link de cada uma. Senão, descarta o post se ele estiver
@@ -54,7 +61,7 @@ async function processPost(post: RawPost) {
 	}
 
 	if (await resumeSavedJob(post.postId, { queue, logger })) {
-		await markAsSeen(post, true)
+		await markAsSeen(post, 'saved')
 		return
 	}
 
@@ -64,7 +71,7 @@ async function processPost(post: RawPost) {
 	const listings = post.sourcePostId ? null : splitMultiJobPost(post.text)
 	if (listings) {
 		await requestLookups(post, listings, settings)
-		await markAsSeen(post, false)
+		await markAsSeen(post, 'multi-job')
 		return
 	}
 
@@ -72,7 +79,7 @@ async function processPost(post: RawPost) {
 
 	if (rejection) {
 		log.info({ reason: rejection }, 'Post descartado')
-		await markAsSeen(post, false)
+		await markAsSeen(post, 'language')
 		return
 	}
 
@@ -82,7 +89,7 @@ async function processPost(post: RawPost) {
 
 	if (!aiJob || reason) {
 		log.info({ reason, aiJobConfidence: aiJob?.aiJobConfidence }, 'Post descartado')
-		await markAsSeen(post, false)
+		await markAsSeen(post, aiJob?.isJob ? 'low-confidence' : 'not-a-job')
 		return
 	}
 
@@ -91,12 +98,17 @@ async function processPost(post: RawPost) {
 
 	if (irrelevant) {
 		log.info({ reason: irrelevant, title: job.title }, 'Vaga descartada')
-	} else {
-		log.info({ aiJobConfidence: job.aiJobConfidence, title: job.title }, 'Vaga estruturada')
-		await saveJob(job, { queue, logger }, { extractionModel: config.OLLAMA_MODEL, promptVersion: EXTRACTION_PROMPT_VERSION })
+		await markAsSeen(post, 'keywords')
+		return
 	}
 
-	await markAsSeen(post, true)
+	log.info({ aiJobConfidence: job.aiJobConfidence, title: job.title }, 'Vaga estruturada')
+	const saved = await saveJob(
+		job,
+		{ queue, logger },
+		{ extractionModel: config.OLLAMA_MODEL, promptVersion: EXTRACTION_PROMPT_VERSION },
+	)
+	await markAsSeen(post, saved ? 'saved' : 'missing-fields')
 }
 
 /**
@@ -135,8 +147,11 @@ async function requestLookups(post: RawPost, listings: JobListing[], settings: K
 
 type KeywordSettings = { requiredKeywords: string[]; excludedKeywords: string[] }
 
-function markAsSeen(post: RawPost, isJob: boolean) {
-	return SeenPost.updateOne({ postId: post.postId }, { $setOnInsert: { postId: post.postId, isJob } }, { upsert: true })
+/** Registra o destino do post (o histórico de coletas mostra os motivos de descarte); a IA o viu como vaga ou não. */
+function markAsSeen(post: RawPost, outcome: SeenPostOutcome) {
+	const isJob = outcome === 'saved' || outcome === 'keywords' || outcome === 'missing-fields'
+
+	return SeenPost.updateOne({ postId: post.postId }, { $setOnInsert: { postId: post.postId, isJob, outcome } }, { upsert: true })
 }
 
 /** Encerra o serviço com uma instrução clara se o modelo não estiver baixado no Ollama. */

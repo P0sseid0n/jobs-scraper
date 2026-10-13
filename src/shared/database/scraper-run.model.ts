@@ -10,8 +10,14 @@ export type ScraperRunStatus = (typeof SCRAPER_RUN_STATUSES)[number]
 export type ScraperRunTerm = {
 	term: string
 
-	/** Posts enviados para a IA a partir desse termo. */
+	/** Posts novos enviados para a IA a partir desse termo. */
 	sent: number
+
+	/** Posts da busca que já tinham passado pela IA numa coleta anterior (não são enviados de novo). */
+	skipped: number
+
+	/** Ids dos posts enviados, para contar as vagas que saíram da coleta; ausente nas coletas antigas. */
+	postIds: string[]
 
 	error: string | null
 }
@@ -36,7 +42,16 @@ const scraperRunSchema = new Schema<ScraperRunDocument>(
 		startedAt: { type: Date, required: true },
 		finishedAt: { type: Date, default: null },
 		terms: {
-			type: [{ term: String, sent: Number, error: { type: String, default: null }, _id: false }],
+			type: [
+				{
+					term: String,
+					sent: Number,
+					skipped: { type: Number, default: 0 },
+					postIds: { type: [String], default: [] },
+					error: { type: String, default: null },
+					_id: false,
+				},
+			],
 			default: [],
 		},
 		sent: { type: Number, default: 0 },
