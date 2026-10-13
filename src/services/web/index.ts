@@ -29,7 +29,6 @@ export async function startWeb({ queue }: ModuleContext) {
 	z.config(z.locales.pt())
 
 	const events = new EventHub()
-	onShutdown(() => events.close())
 
 	await queue.assertQueue(QUEUES.cvUpdater)
 	await queue.assertQueue(QUEUES.scraper)
@@ -81,6 +80,8 @@ export async function startWeb({ queue }: ModuleContext) {
 	})
 
 	onShutdown(() => server.stop())
+	// Registrado depois para rodar antes: o `server.stop()` espera as conexões abertas, e as do SSE só fecham por aqui
+	onShutdown(() => events.close())
 
 	logger.info({ url: server.url.href }, '🌐 Site no ar')
 }
