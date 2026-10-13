@@ -271,14 +271,14 @@ export function RunsView() {
 
 		return (
 			<div className="status-grid">
-				<section className={cx('status-card', running ? 'status-running' : 'status-idle')} aria-live="polite">
+				<section className="status-card inverted" aria-live="polite">
 					<div className="row-between wrap">
 						<div className="row gap-sm">
 							<Badge tone={running ? 'lime' : status.paused ? 'muted' : 'ok'}>
 								{running ? 'em andamento' : status.paused ? 'pausada' : 'ociosa'}
 							</Badge>
 							{running && (
-								<span className="mono xsmall on-dark-muted">
+								<span className="mono xsmall text-muted">
 									{TRIGGERS[running.trigger].toLowerCase()} · iniciada {formatDateTime(running.startedAt)}
 								</span>
 							)}
@@ -287,13 +287,13 @@ export function RunsView() {
 					</div>
 
 					{running ? (
-						<p className="on-dark-muted small">
+						<p className="text-muted small">
 							Buscando os posts de cada termo ativo e enviando para a IA. Uma coleta leva de 2 a 10 minutos; o resultado por
 							termo aparece no histórico quando ela terminar.
 						</p>
 					) : (
 						<div>
-							<p className="on-dark-muted small">próxima coleta automática</p>
+							<p className="text-muted small">próxima coleta automática</p>
 							<p className="mono status-next">
 								{status.paused
 									? 'coletas pausadas'
@@ -305,14 +305,14 @@ export function RunsView() {
 					)}
 
 					<div className="row-between wrap">
-						<span className="mono xsmall on-dark-muted">
+						<span className="mono xsmall text-muted">
 							{status.paused ? '“coletar agora” continua funcionando' : formatInterval(status.intervalMinutes)}
 						</span>
 						<Button
 							variant="lime"
 							size="lg"
 							// No card escuro, o lime apagado sumia: desativado, o botão fica na cor da borda
-							className="disabled:bg-inv-line disabled:text-inv-muted disabled:opacity-100"
+							className="disabled:bg-line disabled:text-muted disabled:opacity-100"
 							disabled={!!running || requesting}
 							onClick={runNow}
 						>

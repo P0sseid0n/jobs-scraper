@@ -7,14 +7,14 @@ import { OUTLINED } from './outlined'
 const button = tv({
 	base: 'inline-flex items-center justify-center gap-2 min-h-9.5 px-3.5 py-2 rounded-pill border border-transparent bg-transparent text-sm font-medium no-underline whitespace-nowrap transition disabled:opacity-60',
 	variants: {
-		/** `lime`: ação principal da tela. `ghost`: borda, sem preenchimento. `tray`: na bandeja escura de currículos. */
+		/** `lime`: ação principal da tela. `ghost`: borda, sem preenchimento (numa superfície `inverted`, já sai clara). */
 		variant: {
 			lime: 'bg-lime text-lime-ink font-semibold not-disabled:hover:bg-lime-hover',
 			ghost: ['border-line text-ink', OUTLINED],
-			tray: 'min-h-8 px-3 py-1.5 border-inv-line text-inv-ink text-xs',
 		},
 		size: {
 			xs: 'min-h-7.5 px-2.5 py-1 text-xs',
+			sm: 'min-h-8 px-3 py-1.5 text-xs',
 			md: '',
 			lg: 'min-h-11.5 px-4.5 py-3 text-sm',
 		},

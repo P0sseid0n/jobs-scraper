@@ -43,7 +43,7 @@ export function JobCard({
 	}
 
 	return (
-		<article className={cx('card job-card', selected && 'selected')} aria-current={selected ? 'true' : undefined}>
+		<article className={cx('card job-card', selected && 'inverted border-inv-bg')} aria-current={selected ? 'true' : undefined}>
 			<div className="job-card-head">
 				<a className="job-card-title" href={jobPath(job.postId)} onClick={open}>
 					<span className="job-title">

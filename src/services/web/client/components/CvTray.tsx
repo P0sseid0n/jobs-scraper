@@ -41,8 +41,13 @@ export function CvTray() {
 	const pending = items.filter(item => item.status === 'pending').length
 
 	return (
-		<aside className="cv-tray" aria-label="Currículos em andamento">
-			<button type="button" className="cv-tray-head mono" aria-expanded={!collapsed} onClick={() => setCollapsed(!collapsed)}>
+		<aside className="cv-tray inverted" aria-label="Currículos em andamento">
+			<button
+				type="button"
+				className="cv-tray-head mono text-muted"
+				aria-expanded={!collapsed}
+				onClick={() => setCollapsed(!collapsed)}
+			>
 				<span>currículos_</span>
 				<span>{pending ? `${pending} gerando` : `${items.length} ${items.length === 1 ? 'pronto' : 'prontos'}`}</span>
 			</button>
@@ -62,22 +67,22 @@ export function CvTray() {
 								>
 									{item.jobTitle ?? 'Vaga'}
 								</a>
-								<div className="mono xsmall tray-muted" title={item.error ?? undefined}>
+								<div className="mono xsmall truncate text-muted" title={item.error ?? undefined}>
 									{item.status === 'failed' && item.error ? `falhou: ${item.error}` : STATUS_TEXT[item.status]}
 								</div>
 							</div>
 							{item.status === 'ready' && (
-								<Button variant="tray" href={cvPdfUrl(item.requestId, true)} download={item.fileName ?? undefined}>
+								<Button variant="ghost" size="sm" href={cvPdfUrl(item.requestId, true)} download={item.fileName ?? undefined}>
 									baixar
 								</Button>
 							)}
 							{item.status === 'failed' && (
-								<Button variant="tray" onClick={() => retry(item)}>
+								<Button variant="ghost" size="sm" onClick={() => retry(item)}>
 									tentar de novo
 								</Button>
 							)}
 							{item.status !== 'pending' && (
-								<IconButton label="Dispensar" size="sm" className="text-inv-muted" onClick={() => dismissCv(item.requestId)}>
+								<IconButton label="Dispensar" size="sm" className="text-muted" onClick={() => dismissCv(item.requestId)}>
 									<Icon name="close" size={14} />
 								</IconButton>
 							)}

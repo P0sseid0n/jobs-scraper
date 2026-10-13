@@ -47,6 +47,7 @@
 	--color-inv-ink: #f5f6ef;
 	--color-inv-muted: #b4b9ac;
 	--color-inv-line: rgb(255 255 255 / 0.16);
+	--color-inv-surface-2: rgb(255 255 255 / 0.1);
 	--color-warn: #7a4300;
 	--color-warn-bg: #fff1dc;
 	--color-danger: #a3261b;
@@ -79,35 +80,54 @@
 	--color-line-strong: color-mix(in srgb, var(--color-ink) 30%, var(--color-line));
 }
 
+/*
+ * Superfície escura nos dois temas (card de vaga selecionado, card da coleta, bandeja de currículos). Redefine os
+ * tokens, então `bg-surface-2`, `text-muted`, `border-line` etc. dentro dela já saem na versão escura.
+ */
+@utility inverted {
+	background-color: var(--color-inv-bg);
+	color: var(--color-inv-ink);
+	--color-bg: var(--color-inv-bg);
+	--color-surface: var(--color-inv-bg);
+	--color-surface-2: var(--color-inv-surface-2);
+	--color-ink: var(--color-inv-ink);
+	--color-muted: var(--color-inv-muted);
+	--color-line: var(--color-inv-line);
+	--color-ok-bg: var(--color-ok-bg-strong);
+}
+
 @layer base {
 	:root {
 		/* Sombra dos elementos flutuantes; fora do @theme para trocar com o tema (use `shadow-(--elevation)`) */
 		--elevation: 0 18px 40px rgb(20 22 19 / 0.18);
 
 		color-scheme: light;
-	}
 
-	:root[data-theme='dark'] {
-		--color-bg: #0e100c;
-		--color-surface: #161913;
-		--color-surface-2: #1f231b;
-		--color-ink: #eceee4;
-		--color-muted: #a0a698;
-		--color-line: #2b3026;
-		--color-lime-soft: #26300f;
-		--color-lime-text: #c8f542;
-		--color-inv-bg: #232a18;
-		--color-inv-ink: #f2f5ea;
-		--color-inv-muted: #b9c0ae;
-		--color-warn: #ffc37a;
-		--color-warn-bg: #3a2a12;
-		--color-danger: #ff9c90;
-		--color-danger-bg: #3d1915;
-		--color-ok: #6ee39b;
-		--color-focus: #8fb6ff;
-		--elevation: 0 18px 40px rgb(0 0 0 / 0.5);
+		/* Tema escuro: os mesmos tokens com outros valores, na mesma variante do `dark:` */
+		@variant dark {
+			& {
+				--color-bg: #0e100c;
+				--color-surface: #161913;
+				--color-surface-2: #1f231b;
+				--color-ink: #eceee4;
+				--color-muted: #a0a698;
+				--color-line: #2b3026;
+				--color-lime-soft: #26300f;
+				--color-lime-text: #c8f542;
+				--color-inv-bg: #232a18;
+				--color-inv-ink: #f2f5ea;
+				--color-inv-muted: #b9c0ae;
+				--color-warn: #ffc37a;
+				--color-warn-bg: #3a2a12;
+				--color-danger: #ff9c90;
+				--color-danger-bg: #3d1915;
+				--color-ok: #6ee39b;
+				--color-focus: #8fb6ff;
+				--elevation: 0 18px 40px rgb(0 0 0 / 0.5);
 
-		color-scheme: dark;
+				color-scheme: dark;
+			}
+		}
 	}
 
 	fieldset {

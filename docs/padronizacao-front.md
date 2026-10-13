@@ -28,7 +28,7 @@ Regras para todas as fases:
 | 1 | 1.613 (com as 9 linhas pendentes de `.run-outcomes` e `.chip-ok`) |
 | 2 | 1.364 |
 | 3 | 1.126 |
-| 4 | |
+| 4 | 1.097 |
 | 5 | |
 | 6 | |
 | 7 | 0 (arquivo apagado) |
@@ -206,10 +206,18 @@ O card de vaga selecionado (`.job-card.selected`, 1053) redefine os tokens (`--m
 - `.status-card .btn:disabled` (1397)
 - `.job-card.selected .btn-ghost` (1062)
 
-- [ ] Criar no `tailwind.css` o `@utility inverted`, que redefine `--bg`, `--surface`, `--surface-2`, `--ink`, `--muted` e `--line` para os valores `--inv-*` (assim `bg-surface`, `text-muted` etc. se ajustam dentro dele)
-- [ ] Aplicar `inverted` no card selecionado, no card de status da coleta e na bandeja de currículos
-- [ ] Trocar `.on-dark-muted` e `.tray-muted` por `.muted`
-- [ ] Remover a variante `tray` do `Button` (vira `ghost` com `size="sm"`) e as regras listadas acima
+- [x] Criar no `tailwind.css` o `@utility inverted`, que redefine `--bg`, `--surface`, `--surface-2`, `--ink`, `--muted` e `--line` para os valores `--inv-*` (assim `bg-surface`, `text-muted` etc. se ajustam dentro dele)
+- [x] Aplicar `inverted` no card selecionado, no card de status da coleta e na bandeja de currículos
+- [x] Trocar `.on-dark-muted` e `.tray-muted` por `.muted`
+- [x] Remover a variante `tray` do `Button` (vira `ghost` com `size="sm"`) e as regras listadas acima
+
+### Notas da fase 4
+
+- **`inverted`:** além dos tokens da lista, também define o fundo e a cor do texto, e troca `--color-ok-bg` pela versão mais forte (o badge "ociosa" do card da coleta). O fundo das superfícies internas (`--color-surface-2`) virou o token `--color-inv-surface-2`.
+- **No lugar de `.muted`:** os textos discretos usam `text-muted` do Tailwind, que dentro do `inverted` já sai claro. O botão desativado do card da coleta usa `disabled:bg-line disabled:text-muted`.
+- **Bandeja de currículos:** os botões "baixar" e "tentar de novo" passaram a ter o hover dos botões com borda (antes não tinham hover).
+- **Tema escuro:** continua por tokens (os mesmos `--color-*` com outros valores), como faz o shadcn/ui, mas declarado com `@variant dark` dentro do `:root` (`tailwind.css`): os tokens e as classes `dark:` usam a mesma definição de tema escuro. O `dark:` nas classes fica para quando o elemento muda de comportamento entre os temas (ex.: o `Switch`), e não só de cor.
+- **Sem mudança visual:** conferido nas quatro telas e nos dois temas, com a bandeja aberta nos três estados (pronto, falhou e gerando).
 
 ---
 
