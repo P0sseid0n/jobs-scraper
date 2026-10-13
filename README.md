@@ -24,8 +24,8 @@ Os serviços conversam por filas do RabbitMQ; cada fila tem o nome do serviço q
 flowchart LR
 	scraper["scraper<br/><small>Puppeteer</small>"] -- "post-processing" --> processing["post-processing<br/><small>Ollama</small>"]
 	processing -. "scraper-lookup<br/><small>posts com várias vagas</small>" .-> scraper
-	processing -- "storage" --> storage["storage<br/><small>MongoDB</small>"]
-	storage --> event{{"evento: job-published"}}
+	processing -- "salva a vaga" --> db[("MongoDB")]
+	processing --> event{{"evento: job-published"}}
 	event -- "discord" --> bot["discord-bot"]
 	event -- "web" --> web["web<br/><small>site</small>"]
 	bot -- "cv-updater" --> cv["cv-updater<br/><small>LaTeX + Ollama</small>"]
@@ -43,8 +43,7 @@ Cada serviço tem um README com os detalhes.
 | Serviço | O que faz |
 | --- | --- |
 | [🕷️ scraper](src/services/scraper/README.md) | busca os posts no LinkedIn pelos termos configurados, cuida do login e abre os links dos posts com várias vagas |
-| [🧠 post-processing](src/services/post-processing/README.md) | ignora posts já vistos, filtra por idioma e palavras-chave e extrai a vaga com o Ollama |
-| [🗄️ storage](src/services/storage/README.md) | salva a vaga no MongoDB, sem duplicar, e anuncia no evento `job-published` |
+| [🧠 post-processing](src/services/post-processing/README.md) | ignora posts já vistos, filtra por idioma e palavras-chave, extrai a vaga com o Ollama, salva no MongoDB sem duplicar e anuncia no evento `job-published` |
 | [🤖 discord-bot](src/services/discord-bot/README.md) | publica um card por vaga (canal de texto ou fórum) e entrega o currículo |
 | [🌐 web](src/services/web/README.md) | o site em http://localhost:3000: vagas com filtros, currículos, coletas e configurações |
 | [📄 cv-updater](src/services/cv-updater/README.md) | gera o currículo em PDF ajustado à vaga, a partir do seu `.tex`, e a mensagem de candidatura |
@@ -101,7 +100,7 @@ Painéis, todos só em `127.0.0.1`:
 | --------------------------------------------- | ------------------------------------------------------------------ |
 | `bun dev`                                     | Todos os serviços com `--watch`                                    |
 | `bun dev:scraped`                             | Todos menos o scraper                                              |
-| `bun dev:<serviço>` / `bun start:<serviço>`   | Um serviço (`scraper`, `processing`, `storage`, `bot`, `cv`, `web`) |
+| `bun dev:<serviço>` / `bun start:<serviço>`   | Um serviço (`scraper`, `processing`, `bot`, `cv`, `web`)            |
 | `bun scraper:run`                             | Pede uma coleta imediata                                           |
 | `bun scraper:verify <código>`                 | Envia o código de verificação do login                             |
 | `bun db:migrate-jobs`                         | Atualiza as vagas salvas para o formato atual                      |

@@ -9,7 +9,7 @@ RUN bun install --frozen-lockfile --production
 COPY tsconfig.json ./
 COPY src ./src
 
-# Serviços que não precisam de navegador (post-processing, storage, discord-bot)
+# Serviços que não precisam de navegador (post-processing, discord-bot)
 FROM base AS app
 USER bun
 
