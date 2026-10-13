@@ -1,8 +1,21 @@
 import mongoose, { Schema } from 'mongoose'
 
 import { CONTRACT_TYPES, WORK_MODES, type ProcessedJob } from '../contracts/job'
+import type { JobFields } from '../contracts/job-correction'
 
-type JobDocument = ProcessedJob & { notifiedAt: Date | null }
+/** Modelo e versão do prompt que extraíram a vaga, para saber de onde veio cada erro corrigido. */
+export type JobExtractionSource = { extractionModel: string | null; promptVersion: string | null }
+
+/** O que muda numa vaga corrigida pelo site (ver `PATCH /api/jobs/:postId`). */
+export type JobCorrectionState = {
+	/** A extração original da IA, guardada na primeira correção; `null` numa vaga nunca corrigida. */
+	aiExtraction: JobFields | null
+	correctedAt: Date | null
+	/** Marcada pelo site como "não é vaga": sai da lista, mas o documento fica. */
+	notAJob: boolean
+}
+
+type JobDocument = ProcessedJob & JobExtractionSource & JobCorrectionState & { notifiedAt: Date | null }
 
 const jobSchema = new Schema<JobDocument>(
 	{
@@ -24,6 +37,12 @@ const jobSchema = new Schema<JobDocument>(
 		language: { type: String, default: null },
 		sourcePostId: { type: String, default: null },
 		postLink: { type: String, default: null },
+		// Vagas salvas antes destes campos não os têm: ausente é o mesmo que `null` / `false`
+		extractionModel: { type: String, default: null },
+		promptVersion: { type: String, default: null },
+		aiExtraction: { type: Schema.Types.Mixed, default: null },
+		correctedAt: { type: Date, default: null },
+		notAJob: { type: Boolean, default: false },
 		// Quando o evento `job-published` foi publicado (com pelo menos uma fila ligada); não confirma a entrega
 		notifiedAt: { type: Date, default: null },
 	},

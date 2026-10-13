@@ -1,3 +1,5 @@
 node_modules
 bun.lock
 *.md
+# Gerado por `bun eval:export-fixtures`
+src/services/post-processing/fixtures

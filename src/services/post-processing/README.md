@@ -27,6 +27,31 @@ Confiança, idiomas e palavras-chave ficam nas [configurações](../../shared/RE
 | `job-relevance.ts` | filtro de palavras-chave |
 | `job-store.ts` | salva a vaga e publica o evento `job-published` |
 | `job-validation.ts` | campos obrigatórios da vaga |
+| `extraction-eval.ts`, `eval-extraction.ts` | `bun eval:extraction`: acerto por campo nas vagas corrigidas pelo site |
+| `feedback-fixtures.ts`, `export-feedback-fixtures.ts` | `bun eval:export-fixtures`: correções sem dados pessoais em `fixtures/extraction-cases.json` |
 | `migrate-job-fields.ts`, `legacy-job-links.ts` | `bun db:migrate-jobs`: atualiza as vagas salvas para o formato atual dos campos (pode rodar mais de uma vez) |
+
+## Avaliar a extração
+
+Cada vaga salva guarda o modelo (`extractionModel`) e a versão do prompt (`promptVersion`, um hash do prompt e do formato pedidos ao modelo, que muda sozinho a cada edição). Quando uma vaga é corrigida pelo site, a correção vai para a coleção `extraction_feedback` com o texto do post, a saída da IA, os valores certos, o modelo e a versão do prompt.
+
+`bun eval:extraction` roda o prompt e o modelo atuais sobre esses casos (a correção mais recente de cada post), com as mesmas regras do post-processing, e mostra o acerto por campo ao lado do acerto da extração original. Exemplo de saída:
+
+```
+campo               original       atual  casos
+é vaga?             83% (10)   92% (11)     12
+title               100% (9)   100% (9)      9
+company              33% (3)    78% (7)      9
+...
+```
+
+- `--model gemma3:12b`: compara outro modelo (precisa estar baixado no Ollama);
+- `--fixtures`: usa os casos versionados em `fixtures/extraction-cases.json`, sem MongoDB;
+- `--limit 50`: só os casos mais recentes;
+- `--verbose`: mostra o que errou em cada caso.
+
+Para comparar duas versões do prompt, rode antes e depois da mudança. Precisa do Ollama e fica fora do CI.
+
+`bun eval:export-fixtures` exporta as correções para `fixtures/extraction-cases.json` sem dados pessoais: e-mails viram `contatoN@exemplo.com` (no texto e nos campos), o nome de quem postou vira "Autor do post", e perfis do LinkedIn, telefones, links e ids do post saem. Nomes citados no meio do texto não são detectados: revise o arquivo antes do commit. Um teste confere que as fixtures versionadas não têm e-mails, perfis nem telefones.
 
 A fila `storage`, do antigo serviço que salvava as vagas, ainda é consumida aqui para não perder as mensagens que estavam nela. O consumo sai na próxima versão.

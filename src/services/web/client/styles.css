@@ -609,6 +609,17 @@ select.field {
 	white-space: nowrap;
 }
 
+.corrected-badge {
+	display: inline-flex;
+	align-items: center;
+	padding: 3px 9px;
+	border: 1px dashed var(--lime-text);
+	border-radius: 999px;
+	color: var(--lime-text);
+	font-size: 11.5px;
+	white-space: nowrap;
+}
+
 .job-badges {
 	display: flex;
 	flex-wrap: wrap;
@@ -1061,6 +1072,12 @@ main {
 
 .job-card.selected .btn-ghost {
 	color: var(--inv-ink);
+}
+
+/* no card escuro, o verde-escuro do selo some: usa o lima da marca */
+.job-card.selected .corrected-badge {
+	border-color: var(--lime);
+	color: var(--lime);
 }
 
 .job-card-head {
@@ -1679,6 +1696,10 @@ main {
 
 .dialog-or {
 	text-align: center;
+}
+
+.dialog .field {
+	width: 100%;
 }
 
 .dialog-actions {

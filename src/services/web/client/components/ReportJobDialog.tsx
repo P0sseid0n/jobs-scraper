@@ -1,7 +1,14 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
+
+import type { CorrectableField } from '@shared/contracts'
 
 import type { WebJob } from '../../api-types'
+import { api, RequestError } from '../api'
+import { cx } from '../lib/cx'
+import { CONTRACT_TYPES, WORK_MODES } from '../lib/format'
+import { correctionBody, draftFromJob, type CorrectionDraft } from '../lib/job-correction'
 import { notify } from '../stores/toast'
+import { KeywordInput } from './forms'
 import { Icon } from './Icon'
 import { Button } from './ui/Button'
 import { IconButton } from './ui/IconButton'
@@ -17,7 +24,7 @@ export const REPORTABLE_FIELDS = {
 	necessaryKnowledge: 'tecnologias',
 	recruiterEmail: 'e-mail',
 	applyLink: 'link de candidatura',
-} as const
+} as const satisfies Record<CorrectableField, string>
 
 export type ReportableField = keyof typeof REPORTABLE_FIELDS
 
@@ -31,19 +38,184 @@ export function toggleReportField(report: JobReport | null, field: ReportableFie
 	return next.length ? { kind: 'fields', fields: next } : null
 }
 
-/** Modal para dizer o que saiu errado na vaga (`<dialog>` nativo: foco preso, Esc fecha). */
-export function ReportJobDialog({ job, onClose }: { job: WebJob; onClose: () => void }) {
+const CONTRACT_OPTIONS = (Object.keys(CONTRACT_TYPES) as (keyof typeof CONTRACT_TYPES)[]).filter(type => type !== 'none')
+const WORK_MODE_OPTIONS = (Object.keys(WORK_MODES) as (keyof typeof WORK_MODES)[]).filter(mode => mode !== 'none')
+const MAX_SKILLS = 30
+
+/**
+ * Modal para dizer o que saiu errado na vaga (`<dialog>` nativo: foco preso, Esc fecha). Primeiro escolhe os campos
+ * errados (ou "não é vaga"); depois corrige os campos escolhidos. A correção vai para a vaga e para o feedback que
+ * avalia o prompt da IA.
+ */
+export function ReportJobDialog({
+	job,
+	onClose,
+	onCorrected,
+	onRemoved,
+}: {
+	job: WebJob
+	onClose: () => void
+	/** A vaga com os campos corrigidos, como o servidor salvou. */
+	onCorrected: (job: WebJob) => void
+	/** A vaga foi marcada como "não é vaga" e saiu da lista. */
+	onRemoved: () => void
+}) {
 	const ref = useRef<HTMLDialogElement>(null)
 	const [report, setReport] = useState<JobReport | null>(null)
+	const [step, setStep] = useState<'choose' | 'edit'>('choose')
+	const [draft, setDraft] = useState<CorrectionDraft>(() => draftFromJob(job))
+	const [errors, setErrors] = useState<Record<string, string>>({})
+	const [saving, setSaving] = useState(false)
 
 	useEffect(() => {
 		ref.current?.showModal()
 	}, [])
 
-	function submit() {
-		// O envio (PATCH /api/jobs/:postId) entra com a correção dos campos; por ora a modal só reúne as opções
-		notify('A correção pelo site ainda não está disponível')
-		ref.current?.close()
+	const close = () => ref.current?.close()
+
+	async function save(event?: FormEvent) {
+		event?.preventDefault()
+		if (!report || saving) return
+
+		setSaving(true)
+		setErrors({})
+		try {
+			if (report.kind === 'not-a-job') {
+				await api.correctJob(job.postId, { notAJob: true })
+				notify('Vaga tirada da lista. Obrigado: a correção ajuda a avaliar a IA.')
+				onRemoved()
+			} else {
+				onCorrected(await api.correctJob(job.postId, correctionBody(draft, report.fields)))
+				notify('Vaga corrigida')
+			}
+			close()
+		} catch (error) {
+			const fields = error instanceof RequestError ? error.fields : {}
+			setErrors(fields)
+			// Erros de campo já aparecem no formulário
+			if (Object.keys(fields).length === 0) notify(`Não consegui salvar: ${(error as Error).message}`, 'error')
+		} finally {
+			setSaving(false)
+		}
+	}
+
+	function next() {
+		if (report?.kind === 'fields') setStep('edit')
+		else void save()
+	}
+
+	const edit = (patch: Partial<CorrectionDraft>) => setDraft(current => ({ ...current, ...patch }))
+
+	/** Um campo do formulário com o rótulo e o erro do servidor; `group` (opções em pills) vira um `<fieldset>`. */
+	function field(
+		name: ReportableField,
+		input: (props: { id: string; invalid: boolean; describedBy?: string }) => ReactNode,
+		group = false,
+	) {
+		const id = `correct-${name}`
+		const error = errors[name] ?? Object.entries(errors).find(([path]) => path.startsWith(`${name}.`))?.[1]
+		const content = (
+			<>
+				{input({ id, invalid: !!error, describedBy: error ? `${id}-error` : undefined })}
+				{error && (
+					<p className="field-error" id={`${id}-error`} role="alert">
+						{error}
+					</p>
+				)}
+			</>
+		)
+
+		return group ? (
+			<fieldset className="stack-xs" key={name}>
+				<legend className="field-label">{REPORTABLE_FIELDS[name]}</legend>
+				{content}
+			</fieldset>
+		) : (
+			<div className="stack-xs" key={name}>
+				<label className="field-label" htmlFor={id}>
+					{REPORTABLE_FIELDS[name]}
+				</label>
+				{content}
+			</div>
+		)
+	}
+
+	const textInput = (name: 'title' | 'company' | 'location' | 'recruiterEmail' | 'applyLink', type = 'text') =>
+		field(name, ({ id, invalid, describedBy }) => (
+			<input
+				id={id}
+				type={type}
+				className={cx('field', invalid && 'invalid')}
+				value={draft[name]}
+				placeholder={name === 'title' ? undefined : 'vazio = não informado'}
+				maxLength={name === 'applyLink' ? 2000 : 200}
+				aria-invalid={invalid}
+				aria-describedby={describedBy}
+				onChange={event => edit({ [name]: event.target.value })}
+			/>
+		))
+
+	const inputs: Record<ReportableField, () => ReactNode> = {
+		title: () => textInput('title'),
+		company: () => textInput('company'),
+		location: () => textInput('location'),
+		workMode: () =>
+			field('workMode', ({ id, invalid, describedBy }) => (
+				<select
+					id={id}
+					className={cx('field', invalid && 'invalid')}
+					value={draft.workMode ?? ''}
+					aria-invalid={invalid}
+					aria-describedby={describedBy}
+					onChange={event => edit({ workMode: (event.target.value || null) as CorrectionDraft['workMode'] })}
+				>
+					<option value="">não informada</option>
+					{WORK_MODE_OPTIONS.map(mode => (
+						<option key={mode} value={mode}>
+							{WORK_MODES[mode].label}
+						</option>
+					))}
+				</select>
+			)),
+		contractTypes: () =>
+			field(
+				'contractTypes',
+				({ id, describedBy }) => (
+					<div className="pills" id={id} aria-describedby={describedBy}>
+						{CONTRACT_OPTIONS.map(type => (
+							<Pill
+								key={type}
+								pressed={draft.contractTypes.includes(type)}
+								onClick={() =>
+									edit({
+										contractTypes: draft.contractTypes.includes(type)
+											? draft.contractTypes.filter(item => item !== type)
+											: [...draft.contractTypes, type],
+									})
+								}
+							>
+								{CONTRACT_TYPES[type]}
+							</Pill>
+						))}
+					</div>
+				),
+				true,
+			),
+		necessaryKnowledge: () =>
+			field('necessaryKnowledge', ({ id, invalid, describedBy }) => (
+				<KeywordInput
+					id={id}
+					value={draft.necessaryKnowledge}
+					max={MAX_SKILLS}
+					maxLength={60}
+					keepCase
+					invalid={invalid}
+					describedBy={describedBy}
+					onChange={necessaryKnowledge => edit({ necessaryKnowledge })}
+				/>
+			)),
+		recruiterEmail: () => textInput('recruiterEmail', 'email'),
+		applyLink: () => textInput('applyLink', 'url'),
 	}
 
 	return (
@@ -59,48 +231,71 @@ export function ReportJobDialog({ job, onClose }: { job: WebJob; onClose: () => 
 			<div className="dialog-body stack-sm">
 				<div className="row-between">
 					<h2 className="dialog-title" id="report-title">
-						O que saiu errado?
+						{step === 'edit' ? 'Corrigir a vaga' : 'O que saiu errado?'}
 					</h2>
-					<IconButton label="Fechar" onClick={() => ref.current?.close()}>
+					<IconButton label="Fechar" onClick={close}>
 						<Icon name="close" />
 					</IconButton>
 				</div>
 				<p className="muted small ellipsis">{job.title}</p>
 
-				<fieldset className="filter-group">
-					<legend className="label">dados errados_</legend>
-					<div className="pills">
-						{(Object.keys(REPORTABLE_FIELDS) as ReportableField[]).map(field => (
-							<Pill
-								key={field}
-								pressed={report?.kind === 'fields' && report.fields.includes(field)}
-								onClick={() => setReport(toggleReportField(report, field))}
-							>
-								{REPORTABLE_FIELDS[field]}
-							</Pill>
-						))}
-					</div>
-				</fieldset>
+				{step === 'edit' && report?.kind === 'fields' ? (
+					<form className="stack-sm" onSubmit={save} noValidate>
+						{(Object.keys(REPORTABLE_FIELDS) as ReportableField[])
+							.filter(name => report.fields.includes(name))
+							.map(name => inputs[name]())}
+						{errors._ && (
+							<p className="field-error" role="alert">
+								{errors._}
+							</p>
+						)}
+						<div className="dialog-actions">
+							<Button variant="ghost" onClick={() => setStep('choose')}>
+								voltar
+							</Button>
+							<Button variant="lime" type="submit" disabled={saving}>
+								{saving ? 'salvando…' : 'salvar correção'}
+							</Button>
+						</div>
+					</form>
+				) : (
+					<>
+						<fieldset className="filter-group">
+							<legend className="label">dados errados_</legend>
+							<div className="pills">
+								{(Object.keys(REPORTABLE_FIELDS) as ReportableField[]).map(name => (
+									<Pill
+										key={name}
+										pressed={report?.kind === 'fields' && report.fields.includes(name)}
+										onClick={() => setReport(toggleReportField(report, name))}
+									>
+										{REPORTABLE_FIELDS[name]}
+									</Pill>
+								))}
+							</div>
+						</fieldset>
 
-				<div className="dialog-or label">ou</div>
+						<div className="dialog-or label">ou</div>
 
-				<Pill
-					shape="row"
-					pressed={report?.kind === 'not-a-job'}
-					onClick={() => setReport(report?.kind === 'not-a-job' ? null : { kind: 'not-a-job' })}
-				>
-					<span className="grow">não é vaga</span>
-					<span className="xsmall">sai da lista, sem apagar</span>
-				</Pill>
+						<Pill
+							shape="row"
+							pressed={report?.kind === 'not-a-job'}
+							onClick={() => setReport(report?.kind === 'not-a-job' ? null : { kind: 'not-a-job' })}
+						>
+							<span className="grow">não é vaga</span>
+							<span className="xsmall">sai da lista, sem apagar</span>
+						</Pill>
 
-				<div className="dialog-actions">
-					<Button variant="ghost" onClick={() => ref.current?.close()}>
-						cancelar
-					</Button>
-					<Button variant="lime" disabled={!report} onClick={submit}>
-						continuar
-					</Button>
-				</div>
+						<div className="dialog-actions">
+							<Button variant="ghost" onClick={close}>
+								cancelar
+							</Button>
+							<Button variant="lime" disabled={!report || saving} onClick={next}>
+								{report?.kind === 'not-a-job' ? (saving ? 'salvando…' : 'tirar da lista') : 'continuar'}
+							</Button>
+						</div>
+					</>
+				)}
 			</div>
 		</dialog>
 	)

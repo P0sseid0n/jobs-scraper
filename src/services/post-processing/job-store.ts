@@ -1,5 +1,5 @@
 import { ProcessedJobSchema, type ProcessedJob } from '@shared/contracts'
-import { Job } from '@shared/database'
+import { Job, type JobExtractionSource } from '@shared/database'
 import type { Logger } from '@shared/logging'
 import { EXCHANGES, type QueueClient } from '@shared/messaging'
 
@@ -7,8 +7,11 @@ import { missingRequiredFields } from './job-validation'
 
 type Deps = { queue: QueueClient; logger: Logger }
 
-/** Salva a vaga (uma única vez) e publica o evento `job-published`, que cada canal (ex.: o discord-bot) recebe. */
-export async function saveJob(data: ProcessedJob, { queue, logger }: Deps) {
+/**
+ * Salva a vaga (uma única vez) e publica o evento `job-published`, que cada canal (ex.: o discord-bot) recebe.
+ * `source` diz qual modelo e prompt extraíram a vaga (usado na avaliação das correções feitas pelo site).
+ */
+export async function saveJob(data: ProcessedJob, { queue, logger }: Deps, source?: JobExtractionSource) {
 	const log = logger.child({ postId: data.postId })
 
 	const missing = missingRequiredFields(data)
@@ -18,7 +21,11 @@ export async function saveJob(data: ProcessedJob, { queue, logger }: Deps) {
 	}
 
 	// Upsert idempotente: a mesma vaga nunca é salva duas vezes, mesmo se a mensagem for reprocessada
-	const job = await Job.findOneAndUpdate({ postId: data.postId }, { $setOnInsert: data }, { upsert: true, returnDocument: 'after' })
+	const job = await Job.findOneAndUpdate(
+		{ postId: data.postId },
+		{ $setOnInsert: { ...data, ...source } },
+		{ upsert: true, returnDocument: 'after' },
+	)
 
 	if (job.notifiedAt) {
 		log.info('Vaga já salva e anunciada anteriormente, ignorando')

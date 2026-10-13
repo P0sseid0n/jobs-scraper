@@ -20,6 +20,8 @@
 		"scraper:run": "bun src/services/scraper/request-run.ts",
 		"scraper:verify": "bun src/services/scraper/submit-verification-code.ts",
 		"db:migrate-jobs": "bun src/services/post-processing/migrate-job-fields.ts",
+		"eval:extraction": "bun src/services/post-processing/eval-extraction.ts",
+		"eval:export-fixtures": "bun src/services/post-processing/export-feedback-fixtures.ts",
 		"typecheck": "tsc --noEmit",
 		"lint": "biome lint .",
 		"lint:fix": "biome lint --write .",
