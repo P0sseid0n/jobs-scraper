@@ -6,6 +6,7 @@ import { api } from '../api'
 import { Icon } from '../components/Icon'
 import { JobDetail } from '../components/JobDetail'
 import { Button } from '../components/ui/Button'
+import { Skeleton } from '../components/ui/Skeleton'
 import { goBack, onLinkClick } from '../router'
 import { jobsStore } from '../stores/jobs'
 import { markSeen } from '../stores/seen'
@@ -54,9 +55,10 @@ export function JobPage({ routeId }: { routeId: string }) {
 
 	return (
 		<div className="page page-narrow">
-			<a
-				className="back-link"
+			<Button
+				variant="ghost"
 				href="/"
+				className="self-start"
 				onClick={event => {
 					event.preventDefault()
 					goBack('/')
@@ -64,7 +66,7 @@ export function JobPage({ routeId }: { routeId: string }) {
 			>
 				<Icon name="back" />
 				vagas
-			</a>
+			</Button>
 			{error && (
 				<div className="card empty" role="alert">
 					<p className="strong">{error}</p>
@@ -73,7 +75,7 @@ export function JobPage({ routeId }: { routeId: string }) {
 					</Button>
 				</div>
 			)}
-			{!error && !job && <div className="card skeleton detail-skeleton" aria-busy="true" />}
+			{!error && !job && <Skeleton className="card min-h-60" aria-busy="true" />}
 			{job && (
 				<article className="card detail-page">
 					<JobDetail job={job} />

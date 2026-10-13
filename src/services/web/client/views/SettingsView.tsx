@@ -8,6 +8,8 @@ import { KeywordInput, Switch } from '../components/forms'
 import { Icon } from '../components/Icon'
 import { Button } from '../components/ui/Button'
 import { IconButton } from '../components/ui/IconButton'
+import { OUTLINED } from '../components/ui/outlined'
+import { Skeleton } from '../components/ui/Skeleton'
 import { cx } from '../lib/cx'
 import { formatInterval, LANGUAGE_NAMES, languageLabel } from '../lib/format'
 import { LIMITS, validateDraft, type SettingsDraft } from '../lib/settings-form'
@@ -339,7 +341,7 @@ export function SettingsView() {
 					<legend className="field-label">idiomas aceitos</legend>
 					<div className="pills">
 						{languages.map(code => (
-							<label key={code} className="check-pill outlined">
+							<label key={code} className={cx('check-pill', OUTLINED)}>
 								<input
 									type="checkbox"
 									className="checkbox"
@@ -446,7 +448,7 @@ export function SettingsView() {
 					</Button>
 				</div>
 			)}
-			{!loadError && !draft && <div className="card skeleton settings-skeleton" aria-busy="true" />}
+			{!loadError && !draft && <Skeleton className="card min-h-60" aria-busy="true" />}
 
 			{loaded && (
 				<div className={cx('card pause-card', paused && 'paused')}>

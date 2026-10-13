@@ -7,6 +7,7 @@ import { JobCard, JobCardSkeleton } from '../components/JobCard'
 import { JobDetail } from '../components/JobDetail'
 import { Button } from '../components/ui/Button'
 import { Pill } from '../components/ui/Pill'
+import { Skeleton } from '../components/ui/Skeleton'
 import { cx } from '../lib/cx'
 import { CONTRACT_TYPES, LANGUAGE_NAMES, WORK_MODES } from '../lib/format'
 import { hasActiveFilters } from '../lib/job-filters'
@@ -66,11 +67,7 @@ function Filters({ open }: { open: boolean }) {
 				<legend className="label">período_</legend>
 				<div className="pills">
 					{PERIODS.map(([value, label]) => (
-						<Pill
-							key={value}
-							pressed={filters.since === value}
-							onClick={() => setFilters({ since: value })}
-						>
+						<Pill key={value} pressed={filters.since === value} onClick={() => setFilters({ since: value })}>
 							{label}
 						</Pill>
 					))}
@@ -115,11 +112,7 @@ function Filters({ open }: { open: boolean }) {
 					<legend className="label">tecnologias_</legend>
 					<div className="pills">
 						{selectedSkills.map(skill => (
-							<Pill
-								key={skill}
-								pressed
-								onClick={() => setFilters({ skills: toggled(filters.skills, skill) })}
-							>
+							<Pill key={skill} pressed onClick={() => setFilters({ skills: toggled(filters.skills, skill) })}>
 								{skill}
 							</Pill>
 						))}
@@ -313,7 +306,7 @@ export function JobsView({ selectedRouteId }: { selectedRouteId: string | null }
 			<div className="jobs-layout">
 				<Button
 					variant="ghost"
-					className="filters-toggle"
+					className="hidden self-start max-md:inline-flex"
 					aria-expanded={filtersOpen}
 					aria-controls="filters"
 					onClick={() => setFiltersOpen(!filtersOpen)}
@@ -351,7 +344,7 @@ export function JobsView({ selectedRouteId }: { selectedRouteId: string | null }
 								</Button>
 							</div>
 						) : (
-							<div className="skeleton detail-skeleton" />
+							<Skeleton className="min-h-60" />
 						)}
 					</aside>
 				)}

@@ -2,6 +2,7 @@ import { useState, type KeyboardEvent } from 'react'
 
 import { cx } from '../lib/cx'
 import { Icon } from './Icon'
+import { IconButton } from './ui/IconButton'
 
 /** Interruptor liga/desliga (checkbox nativo, acessível pelo teclado). */
 export function Switch({
@@ -80,9 +81,14 @@ export function KeywordInput({
 			{value.map(word => (
 				<span className="kchip mono" key={word}>
 					{word}
-					<button type="button" aria-label={`Remover ${word}`} onClick={() => onChange(value.filter(item => item !== word))}>
+					<IconButton
+						label={`Remover ${word}`}
+						size="xs"
+						className="text-muted hover:text-ink"
+						onClick={() => onChange(value.filter(item => item !== word))}
+					>
 						<Icon name="close" size={12} />
-					</button>
+					</IconButton>
 				</span>
 			))}
 			<input

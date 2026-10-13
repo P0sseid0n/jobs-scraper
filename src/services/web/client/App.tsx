@@ -185,7 +185,7 @@ export function App() {
 				{toasts.map(toast => (
 					<div key={toast.id} className={cx('toast', `toast-${toast.tone}`)} role={toast.tone === 'error' ? 'alert' : 'status'}>
 						<span className="grow">{toast.message}</span>
-						<IconButton label="Fechar aviso" onClick={() => dismissToast(toast.id)}>
+						<IconButton label="Fechar aviso" size="sm" onClick={() => dismissToast(toast.id)}>
 							<Icon name="close" size={14} />
 						</IconButton>
 					</div>

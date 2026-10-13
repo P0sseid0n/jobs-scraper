@@ -1,6 +1,7 @@
 import type { ButtonHTMLAttributes } from 'react'
 
 import { cx } from '../../lib/cx'
+import { OUTLINED } from './outlined'
 
 type PillProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'aria-pressed'> & {
 	/** Liga/desliga (filtros, opções); sem ele a pill é uma ação comum (ex.: "mostrar mais"). */
@@ -16,7 +17,7 @@ export function Pill({ pressed, shape = 'pill', className, ...props }: PillProps
 			type="button"
 			aria-pressed={pressed}
 			{...props}
-			className={cx('pill outlined', shape !== 'pill' && `pill-${shape}`, className)}
+			className={cx('pill', OUTLINED, shape !== 'pill' && `pill-${shape}`, className)}
 		/>
 	)
 }

@@ -8,8 +8,9 @@ import { useUnseen } from '../stores/seen'
 import { ContractTypeBadge } from './ContractTypeBadge'
 import { CvButton } from './CvButton'
 import { Icon } from './Icon'
-import { WorkModeBadge } from './WorkModeBadge'
 import { Button } from './ui/Button'
+import { Skeleton } from './ui/Skeleton'
+import { WorkModeBadge } from './WorkModeBadge'
 
 const VISIBLE_SKILLS = 4
 
@@ -112,13 +113,13 @@ export function JobCard({
 
 export function JobCardSkeleton() {
 	return (
-		<div className="card job-card skeleton" aria-hidden="true">
-			<div className="sk sk-line" style={{ width: '62%' }} />
-			<div className="sk sk-line sm" style={{ width: '40%' }} />
-			<div className="sk-row">
-				<div className="sk sk-chip" />
-				<div className="sk sk-chip" />
-				<div className="sk sk-chip" />
+		<div className="card job-card" aria-hidden="true">
+			<Skeleton className="h-3.5 w-[62%] rounded-xs bg-surface-2" />
+			<Skeleton className="h-2.5 w-[40%] rounded-xs bg-surface-2" />
+			<div className="flex gap-1.5">
+				{[1, 2, 3].map(key => (
+					<Skeleton key={key} className="h-5 w-16 rounded-pill bg-surface-2" />
+				))}
 			</div>
 		</div>
 	)

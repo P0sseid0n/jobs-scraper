@@ -1,6 +1,6 @@
 # Padronização do front
 
-Auditoria de `src/services/web/client` (out/2026). Os caminhos abaixo são relativos a essa pasta; as linhas de CSS são de `styles.css`.
+Auditoria de `src/services/web/client` (out/2026). Os caminhos abaixo são relativos a essa pasta; as linhas de CSS são do `styles.css` da auditoria (antes da fase 1) e servem para localizar a regra pelo nome.
 
 Os componentes `Button`, `IconButton` e `Pill` (`components/ui`) já cobrem os botões principais. O que falta padronizar está nos links que viram botão, nas "cápsulas" pequenas, nos campos de formulário e nos valores fixos do CSS.
 
@@ -24,7 +24,7 @@ Regras para todas as fases:
 | Fase | Linhas do `styles.css` ao final |
 |---|---|
 | Início | 1.899 |
-| 1 | |
+| 1 | 1.613 (com as 9 linhas pendentes de `.run-outcomes` e `.chip-ok`) |
 | 2 | |
 | 3 | |
 | 4 | |
@@ -52,8 +52,8 @@ Trocar as cores fixas por tokens no `@theme` do `tailwind.css` (como `--color-*`
 | `#fff` | `.switch::after` (469) | `--switch-knob` |
 | `rgb(20 22 19 / 0.45)` | `.dialog::backdrop` (1677) | `--backdrop` |
 
-- [ ] Mover o `:root` e o `:root[data-theme='dark']` do `styles.css` para o `tailwind.css`
-- [ ] Criar os tokens novos e substituir os valores fixos (nos elementos migrados, pela classe: `bg-ok-dot`, `hover:bg-lime-hover`…)
+- [x] Mover o `:root` e o `:root[data-theme='dark']` do `styles.css` para o `tailwind.css`
+- [x] Criar os tokens novos e substituir os valores fixos (nos elementos migrados, pela classe: `bg-ok-dot`, `hover:bg-lime-hover`…)
 
 ### 1.2 Tokens de raio 🟢
 
@@ -64,34 +64,44 @@ Hoje existem `--radius` (14px) e `--radius-sm` (10px), mas há valores soltos:
 - `8px`: `.select` (429) · `6px`: `.sk` (708) · `5px`: `.pdf-icon` (688)
 - `999px`: repetido em ~15 regras
 
-- [ ] Definir no `@theme` a escala de raios: `--radius-xs: 6px`, `--radius-sm: 10px`, `--radius-md: 12px`, `--radius-lg: 14px`, `--radius-xl: 18px` e `--radius-pill: 999px` (resolve também o `rounded-sm` de 10px, que hoje sai do `--radius-sm` do `styles.css`)
-- [ ] Trocar os valores soltos pelas classes `rounded-*` (o `16px` da bandeja vira `rounded-xl`) e remover `--radius`, `--radius-sm`, `--radius-card` e `--radius-field`
+- [x] Definir no `@theme` a escala de raios: `--radius-xs: 6px`, `--radius-sm: 10px`, `--radius-md: 12px`, `--radius-lg: 14px`, `--radius-xl: 18px` e `--radius-pill: 999px` (resolve também o `rounded-sm` de 10px, que hoje sai do `--radius-sm` do `styles.css`)
+- [x] Trocar os valores soltos pelas classes `rounded-*` (o `16px` da bandeja vira `rounded-xl`) e remover `--radius`, `--radius-sm`, `--radius-card` e `--radius-field`
 
 ### 1.3 Hover do `IconButton` 🟢
 
 Hoje cada caso tem o seu: `.icon-btn:hover` (354), `.icon-btn-sm:hover` (363, só a cor do texto), `.tray-close:hover` (1330), `.toast .icon-btn:hover` (1747) e `.kchip button:hover` (1622).
 
-- [ ] Migrar `.icon-btn`, `.icon-btn-sm` e `.bordered` para classes do Tailwind dentro do `IconButton`, usando o hover do toast, que funciona em qualquer fundo: `hover:bg-current/12`
-- [ ] Remover `.icon-btn*`, `.tray-close:hover` e `.toast .icon-btn:hover` do `styles.css`
-- [ ] Migrar `.btn*` e `.outlined` para dentro do `Button` (a `transition` duplicada some junto)
+- [x] Migrar `.icon-btn`, `.icon-btn-sm` e `.bordered` para classes do Tailwind dentro do `IconButton`, usando o hover do toast, que funciona em qualquer fundo: `hover:bg-current/12`
+- [x] Remover `.icon-btn*`, `.tray-close:hover` e `.toast .icon-btn:hover` do `styles.css`
+- [x] Migrar `.btn*` e `.outlined` para dentro do `Button` (a `transition` duplicada some junto)
 
 ### 1.4 Tamanhos forçados no CSS 🟢
 
-- [ ] `App.tsx:188` (toast) e `components/CvTray.tsx:74` (bandeja): passar `size="sm"` no `IconButton`
-- [ ] Remover `.toast .icon-btn { width/height }` (1734) e o tamanho de `.tray-close` (1324)
+- [x] `App.tsx:188` (toast) e `components/CvTray.tsx:74` (bandeja): passar `size="sm"` no `IconButton`
+- [x] Remover `.toast .icon-btn { width/height }` (1734) e o tamanho de `.tray-close` (1324)
 
 ### 1.5 Elementos que já deveriam usar os componentes 🟢
 
-- [ ] `views/JobPage.tsx:57` (`.back-link`) → `<Button variant="ghost" href="/" onClick={…}>`; remover `.back-link` (1156)
-- [ ] `components/forms.tsx:83` (botão de remover do `.kchip`) → `IconButton`, criando o tamanho `xs` (26px); remover `.kchip button` (1611–1625)
+- [x] `views/JobPage.tsx:57` (`.back-link`) → `<Button variant="ghost" href="/" onClick={…}>`; remover `.back-link` (1156)
+- [x] `components/forms.tsx:83` (botão de remover do `.kchip`) → `IconButton`, criando o tamanho `xs` (26px); remover `.kchip button` (1611–1625)
 
 ### 1.6 Skeletons 🟢
 
-- [ ] Trocar `.detail-skeleton`, `.status-skeleton`, `.table-skeleton` e `.settings-skeleton` (732) por um componente `Skeleton` com `min-h-60 animate-pulse`, e `.sk*` por classes do Tailwind
+- [x] Trocar `.detail-skeleton`, `.status-skeleton`, `.table-skeleton` e `.settings-skeleton` (732) por um componente `Skeleton` com `min-h-60 animate-pulse`, e `.sk*` por classes do Tailwind
 
 ### 1.7 Reset de `fieldset` 🟢
 
-- [ ] Levar o reset de `fieldset`/`legend` para o `@layer base` do `tailwind.css` e removê-lo de `.filter-group` (986) e `.settings-card fieldset` (1525)
+- [x] Levar o reset de `fieldset`/`legend` para o `@layer base` do `tailwind.css` e removê-lo de `.filter-group` (986) e `.settings-card fieldset` (1525)
+
+### Notas da fase 1
+
+- **`tailwind-merge`:** o `cx` (`lib/cx.ts`) passou a usá-lo. Sem ele, um `className` que conflita com as classes do componente (ex.: `hidden` contra o `inline-flex` do `Button`) dependia da ordem das regras no CSS gerado. Valores do `@theme` que ele não reconhece sozinho (como `rounded-pill`) são ensinados em `lib/cx.ts`.
+- **Hover com borda:** o antigo `.outlined` virou a constante `OUTLINED` (`components/ui/outlined.ts`), usada por `Button`, `IconButton`, `Pill` e `check-pill`.
+- **Card selecionado:** passou a redefinir também `--color-ink`; com isso o `.job-card.selected .btn-ghost` saiu.
+- **Regras de contexto que miravam `.btn`:** `.empty .btn` e `.job-card-actions .btn` passaram a mirar `:is(a, button)`; saem com o `EmptyState` (fase 2) e com o layout das vagas (fase 6).
+- **Cores das modalidades:** ficaram em `lib/format.ts`, porque espelham as do card do Discord.
+- **Pequenas mudanças de raio:** a bandeja de currículos foi de 16px para 18px (`rounded-xl`) e o ícone de PDF de 5px para 6px (`rounded-xs`). O brilho do ponto de vaga nova passou de 30% para 35%, igual ao do status "coletando".
+- **Botão de reportar:** a regra antiga pedia uma borda mais escura (`--muted` a 70%), mas ela perdia para a `.icon-btn.bordered` e nunca apareceu. A migração manteve o visual de hoje (borda `--line`); decidir se a borda destacada deve valer.
 
 ---
 

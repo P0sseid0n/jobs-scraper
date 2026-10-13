@@ -12,9 +12,9 @@ import { ContractTypeBadge } from './ContractTypeBadge'
 import { CvButton } from './CvButton'
 import { Icon } from './Icon'
 import { ReportJobDialog } from './ReportJobDialog'
-import { WorkModeBadge } from './WorkModeBadge'
 import { Button } from './ui/Button'
 import { IconButton } from './ui/IconButton'
+import { WorkModeBadge } from './WorkModeBadge'
 
 /** Posts maiores que isso começam recolhidos. */
 const LONG_POST_CHARS = 600
@@ -78,7 +78,8 @@ function JobDetailContent({ job }: { job: WebJob }) {
 							label="reportar problema na vaga"
 							size="sm"
 							bordered
-							className="report-btn"
+							// Na cor do texto, para não sumir ao lado da data
+							className="ml-3 text-ink"
 							aria-haspopup="dialog"
 							onClick={() => setReporting(true)}
 						>

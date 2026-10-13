@@ -5,6 +5,7 @@ import { api, type RequestError } from '../api'
 import { Switch } from '../components/forms'
 import { Icon } from '../components/Icon'
 import { Button } from '../components/ui/Button'
+import { Skeleton } from '../components/ui/Skeleton'
 import { cx } from '../lib/cx'
 import { formatDateTime, formatDuration, formatInterval, isLoginFailure } from '../lib/format'
 import { onLinkClick } from '../router'
@@ -215,7 +216,7 @@ export function RunsView() {
 					<p className="muted small">{statusError}</p>
 				</div>
 			) : (
-				<div className="card skeleton status-skeleton" aria-busy="true" />
+				<Skeleton className="card min-h-60" aria-busy="true" />
 			)
 		}
 
@@ -261,7 +262,14 @@ export function RunsView() {
 						<span className="mono xsmall on-dark-muted">
 							{status.paused ? '“coletar agora” continua funcionando' : formatInterval(status.intervalMinutes)}
 						</span>
-						<Button variant="lime" size="lg" disabled={!!running || requesting} onClick={runNow}>
+						<Button
+							variant="lime"
+							size="lg"
+							// No card escuro, o lime apagado sumia: desativado, o botão fica na cor da borda
+							className="disabled:bg-inv-line disabled:text-inv-muted disabled:opacity-100"
+							disabled={!!running || requesting}
+							onClick={runNow}
+						>
 							<Icon name={running ? 'spinner' : 'refresh'} />
 							{running ? 'coletando…' : requesting ? 'pedindo…' : 'coletar agora'}
 						</Button>
@@ -327,7 +335,7 @@ export function RunsView() {
 						</button>
 					</div>
 				)}
-				{runsState === 'loading' && <div className="card skeleton table-skeleton" aria-busy="true" />}
+				{runsState === 'loading' && <Skeleton className="card min-h-60" aria-busy="true" />}
 				{runsState === 'ready' && runs.length === 0 && (
 					<div className="card empty">
 						<p className="strong">Nenhuma coleta nos últimos 90 dias</p>
