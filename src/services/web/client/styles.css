@@ -342,6 +342,15 @@ button:disabled {
 	background: var(--surface-2);
 }
 
+.icon-btn-sm {
+	width: 32px;
+	height: 32px;
+}
+
+.icon-btn-sm:hover {
+	color: var(--ink);
+}
+
 .link,
 .link-btn {
 	color: var(--ink);
@@ -1628,6 +1637,42 @@ main {
 /* com a barra de salvar, o indicador de currículos sobe */
 .app:has(.save-bar) .cv-tray {
 	bottom: 92px;
+}
+
+/* ----------------------------------------------------------------------------------------------- modal */
+
+.dialog {
+	width: min(480px, calc(100vw - 32px));
+	padding: 0;
+	border: 1px solid var(--line);
+	border-radius: var(--radius);
+	background: var(--surface);
+	color: var(--ink);
+	box-shadow: var(--shadow);
+}
+
+.dialog::backdrop {
+	background: rgb(20 22 19 / 0.45);
+}
+
+.dialog-body {
+	padding: 16px 20px 20px;
+}
+
+.dialog-title {
+	margin: 0;
+	font-size: 18px;
+}
+
+.dialog-or {
+	text-align: center;
+}
+
+.dialog-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	padding-top: 8px;
 }
 
 /* ----------------------------------------------------------------------------------------------- avisos */
