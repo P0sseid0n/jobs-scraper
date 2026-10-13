@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 import type { ScraperCommand } from '@shared/contracts'
-import { ScraperRun, type ScraperRunStatus, type ScraperRunTerm, type ScraperRunTrigger } from '@shared/database'
+import { Job, ScraperRun, type ScraperRunStatus, type ScraperRunTerm, type ScraperRunTrigger } from '@shared/database'
 import { QUEUES, type QueueClient } from '@shared/messaging'
 
 import { nextRunAt } from '../../scraper/schedule'
@@ -22,7 +22,8 @@ type RunDocument = {
 	startedAt: Date
 	finishedAt: Date | null
 	sent: number
-	terms: ScraperRunTerm[]
+	// Coletas antigas não têm `skipped` nem `postIds`
+	terms: (Omit<ScraperRunTerm, 'skipped' | 'postIds'> & Partial<Pick<ScraperRunTerm, 'skipped' | 'postIds'>>)[]
 	error: string | null
 }
 
@@ -41,8 +42,8 @@ export async function scraperStatus() {
 	const next = settings.paused ? null : nextRunAt(lastStartedAt, settings.intervalMinutes)
 
 	return Response.json({
-		current: current ? toWebRun(current) : null,
-		last: last ? toWebRun(last) : null,
+		current: current ? await toWebRun(current) : null,
+		last: last ? await toWebRun(last) : null,
 		nextRunAt: next?.toISOString() ?? null,
 		paused: settings.paused,
 		intervalMinutes: settings.intervalMinutes,
@@ -63,7 +64,7 @@ export async function listRuns(req: Request) {
 	const last = page.at(-1)
 	const nextCursor = docs.length > query.limit && last ? encodeCursor({ at: last.startedAt, id: String(last._id) }) : null
 
-	return Response.json({ runs: page.map(toWebRun), nextCursor } satisfies RunsPage)
+	return Response.json({ runs: await Promise.all(page.map(toWebRun)), nextCursor } satisfies RunsPage)
 }
 
 /** `POST /api/scraper/run`: "coletar agora" (funciona mesmo com as coletas pausadas). */
@@ -77,7 +78,18 @@ export async function requestRun(queue: QueueClient) {
 	return Response.json({ requested: true }, { status: 202 })
 }
 
-function toWebRun(doc: RunDocument): WebScraperRun {
+/** A coleta para o site, com as vagas que saíram dela (as de posts com várias vagas apontam o post em `sourcePostId`). */
+async function toWebRun(doc: RunDocument): Promise<WebScraperRun> {
+	const terms = doc.terms ?? []
+	const tracked = terms.length > 0 && terms.every(term => term.postIds !== undefined)
+	const postIds = terms.flatMap(term => term.postIds ?? [])
+
+	const newJobs = !tracked
+		? null
+		: postIds.length === 0
+			? 0
+			: await Job.countDocuments({ $or: [{ postId: { $in: postIds } }, { sourcePostId: { $in: postIds } }] })
+
 	return {
 		id: String(doc._id),
 		trigger: doc.trigger,
@@ -85,7 +97,9 @@ function toWebRun(doc: RunDocument): WebScraperRun {
 		startedAt: doc.startedAt.toISOString(),
 		finishedAt: doc.finishedAt?.toISOString() ?? null,
 		sent: doc.sent ?? 0,
-		terms: (doc.terms ?? []).map(term => ({ term: term.term, sent: term.sent ?? 0, error: term.error ?? null })),
+		skipped: terms.reduce((total, term) => total + (term.skipped ?? 0), 0),
+		newJobs,
+		terms: terms.map(term => ({ term: term.term, sent: term.sent ?? 0, skipped: term.skipped ?? 0, error: term.error ?? null })),
 		error: doc.error ?? null,
 	}
 }

@@ -1,7 +1,7 @@
 import type { Page } from 'puppeteer'
 
 import type { RawPost, ScraperSettings } from '@shared/contracts'
-import type { ScraperRunTerm } from '@shared/database'
+import { SeenPost, type ScraperRunTerm } from '@shared/database'
 import type { Logger } from '@shared/logging'
 import { QUEUES, type QueueClient } from '@shared/messaging'
 
@@ -52,7 +52,7 @@ export async function scrapeOnce(options: ScrapeOptions): Promise<ScraperRunTerm
 			// Mais termos que posts no limite: os últimos ficam sem busca, mas aparecem no histórico
 			if (limit === 0) {
 				logger.info({ term }, 'Termo pulado: o limite de posts da coleta já foi distribuído')
-				results.push({ term, sent: 0, error: null })
+				results.push({ term, sent: 0, skipped: 0, postIds: [], error: null })
 				continue
 			}
 
@@ -80,15 +80,15 @@ async function scrapeTerm(session: BrowserSession, search: TermSearch, options: 
 
 	try {
 		const page = await openSearchResults(session, search.term, { ...options, logger })
-		const sent = await publishNewPosts(page, search, { ...options, logger })
+		const { sent, skipped, postIds } = await publishNewPosts(page, search, { ...options, logger })
 
-		return { term: search.term, sent, error: null }
+		return { term: search.term, sent, skipped, postIds, error: null }
 	} catch (error) {
 		if (error instanceof LoginError) throw error
 
 		logger.error({ err: error }, 'Falha na busca deste termo')
 
-		return { term: search.term, sent: 0, error: error instanceof Error ? error.message : String(error) }
+		return { term: search.term, sent: 0, skipped: 0, postIds: [], error: error instanceof Error ? error.message : String(error) }
 	}
 }
 
@@ -127,19 +127,23 @@ async function openSearchResults(session: BrowserSession, term: string, { config
 	return page
 }
 
-/** Rola a busca enviando cada post novo para a fila, até o limite do termo ou o fim dos resultados. */
+/**
+ * Rola a busca enviando cada post novo para a fila, até o limite do termo ou o fim dos resultados. Posts que já
+ * passaram pela IA não são enviados nem contam no limite. A busca é ordenada por data: quando uma rolagem só traz
+ * posts já processados, o resto é mais antigo e a busca do termo para.
+ */
 async function publishNewPosts(page: Page, { limit, seen }: TermSearch, { config, queue, logger }: ScrapeOptions) {
 	let sent = 0
+	let skipped = 0
+	const postIds: string[] = []
 	let hasMore = true
 
 	// Limite de posts por coleta (dividido entre os termos) para reduzir o risco de bloqueio da conta
 	while (sent < limit) {
 		const posts = await collectNewPosts(page)
-		logger.info({ found: posts.length, sent }, 'Posts novos nesta rolagem')
+		const candidates: RawPost[] = []
 
 		for (const scraped of posts) {
-			if (sent >= limit) break
-
 			const post = toRawPost(scraped)
 
 			// Sem o id não há link do post: a vaga não serviria. O aviso mostra um formato novo do LinkedIn na hora.
@@ -159,10 +163,33 @@ async function publishNewPosts(page: Page, { limit, seen }: TermSearch, { config
 			if (seen.has(post.postId) || seen.has(textHash)) continue
 
 			seen.add(post.postId).add(textHash)
+			candidates.push(post)
+		}
+
+		const processed = await alreadyProcessed(candidates.map(post => post.postId))
+		let sentNow = 0
+
+		for (const post of candidates) {
+			if (sent >= limit) break
+
+			if (processed.has(post.postId)) {
+				skipped++
+				continue
+			}
+
 			await queue.publish(QUEUES.postProcessing, post)
+			postIds.push(post.postId)
 			sent++
+			sentNow++
 
 			logger.debug({ postId: post.postId, url: post.url }, '📨 Post enviado para a fila')
+		}
+
+		logger.info({ found: candidates.length, sent: sentNow, skipped: candidates.length - sentNow }, 'Posts nesta rolagem')
+
+		if (candidates.length > 0 && sentNow === 0 && sent < limit) {
+			logger.info('Só posts já processados nesta rolagem: o resto da busca é mais antigo')
+			break
 		}
 
 		// Quando nada novo carregou, a coleta acima foi a última (pega posts que renderizaram depois)
@@ -172,7 +199,15 @@ async function publishNewPosts(page: Page, { limit, seen }: TermSearch, { config
 		hasMore = await loadMorePosts(page, config.SCRAPER_SCROLL_DELAY_MS)
 	}
 
-	return sent
+	return { sent, skipped, postIds }
+}
+
+/** Ids, entre os dados, de posts que já passaram pela IA em coletas anteriores. */
+async function alreadyProcessed(postIds: string[]) {
+	if (postIds.length === 0) return new Set<string>()
+
+	const docs = await SeenPost.find({ postId: { $in: postIds } }, { postId: 1 }).lean()
+	return new Set(docs.map(doc => doc.postId))
 }
 
 /** O post para a fila, ou `null` se o id dele não for encontrado (sem ele não há link do post). */

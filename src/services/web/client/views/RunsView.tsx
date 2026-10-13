@@ -36,6 +36,15 @@ function FailureAlert({ status }: { status: ScraperStatus | null }) {
 	)
 }
 
+/** "3 posts novos · 1 vaga nova", ou o aviso de que a busca só trouxe posts já processados. */
+function lastRunSummary(run: WebScraperRun) {
+	if (run.sent === 0) return run.skipped > 0 ? `nenhum post novo (${run.skipped} já vistos)` : 'nenhum post encontrado'
+
+	const posts = `${run.sent} ${run.sent === 1 ? 'post novo' : 'posts novos'}`
+	if (run.newJobs === null) return posts
+	return `${posts} · ${run.newJobs} ${run.newJobs === 1 ? 'vaga nova' : 'vagas novas'}`
+}
+
 function RunRows({ run, open, onToggle }: { run: WebScraperRun; open: boolean; onToggle: () => void }) {
 	const failedTerms = run.terms.filter(term => term.error).length
 	const duration = run.finishedAt ? formatDuration(new Date(run.finishedAt).getTime() - new Date(run.startedAt).getTime()) : '–'
@@ -52,7 +61,11 @@ function RunRows({ run, open, onToggle }: { run: WebScraperRun; open: boolean; o
 				<td>{TRIGGERS[run.trigger]}</td>
 				<td className="mono">{formatDateTime(run.startedAt)}</td>
 				<td className="mono">{duration}</td>
-				<td className="mono">{run.sent}</td>
+				<td className="mono">
+					{run.sent}
+					{run.skipped > 0 && <span className="muted xsmall"> · {run.skipped} já vistos</span>}
+				</td>
+				<td className="mono">{run.newJobs ?? '–'}</td>
 				<td className={cx('wrap-cell', (run.error || failedTerms > 0) && 'danger-text')}>
 					{run.error && run.status === 'failed'
 						? run.error
@@ -70,7 +83,7 @@ function RunRows({ run, open, onToggle }: { run: WebScraperRun; open: boolean; o
 			</tr>
 			{open && (
 				<tr className="terms-row">
-					<td colSpan={7}>
+					<td colSpan={8}>
 						<ul className="terms-grid plain">
 							{run.terms.map(term => (
 								<li key={term.term} className={cx('card term-card', term.error && 'term-failed')}>
@@ -78,7 +91,9 @@ function RunRows({ run, open, onToggle }: { run: WebScraperRun; open: boolean; o
 									{term.error ? (
 										<span className="small danger-text">falhou: {term.error}</span>
 									) : (
-										<span className="mono term-sent">{term.sent} enviados</span>
+										<span className="mono term-sent">
+											{term.sent} novos{term.skipped > 0 && <span className="muted"> · {term.skipped} já vistos</span>}
+										</span>
 									)}
 								</li>
 							))}
@@ -271,7 +286,7 @@ export function RunsView() {
 					{status.last && (
 						<p className="muted small">
 							última coleta: {formatDateTime(status.last.startedAt)} ·{' '}
-							{status.last.status === 'success' ? `${status.last.sent} posts enviados` : 'falhou'}
+							{status.last.status === 'success' ? lastRunSummary(status.last) : 'falhou'}
 						</p>
 					)}
 					<a className="link small" href="/configuracoes" onClick={onLinkClick}>
@@ -301,7 +316,7 @@ export function RunsView() {
 					<h2 className="section-title">
 						histórico <span className="mono">de coletas</span>
 					</h2>
-					<span className="mono muted xsmall">enviados = posts para a IA, não vagas salvas</span>
+					<span className="mono muted xsmall">posts novos vão para a IA; vagas novas são as salvas a partir deles</span>
 				</div>
 
 				{runsState === 'error' && (
@@ -328,7 +343,8 @@ export function RunsView() {
 									<th scope="col">gatilho</th>
 									<th scope="col">início</th>
 									<th scope="col">duração</th>
-									<th scope="col">enviados</th>
+									<th scope="col">posts novos</th>
+									<th scope="col">vagas novas</th>
 									<th scope="col">termos</th>
 									<th scope="col">
 										<span className="sr-only">detalhes</span>
