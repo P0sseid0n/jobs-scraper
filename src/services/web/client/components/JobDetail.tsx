@@ -11,6 +11,7 @@ import { copyText, notify } from '../stores/toast'
 import { ContractTypeBadge } from './ContractTypeBadge'
 import { CvButton } from './CvButton'
 import { Icon } from './Icon'
+import { ReportJobDialog } from './ReportJobDialog'
 import { WorkModeBadge } from './WorkModeBadge'
 
 /** Posts maiores que isso começam recolhidos. */
@@ -25,6 +26,7 @@ export function JobDetail({ job }: { job: WebJob }) {
 
 function JobDetailContent({ job }: { job: WebJob }) {
 	const [expanded, setExpanded] = useState(false)
+	const [reporting, setReporting] = useState(false)
 
 	// Depuração: o documento da vaga no MongoDB, buscado só quando pedido
 	const [rawJson, setRawJson] = useState<string | null>(null)
@@ -66,14 +68,27 @@ function JobDetailContent({ job }: { job: WebJob }) {
 						<WorkModeBadge job={job} />
 						<ContractTypeBadge job={job} />
 					</div>
-					<time className="mono muted small" dateTime={jobDate(job)}>
-						publicada {timeAgo(jobDate(job))}
-					</time>
+					<div className="row">
+						<time className="mono muted small" dateTime={jobDate(job)}>
+							publicada {timeAgo(jobDate(job))}
+						</time>
+						<button
+							type="button"
+							className="icon-btn icon-btn-sm muted"
+							aria-label="reportar problema na vaga"
+							title="reportar problema na vaga"
+							aria-haspopup="dialog"
+							onClick={() => setReporting(true)}
+						>
+							<Icon name="flag" size={15} />
+						</button>
+					</div>
 				</div>
 				<h2 className="detail-title">{job.title}</h2>
 				{jobSubtitle(job) && <p className="muted">{jobSubtitle(job)}</p>}
 				{job.author && (job.company || job.location) && <p className="mono muted small">postado por {job.author}</p>}
 			</header>
+			{reporting && <ReportJobDialog job={job} onClose={() => setReporting(false)} />}
 
 			{job.necessaryKnowledge && (
 				<ul className="chips" aria-label="Tecnologias">

@@ -21,6 +21,7 @@ const PATHS = {
 	filter: 'M4 6h16 M7 12h10 M10 18h4',
 	trash: 'M4 7h16 M9 7V4h6v3 M6 7l1 13h10l1-13',
 	plus: 'M12 5v14 M5 12h14',
+	flag: 'M5 21V4 M5 4h12l-2 4 2 4H5',
 	spinner: 'M21 12a9 9 0 1 1-6.2-8.6',
 } as const
 
