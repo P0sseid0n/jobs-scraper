@@ -16,6 +16,7 @@ import { badge, BadgeList } from './ui/Badge'
 import { Button } from './ui/Button'
 import { IconButton } from './ui/IconButton'
 import { Notice } from './ui/Notice'
+import { LABEL } from './ui/text'
 import { TextLink } from './ui/TextLink'
 import { WorkModeBadge } from './WorkModeBadge'
 
@@ -74,7 +75,7 @@ function JobDetailContent({ job }: { job: WebJob }) {
 						<ContractTypeBadge job={job} />
 					</div>
 					<div className="row">
-						<time className="mono muted small nowrap" dateTime={jobDate(job)}>
+						<time className="mono muted text-sm nowrap" dateTime={jobDate(job)}>
 							publicada {timeAgo(jobDate(job))}
 						</time>
 						<IconButton
@@ -90,9 +91,9 @@ function JobDetailContent({ job }: { job: WebJob }) {
 						</IconButton>
 					</div>
 				</div>
-				<h2 className="detail-title">{job.title}</h2>
+				<h2 className="detail-title text-2xl leading-tight">{job.title}</h2>
 				{jobSubtitle(job) && <p className="muted">{jobSubtitle(job)}</p>}
-				{job.author && (job.company || job.location) && <p className="mono muted small">postado por {job.author}</p>}
+				{job.author && (job.company || job.location) && <p className="mono muted text-sm">postado por {job.author}</p>}
 			</header>
 			{reporting && <ReportJobDialog job={job} onClose={() => setReporting(false)} />}
 
@@ -125,28 +126,28 @@ function JobDetailContent({ job }: { job: WebJob }) {
 
 			{cv?.status === 'ready' && (
 				<div className="cv-ready">
-					<span className="pdf-icon mono" aria-hidden="true">
+					<span className="pdf-icon mono text-xs" aria-hidden="true">
 						PDF
 					</span>
 					<div className="grow min-0">
-						<div className="strong small">currículo pronto</div>
-						<div className="mono muted xsmall ellipsis">{cv.fileName}</div>
+						<div className="strong text-sm">currículo pronto</div>
+						<div className="mono muted text-xs ellipsis">{cv.fileName}</div>
 					</div>
-					<TextLink className="small" href={cvPdfUrl(cv.requestId)} target="_blank" rel="noopener">
+					<TextLink className="text-sm" href={cvPdfUrl(cv.requestId)} target="_blank" rel="noopener">
 						pré-visualizar
 					</TextLink>
 				</div>
 			)}
 			{cv?.status === 'failed' && (
-				<Notice tone="danger" className="small">
+				<Notice tone="danger" className="text-sm">
 					O currículo falhou: {cv.error}
 				</Notice>
 			)}
 
 			{job.recruiterEmail && (
 				<section className="stack-sm" aria-label="Contato">
-					<h3 className="label">contato_</h3>
-					<div className="copy-field">
+					<h3 className={LABEL}>contato_</h3>
+					<div className="copy-field text-sm">
 						<a className="mono ellipsis grow" href={`mailto:${job.recruiterEmail}`}>
 							{job.recruiterEmail}
 						</a>
@@ -157,22 +158,22 @@ function JobDetailContent({ job }: { job: WebJob }) {
 					</div>
 					<div className="message-box">
 						<div className="row-between">
-							<span className="label">{showGenerated ? 'mensagem gerada pela IA' : 'modelo de mensagem'}</span>
+							<span className={LABEL}>{showGenerated ? 'mensagem gerada pela IA' : 'modelo de mensagem'}</span>
 							<Button variant="ghost" size="xs" onClick={() => copyText(message, 'Mensagem')}>
 								<Icon name="copy" size={13} />
 								copiar
 							</Button>
 						</div>
-						<pre className="mono message-text">{message}</pre>
+						<pre className="mono message-text text-xs leading-relaxed">{message}</pre>
 						{generated ? (
-							<div className="row-between muted xsmall">
+							<div className="row-between muted text-xs">
 								<span>{showGenerated ? 'revise antes de enviar' : ''}</span>
-								<TextLink className="xsmall" onClick={() => setUseDefaultMessage(!useDefaultMessage)}>
+								<TextLink className="text-xs" onClick={() => setUseDefaultMessage(!useDefaultMessage)}>
 									{showGenerated ? 'usar o modelo padrão' : 'usar a mensagem da IA'}
 								</TextLink>
 							</div>
 						) : (
-							<p className="muted xsmall">
+							<p className="muted text-xs">
 								{cv?.status === 'pending'
 									? 'A mensagem escrita para esta vaga chega junto com o currículo.'
 									: 'Gere o currículo para receber uma mensagem escrita para esta vaga.'}
@@ -184,17 +185,17 @@ function JobDetailContent({ job }: { job: WebJob }) {
 
 			<section className="stack-sm" aria-label="Post original">
 				<div className="row-between">
-					<h3 className="label">post original_</h3>
+					<h3 className={LABEL}>post original_</h3>
 					{/* Com outra forma de candidatura, o post serve mais para conferir (debug): link discreto */}
 					{postLink && !appliesThroughPost && (
-						<TextLink className="xsmall mono" href={postLink} target="_blank" rel="noopener noreferrer">
+						<TextLink className="text-xs mono" href={postLink} target="_blank" rel="noopener noreferrer">
 							ir para o post ↗
 						</TextLink>
 					)}
 				</div>
-				<div className={cx('raw-post', isLong && !expanded && 'collapsed')}>{job.rawContent}</div>
+				<div className={cx('raw-post text-sm leading-relaxed', isLong && !expanded && 'collapsed')}>{job.rawContent}</div>
 				{isLong && (
-					<TextLink className="small" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
+					<TextLink className="text-sm" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
 						{expanded ? 'recolher post' : 'mostrar post completo'}
 					</TextLink>
 				)}
@@ -202,27 +203,27 @@ function JobDetailContent({ job }: { job: WebJob }) {
 
 			<footer className="detail-footer">
 				{job.aiJobConfidence < LOW_CONFIDENCE && (
-					<Notice tone="warn" className="small">
+					<Notice tone="warn" className="text-sm">
 						A IA não tem certeza de que isto é uma vaga. Confira o post.
 					</Notice>
 				)}
-				<div className="row-between mono muted xsmall">
+				<div className="row-between mono muted text-xs">
 					<span>confiança da IA: {Math.round(job.aiJobConfidence)}%</span>
 					{job.language && <span>idioma: {languageLabel(job.language)}</span>}
 				</div>
-				<TextLink className="xsmall mono" aria-expanded={rawJson !== null} disabled={loadingRaw} onClick={toggleRawJson}>
+				<TextLink className="text-xs mono" aria-expanded={rawJson !== null} disabled={loadingRaw} onClick={toggleRawJson}>
 					{loadingRaw ? 'carregando json…' : rawJson !== null ? 'esconder json da vaga' : 'ver json da vaga (debug)'}
 				</TextLink>
 				{rawJson !== null && (
 					<div className="message-box">
 						<div className="row-between">
-							<span className="label">documento no mongodb</span>
+							<span className={LABEL}>documento no mongodb</span>
 							<Button variant="ghost" size="xs" onClick={() => copyText(rawJson, 'JSON da vaga')}>
 								<Icon name="copy" size={13} />
 								copiar
 							</Button>
 						</div>
-						<pre className="mono message-text json-text">{rawJson}</pre>
+						<pre className="mono message-text json-text text-xs leading-relaxed">{rawJson}</pre>
 					</div>
 				)}
 			</footer>

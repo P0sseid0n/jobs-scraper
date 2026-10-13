@@ -46,19 +46,19 @@ export function JobCard({
 		<article className={cx('card job-card', selected && 'inverted border-inv-bg')} aria-current={selected ? 'true' : undefined}>
 			<div className="job-card-head">
 				<a className="job-card-title" href={jobPath(job.postId)} onClick={open}>
-					<span className="job-title">
+					<span className="job-title text-base leading-snug">
 						{unseen && <StatusDot tone="lime" glow />}
 						{unseen && <span className="sr-only">vaga nova:</span>}
 						{job.title}
 					</span>
-					<span className="muted job-sub">{jobSubtitle(job)}</span>
+					<span className="muted text-sm">{jobSubtitle(job)}</span>
 				</a>
 				<div className="job-card-meta">
 					<div className="job-badges">
 						<ContractTypeBadge job={job} />
 						<WorkModeBadge job={job} />
 					</div>
-					<time className="mono muted small" dateTime={jobDate(job)}>
+					<time className="mono muted text-sm" dateTime={jobDate(job)}>
 						{timeAgo(jobDate(job))}
 					</time>
 				</div>
@@ -80,7 +80,7 @@ export function JobCard({
 			)}
 
 			<div className="job-card-actions">
-				<span className="mono muted small contact-hint">
+				<span className="mono muted text-sm contact-hint">
 					{job.recruiterEmail ? (
 						<>
 							<Icon name="mail" size={14} />

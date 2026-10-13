@@ -5,6 +5,7 @@ import { cvPdfUrl } from '../api'
 import { Icon } from '../components/Icon'
 import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
+import { LABEL } from '../components/ui/text'
 import { cx } from '../lib/cx'
 import { formatDateTime } from '../lib/format'
 import { jobPath, onLinkClick } from '../router'
@@ -24,17 +25,17 @@ function CvItem({ request }: { request: WebCvRequest }) {
 
 	return (
 		<li className={cx('card cv-row', `cv-${request.status}`)}>
-			<span className={cx('pdf-icon mono', request.status === 'pending' && 'dashed')} aria-hidden="true">
+			<span className={cx('pdf-icon mono text-xs', request.status === 'pending' && 'dashed')} aria-hidden="true">
 				{request.status === 'pending' ? <Icon name="spinner" size={14} /> : request.status === 'failed' ? 'erro' : 'PDF'}
 			</span>
 			<div className="grow min-0 stack-xxs">
 				<a className="strong ellipsis" href={jobPath(request.postId)} onClick={onLinkClick}>
 					{request.jobTitle ?? 'Vaga'}
 				</a>
-				<span className="mono muted xsmall">
+				<span className="mono muted text-xs">
 					{request.status === 'pending' ? `gerando · pedido ${formatDateTime(request.requestedAt)}` : meta}
 				</span>
-				{request.status === 'failed' && <span className="small danger-text">{request.error}</span>}
+				{request.status === 'failed' && <span className="text-sm danger-text">{request.error}</span>}
 			</div>
 			{request.status === 'ready' && (
 				<div className="row-actions">
@@ -71,10 +72,10 @@ export function CvsView() {
 		<div className="page page-medium">
 			<section className="hero">
 				<div>
-					<h1 className="display">
+					<h1 className="display text-4xl md:text-5xl">
 						meus <span className="mono display-mono">currículos.</span>
 					</h1>
-					<p className="muted lead">
+					<p className="muted lead text-sm">
 						Um PDF de uma página por vaga: apresentação reescrita para a vaga, tecnologias pedidas nas habilidades, projetos do
 						GitHub mais relevantes e a experiência reordenada.
 					</p>
@@ -108,7 +109,7 @@ export function CvsView() {
 
 			{pending.length > 0 && (
 				<section className="stack-sm">
-					<h2 className="label">em andamento_</h2>
+					<h2 className={LABEL}>em andamento_</h2>
 					<ul className="stack-sm plain">
 						{pending.map(request => (
 							<CvItem key={request.requestId} request={request} />
@@ -118,7 +119,7 @@ export function CvsView() {
 			)}
 			{done.length > 0 && (
 				<section className="stack-sm">
-					<h2 className="label">gerados_</h2>
+					<h2 className={LABEL}>gerados_</h2>
 					<ul className="stack-sm plain">
 						{done.map(request => (
 							<CvItem key={request.requestId} request={request} />

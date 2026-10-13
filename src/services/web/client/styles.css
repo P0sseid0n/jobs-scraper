@@ -22,8 +22,6 @@ body {
 	background: var(--color-bg);
 	color: var(--color-ink);
 	font-family: var(--font-sans);
-	font-size: 15px;
-	line-height: 1.5;
 	-webkit-font-smoothing: antialiased;
 }
 
@@ -69,14 +67,6 @@ button:disabled {
 
 .strong {
 	font-weight: 600;
-}
-
-.small {
-	font-size: 13px;
-}
-
-.xsmall {
-	font-size: 11.5px;
 }
 
 .block {
@@ -186,13 +176,6 @@ button:disabled {
 	gap: 10px;
 }
 
-.label {
-	font-family: var(--font-mono);
-	font-size: 11.5px;
-	font-weight: 400;
-	color: var(--color-muted);
-}
-
 .icon {
 	flex-shrink: 0;
 }
@@ -237,7 +220,6 @@ button:disabled {
 	border: 1px solid var(--color-line);
 	border-radius: var(--radius-xs);
 	background: var(--color-surface);
-	font-size: 9px;
 }
 
 .pdf-icon.dashed {
@@ -280,7 +262,6 @@ main {
 	display: inline-flex;
 	align-items: center;
 	gap: 8px;
-	font-size: 14px;
 	font-weight: 500;
 	text-decoration: none;
 	white-space: nowrap;
@@ -307,7 +288,6 @@ main {
 	padding: 8px 12px;
 	border-radius: var(--radius-pill);
 	color: var(--color-muted);
-	font-size: 13px;
 	text-decoration: none;
 }
 
@@ -359,8 +339,6 @@ main {
 }
 
 .display {
-	font-size: clamp(32px, 4.4vw, 44px);
-	line-height: 1.05;
 	letter-spacing: -0.02em;
 	font-weight: 700;
 }
@@ -371,7 +349,6 @@ main {
 
 .lead {
 	margin-top: 14px;
-	font-size: 14px;
 	max-width: 520px;
 }
 
@@ -383,8 +360,6 @@ main {
 
 .stats dd {
 	margin: 0;
-	font-size: 28px;
-	line-height: 1.1;
 }
 
 .stats div {
@@ -393,7 +368,6 @@ main {
 }
 
 .section-title {
-	font-size: 20px;
 	font-weight: 600;
 }
 
@@ -414,7 +388,6 @@ main {
 	border-radius: var(--radius-pill);
 	background: var(--color-lime-soft);
 	color: var(--color-ink);
-	font-size: 13px;
 	position: sticky;
 	top: 76px;
 	z-index: 10;
@@ -450,7 +423,6 @@ main {
 	gap: 12px;
 	padding-top: 16px;
 	border-top: 1px solid var(--color-line);
-	font-size: 13px;
 }
 
 .job-list {
@@ -492,14 +464,8 @@ main {
 	display: flex;
 	align-items: center;
 	gap: 8px;
-	font-size: 16px;
 	font-weight: 600;
 	letter-spacing: -0.01em;
-	line-height: 1.3;
-}
-
-.job-sub {
-	font-size: 13px;
 }
 
 .job-card-title:hover .job-title {
@@ -561,8 +527,6 @@ main {
 }
 
 .detail-title {
-	font-size: 24px;
-	line-height: 1.2;
 	letter-spacing: -0.01em;
 }
 
@@ -592,7 +556,6 @@ main {
 	padding: 6px 6px 6px 12px;
 	border: 1px solid var(--color-line);
 	border-radius: var(--radius-sm);
-	font-size: 13px;
 	min-width: 0;
 }
 
@@ -611,8 +574,6 @@ main {
 
 .message-text {
 	margin: 0;
-	font-size: 12px;
-	line-height: 1.6;
 	white-space: pre-wrap;
 	word-break: break-word;
 }
@@ -621,12 +582,9 @@ main {
 .json-text {
 	max-height: 360px;
 	overflow: auto;
-	font-size: 11.5px;
 }
 
 .raw-post {
-	font-size: 13.5px;
-	line-height: 1.6;
 	white-space: pre-line;
 	overflow-wrap: anywhere;
 }
@@ -666,7 +624,6 @@ main {
 	padding: 4px 0;
 	border: 0;
 	background: transparent;
-	font-size: 11.5px;
 }
 
 .cv-tray-list {
@@ -687,7 +644,6 @@ main {
 }
 
 .cv-tray-title {
-	font-size: 13px;
 	text-decoration: none;
 }
 
@@ -732,13 +688,8 @@ main {
 	border-radius: var(--radius-xl);
 }
 
-.status-clock {
-	font-size: 28px;
-}
-
 .status-next {
 	margin-top: 4px;
-	font-size: 28px;
 }
 
 .status-grid > .card {
@@ -760,7 +711,6 @@ main {
 	padding: 12px 16px;
 	border-bottom: 1px solid var(--color-line);
 	font-family: var(--font-mono);
-	font-size: 11.5px;
 	font-weight: 400;
 	color: var(--color-muted);
 	text-align: left;
@@ -770,7 +720,6 @@ main {
 .runs-table td {
 	padding: 13px 16px;
 	border-bottom: 1px solid var(--color-line);
-	font-size: 13px;
 	white-space: nowrap;
 	vertical-align: top;
 }
@@ -808,10 +757,6 @@ main {
 
 .term-failed {
 	border-color: var(--color-danger);
-}
-
-.term-sent {
-	font-size: 17px;
 }
 
 /* ----------------------------------------------------------------------------------------------- configurações */
@@ -919,7 +864,6 @@ main {
 
 .dialog-title {
 	margin: 0;
-	font-size: 18px;
 }
 
 .dialog-or {
@@ -956,7 +900,6 @@ main {
 	border-radius: var(--radius-md);
 	background: var(--color-ink);
 	color: var(--color-bg);
-	font-size: 13px;
 	box-shadow: var(--elevation);
 	pointer-events: auto;
 }
@@ -1065,7 +1008,6 @@ main {
 		min-height: 52px;
 		padding: 7px 0 4px;
 		color: var(--color-muted);
-		font-size: 11px;
 		text-decoration: none;
 	}
 

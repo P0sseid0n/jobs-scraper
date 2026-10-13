@@ -29,7 +29,7 @@ Regras para todas as fases:
 | 2 | 1.364 |
 | 3 | 1.126 |
 | 4 | 1.097 |
-| 5 | |
+| 5 | 1.039 |
 | 6 | |
 | 7 | 0 (arquivo apagado) |
 
@@ -239,11 +239,19 @@ São 16 tamanhos em uso: 9, 10, 11, 11.5, 12, 12.5, 13, 13.5, 14, 15, 16, 17, 18
 
 Os componentes de `components/ui` já usam essa escala (desde a fase 3). Falta o que ainda está no `styles.css`:
 
-- [ ] Trocar `.small`, `.xsmall`, `.label`, `.mono` com tamanho e os `font-size` fixos do `styles.css` pelas classes `text-*` da tabela (o `body` vai de 15px para `text-base`, 16px)
-- [ ] Não criar `--text-*` no `@theme`: a escala é a padrão
-- [ ] Revisar telas, principalmente cards de vaga, tabela de coletas e configurações
+- [x] Trocar `.small`, `.xsmall`, `.label`, `.mono` com tamanho e os `font-size` fixos do `styles.css` pelas classes `text-*` da tabela (o `body` vai de 15px para `text-base`, 16px)
+- [x] Não criar `--text-*` no `@theme`: a escala é a padrão
+- [x] Revisar telas, principalmente cards de vaga, tabela de coletas e configurações
 
 Os espaçamentos seguem a mesma regra: a escala padrão do Tailwind (`gap-1.5`, `px-2.5`, `min-h-9.5`…, em passos de 2px), arredondando para cima os valores ímpares (3px vira `1`, 7px vira `2`, 9px vira `2.5`).
+
+### Notas da fase 5
+
+- **Sem `font-size` no `styles.css`:** os 30 tamanhos viraram classes no JSX (e o do `body`, `class="text-base"` no `index.html`). As regras `.small`, `.xsmall` e `.label` saíram; o rótulo mono virou a constante `LABEL` (`components/ui/text.ts`).
+- **Altura da linha:** as classes `text-*` trazem a altura de linha padrão. Onde o CSS antigo definia uma própria, ela virou a classe padrão de cima: 1,6 → `leading-relaxed` (post e mensagem), 1,3 → `leading-snug` (cargo no card) e 1,2 → `leading-tight` (cargo no detalhe).
+- **Título das telas:** o `clamp(32px, 4.4vw, 44px)` virou `text-4xl md:text-5xl` (36px no celular, 48px a partir de 861px).
+- **Regras vazias removidas:** `.job-sub`, `.status-clock` e `.term-sent` só tinham o tamanho da fonte.
+- **Para a fase 6:** no celular, um cargo com palavra longa ("DESENVOLVEDOR(A)") passa da coluna do título no card de vaga (já acontecia antes desta fase); e o slider dos filtros passa 2px da largura por causa da margem padrão do navegador.
 
 ---
 

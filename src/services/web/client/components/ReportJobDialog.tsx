@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 
 import type { WebJob } from '../../api-types'
+import { cx } from '../lib/cx'
 import { notify } from '../stores/toast'
 import { Icon } from './Icon'
 import { Button } from './ui/Button'
 import { IconButton } from './ui/IconButton'
 import { Pill, PillGroup } from './ui/Pill'
+import { LABEL } from './ui/text'
 
 /** Campos da vaga que podem ter vindo errados da extração da IA. */
 export const REPORTABLE_FIELDS = {
@@ -58,17 +60,17 @@ export function ReportJobDialog({ job, onClose }: { job: WebJob; onClose: () => 
 		>
 			<div className="dialog-body stack-sm">
 				<div className="row-between">
-					<h2 className="dialog-title" id="report-title">
+					<h2 className="dialog-title text-lg" id="report-title">
 						O que saiu errado?
 					</h2>
 					<IconButton label="Fechar" onClick={() => ref.current?.close()}>
 						<Icon name="close" />
 					</IconButton>
 				</div>
-				<p className="muted small ellipsis">{job.title}</p>
+				<p className="muted text-sm ellipsis">{job.title}</p>
 
 				<fieldset className="filter-group">
-					<legend className="label">dados errados_</legend>
+					<legend className={LABEL}>dados errados_</legend>
 					<PillGroup>
 						{(Object.keys(REPORTABLE_FIELDS) as ReportableField[]).map(field => (
 							<Pill
@@ -82,7 +84,7 @@ export function ReportJobDialog({ job, onClose }: { job: WebJob; onClose: () => 
 					</PillGroup>
 				</fieldset>
 
-				<div className="dialog-or label">ou</div>
+				<div className={cx('dialog-or', LABEL)}>ou</div>
 
 				<Pill
 					shape="row"
@@ -90,7 +92,7 @@ export function ReportJobDialog({ job, onClose }: { job: WebJob; onClose: () => 
 					onClick={() => setReport(report?.kind === 'not-a-job' ? null : { kind: 'not-a-job' })}
 				>
 					<span className="grow">não é vaga</span>
-					<span className="xsmall">sai da lista, sem apagar</span>
+					<span className="text-xs">sai da lista, sem apagar</span>
 				</Pill>
 
 				<div className="dialog-actions">

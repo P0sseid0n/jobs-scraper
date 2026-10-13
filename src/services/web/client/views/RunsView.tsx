@@ -10,6 +10,7 @@ import { Notice } from '../components/ui/Notice'
 import { Skeleton } from '../components/ui/Skeleton'
 import { StatusDot, type StatusDotTone } from '../components/ui/StatusDot'
 import { SwitchField } from '../components/ui/Switch'
+import { LABEL } from '../components/ui/text'
 import { TextLink } from '../components/ui/TextLink'
 import { cx } from '../lib/cx'
 import { formatDateTime, formatDuration, formatInterval, isLoginFailure } from '../lib/format'
@@ -58,7 +59,7 @@ function FailureAlert({ status }: { status: ScraperStatus | null }) {
 	return (
 		<Notice tone="danger" size="lg" icon="alert">
 			<p className="strong">{login ? 'Ação necessária: o LinkedIn pediu verificação' : 'A última coleta falhou'}</p>
-			<p className="small">
+			<p className="text-sm">
 				{formatDateTime(last.startedAt)} · {last.error ?? 'sem detalhes'}
 				{login &&
 					' Resolva o captcha/2FA na sessão do scraper (rode com HEADLESS=false ou renove o LINKEDIN_LI_AT); as próximas coletas vão falhar até lá.'}
@@ -94,12 +95,12 @@ function RunRows({ run, open, onToggle }: { run: WebScraperRun; open: boolean; o
 				<td className="mono">{duration}</td>
 				<td className="mono">
 					{run.sent}
-					{run.skipped > 0 && <span className="muted xsmall"> · {run.skipped} já vistos</span>}
+					{run.skipped > 0 && <span className="muted text-xs"> · {run.skipped} já vistos</span>}
 				</td>
 				<td className="mono">
 					{run.newJobs ?? '–'}
-					{discarded(run) > 0 && <span className="muted xsmall"> · {discarded(run)} descartados</span>}
-					{(run.outcomes?.pending ?? 0) > 0 && <span className="muted xsmall"> · {run.outcomes?.pending} na fila</span>}
+					{discarded(run) > 0 && <span className="muted text-xs"> · {discarded(run)} descartados</span>}
+					{(run.outcomes?.pending ?? 0) > 0 && <span className="muted text-xs"> · {run.outcomes?.pending} na fila</span>}
 				</td>
 				<td className={cx('wrap-cell', (run.error || failedTerms > 0) && 'danger-text')}>
 					{run.error && run.status === 'failed'
@@ -122,11 +123,11 @@ function RunRows({ run, open, onToggle }: { run: WebScraperRun; open: boolean; o
 						<ul className="terms-grid plain">
 							{run.terms.map(term => (
 								<li key={term.term} className={cx('card term-card', term.error && 'term-failed')}>
-									<span className="mono muted xsmall">{term.term}</span>
+									<span className="mono muted text-xs">{term.term}</span>
 									{term.error ? (
-										<span className="small danger-text">falhou: {term.error}</span>
+										<span className="text-sm danger-text">falhou: {term.error}</span>
 									) : (
-										<span className="mono term-sent">
+										<span className="mono text-lg">
 											{term.sent} novos{term.skipped > 0 && <span className="muted"> · {term.skipped} já vistos</span>}
 										</span>
 									)}
@@ -135,7 +136,7 @@ function RunRows({ run, open, onToggle }: { run: WebScraperRun; open: boolean; o
 						</ul>
 						{run.outcomes && run.sent > 0 && (
 							<div className="stack-xs run-outcomes">
-								<span className="label">destino dos posts novos_</span>
+								<span className={LABEL}>destino dos posts novos_</span>
 								<BadgeList>
 									{(Object.keys(OUTCOMES) as (keyof typeof OUTCOMES)[])
 										.filter(outcome => run.outcomes?.counts[outcome])
@@ -278,23 +279,23 @@ export function RunsView() {
 								{running ? 'em andamento' : status.paused ? 'pausada' : 'ociosa'}
 							</Badge>
 							{running && (
-								<span className="mono xsmall text-muted">
+								<span className="mono text-xs text-muted">
 									{TRIGGERS[running.trigger].toLowerCase()} · iniciada {formatDateTime(running.startedAt)}
 								</span>
 							)}
 						</div>
-						{running && <span className="mono status-clock">{formatDuration(now - new Date(running.startedAt).getTime())}</span>}
+						{running && <span className="mono text-3xl">{formatDuration(now - new Date(running.startedAt).getTime())}</span>}
 					</div>
 
 					{running ? (
-						<p className="text-muted small">
+						<p className="text-muted text-sm">
 							Buscando os posts de cada termo ativo e enviando para a IA. Uma coleta leva de 2 a 10 minutos; o resultado por
 							termo aparece no histórico quando ela terminar.
 						</p>
 					) : (
 						<div>
-							<p className="text-muted small">próxima coleta automática</p>
-							<p className="mono status-next">
+							<p className="text-muted text-sm">próxima coleta automática</p>
+							<p className="mono status-next text-3xl">
 								{status.paused
 									? 'coletas pausadas'
 									: next !== null && next > 0
@@ -305,7 +306,7 @@ export function RunsView() {
 					)}
 
 					<div className="row-between wrap">
-						<span className="mono xsmall text-muted">
+						<span className="mono text-xs text-muted">
 							{status.paused ? '“coletar agora” continua funcionando' : formatInterval(status.intervalMinutes)}
 						</span>
 						<Button
@@ -323,7 +324,7 @@ export function RunsView() {
 				</section>
 
 				<section className="card stack-sm">
-					<h2 className="label">agenda_</h2>
+					<h2 className={LABEL}>agenda_</h2>
 					<SwitchField
 						id="runs-paused"
 						title="pausar coletas automáticas"
@@ -333,12 +334,12 @@ export function RunsView() {
 						onChange={setPaused}
 					/>
 					{status.last && (
-						<p className="muted small">
+						<p className="muted text-sm">
 							última coleta: {formatDateTime(status.last.startedAt)} ·{' '}
 							{status.last.status === 'success' ? lastRunSummary(status.last) : 'falhou'}
 						</p>
 					)}
-					<TextLink className="small" href="/configuracoes" onClick={onLinkClick}>
+					<TextLink className="text-sm" href="/configuracoes" onClick={onLinkClick}>
 						editar termos e intervalo
 					</TextLink>
 				</section>
@@ -350,10 +351,12 @@ export function RunsView() {
 		<div className="page">
 			<section className="hero">
 				<div>
-					<h1 className="display">
+					<h1 className="display text-4xl md:text-5xl">
 						coletas <span className="mono display-mono">do scraper.</span>
 					</h1>
-					<p className="muted lead">Histórico dos últimos 90 dias. Cada coleta busca posts por termo e manda para a IA.</p>
+					<p className="muted lead text-sm">
+						Histórico dos últimos 90 dias. Cada coleta busca posts por termo e manda para a IA.
+					</p>
 				</div>
 			</section>
 
@@ -362,10 +365,10 @@ export function RunsView() {
 
 			<section className="stack-sm">
 				<div className="row-between wrap">
-					<h2 className="section-title">
+					<h2 className="section-title text-xl">
 						histórico <span className="mono">de coletas</span>
 					</h2>
-					<span className="mono muted xsmall">posts novos vão para a IA; vagas novas são as salvas a partir deles</span>
+					<span className="mono muted text-xs">posts novos vão para a IA; vagas novas são as salvas a partir deles</span>
 				</div>
 
 				{runsState === 'error' && (
@@ -389,7 +392,7 @@ export function RunsView() {
 				{runsState === 'ready' && runs.length > 0 && (
 					<div className="card table-wrap">
 						<table className="runs-table">
-							<thead>
+							<thead className="text-xs">
 								<tr>
 									<th scope="col">status</th>
 									<th scope="col">gatilho</th>
@@ -403,7 +406,7 @@ export function RunsView() {
 									</th>
 								</tr>
 							</thead>
-							<tbody>
+							<tbody className="text-sm">
 								{runs.map(run => (
 									<RunRows key={run.id} run={run} open={expanded.has(run.id)} onToggle={() => toggle(run.id)} />
 								))}

@@ -134,7 +134,7 @@ export function App() {
 			</a>
 			<header className="topbar">
 				<div className="topbar-inner">
-					<a className="logo mono" href="/" onClick={onLinkClick}>
+					<a className="logo mono text-sm" href="/" onClick={onLinkClick}>
 						<ProjectIcon />
 						jobs/scraper<span className="logo-cursor">_</span>
 					</a>
@@ -142,7 +142,7 @@ export function App() {
 						{NAV.map(item => (
 							<a
 								key={item.path}
-								className={cx('navlink', isActive(item.path) && 'active')}
+								className={cx('navlink text-sm', isActive(item.path) && 'active')}
 								href={item.path}
 								aria-current={isActive(item.path) ? 'page' : undefined}
 								onClick={onLinkClick}
@@ -188,7 +188,7 @@ export function App() {
 				{NAV.map(item => (
 					<a
 						key={item.path}
-						className={cx('bottomnav-item', isActive(item.path) && 'active')}
+						className={cx('bottomnav-item text-xs', isActive(item.path) && 'active')}
 						href={item.path}
 						aria-current={isActive(item.path) ? 'page' : undefined}
 						onClick={onLinkClick}
@@ -208,7 +208,11 @@ export function App() {
 
 			<div className="toasts" aria-live="polite">
 				{toasts.map(toast => (
-					<div key={toast.id} className={cx('toast', `toast-${toast.tone}`)} role={toast.tone === 'error' ? 'alert' : 'status'}>
+					<div
+						key={toast.id}
+						className={cx('toast text-sm', `toast-${toast.tone}`)}
+						role={toast.tone === 'error' ? 'alert' : 'status'}
+					>
 						<span className="grow">{toast.message}</span>
 						<IconButton label="Fechar aviso" size="sm" onClick={() => dismissToast(toast.id)}>
 							<Icon name="close" size={14} />

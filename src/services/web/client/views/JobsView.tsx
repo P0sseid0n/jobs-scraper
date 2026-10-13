@@ -12,6 +12,7 @@ import { Checkbox, Range, SearchInput, Select } from '../components/ui/Input'
 import { Pill, PILL_COUNT, PillGroup } from '../components/ui/Pill'
 import { Skeleton } from '../components/ui/Skeleton'
 import { StatusDot } from '../components/ui/StatusDot'
+import { LABEL } from '../components/ui/text'
 import { cx } from '../lib/cx'
 import { CONTRACT_TYPES, LANGUAGE_NAMES, WORK_MODES } from '../lib/format'
 import { hasActiveFilters } from '../lib/job-filters'
@@ -64,7 +65,7 @@ function Filters({ open }: { open: boolean }) {
 			/>
 
 			<fieldset className="filter-group">
-				<legend className="label">período_</legend>
+				<legend className={LABEL}>período_</legend>
 				<PillGroup>
 					{PERIODS.map(([value, label]) => (
 						<Pill key={value} pressed={filters.since === value} onClick={() => setFilters({ since: value })}>
@@ -75,7 +76,7 @@ function Filters({ open }: { open: boolean }) {
 			</fieldset>
 
 			<fieldset className="filter-group">
-				<legend className="label">modalidade_</legend>
+				<legend className={LABEL}>modalidade_</legend>
 				<div className="stack-xs">
 					{(Object.keys(WORK_MODES) as (keyof typeof WORK_MODES)[]).map(mode => (
 						<Pill
@@ -93,7 +94,7 @@ function Filters({ open }: { open: boolean }) {
 			</fieldset>
 
 			<fieldset className="filter-group">
-				<legend className="label">regime_</legend>
+				<legend className={LABEL}>regime_</legend>
 				<PillGroup>
 					{(Object.keys(CONTRACT_TYPES) as (keyof typeof CONTRACT_TYPES)[]).map(type => (
 						<Pill
@@ -109,7 +110,7 @@ function Filters({ open }: { open: boolean }) {
 
 			{(skills.length > 0 || filters.skills.length > 0) && (
 				<fieldset className="filter-group">
-					<legend className="label">tecnologias_</legend>
+					<legend className={LABEL}>tecnologias_</legend>
 					<PillGroup>
 						{selectedSkills.map(skill => (
 							<Pill key={skill} pressed onClick={() => setFilters({ skills: toggled(filters.skills, skill) })}>
@@ -138,7 +139,7 @@ function Filters({ open }: { open: boolean }) {
 				</fieldset>
 			)}
 
-			<div className="filter-group filter-extra">
+			<div className="filter-group filter-extra text-sm">
 				<label className="row-between">
 					tem e-mail de contato
 					<Checkbox checked={filters.hasEmail} onChange={event => setFilters({ hasEmail: event.target.checked })} />
@@ -235,7 +236,7 @@ function JobList({ selectedId, onSelect }: { selectedId: string | null; onSelect
 					</Button>
 				</div>
 			) : (
-				<p className="mono muted xsmall end-of-list">fim da lista</p>
+				<p className="mono muted text-xs end-of-list">fim da lista</p>
 			)}
 		</>
 	)
@@ -272,35 +273,35 @@ export function JobsView({ selectedRouteId }: { selectedRouteId: string | null }
 		<div className="page">
 			<section className="hero">
 				<div>
-					<h1 className="display">
+					<h1 className="display text-4xl md:text-5xl">
 						vagas de front-end,
 						<br />
 						<span className="mono display-mono">coletadas.</span>
 					</h1>
-					<p className="muted lead">
+					<p className="muted lead text-sm">
 						Posts do LinkedIn lidos pela IA, filtrados e prontos pra você agir: abrir o post, copiar o contato, gerar o
 						currículo.
 					</p>
 				</div>
 				<dl className="stats">
 					<div>
-						<dt className="muted small">no histórico</dt>
-						<dd className="mono">{facets ? facets.total.toLocaleString('pt-BR') : '–'}</dd>
+						<dt className="muted text-sm">no histórico</dt>
+						<dd className="mono text-3xl">{facets ? facets.total.toLocaleString('pt-BR') : '–'}</dd>
 					</div>
 					<div>
-						<dt className="muted small">currículos gerando</dt>
-						<dd className="mono">{pendingCvs}</dd>
+						<dt className="muted text-sm">currículos gerando</dt>
+						<dd className="mono text-3xl">{pendingCvs}</dd>
 					</div>
 				</dl>
 			</section>
 
 			{incoming.length > 0 && (
-				<button type="button" className="new-jobs" onClick={showIncoming}>
+				<button type="button" className="new-jobs text-sm" onClick={showIncoming}>
 					<Badge tone="lime" size="sm">
 						ao vivo
 					</Badge>
 					{incoming.length === 1 ? '1 vaga nova' : `${incoming.length} vagas novas`}
-					<span className="mono xsmall underline">mostrar no topo</span>
+					<span className="mono text-xs underline">mostrar no topo</span>
 				</button>
 			)}
 
@@ -319,7 +320,7 @@ export function JobsView({ selectedRouteId }: { selectedRouteId: string | null }
 
 				<section className="job-list" aria-label="Lista de vagas" aria-busy={status === 'loading'}>
 					{status === 'ready' && jobs.length > 0 && (
-						<div className="row-between mono muted xsmall">
+						<div className="row-between mono muted text-xs">
 							<span>
 								{jobs.length}
 								{nextCursor ? '+' : ''} vagas

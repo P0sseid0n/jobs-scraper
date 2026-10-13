@@ -181,10 +181,10 @@ export function SettingsView() {
 		return (
 			<section className="card settings-card" aria-labelledby="scraper-title">
 				<div className="row-between wrap">
-					<h2 id="scraper-title" className="section-title">
-						coleta <span className="mono muted xsmall">scraper</span>
+					<h2 id="scraper-title" className="section-title text-xl">
+						coleta <span className="mono muted text-xs">scraper</span>
 					</h2>
-					<span className="mono muted xsmall">
+					<span className="mono muted text-xs">
 						{terms.length} / {LIMITS.searchTerms} termos
 					</span>
 				</div>
@@ -306,8 +306,8 @@ export function SettingsView() {
 
 		return (
 			<section className="card settings-card" aria-labelledby="processing-title">
-				<h2 id="processing-title" className="section-title">
-					filtros das vagas <span className="mono muted xsmall">pós-processamento</span>
+				<h2 id="processing-title" className="section-title text-xl">
+					filtros das vagas <span className="mono muted text-xs">pós-processamento</span>
 				</h2>
 
 				<div className="stack-xs">
@@ -374,7 +374,7 @@ export function SettingsView() {
 						<div className="stack-xs" key={field}>
 							<span className="row-between">
 								<FieldLabel htmlFor={field}>{label}</FieldLabel>
-								<span className="mono muted xsmall">
+								<span className="mono muted text-xs">
 									{p[field].length} / {LIMITS.keywords}
 								</span>
 							</span>
@@ -416,10 +416,10 @@ export function SettingsView() {
 		<div className="page page-medium settings-page">
 			<section className="hero">
 				<div>
-					<h1 className="display">
+					<h1 className="display text-4xl md:text-5xl">
 						configurações <span className="mono display-mono">da máquina.</span>
 					</h1>
-					<p className="muted lead">
+					<p className="muted lead text-sm">
 						As mudanças valem a partir da próxima coleta, sem reiniciar nada. Os filtros não reprocessam vagas antigas.
 					</p>
 				</div>
@@ -461,7 +461,7 @@ export function SettingsView() {
 					<div className="save-bar-inner">
 						<span
 							role="status"
-							className={cx('mono small grow', saveState === 'error' && 'danger-text', saveState === 'saved' && 'ok-text')}
+							className={cx('mono text-sm grow', saveState === 'error' && 'danger-text', saveState === 'saved' && 'ok-text')}
 						>
 							{saveState === 'saving'
 								? 'salvando…'

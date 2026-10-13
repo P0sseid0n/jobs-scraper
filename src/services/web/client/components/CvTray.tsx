@@ -44,7 +44,7 @@ export function CvTray() {
 		<aside className="cv-tray inverted" aria-label="Currículos em andamento">
 			<button
 				type="button"
-				className="cv-tray-head mono text-muted"
+				className="cv-tray-head mono text-xs text-muted"
 				aria-expanded={!collapsed}
 				onClick={() => setCollapsed(!collapsed)}
 			>
@@ -58,7 +58,7 @@ export function CvTray() {
 							<StatusDot {...TRAY_DOTS[item.status]} />
 							<div className="grow min-0">
 								<a
-									className="ellipsis cv-tray-title"
+									className="ellipsis cv-tray-title text-sm"
 									href={jobPath(item.postId)}
 									onClick={event => {
 										event.preventDefault()
@@ -67,7 +67,7 @@ export function CvTray() {
 								>
 									{item.jobTitle ?? 'Vaga'}
 								</a>
-								<div className="mono xsmall truncate text-muted" title={item.error ?? undefined}>
+								<div className="mono text-xs truncate text-muted" title={item.error ?? undefined}>
 									{item.status === 'failed' && item.error ? `falhou: ${item.error}` : STATUS_TEXT[item.status]}
 								</div>
 							</div>
