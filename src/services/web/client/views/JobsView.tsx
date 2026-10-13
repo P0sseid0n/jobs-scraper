@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import type { WebJob } from '../../api-types'
+import { isJobRouteId } from '../../job-route-id'
 import { Icon } from '../components/Icon'
 import { JobCard, JobCardSkeleton } from '../components/JobCard'
 import { JobDetail } from '../components/JobDetail'
@@ -12,6 +13,7 @@ import { jobPath, navigate, onLinkClick } from '../router'
 import { useTrayRequests } from '../stores/cv'
 import { clearFilters, loadJobs, loadMoreJobs, setFilters, showIncoming, startJobs, useJobs } from '../stores/jobs'
 import { markSeen } from '../stores/seen'
+import { useJob } from './JobPage'
 
 const PERIODS = [
 	['24h', '24h'],
@@ -254,27 +256,31 @@ function JobList({ selectedId, onSelect }: { selectedId: string | null; onSelect
 	)
 }
 
-/** Tela principal: filtros, lista para escanear e, no desktop, o detalhe da vaga ao lado. */
-export function JobsView() {
+/**
+ * Tela principal: filtros, lista para escanear e, no desktop, o detalhe da vaga ao lado. No desktop a vaga aberta fica
+ * na URL (`/vagas/:id`, em `selectedRouteId`): voltar e avançar trocam de vaga e o link pode ser compartilhado.
+ */
+export function JobsView({ selectedRouteId }: { selectedRouteId: string | null }) {
 	const { jobs, status, facets, filters, nextCursor, incoming } = useJobs()
 	const wide = useWideLayout()
 	const tray = useTrayRequests()
-	const [selectedId, setSelectedId] = useState<string | null>(null)
 	const [filtersOpen, setFiltersOpen] = useState(false)
+	// Fora da lista carregada (link direto para uma vaga antiga), a vaga vem da API
+	const routeJob = useJob(selectedRouteId)
 
 	useEffect(startJobs, [])
 
-	const selected = jobs.find(job => job.postId === selectedId) ?? (wide ? jobs[0] : undefined)
+	const selected = selectedRouteId
+		? (jobs.find(job => isJobRouteId(job.postId, selectedRouteId)) ?? routeJob.job ?? undefined)
+		: wide
+			? jobs[0]
+			: undefined
 	const pendingCvs = tray.filter(request => request.status === 'pending').length
 
 	function select(job: WebJob) {
 		markSeen(job.postId)
-
-		if (!wide) {
-			navigate(jobPath(job.postId))
-			return
-		}
-		setSelectedId(job.postId)
+		// No desktop a lista continua na tela: troca só a vaga do painel, sem voltar ao topo
+		navigate(jobPath(job.postId), { scroll: !wide })
 	}
 
 	return (
@@ -340,6 +346,20 @@ export function JobsView() {
 				{wide && selected && (
 					<aside className="card detail-panel" aria-label="Detalhe da vaga">
 						<JobDetail job={selected} />
+					</aside>
+				)}
+				{wide && !selected && selectedRouteId && (
+					<aside className="card detail-panel" aria-label="Detalhe da vaga" aria-busy={!routeJob.error}>
+						{routeJob.error ? (
+							<div className="empty" role="alert">
+								<p className="strong">{routeJob.error}</p>
+								<a className="btn btn-lime" href="/" onClick={onLinkClick}>
+									ver todas as vagas
+								</a>
+							</div>
+						) : (
+							<div className="skeleton detail-skeleton" />
+						)}
 					</aside>
 				)}
 			</div>

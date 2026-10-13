@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import type { WebJob } from '../../api-types'
+import { isJobRouteId } from '../../job-route-id'
 import { api } from '../api'
 import { Icon } from '../components/Icon'
 import { JobDetail } from '../components/JobDetail'
@@ -8,21 +9,32 @@ import { goBack, onLinkClick } from '../router'
 import { jobsStore } from '../stores/jobs'
 import { markSeen } from '../stores/seen'
 
-/** Página da vaga: o detalhe no celular, e o destino de links diretos (ex.: o indicador de currículos). */
-export function JobPage({ postId }: { postId: string }) {
+/**
+ * A vaga de `/vagas/:id` (id curto, ver `jobRouteId`), marcada como vista: a da lista já carregada ou, se ela não
+ * estiver lá (link direto para uma vaga antiga), buscada na API. Com `routeId` nulo, não faz nada.
+ */
+export function useJob(routeId: string | null) {
 	const [job, setJob] = useState<WebJob | null>(null)
 	const [error, setError] = useState<string | null>(null)
 
 	useEffect(() => {
 		let active = true
-		markSeen(postId)
 		setError(null)
+		if (!routeId) {
+			setJob(null)
+			return
+		}
 
-		const known = jobsStore.get().jobs.find(item => item.postId === postId) ?? null
+		const known = jobsStore.get().jobs.find(item => isJobRouteId(item.postId, routeId)) ?? null
 		setJob(known)
-		if (!known) {
-			api.job(postId).then(
-				found => active && setJob(found),
+		if (known) markSeen(known.postId)
+		else {
+			api.job(routeId).then(
+				found => {
+					if (!active) return
+					markSeen(found.postId)
+					setJob(found)
+				},
 				(cause: Error) => active && setError(cause.message),
 			)
 		}
@@ -30,7 +42,14 @@ export function JobPage({ postId }: { postId: string }) {
 		return () => {
 			active = false
 		}
-	}, [postId])
+	}, [routeId])
+
+	return { job, error }
+}
+
+/** Página da vaga no celular. No desktop, `/vagas/:id` abre a lista com a vaga no painel ao lado (`JobsView`). */
+export function JobPage({ routeId }: { routeId: string }) {
+	const { job, error } = useJob(routeId)
 
 	return (
 		<div className="page page-narrow">

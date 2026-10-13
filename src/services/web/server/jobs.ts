@@ -2,6 +2,7 @@ import { CONTRACT_TYPES } from '@shared/contracts'
 import { Job } from '@shared/database'
 
 import type { JobFacets, JobsPage, WebJob } from '../api-types'
+import { postIdCandidates } from '../job-route-id'
 import { encodeCursor, HttpError, queryParams } from './http'
 import { buildJobsFilter, JobsQuerySchema, LISTABLE_JOBS, toWebJob, type JobDocument } from './jobs-query'
 
@@ -65,7 +66,9 @@ export async function jobFacets() {
 
 /** `GET /api/jobs/:postId` */
 export async function getJob(req: Request & { params: { postId: string } }) {
-	const doc = await Job.findOne({ ...LISTABLE_JOBS, postId: req.params.postId }).lean<JobDocument>()
+	// O site pede pelo id curto da URL (sem `urn:li:<tipo>:`); o postId inteiro também vale
+	const doc = await Job.findOne({ ...LISTABLE_JOBS, postId: { ...LISTABLE_JOBS.postId, $in: postIdCandidates(req.params.postId) } })
+		.lean<JobDocument>()
 	if (!doc) throw new HttpError(404, 'Vaga não encontrada')
 
 	return Response.json(toWebJob(doc) satisfies WebJob)

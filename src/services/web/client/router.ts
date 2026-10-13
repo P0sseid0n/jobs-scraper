@@ -1,5 +1,6 @@
 import type { MouseEvent } from 'react'
 
+import { jobRouteId } from '../job-route-id'
 import { createStore, useStore } from './lib/store'
 
 /** Roteador mínimo sobre a History API: o servidor devolve a aplicação em qualquer caminho fora de `/api`. */
@@ -16,14 +17,15 @@ function depth() {
 	return (history.state as { depth?: number } | null)?.depth ?? 0
 }
 
-export function navigate(to: string, { replace = false } = {}) {
+/** `scroll: false` mantém a rolagem (ex.: trocar a vaga do painel ao lado da lista). */
+export function navigate(to: string, { replace = false, scroll = true } = {}) {
 	if (to === location.pathname + location.search) return
 
 	if (replace) history.replaceState({ depth: depth() }, '', to)
 	else history.pushState({ depth: depth() + 1 }, '', to)
 
 	sync()
-	if (!replace) window.scrollTo({ top: 0 })
+	if (!replace && scroll) window.scrollTo({ top: 0 })
 }
 
 /** Volta para a tela anterior da aplicação; se a página foi aberta direto (link), vai para `fallback`. */
@@ -36,7 +38,7 @@ function sync() {
 	route.set({ path: location.pathname })
 }
 
-/** Lê `:param` de um padrão como `/vagas/:postId`; `null` se o caminho não casa. */
+/** Lê `:param` de um padrão como `/vagas/:id`; `null` se o caminho não casa. */
 export function matchPath(pattern: string, path = route.get().path) {
 	const names: string[] = []
 	const regex = new RegExp(
@@ -51,8 +53,9 @@ export function matchPath(pattern: string, path = route.get().path) {
 	return Object.fromEntries(names.map((name, index) => [name, decodeURIComponent(match[index + 1]!)]))
 }
 
+/** `/vagas/7515393090820456448`: o id curto, sem o `urn:li:<tipo>:` do LinkedIn. */
 export function jobPath(postId: string) {
-	return `/vagas/${encodeURIComponent(postId)}`
+	return `/vagas/${encodeURIComponent(jobRouteId(postId))}`
 }
 
 /** Clique normal num link interno navega sem recarregar; com Ctrl/Cmd/meio, o navegador abre outra aba. */

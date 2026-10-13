@@ -7,6 +7,7 @@ import { Icon, type IconName } from './components/Icon'
 import { ProjectIcon } from './components/ProjectIcon'
 import { cx } from './lib/cx'
 import { formatDuration } from './lib/format'
+import { useWideLayout } from './lib/media'
 import { matchPath, onLinkClick, useRoute } from './router'
 import { useTrayRequests } from './stores/cv'
 import { useConnected } from './stores/live'
@@ -70,12 +71,15 @@ function useScraperPill() {
 }
 
 function View({ path }: { path: string }) {
-	const job = matchPath('/vagas/:postId', path)
-	if (job?.postId) return <JobPage postId={job.postId} />
+	const wide = useWideLayout()
+
+	// No desktop a vaga abre no painel ao lado da lista: é o mesmo JobsView de `/`, que mantém o estado ao trocar de vaga
+	const job = matchPath('/vagas/:id', path)
+	if (job?.id) return wide ? <JobsView selectedRouteId={job.id} /> : <JobPage routeId={job.id} />
 
 	switch (path.replace(/\/$/, '') || '/') {
 		case '/':
-			return <JobsView />
+			return <JobsView selectedRouteId={null} />
 		case '/curriculos':
 			return <CvsView />
 		case '/coletas':
