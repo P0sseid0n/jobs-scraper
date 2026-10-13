@@ -71,11 +71,7 @@ export function CvTray() {
 								</Button>
 							)}
 							{item.status !== 'pending' && (
-								<IconButton
-									label="Dispensar"
-									className="tray-close"
-									onClick={() => dismissCv(item.requestId)}
-								>
+								<IconButton label="Dispensar" className="tray-close" onClick={() => dismissCv(item.requestId)}>
 									<Icon name="close" size={14} />
 								</IconButton>
 							)}

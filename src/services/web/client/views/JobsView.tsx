@@ -66,11 +66,7 @@ function Filters({ open }: { open: boolean }) {
 				<legend className="label">período_</legend>
 				<div className="pills">
 					{PERIODS.map(([value, label]) => (
-						<Pill
-							key={value}
-							pressed={filters.since === value}
-							onClick={() => setFilters({ since: value })}
-						>
+						<Pill key={value} pressed={filters.since === value} onClick={() => setFilters({ since: value })}>
 							{label}
 						</Pill>
 					))}
@@ -115,11 +111,7 @@ function Filters({ open }: { open: boolean }) {
 					<legend className="label">tecnologias_</legend>
 					<div className="pills">
 						{selectedSkills.map(skill => (
-							<Pill
-								key={skill}
-								pressed
-								onClick={() => setFilters({ skills: toggled(filters.skills, skill) })}
-							>
+							<Pill key={skill} pressed onClick={() => setFilters({ skills: toggled(filters.skills, skill) })}>
 								{skill}
 							</Pill>
 						))}

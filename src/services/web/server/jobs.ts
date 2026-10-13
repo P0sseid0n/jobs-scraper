@@ -67,8 +67,10 @@ export async function jobFacets() {
 /** `GET /api/jobs/:postId` */
 export async function getJob(req: Request & { params: { postId: string } }) {
 	// O site pede pelo id curto da URL (sem `urn:li:<tipo>:`); o postId inteiro também vale
-	const doc = await Job.findOne({ ...LISTABLE_JOBS, postId: { ...LISTABLE_JOBS.postId, $in: postIdCandidates(req.params.postId) } })
-		.lean<JobDocument>()
+	const doc = await Job.findOne({
+		...LISTABLE_JOBS,
+		postId: { ...LISTABLE_JOBS.postId, $in: postIdCandidates(req.params.postId) },
+	}).lean<JobDocument>()
 	if (!doc) throw new HttpError(404, 'Vaga não encontrada')
 
 	return Response.json(toWebJob(doc) satisfies WebJob)

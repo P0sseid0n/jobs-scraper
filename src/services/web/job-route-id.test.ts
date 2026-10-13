@@ -26,13 +26,7 @@ describe('isJobRouteId', () => {
 
 describe('postIdCandidates', () => {
 	test('id curto vira cada tipo de URN', () => {
-		expect(postIdCandidates('1')).toEqual([
-			'1',
-			'urn:li:activity:1',
-			'urn:li:ugcPost:1',
-			'urn:li:share:1',
-			'urn:li:groupPost:1',
-		])
+		expect(postIdCandidates('1')).toEqual(['1', 'urn:li:activity:1', 'urn:li:ugcPost:1', 'urn:li:share:1', 'urn:li:groupPost:1'])
 	})
 
 	test('postId inteiro é buscado como está', () => {
