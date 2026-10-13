@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, type FormEvent, type InputHTMLAttributes } from 'react'
+import { useBlocker } from '@tanstack/react-router'
+import { useMemo, useState, type FormEvent, type InputHTMLAttributes } from 'react'
 
 import { DATE_POSTED_FILTERS, type DatePostedFilter } from '@shared/contracts'
 
@@ -7,14 +8,13 @@ import { api, RequestError } from '../api'
 import { Icon } from '../components/Icon'
 import { Button } from '../components/ui/Button'
 import { card } from '../components/ui/Card'
-import { EmptyState } from '../components/ui/EmptyState'
+import { ConfirmDialog } from '../components/ui/Dialog'
 import { FieldError, FieldHelp, FieldLabel } from '../components/ui/Field'
 import { IconButton } from '../components/ui/IconButton'
 import { Checkbox, Input, Range, Select } from '../components/ui/Input'
 import { KeywordInput } from '../components/ui/KeywordInput'
 import { Hero, Page } from '../components/ui/Page'
 import { pill, PillGroup } from '../components/ui/Pill'
-import { Skeleton } from '../components/ui/Skeleton'
 import { Switch, SwitchField } from '../components/ui/Switch'
 import { SECTION_TITLE } from '../components/ui/text'
 import { cx } from '../lib/cx'
@@ -39,29 +39,19 @@ function draftOf(settings: WebSettings): SettingsDraft {
 	return structuredClone({ scraper, 'post-processing': settings['post-processing'] })
 }
 
-/** Formulário das configurações do scraper e dos filtros das vagas; valem a partir da próxima coleta. */
-export function SettingsView() {
-	const [loaded, setLoaded] = useState<WebSettings | null>(null)
-	const [draft, setDraft] = useState<SettingsDraft | null>(null)
-	const [loadError, setLoadError] = useState<string | null>(null)
+/**
+ * Formulário das configurações do scraper e dos filtros das vagas; valem a partir da próxima coleta. As configurações
+ * salvas vêm do loader da rota (`routes/configuracoes.tsx`).
+ */
+export function SettingsView({ initial }: { initial: WebSettings }) {
+	const [loaded, setLoaded] = useState<WebSettings | null>(initial)
+	const [draft, setDraft] = useState<SettingsDraft | null>(() => draftOf(initial))
 	const [serverErrors, setServerErrors] = useState<Record<string, string>>({})
 	const [saveState, setSaveState] = useState<SaveState>('idle')
 	const [saveMessage, setSaveMessage] = useState('')
 	const [touched, setTouched] = useState(false)
 	const [newTerm, setNewTerm] = useState('')
 	const [savingPause, setSavingPause] = useState(false)
-
-	async function load() {
-		setLoadError(null)
-		try {
-			const [scraper, processing] = await Promise.all([api.settings('scraper'), api.settings('post-processing')])
-			const settings = { scraper, 'post-processing': processing }
-			setLoaded(settings)
-			reset(settings)
-		} catch (error) {
-			setLoadError((error as Error).message)
-		}
-	}
 
 	function reset(settings = loaded) {
 		if (!settings) return
@@ -71,10 +61,6 @@ export function SettingsView() {
 		setSaveState('idle')
 	}
 
-	useEffect(() => {
-		void load()
-	}, [])
-
 	const clientErrors = useMemo(() => (draft ? validateDraft(draft) : {}), [draft])
 	const errors: Record<string, string> = { ...serverErrors, ...(touched ? clientErrors : {}) }
 
@@ -83,6 +69,15 @@ export function SettingsView() {
 		const saved = draftOf(loaded)
 		return (['scraper', 'post-processing'] as const).filter(key => JSON.stringify(draft[key]) !== JSON.stringify(saved[key]))
 	}, [draft, loaded])
+
+	const dirty = dirtyKeys.length > 0
+
+	// Sair da tela (ou fechar a aba) com alterações não salvas pede confirmação
+	const blocker = useBlocker({
+		shouldBlockFn: () => dirty && saveState !== 'saving',
+		enableBeforeUnload: () => dirty,
+		withResolver: true,
+	})
 
 	/** Altera o rascunho (numa cópia) e marca o formulário como mexido. */
 	function edit(mutate: (draft: SettingsDraft) => void) {
@@ -415,7 +410,6 @@ export function SettingsView() {
 	}
 
 	const paused = loaded?.scraper.paused ?? false
-	const dirty = dirtyKeys.length > 0
 
 	return (
 		<Page width="medium" className="pb-40">
@@ -428,19 +422,16 @@ export function SettingsView() {
 				lead="As mudanças valem a partir da próxima coleta, sem reiniciar nada. Os filtros não reprocessam vagas antigas."
 			/>
 
-			{loadError && (
-				<EmptyState
-					tone="error"
-					title="Não consegui carregar as configurações"
-					description={loadError}
-					action={
-						<Button variant="lime" onClick={load}>
-							tentar de novo
-						</Button>
-					}
+			{blocker.status === 'blocked' && (
+				<ConfirmDialog
+					title="Sair sem salvar?"
+					description="As alterações nas configurações ainda não foram salvas e vão se perder."
+					confirmLabel="sair sem salvar"
+					cancelLabel="continuar editando"
+					onConfirm={blocker.proceed}
+					onCancel={blocker.reset}
 				/>
 			)}
-			{!loadError && !draft && <Skeleton className={card({ className: 'min-h-60' })} aria-busy="true" />}
 
 			{loaded && (
 				<div className={card({ className: cx('flex flex-wrap items-center gap-4 px-5 py-4.5', paused && 'bg-lime-soft') })}>
@@ -450,6 +441,7 @@ export function SettingsView() {
 								? 'Coletas automáticas pausadas'
 								: `Coletas automáticas ligadas · ${formatInterval(loaded.scraper.intervalMinutes)}`}
 						</p>
+
 						<FieldHelp>“Coletar agora” continua funcionando mesmo com as coletas pausadas.</FieldHelp>
 					</div>
 					<SwitchField id="settings-paused" title="pausar coletas" checked={paused} disabled={savingPause} onChange={setPaused} />

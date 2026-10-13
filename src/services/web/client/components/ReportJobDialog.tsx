@@ -10,6 +10,7 @@ import { correctionBody, draftFromJob, type CorrectionDraft } from '../lib/job-c
 import { notify } from '../stores/toast'
 import { Icon } from './Icon'
 import { Button } from './ui/Button'
+import { DIALOG } from './ui/Dialog'
 import { FieldError, FieldLabel } from './ui/Field'
 import { IconButton } from './ui/IconButton'
 import { Input, Select } from './ui/Input'
@@ -219,7 +220,7 @@ export function ReportJobDialog({
 		// biome-ignore lint/a11y/useKeyWithClickEvents: pelo teclado, o Esc já fecha o <dialog>
 		<dialog
 			ref={ref}
-			className="m-auto w-120 rounded-lg border border-line bg-surface p-0 text-ink shadow-float backdrop:bg-backdrop"
+			className={DIALOG}
 			aria-labelledby="report-title"
 			onClose={onClose}
 			// Clique no fundo escurecido (fora do conteúdo) fecha

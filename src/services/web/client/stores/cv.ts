@@ -86,6 +86,13 @@ export async function loadCvRequests() {
 	}
 }
 
+/** Para o loader de "Meus currículos": carrega e, se falhar, lança o erro (que vai para o `errorComponent` da rota). */
+export async function loadCvRequestsOrThrow() {
+	await loadCvRequests()
+	const { error } = state.get()
+	if (error) throw new Error(error)
+}
+
 /** Pede o currículo da vaga (ou devolve o pedido em andamento) e acompanha no indicador global. */
 export async function requestCv(job: Pick<WebJob, 'postId'>) {
 	const request = await api.requestCv(job.postId)

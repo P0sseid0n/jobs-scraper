@@ -1,43 +1,37 @@
+import { createRootRoute, Link, Outlet, useMatches, useRouterState } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 
-import type { ScraperStatus } from '../api-types'
-import { api } from './api'
-import { CvTray } from './components/CvTray'
-import { Icon, type IconName } from './components/Icon'
-import { ProjectIcon } from './components/ProjectIcon'
-import { Badge, badge } from './components/ui/Badge'
-import { Button } from './components/ui/Button'
-import { EmptyState } from './components/ui/EmptyState'
-import { IconButton } from './components/ui/IconButton'
-import { Page } from './components/ui/Page'
-import { StatusDot, type StatusDotTone } from './components/ui/StatusDot'
-import { cx } from './lib/cx'
-import { formatDuration } from './lib/format'
-import { useWideLayout } from './lib/media'
-import { matchPath, onLinkClick, useRoute } from './router'
-import { useTrayRequests } from './stores/cv'
-import { useConnected } from './stores/live'
-import { toggleTheme } from './stores/theme'
-import { dismissToast, useToasts } from './stores/toast'
-import { CvsView } from './views/CvsView'
-import { JobPage } from './views/JobPage'
-import { JobsView } from './views/JobsView'
-import { RunsView } from './views/RunsView'
-import { SettingsView } from './views/SettingsView'
+import type { ScraperStatus } from '../../api-types'
+import { api } from '../api'
+import { CvTray } from '../components/CvTray'
+import { Icon, type IconName } from '../components/Icon'
+import { ProjectIcon } from '../components/ProjectIcon'
+import { Badge, badge } from '../components/ui/Badge'
+import { ButtonLink } from '../components/ui/Button'
+import { EmptyState } from '../components/ui/EmptyState'
+import { IconButton } from '../components/ui/IconButton'
+import { Page } from '../components/ui/Page'
+import { StatusDot, type StatusDotTone } from '../components/ui/StatusDot'
+import { cx } from '../lib/cx'
+import { formatDuration } from '../lib/format'
+import { useTrayRequests } from '../stores/cv'
+import { jobsStore } from '../stores/jobs'
+import { useConnected } from '../stores/live'
+import { toggleTheme } from '../stores/theme'
+import { dismissToast, useToasts } from '../stores/toast'
 
-const NAV: { path: string; label: string; icon: IconName }[] = [
+/** A moldura de todas as telas: cabeçalho, navegação, bandeja de currículos e avisos. */
+export const Route = createRootRoute({ component: RootLayout, notFoundComponent: NotFound })
+
+const NAV = [
 	{ path: '/', label: 'vagas', icon: 'briefcase' },
 	{ path: '/curriculos', label: 'currículos', icon: 'file' },
 	{ path: '/coletas', label: 'coletas', icon: 'refresh' },
 	{ path: '/configuracoes', label: 'ajustes', icon: 'settings' },
-]
+] as const satisfies readonly { path: string; label: string; icon: IconName }[]
 
-const TITLES: Record<string, string> = {
-	'/': 'Vagas',
-	'/curriculos': 'Meus currículos',
-	'/coletas': 'Coletas',
-	'/configuracoes': 'Configurações',
-}
+/** Voltar para a lista mantém os últimos filtros usados. */
+const lastFilters = () => jobsStore.get().filters
 
 const PILL_DOTS: Record<'running' | 'failed' | 'paused' | 'idle', { tone: StatusDotTone; glow?: boolean }> = {
 	running: { tone: 'lime', glow: true },
@@ -83,50 +77,36 @@ function useScraperPill() {
 	}
 }
 
-function View({ path }: { path: string }) {
-	const wide = useWideLayout()
-
-	// No desktop a vaga abre no painel ao lado da lista: é o mesmo JobsView de `/`, que mantém o estado ao trocar de vaga
-	const job = matchPath('/vagas/:id', path)
-	if (job?.id) return wide ? <JobsView selectedRouteId={job.id} /> : <JobPage routeId={job.id} />
-
-	switch (path.replace(/\/$/, '') || '/') {
-		case '/':
-			return <JobsView selectedRouteId={null} />
-		case '/curriculos':
-			return <CvsView />
-		case '/coletas':
-			return <RunsView />
-		case '/configuracoes':
-			return <SettingsView />
-		default:
-			return (
-				<Page width="narrow">
-					<EmptyState
-						title="Página não encontrada"
-						action={
-							<Button variant="lime" href="/" onClick={onLinkClick}>
-								ver vagas
-							</Button>
-						}
-					/>
-				</Page>
-			)
-	}
+function NotFound() {
+	return (
+		<Page width="narrow">
+			<EmptyState
+				title="Página não encontrada"
+				action={
+					<ButtonLink variant="lime" to="/">
+						ver vagas
+					</ButtonLink>
+				}
+			/>
+		</Page>
+	)
 }
 
-export function App() {
-	const { path } = useRoute()
+function RootLayout() {
+	const path = useRouterState({ select: state => state.location.pathname })
+	// O título da rota mais funda (o `staticData.title` de cada arquivo de `routes/`)
+	const title = useMatches({ select: matches => matches.at(-1)?.staticData.title })
 	const pill = useScraperPill()
 	const connected = useConnected()
 	const toasts = useToasts()
 	const pendingCvs = useTrayRequests().filter(request => request.status === 'pending').length
 
+	// "vagas" também fica marcado com uma vaga aberta (`/vagas/$id`)
 	const isActive = (item: string) => (item === '/' ? path === '/' || path.startsWith('/vagas/') : path.startsWith(item))
 
 	useEffect(() => {
-		document.title = `${TITLES[path] ?? (path.startsWith('/vagas/') ? 'Vaga' : 'Jobs Scraper')} · jobs/scraper`
-	}, [path])
+		document.title = `${title ?? 'Jobs Scraper'} · jobs/scraper`
+	}, [title])
 
 	return (
 		<div className="flex min-h-screen flex-col">
@@ -135,45 +115,44 @@ export function App() {
 			</a>
 			<header className="sticky top-0 z-20 border-b border-line bg-bg/88 backdrop-blur-md">
 				<div className="mx-auto flex max-w-340 items-center gap-4 px-6 py-3 max-md:px-4">
-					<a
+					<Link
 						className="inline-flex items-center gap-2 font-mono text-sm font-medium whitespace-nowrap no-underline"
-						href="/"
-						onClick={onLinkClick}
+						to="/"
+						search={lastFilters}
 					>
 						<ProjectIcon />
 						jobs/scraper<span className="text-lime-text">_</span>
-					</a>
+					</Link>
 					<nav className="flex flex-auto gap-1 max-md:hidden" aria-label="Principal">
 						{NAV.map(item => (
-							<a
+							<Link
 								key={item.path}
 								className={cx(
 									'rounded-pill px-3 py-2 text-sm text-muted no-underline hover:text-ink',
 									isActive(item.path) && 'bg-surface-2 text-ink',
 								)}
-								href={item.path}
+								to={item.path}
+								search={item.path === '/' ? lastFilters : undefined}
 								aria-current={isActive(item.path) ? 'page' : undefined}
-								onClick={onLinkClick}
 							>
 								{item.path === '/configuracoes' ? 'configurações' : item.label}
-							</a>
+							</Link>
 						))}
 					</nav>
 					<div className="ml-auto flex items-center gap-2.5">
 						{pill && (
-							<a
+							<Link
 								className={badge({
 									tone: 'plain',
 									size: 'lg',
 									bordered: true,
 									className: cx('text-muted max-md:hidden', pill.tone === 'failed' && 'border-danger text-danger'),
 								})}
-								href="/coletas"
-								onClick={onLinkClick}
+								to="/coletas"
 							>
 								<StatusDot {...PILL_DOTS[pill.tone]} />
 								{pill.text}
-							</a>
+							</Link>
 						)}
 						{!connected && (
 							<Badge tone="plain" bordered="dashed" className="text-muted" title="Sem conexão em tempo real; reconectando…">
@@ -189,7 +168,7 @@ export function App() {
 			</header>
 
 			<main id="main" className="flex-1 outline-none" tabIndex={-1}>
-				<View path={path} />
+				<Outlet />
 			</main>
 
 			<nav
@@ -197,15 +176,15 @@ export function App() {
 				aria-label="Principal (celular)"
 			>
 				{NAV.map(item => (
-					<a
+					<Link
 						key={item.path}
 						className={cx(
 							'relative flex min-h-13 flex-col items-center gap-1 pt-2 pb-1 text-xs text-muted no-underline',
 							isActive(item.path) && 'font-semibold text-ink',
 						)}
-						href={item.path}
+						to={item.path}
+						search={item.path === '/' ? lastFilters : undefined}
 						aria-current={isActive(item.path) ? 'page' : undefined}
-						onClick={onLinkClick}
 					>
 						<Icon name={item.icon} size={20} />
 						{item.label}
@@ -214,7 +193,7 @@ export function App() {
 								{pendingCvs}
 							</Badge>
 						)}
-					</a>
+					</Link>
 				))}
 			</nav>
 

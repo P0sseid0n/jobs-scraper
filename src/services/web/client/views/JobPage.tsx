@@ -1,92 +1,72 @@
-import { useEffect, useState } from 'react'
+import { useCanGoBack, useRouter } from '@tanstack/react-router'
+import type { ReactNode } from 'react'
 
 import type { WebJob } from '../../api-types'
-import { isJobRouteId } from '../../job-route-id'
-import { api } from '../api'
 import { Icon } from '../components/Icon'
 import { JobDetail } from '../components/JobDetail'
-import { Button } from '../components/ui/Button'
+import { ButtonLink } from '../components/ui/Button'
 import { card } from '../components/ui/Card'
 import { EmptyState } from '../components/ui/EmptyState'
 import { Page } from '../components/ui/Page'
 import { Skeleton } from '../components/ui/Skeleton'
-import { goBack, onLinkClick } from '../router'
 import { jobsStore } from '../stores/jobs'
-import { markSeen } from '../stores/seen'
 
 /**
- * A vaga de `/vagas/:id` (id curto, ver `jobRouteId`), marcada como vista: a da lista já carregada ou, se ela não
- * estiver lá (link direto para uma vaga antiga), buscada na API. Com `routeId` nulo, não faz nada.
+ * Página da vaga no celular (a rota `/vagas/$id` carrega a vaga). No desktop, a mesma rota abre a lista com a vaga no
+ * painel ao lado. Sem `job`, mostra o carregamento ou, com `error`, a falha.
  */
-export function useJob(routeId: string | null) {
-	const [job, setJob] = useState<WebJob | null>(null)
-	const [error, setError] = useState<string | null>(null)
-
-	useEffect(() => {
-		let active = true
-		setError(null)
-		if (!routeId) {
-			setJob(null)
-			return
-		}
-
-		const known = jobsStore.get().jobs.find(item => isJobRouteId(item.postId, routeId)) ?? null
-		setJob(known)
-		if (known) markSeen(known.postId)
-		else {
-			api.job(routeId).then(
-				found => {
-					if (!active) return
-					markSeen(found.postId)
-					setJob(found)
-				},
-				(cause: Error) => active && setError(cause.message),
-			)
-		}
-
-		return () => {
-			active = false
-		}
-	}, [routeId])
-
-	return { job, error }
-}
-
-/** Página da vaga no celular. No desktop, `/vagas/:id` abre a lista com a vaga no painel ao lado (`JobsView`). */
-export function JobPage({ routeId }: { routeId: string }) {
-	const { job, error } = useJob(routeId)
+export function JobPage({ job, error }: { job?: WebJob; error?: string }) {
+	let content: ReactNode
+	if (job) {
+		content = (
+			<article className={card({ className: 'p-6 max-md:p-4.5' })}>
+				<JobDetail job={job} />
+			</article>
+		)
+	} else if (error) {
+		content = (
+			<EmptyState
+				tone="error"
+				title={error}
+				action={
+					<ButtonLink variant="lime" to="/" search={() => jobsStore.get().filters}>
+						ver todas as vagas
+					</ButtonLink>
+				}
+			/>
+		)
+	} else {
+		content = <Skeleton className={card({ className: 'min-h-60' })} aria-busy="true" />
+	}
 
 	return (
 		<Page width="narrow">
-			<Button
-				variant="ghost"
-				href="/"
-				className="self-start"
-				onClick={event => {
-					event.preventDefault()
-					goBack('/')
-				}}
-			>
-				<Icon name="back" />
-				vagas
-			</Button>
-			{error && (
-				<EmptyState
-					tone="error"
-					title={error}
-					action={
-						<Button variant="lime" href="/" onClick={onLinkClick}>
-							ver todas as vagas
-						</Button>
-					}
-				/>
-			)}
-			{!error && !job && <Skeleton className={card({ className: 'min-h-60' })} aria-busy="true" />}
-			{job && (
-				<article className={card({ className: 'p-6 max-md:p-4.5' })}>
-					<JobDetail job={job} />
-				</article>
-			)}
+			<BackToList />
+			{content}
 		</Page>
+	)
+}
+
+/** Volta para a tela anterior do site (com a rolagem); aberta direto por um link, vai para a lista. */
+function BackToList() {
+	const router = useRouter()
+	const canGoBack = useCanGoBack()
+
+	return (
+		<ButtonLink
+			variant="ghost"
+			to="/"
+			search={() => jobsStore.get().filters}
+			replace
+			className="self-start"
+			onClick={event => {
+				if (!canGoBack) return
+				event.preventDefault()
+				router.history.back()
+			}}
+		>
+			<Icon name="back" />
+			vagas
+		</ButtonLink>
 	)
 }

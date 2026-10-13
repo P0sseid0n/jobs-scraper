@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-import type { ScraperStatus, WebScraperRun } from '../../api-types'
+import type { RunsPage, ScraperStatus, WebScraperRun } from '../../api-types'
 import { api, type RequestError } from '../api'
 import { Icon } from '../components/Icon'
 import { Badge, badge, BadgeList, type BadgeTone } from '../components/ui/Badge'
@@ -13,10 +13,9 @@ import { Skeleton } from '../components/ui/Skeleton'
 import { StatusDot, type StatusDotTone } from '../components/ui/StatusDot'
 import { SwitchField } from '../components/ui/Switch'
 import { LABEL, SECTION_TITLE } from '../components/ui/text'
-import { TextLink } from '../components/ui/TextLink'
+import { RouteLink } from '../components/ui/TextLink'
 import { cx } from '../lib/cx'
 import { formatDateTime, formatDuration, formatInterval, isLoginFailure } from '../lib/format'
-import { onLinkClick } from '../router'
 import { notify } from '../stores/toast'
 
 const TRIGGERS: Record<WebScraperRun['trigger'], string> = { schedule: 'Agendada', manual: 'Manual', once: 'Execução única' }
@@ -164,19 +163,19 @@ function RunRows({ run, open, onToggle }: { run: WebScraperRun; open: boolean; o
 }
 
 /** Acompanhamento do scraper: coleta em andamento, próxima agendada, "coletar agora" e histórico. */
-export function RunsView() {
-	const [status, setStatus] = useState<ScraperStatus | null>(null)
-	const [statusError, setStatusError] = useState<string | null>(null)
-	const [runs, setRuns] = useState<WebScraperRun[]>([])
-	const [runsCursor, setRunsCursor] = useState<string | null>(null)
-	const [runsState, setRunsState] = useState<'loading' | 'ready' | 'error'>('loading')
+/** O status e a primeira página do histórico vêm do loader da rota (`routes/coletas.tsx`); daqui em diante a tela consulta sozinha. */
+export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: RunsPage } }) {
+	const [status, setStatus] = useState(initial.status)
+	const [runs, setRuns] = useState<WebScraperRun[]>(initial.runs.runs)
+	const [runsCursor, setRunsCursor] = useState(initial.runs.nextCursor)
+	const [runsState, setRunsState] = useState<'loading' | 'ready' | 'error'>('ready')
 	const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set())
 	const [requesting, setRequesting] = useState(false)
 	const [savingPause, setSavingPause] = useState(false)
 	const [now, setNow] = useState(Date.now())
 
 	// As consultas continuam entre renderizações: o último status e o timer ficam fora do estado
-	const statusRef = useRef<ScraperStatus | null>(null)
+	const statusRef = useRef(initial.status)
 	const pollTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
 	const mounted = useRef(false)
 
@@ -190,16 +189,19 @@ export function RunsView() {
 
 			statusRef.current = next
 			setStatus(next)
-			setStatusError(null)
 			// A coleta terminou (ou começou) desde a última consulta: atualiza o histórico
 			if (wasRunning !== !!next.current) void loadRuns()
-		} catch (error) {
+		} catch {
+			// Falhou uma consulta: a tela continua com o último status, e a próxima tenta de novo
 			if (!mounted.current) return
-			setStatusError((error as Error).message)
 		}
 
 		clearTimeout(pollTimer.current)
-		pollTimer.current = setTimeout(refreshStatus, statusRef.current?.current ? POLL_RUNNING_MS : POLL_IDLE_MS)
+		schedulePoll()
+	}
+
+	function schedulePoll() {
+		pollTimer.current = setTimeout(refreshStatus, statusRef.current.current ? POLL_RUNNING_MS : POLL_IDLE_MS)
 	}
 
 	async function loadRuns(more = false) {
@@ -234,7 +236,7 @@ export function RunsView() {
 		setSavingPause(true)
 		try {
 			const settings = await api.saveSettings('scraper', { paused })
-			setStatus(current => current && { ...current, paused: settings.paused })
+			setStatus(current => ({ ...current, paused: settings.paused }))
 			notify(paused ? 'Coletas automáticas pausadas' : 'Coletas automáticas retomadas')
 			void refreshStatus()
 		} catch (error) {
@@ -246,8 +248,7 @@ export function RunsView() {
 
 	useEffect(() => {
 		mounted.current = true
-		void refreshStatus()
-		void loadRuns()
+		schedulePoll()
 		const clock = setInterval(() => setNow(Date.now()), 1000)
 
 		return () => {
@@ -266,14 +267,6 @@ export function RunsView() {
 	}
 
 	function renderCurrent() {
-		if (!status) {
-			return statusError ? (
-				<EmptyState tone="error" title="Não consegui ler o status do scraper" description={statusError} />
-			) : (
-				<Skeleton className={card({ className: 'min-h-60' })} aria-busy="true" />
-			)
-		}
-
 		const running = status.current
 		const next = status.nextRunAt ? new Date(status.nextRunAt).getTime() - now : null
 
@@ -348,9 +341,9 @@ export function RunsView() {
 							{status.last.status === 'success' ? lastRunSummary(status.last) : 'falhou'}
 						</p>
 					)}
-					<TextLink className="text-sm" href="/configuracoes" onClick={onLinkClick}>
+					<RouteLink className="text-sm" to="/configuracoes">
 						editar termos e intervalo
-					</TextLink>
+					</RouteLink>
 				</section>
 			</div>
 		)

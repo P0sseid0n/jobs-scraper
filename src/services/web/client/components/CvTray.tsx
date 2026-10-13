@@ -1,9 +1,11 @@
+import { Link } from '@tanstack/react-router'
 import { useState } from 'react'
 
 import type { WebCvRequest } from '../../api-types'
 import { cvPdfUrl } from '../api'
-import { jobPath, navigate } from '../router'
+import { jobParams } from '../router'
 import { dismissCv, requestCv, useTrayRequests } from '../stores/cv'
+import { jobsStore } from '../stores/jobs'
 import { notify } from '../stores/toast'
 import { Icon } from './Icon'
 import { Button } from './ui/Button'
@@ -64,16 +66,14 @@ export function CvTray() {
 						<li key={item.requestId} className="flex items-center gap-2.5">
 							<StatusDot {...TRAY_DOTS[item.status]} />
 							<div className="grow min-w-0">
-								<a
+								<Link
 									className="block truncate text-sm no-underline"
-									href={jobPath(item.postId)}
-									onClick={event => {
-										event.preventDefault()
-										navigate(jobPath(item.postId))
-									}}
+									to="/vagas/$id"
+									params={jobParams(item.postId)}
+									search={() => jobsStore.get().filters}
 								>
 									{item.jobTitle ?? 'Vaga'}
-								</a>
+								</Link>
 								<div className="font-mono text-xs truncate text-muted" title={item.error ?? undefined}>
 									{item.status === 'failed' && item.error ? `falhou: ${item.error}` : STATUS_TEXT[item.status]}
 								</div>

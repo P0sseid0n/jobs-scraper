@@ -1,17 +1,17 @@
-import { useEffect } from 'react'
+import { Link } from '@tanstack/react-router'
 
 import type { WebCvRequest } from '../../api-types'
 import { cvPdfUrl } from '../api'
 import { Icon } from '../components/Icon'
-import { Button } from '../components/ui/Button'
+import { Button, ButtonLink } from '../components/ui/Button'
 import { card } from '../components/ui/Card'
 import { EmptyState } from '../components/ui/EmptyState'
 import { Hero, Page } from '../components/ui/Page'
 import { PdfIcon } from '../components/ui/PdfIcon'
 import { LABEL } from '../components/ui/text'
 import { formatDateTime } from '../lib/format'
-import { jobPath, onLinkClick } from '../router'
-import { loadCvRequests, requestCv, useCvRequests } from '../stores/cv'
+import { jobParams } from '../router'
+import { requestCv, useCvRequests } from '../stores/cv'
 import { notify } from '../stores/toast'
 
 async function retry(request: WebCvRequest) {
@@ -31,13 +31,13 @@ function CvItem({ request }: { request: WebCvRequest }) {
 				{request.status === 'pending' ? <Icon name="spinner" size={14} /> : request.status === 'failed' ? 'erro' : 'PDF'}
 			</PdfIcon>
 			<div className="grow min-w-0 flex flex-col gap-0.5">
-				<a
+				<Link
 					className="font-semibold block truncate no-underline hover:underline"
-					href={jobPath(request.postId)}
-					onClick={onLinkClick}
+					to="/vagas/$id"
+					params={jobParams(request.postId)}
 				>
 					{request.jobTitle ?? 'Vaga'}
-				</a>
+				</Link>
 				<span className="font-mono text-muted text-xs">
 					{request.status === 'pending' ? `gerando · pedido ${formatDateTime(request.requestedAt)}` : meta}
 				</span>
@@ -65,11 +65,8 @@ function CvItem({ request }: { request: WebCvRequest }) {
 
 /** "Meus currículos": os PDFs gerados pelo site, para baixar de novo sem gerar outro. */
 export function CvsView() {
-	const { requests, error, loaded } = useCvRequests()
-
-	useEffect(() => {
-		void loadCvRequests()
-	}, [])
+	// A lista vem do loader da rota (`routes/curriculos.tsx`), que também cuida do carregamento e do erro
+	const { requests } = useCvRequests()
 
 	const pending = requests.filter(request => request.status === 'pending')
 	const done = requests.filter(request => request.status !== 'pending')
@@ -85,27 +82,14 @@ export function CvsView() {
 				lead="Um PDF de uma página por vaga: apresentação reescrita para a vaga, tecnologias pedidas nas habilidades, projetos do GitHub mais relevantes e a experiência reordenada."
 			/>
 
-			{error && (
-				<EmptyState
-					tone="error"
-					title="Não consegui carregar os currículos"
-					description={error}
-					action={
-						<Button variant="lime" onClick={() => loadCvRequests()}>
-							tentar de novo
-						</Button>
-					}
-				/>
-			)}
-
-			{loaded && requests.length === 0 && !error && (
+			{requests.length === 0 && (
 				<EmptyState
 					title="Nenhum currículo gerado pelo site ainda"
 					description="Em qualquer vaga, clique em “gerar currículo”. Ele fica pronto em até ~1 minuto."
 					action={
-						<Button variant="lime" href="/" onClick={onLinkClick}>
+						<ButtonLink variant="lime" to="/">
 							ver vagas
-						</Button>
+						</ButtonLink>
 					}
 				/>
 			)}

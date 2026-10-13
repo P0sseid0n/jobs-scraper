@@ -6,7 +6,7 @@
 		"useIgnoreFile": true
 	},
 	"files": {
-		"includes": ["src/**", "*.json", "!bun.lock"]
+		"includes": ["src/**", "*.json", "!bun.lock", "!src/services/web/client/routeTree.gen.ts"]
 	},
 	"css": {
 		"parser": {

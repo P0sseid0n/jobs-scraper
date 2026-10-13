@@ -1,4 +1,5 @@
-import type { AnchorHTMLAttributes, ButtonHTMLAttributes } from 'react'
+import { createLink } from '@tanstack/react-router'
+import type { AnchorHTMLAttributes, ButtonHTMLAttributes, Ref } from 'react'
 import type { VariantProps } from 'tailwind-variants'
 
 import { tv } from '../../lib/cx'
@@ -56,3 +57,15 @@ export function Button({ variant, size, className, external, children, ...props 
 		</button>
 	)
 }
+
+function ButtonAnchor({
+	variant,
+	size,
+	className,
+	...props
+}: ButtonLook & AnchorHTMLAttributes<HTMLAnchorElement> & { ref?: Ref<HTMLAnchorElement> }) {
+	return <a {...props} className={button({ variant, size, className })} />
+}
+
+/** Botão que leva a uma tela do site, com a rota tipada (`<ButtonLink variant="lime" to="/coletas">`). */
+export const ButtonLink = createLink(ButtonAnchor)

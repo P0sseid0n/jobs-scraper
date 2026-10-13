@@ -1,10 +1,10 @@
-import type { MouseEvent } from 'react'
+import { Link } from '@tanstack/react-router'
 
 import type { WebJob } from '../../api-types'
 import { cx } from '../lib/cx'
 import { jobDate, jobSubtitle, safeLink, timeAgo } from '../lib/format'
-import { jobPath, onLinkClick } from '../router'
-import { useUnseen } from '../stores/seen'
+import { jobParams } from '../router'
+import { markSeen, useUnseen } from '../stores/seen'
 import { ContractTypeBadge } from './ContractTypeBadge'
 import { CorrectedBadge } from './CorrectedBadge'
 import { CvButton } from './CvButton'
@@ -24,12 +24,12 @@ const JOB_CARD = card({ className: 'flex flex-col gap-3 px-4.5 py-4 transition-c
 export function JobCard({
 	job,
 	selected = false,
-	onSelect,
+	keepScroll = false,
 }: {
 	job: WebJob
 	selected?: boolean
-	/** Abre o detalhe no painel lateral (desktop); sem ele, o link leva à página da vaga. */
-	onSelect?: (job: WebJob) => void
+	/** Não volta ao topo ao abrir: no desktop a vaga abre no painel ao lado da lista. */
+	keepScroll?: boolean
 }) {
 	const unseen = useUnseen(job)
 	const skills = job.necessaryKnowledge ?? []
@@ -37,29 +37,28 @@ export function JobCard({
 	const postLink = safeLink(job.postLink)
 	const applyLink = safeLink(job.applyLink)
 
-	function open(event: MouseEvent<HTMLAnchorElement>) {
-		if (onSelect && !event.metaKey && !event.ctrlKey && event.button === 0) {
-			event.preventDefault()
-			onSelect(job)
-			return
-		}
-		onLinkClick(event)
-	}
-
 	return (
 		<article
 			className={cx(JOB_CARD, selected ? 'inverted border-inv-bg' : 'hover:border-line-strong')}
 			aria-current={selected ? 'true' : undefined}
 		>
 			<div className="flex items-start gap-3">
-				<a className="group flex min-w-0 flex-1 flex-col gap-1 no-underline" href={jobPath(job.postId)} onClick={open}>
+				<Link
+					className="group flex min-w-0 flex-1 flex-col gap-1 no-underline"
+					to="/vagas/$id"
+					params={jobParams(job.postId)}
+					// Os filtros da lista continuam na URL
+					search
+					resetScroll={!keepScroll}
+					onClick={() => markSeen(job.postId)}
+				>
 					<span className="flex items-center gap-2 text-base leading-snug font-semibold wrap-break-word group-hover:underline group-hover:underline-offset-3">
 						{unseen && <StatusDot tone="lime" glow />}
 						{unseen && <span className="sr-only">vaga nova:</span>}
 						{job.title}
 					</span>
 					<span className="text-muted text-sm">{jobSubtitle(job)}</span>
-				</a>
+				</Link>
 				<div className="flex shrink-0 flex-col items-end gap-1.5">
 					<div className="flex flex-wrap items-center gap-1.5">
 						<CorrectedBadge job={job} />
@@ -88,7 +87,7 @@ export function JobCard({
 			)}
 
 			<div className="flex flex-wrap items-center gap-2">
-				<span className="font-mono text-muted inline-flex flex-auto items-center gap-1.5 text-sm max-md:basis-full">
+				<span className="font-mono text-muted inline-flex flex-auto items-center gap-1.5 text-xs max-md:basis-full">
 					{job.recruiterEmail ? (
 						<>
 							<Icon name="mail" size={14} />

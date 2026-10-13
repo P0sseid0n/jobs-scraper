@@ -1,4 +1,5 @@
-import type { AnchorHTMLAttributes, ButtonHTMLAttributes } from 'react'
+import { createLink } from '@tanstack/react-router'
+import type { AnchorHTMLAttributes, ButtonHTMLAttributes, Ref } from 'react'
 
 import { tv } from '../../lib/cx'
 import { NEW_TAB } from './link'
@@ -37,3 +38,10 @@ export function TextLink({ className, external, children, ...props }: TextLinkPr
 		</button>
 	)
 }
+
+function RouteAnchor({ className, ...props }: AnchorHTMLAttributes<HTMLAnchorElement> & { ref?: Ref<HTMLAnchorElement> }) {
+	return <a {...props} className={textLink({ as: 'a', className })} />
+}
+
+/** Link de texto para uma tela do site, com a rota tipada (`<RouteLink to="/configuracoes">`). */
+export const RouteLink = createLink(RouteAnchor)

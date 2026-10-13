@@ -1,16 +1,35 @@
-import type { WebJob } from '../../api-types'
-import type { JobFilters } from '../api'
+import { z } from 'zod'
 
-export const DEFAULT_FILTERS: JobFilters = {
-	q: '',
-	workMode: [],
-	contractType: [],
-	skills: [],
-	since: 'all',
-	hasEmail: false,
-	language: '',
-	minConfidence: 0,
-}
+import { CONTRACT_TYPES, WORK_MODES } from '@shared/contracts'
+
+import type { WebJob } from '../../api-types'
+
+/**
+ * Os filtros da lista de vagas como parâmetros da URL (`/?workMode=["remoto"]&since="7d"`). Valor ausente ou inválido
+ * (link antigo, URL editada à mão) vira o padrão, em vez de dar erro; os padrões não aparecem na URL.
+ */
+export const jobFiltersSearch = z.object({
+	q: z.string().default('').catch(''),
+	workMode: z
+		.array(z.enum([...WORK_MODES, 'none']))
+		.default([])
+		.catch([]),
+	contractType: z
+		.array(z.enum([...CONTRACT_TYPES, 'none']))
+		.default([])
+		.catch([]),
+	skills: z.array(z.string()).default([]).catch([]),
+	since: z.enum(['all', '24h', '7d', '30d']).default('all').catch('all'),
+	hasEmail: z.boolean().default(false).catch(false),
+	language: z.string().default('').catch(''),
+	minConfidence: z.number().int().min(0).max(100).default(0).catch(0),
+})
+
+/** Os filtros da lista de vagas (o mesmo formato da URL e da API). */
+export type JobFilters = z.output<typeof jobFiltersSearch>
+
+/** Sem nenhum filtro: o que a URL sem parâmetros representa. */
+export const DEFAULT_FILTERS: JobFilters = jobFiltersSearch.parse({})
 
 export function hasActiveFilters(filters: JobFilters) {
 	return (Object.keys(DEFAULT_FILTERS) as (keyof JobFilters)[]).some(

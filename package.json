@@ -11,7 +11,7 @@
 		"dev:processing": "bun --watch src/services/post-processing/index.ts",
 		"dev:bot": "bun --watch src/services/discord-bot/index.ts",
 		"dev:cv": "bun --watch src/services/cv-updater/index.ts",
-		"dev:web": "bun --watch src/services/web/index.ts",
+		"dev:web": "concurrently -k -n routes,web \"bun src/services/web/generate-routes.ts --watch\" \"bun --watch src/services/web/index.ts\"",
 		"start:scraper": "bun src/services/scraper/index.ts",
 		"start:processing": "bun src/services/post-processing/index.ts",
 		"start:bot": "bun src/services/discord-bot/index.ts",
@@ -20,6 +20,7 @@
 		"scraper:run": "bun src/services/scraper/request-run.ts",
 		"scraper:verify": "bun src/services/scraper/submit-verification-code.ts",
 		"db:migrate-jobs": "bun src/services/post-processing/migrate-job-fields.ts",
+		"routes": "bun src/services/web/generate-routes.ts",
 		"eval:extraction": "bun src/services/post-processing/eval-extraction.ts",
 		"eval:export-fixtures": "bun src/services/post-processing/export-feedback-fixtures.ts",
 		"typecheck": "tsc --noEmit",
@@ -32,6 +33,7 @@
 	"devDependencies": {
 		"@biomejs/biome": "^2.5.15",
 		"@ianvs/prettier-plugin-sort-imports": "^4.7.1",
+		"@tanstack/router-generator": "1.167.43",
 		"@types/bun": "^1.4.2",
 		"@types/node": "^26.6.4",
 		"@types/pngjs": "^6.0.5",
@@ -43,6 +45,7 @@
 		"typescript": "^7.0.2"
 	},
 	"dependencies": {
+		"@tanstack/react-router": "1.169.2",
 		"amqplib": "^2.2.0",
 		"bun-plugin-tailwind": "^0.1.2",
 		"discord.js": "^14.27.0",

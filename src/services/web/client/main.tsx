@@ -1,8 +1,9 @@
+import { RouterProvider } from '@tanstack/react-router'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 
-import { App } from './App'
 import { setFavicon } from './components/ProjectIcon'
+import { router } from './router'
 import { loadCvRequests } from './stores/cv'
 import { connectLive } from './stores/live'
 
@@ -15,6 +16,6 @@ void loadCvRequests()
 
 createRoot(document.getElementById('app')!).render(
 	<StrictMode>
-		<App />
+		<RouterProvider router={router} />
 	</StrictMode>,
 )

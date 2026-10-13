@@ -39,7 +39,8 @@ export function useJobs() {
 const update = (patch: Partial<JobsState>) => jobsStore.set(current => ({ ...current, ...patch }))
 
 let requestId = 0
-let started = false
+let loaded = false
+let following = false
 let filtersTimer: ReturnType<typeof setTimeout> | undefined
 
 export async function loadJobs() {
@@ -108,28 +109,37 @@ export function removeJob(postId: string) {
 	void loadFacets()
 }
 
-/** Muda os filtros; a lista recarrega 250 ms depois da última mudança. */
-export function setFilters(patch: Partial<JobFilters>) {
-	const current = jobsStore.get().filters
-	const filters = { ...current, ...patch }
-	if (JSON.stringify(filters) === JSON.stringify(current)) return
+/** Muda os filtros; a lista recarrega 250 ms depois da última mudança (a busca por texto não recarrega a cada letra). */
+function setFilters(filters: JobFilters) {
+	if (JSON.stringify(filters) === JSON.stringify(jobsStore.get().filters)) return
 
 	update({ filters })
 	clearTimeout(filtersTimer)
 	filtersTimer = setTimeout(loadJobs, 250)
 }
 
-export function clearFilters() {
-	setFilters(structuredClone(DEFAULT_FILTERS))
+/**
+ * O loader da lista chama a cada mudança nos filtros da URL. Na primeira vez, espera a primeira página: se ela falhar,
+ * o erro vai para o `errorComponent` da rota (e a próxima tentativa carrega de novo). Depois, a lista recarrega no lugar,
+ * com os filtros na tela.
+ */
+export async function loadJobsFor(filters: JobFilters) {
+	if (loaded) return setFilters(filters)
+
+	update({ filters })
+	await loadJobs()
+	const { status, error } = jobsStore.get()
+	if (status === 'error') throw new Error(error ?? 'Não consegui carregar as vagas')
+
+	loaded = true
+	void loadFacets()
+	followLive()
 }
 
-/** Carrega a primeira página e passa a acompanhar as vagas novas (uma vez só, na primeira visita à lista). */
-export function startJobs() {
-	if (started) return
-	started = true
-
-	void loadJobs()
-	void loadFacets()
+/** Passa a acompanhar as vagas novas em tempo real (uma vez só). */
+function followLive() {
+	if (following) return
+	following = true
 
 	onLive('job', job => {
 		markArrived(job.postId)

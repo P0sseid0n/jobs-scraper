@@ -1,3 +1,4 @@
+import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 
 import { applicationMessage, formatApplicationMessage } from '@shared/templates'
@@ -6,7 +7,6 @@ import type { WebJob } from '../../api-types'
 import { api, cvPdfUrl, RequestError } from '../api'
 import { cx } from '../lib/cx'
 import { jobDate, jobSubtitle, languageLabel, safeLink, timeAgo } from '../lib/format'
-import { navigate } from '../router'
 import { useCvFor, useGeneratedMessage } from '../stores/cv'
 import { removeJob, replaceJob } from '../stores/jobs'
 import { copyText, notify } from '../stores/toast'
@@ -45,6 +45,7 @@ export function JobDetail({ job }: { job: WebJob }) {
 }
 
 function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job: WebJob) => void }) {
+	const navigate = useNavigate()
 	const [expanded, setExpanded] = useState(false)
 	const [reporting, setReporting] = useState(false)
 
@@ -108,7 +109,7 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 				</div>
 				<h2 className="text-2xl leading-tight font-bold">{job.title}</h2>
 				{jobSubtitle(job) && <p className="text-muted">{jobSubtitle(job)}</p>}
-				{job.author && (job.company || job.location) && <p className="font-mono text-muted text-sm">postado por {job.author}</p>}
+				{job.author && (job.company || job.location) && <p className="font-mono text-muted text-xs">postado por {job.author}</p>}
 			</header>
 			{reporting && (
 				<ReportJobDialog
@@ -122,7 +123,7 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 					}}
 					onRemoved={() => {
 						removeJob(job.postId)
-						navigate('/', { replace: true })
+						void navigate({ to: '/', replace: true })
 					}}
 				/>
 			)}

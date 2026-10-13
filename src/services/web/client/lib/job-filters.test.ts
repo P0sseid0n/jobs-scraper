@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
 import type { WebJob } from '../../api-types'
-import { DEFAULT_FILTERS, hasActiveFilters, matchesFilters } from './job-filters'
+import { DEFAULT_FILTERS, hasActiveFilters, jobFiltersSearch, matchesFilters, type JobFilters } from './job-filters'
 
 const job: WebJob = {
 	postId: 'p1',
@@ -63,4 +63,28 @@ test('hasActiveFilters', () => {
 	expect(hasActiveFilters(DEFAULT_FILTERS)).toBe(false)
 	expect(hasActiveFilters({ ...DEFAULT_FILTERS, workMode: ['remoto'] })).toBe(true)
 	expect(hasActiveFilters({ ...DEFAULT_FILTERS, contractType: ['pj'] })).toBe(true)
+})
+
+describe('jobFiltersSearch (os filtros da URL)', () => {
+	test('sem parâmetros, são os filtros padrão', () => {
+		expect(jobFiltersSearch.parse({})).toEqual(DEFAULT_FILTERS)
+	})
+
+	test('mantém os valores válidos', () => {
+		const search = {
+			q: 'react',
+			workMode: ['remoto', 'none'],
+			contractType: ['pj'],
+			since: '7d',
+			hasEmail: true,
+			minConfidence: 60,
+		} satisfies Partial<JobFilters>
+		expect(jobFiltersSearch.parse(search)).toEqual({ ...DEFAULT_FILTERS, ...search })
+	})
+
+	test('valor inválido (link antigo, URL editada à mão) vira o padrão, sem derrubar os outros', () => {
+		const parsed = jobFiltersSearch.parse({ q: 'vue', workMode: ['marte'], since: 'ontem', minConfidence: 150, hasEmail: 'sim' })
+
+		expect(parsed).toEqual({ ...DEFAULT_FILTERS, q: 'vue' })
+	})
 })

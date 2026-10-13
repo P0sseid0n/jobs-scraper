@@ -1,0 +1,7 @@
+{
+	"routesDirectory": "./src/services/web/client/routes",
+	"generatedRouteTree": "./src/services/web/client/routeTree.gen.ts",
+	"quoteStyle": "single",
+	"semicolons": false,
+	"tmpDir": "./node_modules/.cache/tanstack-router"
+}

@@ -104,6 +104,7 @@ Painéis, todos só em `127.0.0.1`:
 | `bun scraper:run`                             | Pede uma coleta imediata                                           |
 | `bun scraper:verify <código>`                 | Envia o código de verificação do login                             |
 | `bun db:migrate-jobs`                         | Atualiza as vagas salvas para o formato atual                      |
+| `bun routes`                                  | Gera a árvore de rotas do site (`routeTree.gen.ts`)                |
 | `bun eval:extraction`                         | Mede o acerto da IA por campo nas vagas corrigidas pelo site       |
 | `bun eval:export-fixtures`                    | Exporta as correções, sem dados pessoais, como casos versionados   |
 | `bun run typecheck` / `lint` / `format:check` | Tipos, Biome e Prettier                                            |

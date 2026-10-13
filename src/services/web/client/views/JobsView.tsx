@@ -1,29 +1,25 @@
-import { useEffect, useState } from 'react'
+import { useNavigate, useSearch } from '@tanstack/react-router'
+import { useState, type ReactNode } from 'react'
 
-import type { WebJob } from '../../api-types'
 import { isJobRouteId } from '../../job-route-id'
+import type { JobFilters } from '../api'
 import { Icon } from '../components/Icon'
 import { JobCard, JobCardSkeleton } from '../components/JobCard'
-import { JobDetail } from '../components/JobDetail'
 import { Badge } from '../components/ui/Badge'
-import { Button } from '../components/ui/Button'
+import { Button, ButtonLink } from '../components/ui/Button'
 import { card } from '../components/ui/Card'
 import { EmptyState } from '../components/ui/EmptyState'
 import { Checkbox, Range, SearchInput, Select } from '../components/ui/Input'
 import { Hero, Page } from '../components/ui/Page'
 import { Pill, PILL_COUNT, PillGroup } from '../components/ui/Pill'
-import { Skeleton } from '../components/ui/Skeleton'
 import { StatusDot } from '../components/ui/StatusDot'
 import { FIELDSET, LABEL } from '../components/ui/text'
 import { cx } from '../lib/cx'
 import { CONTRACT_TYPES, LANGUAGE_NAMES, WORK_MODES } from '../lib/format'
 import { hasActiveFilters } from '../lib/job-filters'
 import { useWideLayout } from '../lib/media'
-import { jobPath, navigate, onLinkClick } from '../router'
 import { useTrayRequests } from '../stores/cv'
-import { clearFilters, loadJobs, loadMoreJobs, setFilters, showIncoming, startJobs, useJobs } from '../stores/jobs'
-import { markSeen } from '../stores/seen'
-import { useJob } from './JobPage'
+import { loadJobs, loadMoreJobs, showIncoming, useJobs } from '../stores/jobs'
 
 const PERIODS = [
 	['24h', '24h'],
@@ -35,10 +31,20 @@ const PERIODS = [
 const VISIBLE_SKILL_FILTERS = 12
 
 /** Painel do detalhe da vaga ao lado da lista (desktop): acompanha a rolagem e rola por dentro. */
-const DETAIL_PANEL = card({ className: 'sticky top-19 max-h-below-topbar max-w-115 flex-1 basis-100 overflow-y-auto p-6' })
+export function DetailPanel({ children }: { children: ReactNode }) {
+	return (
+		<aside
+			className={card({ className: 'sticky top-19 max-h-below-topbar max-w-115 flex-1 basis-100 overflow-y-auto p-6' })}
+			aria-label="Detalhe da vaga"
+		>
+			{children}
+		</aside>
+	)
+}
 
 /** A lista com `value` incluído ou removido. */
-const toggled = (list: string[], value: string) => (list.includes(value) ? list.filter(item => item !== value) : [...list, value])
+const toggled = <T extends string>(list: T[], value: T) =>
+	list.includes(value) ? list.filter(item => item !== value) : [...list, value]
 
 /** Rolagem infinita: carrega a próxima página quando o fim da lista aparece. */
 function observeEnd(el: HTMLDivElement | null) {
@@ -52,8 +58,25 @@ function observeEnd(el: HTMLDivElement | null) {
 	return () => observer.disconnect()
 }
 
+/**
+ * Os filtros ficam na URL (o link pode ser compartilhado e recarregar mantém). Cada mudança entra no histórico, e
+ * "voltar" desfaz; a busca por texto substitui a entrada, para não criar uma por letra.
+ */
+function useFilters() {
+	const filters = useSearch({ from: '/_vagas' })
+	const navigate = useNavigate()
+
+	return {
+		filters,
+		setFilters: (patch: Partial<JobFilters>) =>
+			void navigate({ to: '.', search: previous => ({ ...previous, ...patch }), replace: 'q' in patch }),
+		clearFilters: () => void navigate({ to: '.', search: {} }),
+	}
+}
+
 function Filters({ open }: { open: boolean }) {
-	const { filters, facets } = useJobs()
+	const { facets } = useJobs()
+	const { filters, setFilters, clearFilters } = useFilters()
 	const [allSkills, setAllSkills] = useState(false)
 
 	const skills = facets?.skills ?? []
@@ -191,9 +214,11 @@ function Filters({ open }: { open: boolean }) {
 	)
 }
 
-function JobList({ selectedId, onSelect }: { selectedId: string | null; onSelect: (job: WebJob) => void }) {
-	const { jobs, status, error, filters, nextCursor, loadingMore } = useJobs()
+function JobList({ selectedId, keepScroll }: { selectedId: string | null; keepScroll: boolean }) {
+	const { jobs, status, error, nextCursor, loadingMore } = useJobs()
+	const { filters, clearFilters } = useFilters()
 
+	// A primeira página vem pelo loader da rota (com o pendingComponent); aqui é a recarga ao mudar um filtro
 	if (status === 'loading') {
 		return [1, 2, 3, 4, 5].map(key => <JobCardSkeleton key={key} />)
 	}
@@ -229,9 +254,9 @@ function JobList({ selectedId, onSelect }: { selectedId: string | null; onSelect
 				title="Nenhuma vaga ainda"
 				description="Rode uma coleta: as vagas aparecem aqui assim que a IA terminar de ler os posts."
 				action={
-					<Button variant="lime" href="/coletas" onClick={onLinkClick}>
+					<ButtonLink variant="lime" to="/coletas">
 						ir para coletas
-					</Button>
+					</ButtonLink>
 				}
 			/>
 		)
@@ -240,7 +265,7 @@ function JobList({ selectedId, onSelect }: { selectedId: string | null; onSelect
 	return (
 		<>
 			{jobs.map(job => (
-				<JobCard key={job.postId} job={job} selected={selectedId === job.postId} onSelect={onSelect} />
+				<JobCard key={job.postId} job={job} selected={selectedId === job.postId} keepScroll={keepScroll} />
 			))}
 			{nextCursor ? (
 				<div ref={observeEnd} className="flex justify-center py-2">
@@ -256,31 +281,24 @@ function JobList({ selectedId, onSelect }: { selectedId: string | null; onSelect
 }
 
 /**
- * Tela principal: filtros, lista para escanear e, no desktop, o detalhe da vaga ao lado. No desktop a vaga aberta fica
- * na URL (`/vagas/:id`, em `selectedRouteId`): voltar e avançar trocam de vaga e o link pode ser compartilhado.
+ * Tela principal: filtros, lista para escanear e, no desktop, o detalhe da vaga ao lado (`detail`, que a rota preenche).
+ * No desktop a vaga aberta fica na URL (`/vagas/$id`, em `selectedRouteId`): voltar e avançar trocam de vaga e o link
+ * pode ser compartilhado.
  */
-export function JobsView({ selectedRouteId }: { selectedRouteId: string | null }) {
-	const { jobs, status, facets, filters, nextCursor, incoming } = useJobs()
+export function JobsView({ selectedRouteId, detail }: { selectedRouteId: string | null; detail: ReactNode }) {
+	const { jobs, status, facets, nextCursor, incoming } = useJobs()
+	const { filters } = useFilters()
 	const wide = useWideLayout()
 	const tray = useTrayRequests()
 	const [filtersOpen, setFiltersOpen] = useState(false)
-	// Fora da lista carregada (link direto para uma vaga antiga), a vaga vem da API
-	const routeJob = useJob(selectedRouteId)
 
-	useEffect(startJobs, [])
-
-	const selected = selectedRouteId
-		? (jobs.find(job => isJobRouteId(job.postId, selectedRouteId)) ?? routeJob.job ?? undefined)
+	// Destacada na lista: a vaga da URL ou, no desktop sem vaga na URL, a primeira (que o painel mostra)
+	const selectedId = selectedRouteId
+		? (jobs.find(job => isJobRouteId(job.postId, selectedRouteId))?.postId ?? null)
 		: wide
-			? jobs[0]
-			: undefined
+			? (jobs[0]?.postId ?? null)
+			: null
 	const pendingCvs = tray.filter(request => request.status === 'pending').length
-
-	function select(job: WebJob) {
-		markSeen(job.postId)
-		// No desktop a lista continua na tela: troca só a vaga do painel, sem voltar ao topo
-		navigate(jobPath(job.postId), { scroll: !wide })
-	}
 
 	return (
 		<Page>
@@ -348,32 +366,10 @@ export function JobsView({ selectedRouteId }: { selectedRouteId: string | null }
 							<span>mais recentes primeiro</span>
 						</div>
 					)}
-					<JobList selectedId={wide ? (selected?.postId ?? null) : null} onSelect={select} />
+					<JobList selectedId={wide ? selectedId : null} keepScroll={wide} />
 				</section>
 
-				{wide && selected && (
-					<aside className={DETAIL_PANEL} aria-label="Detalhe da vaga">
-						<JobDetail job={selected} />
-					</aside>
-				)}
-				{wide && !selected && selectedRouteId && (
-					<aside className={DETAIL_PANEL} aria-label="Detalhe da vaga" aria-busy={!routeJob.error}>
-						{routeJob.error ? (
-							<EmptyState
-								bare
-								tone="error"
-								title={routeJob.error}
-								action={
-									<Button variant="lime" href="/" onClick={onLinkClick}>
-										ver todas as vagas
-									</Button>
-								}
-							/>
-						) : (
-							<Skeleton className="min-h-60" />
-						)}
-					</aside>
-				)}
+				{detail}
 			</div>
 		</Page>
 	)

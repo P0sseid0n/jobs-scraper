@@ -11,6 +11,7 @@ import type {
 	WebJob,
 	WebSettings,
 } from '../api-types'
+import type { JobFilters } from './lib/job-filters'
 
 /** Erro de uma chamada à API, com a mensagem do servidor e, em erros de validação, a de cada campo. */
 export class RequestError extends Error {
@@ -42,16 +43,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 	return body as T
 }
 
-export type JobFilters = {
-	q: string
-	workMode: string[]
-	contractType: string[]
-	skills: string[]
-	since: 'all' | '24h' | '7d' | '30d'
-	hasEmail: boolean
-	language: string
-	minConfidence: number
-}
+export type { JobFilters }
 
 export function jobsQueryString(filters: JobFilters, cursor?: string | null) {
 	const params = new URLSearchParams()

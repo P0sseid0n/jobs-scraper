@@ -3,3 +3,5 @@ bun.lock
 *.md
 # Gerado por `bun eval:export-fixtures`
 src/services/post-processing/fixtures
+# Gerado pelo TanStack Router (`bun routes`)
+src/services/web/client/routeTree.gen.ts
