@@ -146,11 +146,7 @@ type KeywordSettings = { requiredKeywords: string[]; excludedKeywords: string[] 
 function markAsSeen(post: RawPost, outcome: SeenPostOutcome) {
 	const isJob = outcome === 'saved' || outcome === 'keywords' || outcome === 'missing-fields'
 
-	return SeenPost.updateOne(
-		{ postId: post.postId },
-		{ $setOnInsert: { postId: post.postId, isJob, outcome } },
-		{ upsert: true },
-	)
+	return SeenPost.updateOne({ postId: post.postId }, { $setOnInsert: { postId: post.postId, isJob, outcome } }, { upsert: true })
 }
 
 /** Encerra o serviço com uma instrução clara se o modelo não estiver baixado no Ollama. */
