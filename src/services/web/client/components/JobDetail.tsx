@@ -69,12 +69,12 @@ function JobDetailContent({ job }: { job: WebJob }) {
 						<ContractTypeBadge job={job} />
 					</div>
 					<div className="row">
-						<time className="mono muted small" dateTime={jobDate(job)}>
+						<time className="mono muted small nowrap" dateTime={jobDate(job)}>
 							publicada {timeAgo(jobDate(job))}
 						</time>
 						<button
 							type="button"
-							className="icon-btn icon-btn-sm muted"
+							className="icon-btn icon-btn-sm bordered report-btn"
 							aria-label="reportar problema na vaga"
 							title="reportar problema na vaga"
 							aria-haspopup="dialog"

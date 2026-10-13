@@ -138,6 +138,10 @@ button:disabled {
 	flex: 1 1 auto;
 }
 
+.nowrap {
+	white-space: nowrap;
+}
+
 .min-0 {
 	min-width: 0;
 }
@@ -314,8 +318,13 @@ button:disabled {
 	color: var(--ink);
 }
 
-.btn-ghost:hover:not(:disabled) {
+.btn-ghost:hover:not(:disabled),
+.icon-btn.bordered:hover,
+.pill:not([aria-pressed='true']):hover,
+.check-pill:hover {
+	/* Botões com borda e sem preenchimento: o mesmo hover em todos (fundo e borda mais forte, como o card de vaga) */
 	background: var(--surface-2);
+	border-color: color-mix(in srgb, var(--ink) 30%, var(--line));
 }
 
 .btn:disabled {
@@ -336,6 +345,9 @@ button:disabled {
 
 .icon-btn.bordered {
 	border: 1px solid var(--line);
+	transition:
+		background 0.15s,
+		border-color 0.15s;
 }
 
 .icon-btn:hover {
@@ -495,6 +507,9 @@ select.field {
 	background: var(--surface);
 	color: var(--ink);
 	font-size: 12.5px;
+	transition:
+		background 0.15s,
+		border-color 0.15s;
 }
 
 .pill[aria-pressed='true'] {
@@ -529,6 +544,9 @@ select.field {
 	border-radius: 999px;
 	font-size: 13px;
 	cursor: pointer;
+	transition:
+		background 0.15s,
+		border-color 0.15s;
 }
 
 .dot {
@@ -1712,6 +1730,18 @@ main {
 .toast .icon-btn {
 	width: 32px;
 	height: 32px;
+}
+
+/* Reportar vaga: só o ícone, mas com contorno e na cor do texto para não sumir ao lado da data */
+.report-btn {
+	margin-left: 12px;
+	border-color: color-mix(in srgb, var(--muted) 70%, transparent);
+	color: var(--ink);
+}
+
+/* O fundo do toast é a cor do texto do resto da página: o hover padrão (--surface-2) escondia o X */
+.toast .icon-btn:hover {
+	background: color-mix(in srgb, currentColor 16%, transparent);
 }
 
 .bottomnav {
