@@ -1,0 +1,50 @@
+/*
+ * Entrada do CSS do site: Tailwind + os estilos próprios (styles.css).
+ *
+ * Sem o preflight (o reset do Tailwind): a base continua sendo a do styles.css. Os estilos próprios ficam na camada
+ * `components`, abaixo de `utilities`, para que uma classe do Tailwind sempre ganhe de uma classe nossa no mesmo elemento.
+ */
+
+@layer theme, base, components, utilities;
+
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities) source(none);
+@import './styles.css' layer(components);
+
+/* Só os arquivos do cliente geram classes */
+@source './';
+
+/* `dark:` segue o tema escolhido no site (data-theme), não só o do sistema */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+/*
+ * Os tokens do styles.css como cores e raios do Tailwind (`bg-surface`, `text-muted`, `border-line`, `rounded-card`).
+ * `inline` usa a variável direto na classe, então as cores trocam junto com o tema.
+ */
+@theme inline {
+	--color-bg: var(--bg);
+	--color-surface: var(--surface);
+	--color-surface-2: var(--surface-2);
+	--color-ink: var(--ink);
+	--color-muted: var(--muted);
+	--color-line: var(--line);
+	--color-lime: var(--lime);
+	--color-lime-ink: var(--lime-ink);
+	--color-lime-soft: var(--lime-soft);
+	--color-lime-text: var(--lime-text);
+	--color-inv-bg: var(--inv-bg);
+	--color-inv-ink: var(--inv-ink);
+	--color-inv-muted: var(--inv-muted);
+	--color-inv-line: var(--inv-line);
+	--color-warn: var(--warn);
+	--color-warn-bg: var(--warn-bg);
+	--color-danger: var(--danger);
+	--color-danger-bg: var(--danger-bg);
+	--color-ok: var(--ok);
+	--color-focus: var(--focus);
+
+	--radius-card: var(--radius);
+	--radius-field: var(--radius-sm);
+
+	--shadow-float: var(--shadow);
+}

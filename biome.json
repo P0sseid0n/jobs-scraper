@@ -8,6 +8,11 @@
 	"files": {
 		"includes": ["src/**", "*.json", "!bun.lock"]
 	},
+	"css": {
+		"parser": {
+			"tailwindDirectives": true
+		}
+	},
 	"formatter": {
 		"enabled": false
 	},

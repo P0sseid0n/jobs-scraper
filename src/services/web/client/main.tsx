@@ -7,7 +7,7 @@ import { loadCvRequests } from './stores/cv'
 import { connectLive } from './stores/live'
 
 import './stores/theme'
-import './styles.css'
+import './tailwind.css'
 
 setFavicon()
 connectLive()
