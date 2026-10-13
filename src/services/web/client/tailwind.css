@@ -80,7 +80,8 @@
 	--color-danger: #a3261b;
 	--color-danger-bg: #fde7e4;
 	--color-ok: #1d7a45;
-	--color-focus: #2f6fdb;
+	/* Contorno de foco: o lime de texto, com contraste de pelo menos 3:1 com o fundo nos dois temas */
+	--color-focus: var(--color-lime-text);
 	--color-switch-knob: #ffffff;
 	--color-backdrop: rgb(20 22 19 / 0.45);
 
@@ -121,6 +122,8 @@
 	--color-muted: var(--color-inv-muted);
 	--color-line: var(--color-inv-line);
 	--color-ok-bg: var(--color-ok-bg-strong);
+	/* O lime escuro do tema claro sumiria no fundo escuro */
+	--color-focus: var(--color-lime);
 }
 
 @layer base {
@@ -149,7 +152,6 @@
 				--color-danger: #ff9c90;
 				--color-danger-bg: #3d1915;
 				--color-ok: #6ee39b;
-				--color-focus: #8fb6ff;
 				--elevation: 0 18px 40px rgb(0 0 0 / 0.5);
 
 				color-scheme: dark;

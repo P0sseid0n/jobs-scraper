@@ -291,6 +291,7 @@ O que sobra depois das fases anteriores é o layout de cada tela. Migrar seção
 - **Ajustes que o preflight pediu:** ele tira o negrito e o tamanho dos títulos e a margem de todos os elementos; o título do detalhe da vaga e o da modal ganharam `font-bold`, e o `<dialog>` ganhou `m-auto` para continuar centralizado.
 - **Diferenças vistas na comparação:** o link "pular para o conteúdo" (só aparece com o foco) perdeu o sublinhado padrão dos links; o cabeçalho da bandeja de currículos voltou a ter padding lateral 0, como no CSS original (a fase 6 tinha deixado o padding padrão do botão do navegador); os campos sem borda dentro de outros (busca e palavras-chave) perderam 1–2px de padding do navegador.
 - **O `styles.css` saiu.** O CSS do site é todo o `tailwind.css`.
+- **Cor do foco:** o azul (`#2f6fdb`/`#8fb6ff`), único fora da paleta, virou o lime de texto (`--color-focus: var(--color-lime-text)`): `#3b6400` no tema claro e `#c8f542` no escuro, com contraste de pelo menos 3:1 com o fundo. O `inverted` troca o foco pelo lime claro, que o escuro sumiria nas superfícies escuras.
 
 ---
 
