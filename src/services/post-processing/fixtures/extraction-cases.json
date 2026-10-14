@@ -131,5 +131,132 @@
 		"correctedFields": [],
 		"model": null,
 		"promptVersion": null
+	},
+	{
+		"postId": "caso-b809a8bde912",
+		"anonymized": true,
+		"kind": "not-a-job",
+		"post": {
+			"text": "🚀 We're Hiring! L2 Support Backend Developer (Python+Angular)",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Support Backend Developer",
+			"company": null,
+			"location": null,
+			"workMode": null,
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"Python",
+				"Angular"
+			],
+			"recruiterEmail": null,
+			"applyLink": null,
+			"aiJobConfidence": 95
+		},
+		"expected": null,
+		"correctedFields": [],
+		"model": "gemma3:4b",
+		"promptVersion": "2ad252391dd6"
+	},
+	{
+		"postId": "caso-378579e6c230",
+		"anonymized": true,
+		"kind": "not-a-job",
+		"post": {
+			"text": "Quanta comida boa vai para o lixo no fim da feira?\n\nFoi dessa pergunta que nasceu o SobraZero, uma plataforma que liga feirantes com sobras do dia a ONGs que distribuem refeições. Desenvolvi o projeto com meu grupo na [FACULDADE MODELO / SISTEMAS DE INFORMAÇÃO].\n--O feirante cadastra a doação, com quantidade, tipo de alimento e fotos\n--A ONG recebe as doações e escolhe qual voluntário vai buscar\n--O voluntário faz a rota, e o feirante acompanha a posição dele no mapa, em tempo real\n\nDo que é feito:\n• Front-end: React, Vite, Tailwind, React Router e Leaflet (mapas)\n• Back-end: Java com Spring Boot\n• Banco: PostgreSQL na nuvem\n• Tempo real: WebSocket (STOMP)\n\nO que aprendemos\n\nNo front-end:\n→ Montar telas com componentes reutilizáveis em React\n→ Proteger rotas por perfil: feirante, ONG e voluntário veem telas diferentes\n→ Usar mapas com Leaflet e o GPS do celular para mostrar o voluntário em tempo real\n→ Preencher o endereço a partir do CEP, consultando a API ViaCEP\n→ Comprimir as fotos no navegador antes de enviar: de 5 MB para uns 300 KB\n→ Fazer interfaces responsivas com Tailwind e dar retorno claro ao usuário com alertas\n\nNo back-end:\n→ Organizar o código em camadas (controller, service, repository)\n→ Fazer comunicação em tempo real com WebSocket\n→ Cuidar da segurança desde o começo: login com JWT em cookie, senhas criptografadas e bloqueio de tentativas repetidas\n\nEm equipe:\n→ Trabalhar com Git e entregar em sprints\nObrigado ao time que construiu isso comigo: Fulano de Tal e Ciclano Souza\n#Java #SpringBoot #React #FrontEnd #DesenvolvimentoWeb #Sustentabilidade #Alimentos",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Desenvolvedor",
+			"company": "SobraZero",
+			"location": null,
+			"workMode": "hibrido",
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"Java",
+				"Spring Boot",
+				"React",
+				"Tailwind",
+				"Leaflet",
+				"PostgreSQL",
+				"WebSocket",
+				"STOMP",
+				"ViaCEP"
+			],
+			"recruiterEmail": null,
+			"applyLink": null,
+			"aiJobConfidence": 95
+		},
+		"expected": null,
+		"correctedFields": [],
+		"model": "gemma3:4b",
+		"promptVersion": "2ad252391dd6"
+	},
+	{
+		"postId": "caso-b814e97fa985",
+		"anonymized": true,
+		"kind": "not-a-job",
+		"post": {
+			"text": "¡He empezado en un nuevo puesto de Desarrollador backend en Grupo Nexa Sistemas!",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Desenvolvedor backend",
+			"company": "Grupo Nexa Sistemas",
+			"location": null,
+			"workMode": null,
+			"contractTypes": null,
+			"necessaryKnowledge": null,
+			"recruiterEmail": null,
+			"applyLink": null,
+			"aiJobConfidence": 95
+		},
+		"expected": null,
+		"correctedFields": [],
+		"model": "gemma3:4b",
+		"promptVersion": "2ad252391dd6"
+	},
+	{
+		"postId": "caso-ad3fd5255bda",
+		"anonymized": true,
+		"kind": "not-a-job",
+		"post": {
+			"text": "🚀 نسخه دوم NovaKit منتشر شد\n\nبالاخره نسخه ۲ کتابخانه NovaKit به‌صورت بتا در دسترس است.\n\nنصب با یک دستور:\n\nnpm install novakit\n\n✨ چه چیزهایی تغییر کرده؟\n\n• کامپوننت‌های جدید برای فرم‌ها و جدول‌ها\n• پشتیبانی کامل از React، Vue و Svelte\n• حالت تاریک و تم‌های قابل تنظیم\n• حجم بسته نسبت به نسخه قبل نصف شده است\n\n⚙️ هسته کتابخانه مستقل از فریمورک نوشته شده و هر فریمورک فقط یک لایه نازک روی آن دارد. برای همین اضافه کردن Angular و Solid در نسخه بعدی ساده خواهد بود.\n\n🧪 همه کامپوننت‌ها تست خودکار دارند و مستندات با مثال‌های زنده به‌روز شده است.\n\nاگر باگی دیدید یا پیشنهادی دارید، در صفحه پروژه بنویسید.\n\nReact\nVue\nSvelte\nTypeScript\nFrontend Developers\nFull-stack developer javascript recruitment advertisement\nnovakit",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Full-stack developer",
+			"company": "novakit",
+			"location": null,
+			"workMode": null,
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"React",
+				"Vue",
+				"Svelte",
+				"TypeScript",
+				"JavaScript"
+			],
+			"recruiterEmail": null,
+			"applyLink": null,
+			"aiJobConfidence": 75
+		},
+		"expected": null,
+		"correctedFields": [],
+		"model": "gemma3:4b",
+		"promptVersion": "2ad252391dd6"
 	}
 ]
