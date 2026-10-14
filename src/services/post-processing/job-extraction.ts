@@ -5,6 +5,7 @@ import { PermanentError } from '@shared/messaging'
 
 import type { AiJobOutput } from './extraction-output'
 import { buildExtractionMessages, EXTRACTION_OUTPUT_FORMAT } from './extraction-prompt'
+import { jobConfidenceFromLogprobs } from './job-confidence'
 import {
 	keepContractTypesInPost,
 	keepLinkIfInPost,
@@ -21,14 +22,22 @@ export async function extractJobFromPost(ollama: Ollama, model: string, post: Ra
 		messages: buildExtractionMessages({ text: normalizePostText(post.text), author: post.author }),
 		format: EXTRACTION_OUTPUT_FORMAT,
 		options: { temperature: 0 },
+		// A confiança sai da probabilidade dos tokens do `postType`, não de um número escrito pelo modelo
+		logprobs: true,
 	})
 
+	let aiJob: AiJobOutput | null
 	try {
-		return parseModelResponse(response.message.content)
+		aiJob = parseModelResponse(response.message.content)
 	} catch (error) {
 		// Com structured outputs isso não deveria acontecer; se acontecer, tentar de novo não ajuda
 		throw new PermanentError('Resposta do modelo inválida', { cause: error })
 	}
+
+	if (!aiJob) return null
+	// Sem logprobs (Ollama anterior ao 0.12.11), só a classificação decide
+	const aiJobConfidence = jobConfidenceFromLogprobs(response.logprobs) ?? (aiJob.isJob ? 100 : 0)
+	return { ...aiJob, aiJobConfidence }
 }
 
 /** Monta a vaga com os dados da IA e os do post, que têm prioridade. */

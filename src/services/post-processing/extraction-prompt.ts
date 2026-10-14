@@ -12,7 +12,6 @@ import { POST_TYPES } from './extraction-output'
  */
 const ModelOutputSchema = z.object({
 	postType: z.enum(POST_TYPES),
-	aiJobConfidence: z.number().int().min(0).max(100),
 	title: z.string().nullable(),
 	company: z.string().nullable(),
 	location: z.string().nullable(),
@@ -39,13 +38,7 @@ const SYSTEM_PROMPT = `You classify LinkedIn posts and extract job openings from
 Mentioning technologies or the word "developer" does NOT make a post a job_opening. There must be a vacancy someone is hiring for.
 Ask who the post is about. A job_opening is written from the hiring side: it invites candidates to apply ("we are hiring", "estamos contratando", "vaga", "buscamos", "requisitos"). If the author writes in the first person singular about their own career ("I worked", "my experience", "trabalhei", "minha trajetória", "estou buscando", "estou aberto", "comecei como"), it is NOT a job_opening, even when it names a role, a seniority, a company or technologies.
 
-## 2. aiJobConfidence (0-100): how sure you are that the post is a job_opening
-- 90-100: explicit vacancy with a role and a way to apply or a company.
-- 60-89: clearly hiring, but details are vague.
-- 30-59: unclear.
-- 0-29: not a vacancy (always use this range when postType is not "job_opening").
-
-## 3. Extract the fields, using only the post text
+## 2. Extract the fields, using only the post text
 If the post lists several openings, extract only ONE: the opening most related to software development (or the first one if none is).
 Every field must come from that same opening; never mix the title of one opening with the link or skills of another.
 

@@ -5,9 +5,8 @@ import { buildExtractionMessages, EXTRACTION_OUTPUT_FORMAT } from './extraction-
 describe('prompt', () => {
 	test('schema de saída exige todos os campos', () => {
 		expect(EXTRACTION_OUTPUT_FORMAT.type).toBe('object')
-		expect(EXTRACTION_OUTPUT_FORMAT.required).toEqual(
-			expect.arrayContaining(['postType', 'aiJobConfidence', 'title', 'company', 'contractTypes']),
-		)
+		expect(EXTRACTION_OUTPUT_FORMAT.required).toEqual(expect.arrayContaining(['postType', 'title', 'company', 'contractTypes']))
+		expect(EXTRACTION_OUTPUT_FORMAT.required).not.toContain('aiJobConfidence')
 	})
 
 	test('instruções em system e o post por último', () => {
