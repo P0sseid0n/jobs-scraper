@@ -65,6 +65,8 @@ bun test
 
 Se a mudança aparece no site ou no Discord, confira o resultado de verdade (`bun dev`) além dos testes.
 
+O `bun install` instala um hook de pre-push (husky) que bloqueia o push se algum commit enviado tem, nas fixtures de avaliação da extração, um post ainda não reescrito à mão (veja o [post-processing](src/services/post-processing/README.md#avaliar-a-extração)).
+
 Depois:
 
 1. Abra um PR para a `main` com título no mesmo formato dos commits e, na descrição, o que mudou, como testar e `Closes #<número>`.

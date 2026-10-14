@@ -29,6 +29,7 @@ Confiança, idiomas e palavras-chave ficam nas [configurações](../../shared/RE
 | `job-validation.ts` | campos obrigatórios da vaga |
 | `extraction-eval.ts`, `eval-extraction.ts` | `bun eval:extraction`: acerto por campo nas vagas corrigidas pelo site |
 | `feedback-fixtures.ts`, `export-feedback-fixtures.ts` | `bun eval:export-fixtures`: correções sem dados pessoais em `fixtures/extraction-cases.json` |
+| `check-pushed-fixtures.ts` | hook de pre-push: bloqueia o envio de fixtures ainda não reescritas à mão |
 | `migrate-job-fields.ts`, `legacy-job-links.ts` | `bun db:migrate-jobs`: atualiza as vagas salvas para o formato atual dos campos (pode rodar mais de uma vez) |
 
 ## Avaliar a extração
@@ -52,6 +53,6 @@ company              33% (3)    78% (7)      9
 
 Para comparar duas versões do prompt, rode antes e depois da mudança. Precisa do Ollama e fica fora do CI.
 
-`bun eval:export-fixtures` exporta as correções para `fixtures/extraction-cases.json` sem dados pessoais: e-mails viram `contatoN@exemplo.com` (no texto e nos campos), o nome de quem postou vira "Autor do post", e perfis e links curtos (`lnkd.in`) do LinkedIn, telefones, links e ids do post saem. Isso não basta: o texto continua o do post, e um trecho dele numa busca acha quem postou. Por isso cada caso exportado sai com `anonymized: false`. Antes do commit, reescreva o texto à mão (troque frases, empresa, faculdade, números e a história, mantendo o que confunde a IA), ajuste a saída da IA se ela citar algo trocado e marque `anonymized: true`. Depois rode `bun eval:extraction --fixtures` com o prompt antigo para confirmar que o caso reescrito ainda pega o erro. Um caso com `anonymized: true` não é substituído quando o export roda de novo. Um teste confere que todas as fixtures versionadas têm `anonymized: true` e nenhum e-mail, perfil, link curto ou telefone.
+`bun eval:export-fixtures` exporta as correções para `fixtures/extraction-cases.json` sem dados pessoais: e-mails viram `contatoN@exemplo.com` (no texto e nos campos), o nome de quem postou vira "Autor do post", e perfis e links curtos (`lnkd.in`) do LinkedIn, telefones, links e ids do post saem. Isso não basta: o texto continua o do post, e um trecho dele numa busca acha quem postou. Por isso cada caso exportado sai com `anonymized: false`. Antes do commit, reescreva o texto à mão (troque frases, empresa, faculdade, números e a história, mantendo o que confunde a IA), ajuste a saída da IA se ela citar algo trocado e marque `anonymized: true`. Depois rode `bun eval:extraction --fixtures` com o prompt antigo para confirmar que o caso reescrito ainda pega o erro. Um caso com `anonymized: true` não é substituído quando o export roda de novo. Um teste confere que todas as fixtures versionadas têm `anonymized: true` e nenhum e-mail, perfil, link curto ou telefone. O hook de pre-push (`check-pushed-fixtures.ts`) faz a mesma conferência em cada commit enviado que mexe no arquivo e bloqueia o push se algum falhar.
 
 A fila `storage`, do antigo serviço que salvava as vagas, ainda é consumida aqui para não perder as mensagens que estavam nela. O consumo sai na próxima versão.
