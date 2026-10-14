@@ -1,7 +1,8 @@
 /**
  * Exporta as correções feitas pelo site (coleção `extraction_feedback`) como casos de avaliação versionados, sem
  * dados pessoais (`fixtures/extraction-cases.json`). Pode rodar mais de uma vez: o mesmo post é atualizado.
- * Revise o arquivo antes do commit: nomes citados no meio do texto não são detectados.
+ * Os casos novos saem com `anonymized: false`: reescreva o texto deles à mão e marque `anonymized: true` antes do
+ * commit (o teste das fixtures cobra isso). Um caso já marcado não é substituído.
  * Uso: bun eval:export-fixtures
  */
 import { loadConfig, mongoEnv } from '@shared/config'
@@ -25,10 +26,16 @@ if (leaks.length > 0) {
 	process.exit(1)
 }
 
-const fixtures = mergeFixtures(await readFixtures(DEFAULT_FIXTURES_PATH), exported)
+const { fixtures, kept } = mergeFixtures(await readFixtures(DEFAULT_FIXTURES_PATH), exported)
 await Bun.write(DEFAULT_FIXTURES_PATH, `${JSON.stringify(fixtures, null, '\t')}\n`)
 
 logger.info(
-	{ exported: exported.length, total: fixtures.length, file: DEFAULT_FIXTURES_PATH },
-	'✅ Casos exportados; revise o arquivo antes do commit',
+	{
+		exported: exported.length - kept.length,
+		kept: kept.length,
+		toRewrite: fixtures.filter(item => !item.anonymized).length,
+		total: fixtures.length,
+		file: DEFAULT_FIXTURES_PATH,
+	},
+	'✅ Casos exportados; reescreva os que têm anonymized: false antes do commit',
 )

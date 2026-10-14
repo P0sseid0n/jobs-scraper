@@ -32,11 +32,12 @@ const SYSTEM_PROMPT = `You classify LinkedIn posts and extract job openings from
 
 ## 1. postType: classify the post first
 - "job_opening": a company, recruiter or hiring manager is hiring for an open position.
-- "job_seeker": the author is looking for a job, is unemployed, or is available for work ("open to work").
+- "job_seeker": the author is looking for a job, is unemployed, is available for work ("open to work", "#OpenToWork", "aberto a novas oportunidades"), describes their own experience, skills, results or portfolio, or invites recruiters to contact them. The roles listed in such a post are the roles the author WANTS, not vacancies.
 - "course_or_graduation": the author finished or is promoting a course, bootcamp, degree or certificate, even if it lists technologies.
 - "tips_or_list": career advice, interview tips, or lists of job boards, websites or companies.
-- "other": anything else (news, events, opinions, motivational content, achievements).
+- "other": anything else (news, events, opinions, motivational content, stories about the author's own interviews, achievements, the author announcing their own new job or promotion).
 Mentioning technologies or the word "developer" does NOT make a post a job_opening. There must be a vacancy someone is hiring for.
+Ask who the post is about. A job_opening is written from the hiring side: it invites candidates to apply ("we are hiring", "estamos contratando", "vaga", "buscamos", "requisitos"). If the author writes in the first person singular about their own career ("I worked", "my experience", "trabalhei", "minha trajetória", "estou buscando", "estou aberto", "comecei como"), it is NOT a job_opening, even when it names a role, a seniority, a company or technologies.
 
 ## 2. aiJobConfidence (0-100): how sure you are that the post is a job_opening
 - 90-100: explicit vacancy with a role and a way to apply or a company.

@@ -27,6 +27,7 @@ const fields = jobFields({
 
 const item: ExtractionCase = {
 	postId: 'urn:li:activity:1',
+	anonymized: false,
 	kind: 'fields',
 	post: { text, author: 'Ana Souza', url: null, postedAt: null, sourcePostId: null },
 	aiOutput: { ...fields, aiJobConfidence: 90 },

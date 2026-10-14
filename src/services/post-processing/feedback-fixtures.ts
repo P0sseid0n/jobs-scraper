@@ -1,10 +1,12 @@
 import { ExtractionCaseSchema, type ExtractionCase } from './extraction-eval'
 
 /** Casos de avaliação versionados, exportados por `bun eval:export-fixtures` e lidos por `bun eval:extraction --fixtures`. */
-export const DEFAULT_FIXTURES_PATH = new URL('./fixtures/extraction-cases.json', import.meta.url).pathname
+export const DEFAULT_FIXTURES_PATH = Bun.fileURLToPath(new URL('./fixtures/extraction-cases.json', import.meta.url))
 
 const EMAIL = /[\w.+-]+@[\w-]+(\.[\w-]+)+/g
 const LINKEDIN_PROFILE = /linkedin\.com\/in\/[^\s/?#)"]+/gi
+// Links curtos do LinkedIn costumam levar ao perfil ou ao portfólio de quem postou
+const LINKEDIN_SHORT_LINK = /lnkd\.in\/[\w-]+/gi
 // Telefones brasileiros: "(11) 91234-5678", "+55 11 912345678", "11 3456-7890"
 const PHONE = /(\+?55[\s-]?)?\(?\b\d{2}\)?[\s-]?9?\d{4}[\s-]?\d{4}\b/g
 
@@ -13,8 +15,9 @@ const PLACEHOLDER_AUTHOR = 'Autor do post'
 
 /**
  * Tira os dados pessoais de um caso antes de versioná-lo: e-mails (trocados de forma consistente no texto e nos campos,
- * para a comparação continuar valendo), o nome de quem postou, perfis do LinkedIn, telefones e os ids e links do post.
- * Nomes citados no meio do texto não são detectados: revise o arquivo antes do commit.
+ * para a comparação continuar valendo), o nome de quem postou, perfis e links curtos do LinkedIn, telefones e os ids e links do post.
+ * Nomes citados no meio do texto e o próprio texto (que acha o post numa busca) continuam: o caso sai com
+ * `anonymized: false` até ser reescrito à mão.
  */
 export function anonymizeCase(item: ExtractionCase): ExtractionCase {
 	const emails = new Map<string, string>()
@@ -27,7 +30,10 @@ export function anonymizeCase(item: ExtractionCase): ExtractionCase {
 			if (!emails.has(key)) emails.set(key, `contato${emails.size + 1}@exemplo.com`)
 			return emails.get(key)!
 		})
-		result = result.replace(LINKEDIN_PROFILE, 'linkedin.com/in/perfil').replace(PHONE, '(11) 90000-0000')
+		result = result
+			.replace(LINKEDIN_PROFILE, 'linkedin.com/in/perfil')
+			.replace(LINKEDIN_SHORT_LINK, 'lnkd.in/link')
+			.replace(PHONE, '(11) 90000-0000')
 		for (const name of authorNames) result = result.replace(wordPattern(name), PLACEHOLDER_AUTHOR)
 		return result
 	}
@@ -42,6 +48,7 @@ export function anonymizeCase(item: ExtractionCase): ExtractionCase {
 	return {
 		...item,
 		postId: `caso-${shortHash(item.postId)}`,
+		anonymized: false,
 		post: {
 			text: scrub(item.post.text),
 			author: item.post.author ? PLACEHOLDER_AUTHOR : null,
@@ -55,7 +62,7 @@ export function anonymizeCase(item: ExtractionCase): ExtractionCase {
 	}
 }
 
-/** Dados pessoais que sobraram num caso já anonimizado (e-mails reais, perfis, telefones); vazio se não há nenhum. */
+/** Dados pessoais que sobraram num caso já anonimizado (e-mails reais, perfis, links curtos, telefones); vazio se não há nenhum. */
 export function findPersonalData(item: ExtractionCase) {
 	const text = JSON.stringify(item)
 	const found = [
@@ -63,6 +70,7 @@ export function findPersonalData(item: ExtractionCase) {
 		...[...text.matchAll(LINKEDIN_PROFILE)]
 			.map(match => match[0])
 			.filter(profile => profile.toLowerCase() !== 'linkedin.com/in/perfil'),
+		...[...text.matchAll(LINKEDIN_SHORT_LINK)].map(match => match[0]).filter(link => link !== 'lnkd.in/link'),
 		...[...text.matchAll(PHONE)].map(match => match[0]).filter(phone => phone !== '(11) 90000-0000'),
 	]
 	if (item.post.url) found.push(item.post.url)
@@ -70,11 +78,28 @@ export function findPersonalData(item: ExtractionCase) {
 	return found
 }
 
-/** Junta os casos novos aos já versionados: o mesmo post fica uma vez só, com a versão nova. */
+/**
+ * Junta os casos novos aos já versionados: o mesmo post fica uma vez só, com a versão nova. Um caso já reescrito à
+ * mão (`anonymized: true`) fica como está; `kept` lista os ids deles que vieram de novo do export.
+ */
 export function mergeFixtures(current: ExtractionCase[], added: ExtractionCase[]) {
 	const byId = new Map(current.map(item => [item.postId, item]))
-	for (const item of added) byId.set(item.postId, item)
-	return [...byId.values()]
+	const kept: string[] = []
+	for (const item of added) {
+		if (byId.get(item.postId)?.anonymized) kept.push(item.postId)
+		else byId.set(item.postId, item)
+	}
+	return { fixtures: [...byId.values()], kept }
+}
+
+/** O que impede cada caso de ser versionado: texto ainda não reescrito à mão ou dados pessoais. Só casos com problema. */
+export function fixtureProblems(fixtures: ExtractionCase[]) {
+	return fixtures
+		.map(item => ({
+			postId: item.postId,
+			problems: [...(item.anonymized ? [] : ['anonymized: false']), ...findPersonalData(item)],
+		}))
+		.filter(item => item.problems.length > 0)
 }
 
 /** Lê os casos versionados; arquivo ausente é uma lista vazia. */

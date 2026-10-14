@@ -32,6 +32,8 @@ const FieldsSchema = z.object({
  */
 export const ExtractionCaseSchema = z.object({
 	postId: z.string().min(1),
+	// Fixture com o texto reescrito à mão para não identificar quem postou: o export não a substitui
+	anonymized: z.boolean().default(false),
 	kind: z.enum(FEEDBACK_KINDS),
 	post: z.object({
 		text: z.string().min(1),

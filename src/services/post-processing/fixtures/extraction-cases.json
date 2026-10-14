@@ -1,1 +1,135 @@
-[]
+[
+	{
+		"postId": "caso-f316c134befa",
+		"anonymized": true,
+		"kind": "not-a-job",
+		"post": {
+			"text": "Entrevista para Front-End... e a pergunta foi sobre Go. Isso mesmo, Go. kkkkkk\n\nConfesso que travei uns segundos.\nEra um processo para Desenvolvedor Front-End Pleno, e eu estava pronto para falar de JavaScript, TypeScript, React, hooks, acessibilidade, testes...\n\nAí o entrevistador manda:\n\"E Go, você já usou no front?\"\n\nNa hora pensei: será que abri a chamada errada? kkkkk\n\nAntes que alguém me corrija nos comentários: sei que dá para compilar algumas linguagens para WebAssembly e rodar no navegador. Não é isso que me surpreendeu.\n\nO que me pegou foi ver isso como requisito de uma vaga de Front-End Web. Pra mim, interface web hoje é JavaScript e TypeScript na frente de tudo, com React, Vue ou Angular por cima.\n\nTalvez o time tivesse algum caso bem específico que eu não conhecia. Pode ser.\n\nNo fim, toda entrevista ensina alguma coisa. Às vezes um conceito novo, às vezes só uma boa história para contar aqui. kkkkkk\n\nE vocês, devs, qual foi a pergunta mais fora do roteiro que já ouviram numa entrevista? Quero saber se foi só comigo!\n\n- OpenToWork - Dev. React | Suporte de TI | Analista de Sistemas.\n\n- Portfolio:https://lnkd.in/link\n\n#Frontend #JavaScript #TypeScript #React #WebAssembly #CarreiraDev",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": "2026-10-09T18:23:23.353Z",
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Desenvolvedor Front-End Pleno",
+			"company": null,
+			"location": null,
+			"workMode": "hibrido",
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"JavaScript",
+				"TypeScript",
+				"React",
+				"Go",
+				"WebAssembly"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://lnkd.in/link",
+			"aiJobConfidence": 85
+		},
+		"expected": null,
+		"correctedFields": [],
+		"model": null,
+		"promptVersion": null
+	},
+	{
+		"postId": "caso-4fdc0637ba63",
+		"anonymized": true,
+		"kind": "not-a-job",
+		"post": {
+			"text": "Ser Desenvolvedor Front-end é muito mais do que montar telas: é resolver problemas de negócio com interfaces que as pessoas conseguem usar.\n\nNos últimos anos, como Desenvolvedor Front-end, trabalhei na evolução de aplicações web, na migração de sistemas antigos e na criação de interfaces responsivas para produtos de seguros e saúde.\n\nNo dia a dia uso React, TypeScript e JavaScript, com integração a APIs REST, componentização, testes e revisão de código.\n\nAlguns resultados de que me orgulho:\n\nFormulário de cotação: reescrevi o fluxo de cotação online, que passou a ter 30% menos abandono.\nBiblioteca de componentes: juntei botões, tabelas e modais que estavam duplicados em quatro projetos numa biblioteca única, usada hoje por cinco squads.\nMigração: participei da troca de páginas em jQuery por React com TypeScript e CSS Modules, melhorando desempenho e manutenção.\n\nEssas entregas me mostraram que um bom front-end depende de entender o problema, conversar com produto e design e construir algo que dure.\n\nEstou aberto a novas oportunidades como Desenvolvedor Front-end Pleno, Frontend Engineer ou React Developer, em times que trabalhem com React, TypeScript, JavaScript e APIs REST.\n\nRecrutadores e líderes de tecnologia: vou gostar muito de conversar sobre como posso contribuir com o time de vocês.\n\n#Frontend #ReactJS #TypeScript #Carreira #opentowork",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": "2026-10-09T22:24:57.633Z",
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Desenvolvedor Front-end Pleno",
+			"company": null,
+			"location": "Brasil",
+			"workMode": null,
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"React",
+				"TypeScript",
+				"JavaScript",
+				"APIs REST"
+			],
+			"recruiterEmail": null,
+			"applyLink": null,
+			"aiJobConfidence": 95
+		},
+		"expected": null,
+		"correctedFields": [],
+		"model": null,
+		"promptVersion": null
+	},
+	{
+		"postId": "caso-252c8aec26fe",
+		"anonymized": true,
+		"kind": "not-a-job",
+		"post": {
+			"text": "Feliz em contar uma novidade: a partir de hoje sou Desenvolvedor Front-End Pleno na Nuvio Digital! 🎉\n\nDepois de muito estudo e alguns processos seletivos, chegou a hora de começar essa nova fase, com novos desafios, muita coisa para aprender e projetos bem legais pela frente.\n\nObrigado a todo mundo que me apoiou até aqui. Bora pra cima!! 🚀",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": "2026-10-13T15:18:28.824Z",
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Desenvolvedor Front-End Pleno",
+			"company": "Nuvio Digital",
+			"location": null,
+			"workMode": null,
+			"contractTypes": null,
+			"necessaryKnowledge": null,
+			"recruiterEmail": null,
+			"applyLink": null,
+			"aiJobConfidence": 95
+		},
+		"expected": null,
+		"correctedFields": [],
+		"model": null,
+		"promptVersion": null
+	},
+	{
+		"postId": "caso-ce6ca360d6e6",
+		"anonymized": true,
+		"kind": "not-a-job",
+		"post": {
+			"text": "📢 Rede, preciso da ajuda de vocês: estou procurando uma nova oportunidade em tecnologia.\n\nNão vou mentir, a busca tem sido cansativa: muitas candidaturas, algumas entrevistas e processos que param no meio do caminho. Mesmo assim sigo estudando e confiante de que a vaga certa vai aparecer.\n\nSou Desenvolvedor Full Stack, formado em Sistemas de Informação, com experiência em aplicações web, APIs e integrações em tempo real.\n\nJá trabalhei com sistemas para logística e para o varejo, desde painéis web até um aplicativo desktop feito do zero, além de automações, integrações entre sistemas e serviços que precisam ficar no ar o tempo todo.\n\n💻 O que uso no dia a dia:\n⚡ Linguagens: JavaScript, TypeScript, Python\n⚛️ Frontend: React.js, HTML, CSS, Tailwind CSS, Zustand e Vite\n🟢 Backend: Node.js, Express.js, APIs REST e WebSockets\n🖥️ Desktop: Electron.js\n🗄️ Bancos: PostgreSQL, MongoDB e MySQL\n🔐 Segurança: JWT e controle de acesso\n🚀 Infra: Docker, Nginx, GitHub Actions, Git e Postman\n🌐 Inglês intermediário, aberto a vagas no Brasil e no exterior.\n\nBusco vagas de Desenvolvedor Backend Node.js, Desenvolvedor Full Stack ou Desenvolvedor Front-End, de preferência nível Pleno.\n\nTopo CLT ou PJ, remoto ou híbrido, em um time onde eu possa contribuir, aprender e ajudar a construir produtos que resolvem problemas de verdade.\n\n🤝 Se souber de alguma vaga ou puder me indicar para algum recrutador, vou agradecer muito!\n\nCompartilhar este post também ajuda bastante. Estou pronto para o próximo desafio!\n\n🙏 Valeu a todos!\n\n#OpenToWork #DesenvolvedorFullStack #NodeJS #React #TypeScript #JavaScript #Backend #VagasTI",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": "2026-10-10T13:29:40.669Z",
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Desenvolvedor Backend Node.js",
+			"company": null,
+			"location": "Brasil e no exterior",
+			"workMode": "remoto",
+			"contractTypes": [
+				"clt",
+				"pj"
+			],
+			"necessaryKnowledge": [
+				"Node.js",
+				"Express.js",
+				"JavaScript",
+				"TypeScript",
+				"PostgreSQL",
+				"MongoDB",
+				"MySQL",
+				"REST APIs",
+				"WebSockets",
+				"Docker"
+			],
+			"recruiterEmail": null,
+			"applyLink": null,
+			"aiJobConfidence": 95
+		},
+		"expected": null,
+		"correctedFields": [],
+		"model": null,
+		"promptVersion": null
+	}
+]

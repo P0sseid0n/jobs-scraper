@@ -3,13 +3,14 @@ import { describe, expect, test } from 'bun:test'
 import { jobFields } from '@shared/contracts'
 
 import type { ExtractionCase } from './extraction-eval'
-import { anonymizeCase, findPersonalData, mergeFixtures, readFixtures } from './feedback-fixtures'
+import { anonymizeCase, findPersonalData, fixtureProblems, mergeFixtures, readFixtures } from './feedback-fixtures'
 
 const item: ExtractionCase = {
 	postId: 'urn:li:activity:7515393090820456448',
+	anonymized: false,
 	kind: 'fields',
 	post: {
-		text: 'Oi, aqui é a Mariana Lima! Vaga Front-end. Currículos para mariana@acme.com ou vagas@acme.com, WhatsApp (11) 98765-4321. Perfil: https://www.linkedin.com/in/mariana-lima-123',
+		text: 'Oi, aqui é a Mariana Lima! Vaga Front-end. Currículos para mariana@acme.com ou vagas@acme.com, WhatsApp (11) 98765-4321. Perfil: https://www.linkedin.com/in/mariana-lima-123 Portfólio: https://lnkd.in/di7FF9Df',
 		author: 'Mariana Lima',
 		url: 'https://www.linkedin.com/feed/update/urn:li:activity:7515393090820456448',
 		postedAt: '2026-10-10T10:00:00.000Z',
@@ -31,14 +32,17 @@ describe('anonymizeCase', () => {
 		expect(anonymized.expected?.recruiterEmail).toBe('contato2@exemplo.com')
 	})
 
-	test('tira o nome de quem postou, perfis do LinkedIn, telefones e os ids do post', () => {
+	test('tira o nome de quem postou, perfis e links curtos do LinkedIn, telefones e os ids do post', () => {
 		expect(anonymized.post.text).toStartWith('Oi, aqui é a Autor do post!')
 		expect(anonymized.post.text).not.toContain('Mariana')
 		expect(anonymized.post.text).toContain('linkedin.com/in/perfil')
+		expect(anonymized.post.text).toContain('https://lnkd.in/link')
 		expect(anonymized.post.text).toContain('(11) 90000-0000')
 		expect(anonymized.post.author).toBe('Autor do post')
 		expect(anonymized.post.url).toBeNull()
 		expect(anonymized.postId).toMatch(/^caso-[a-f0-9]{12}$/)
+		// O texto ainda precisa ser reescrito à mão
+		expect(anonymized.anonymized).toBe(false)
 	})
 
 	test('mantém o resto do caso', () => {
@@ -62,11 +66,23 @@ test('mergeFixtures substitui o mesmo caso e mantém os outros', () => {
 	const b = { ...a, postId: 'caso-outro' }
 	const updated = { ...a, correctedFields: ['company'] }
 
-	expect(mergeFixtures([a, b], [updated])).toEqual([updated, b])
+	expect(mergeFixtures([a, b], [updated])).toEqual({ fixtures: [updated, b], kept: [] })
 })
 
-test('as fixtures versionadas são válidas e não têm dados pessoais', async () => {
-	for (const fixture of await readFixtures()) {
-		expect({ postId: fixture.postId, found: findPersonalData(fixture) }).toEqual({ postId: fixture.postId, found: [] })
-	}
+test('mergeFixtures não substitui um caso reescrito à mão', () => {
+	const rewritten = { ...anonymizeCase(item), anonymized: true, post: { ...anonymizeCase(item).post, text: 'Texto reescrito' } }
+
+	expect(mergeFixtures([rewritten], [anonymizeCase(item)])).toEqual({ fixtures: [rewritten], kept: [rewritten.postId] })
+})
+
+test('fixtureProblems aponta texto não reescrito e dados pessoais', () => {
+	const rewritten = { ...anonymizeCase(item), anonymized: true }
+
+	expect(fixtureProblems([rewritten])).toEqual([])
+	expect(fixtureProblems([anonymizeCase(item)])).toEqual([{ postId: rewritten.postId, problems: ['anonymized: false'] }])
+	expect(fixtureProblems([{ ...item, anonymized: true }])[0]?.problems.length).toBeGreaterThan(0)
+})
+
+test('as fixtures versionadas são válidas, foram reescritas à mão e não têm dados pessoais', async () => {
+	expect(fixtureProblems(await readFixtures())).toEqual([])
 })
