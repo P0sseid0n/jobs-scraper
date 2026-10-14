@@ -6,7 +6,7 @@ import { applicationMessage, formatApplicationMessage } from '@shared/templates'
 import type { WebJob } from '../../api-types'
 import { api, cvPdfUrl, RequestError } from '../api'
 import { cx } from '../lib/cx'
-import { jobDate, jobSubtitle, languageLabel, safeLink, timeAgo } from '../lib/format'
+import { jobDate, jobSubtitle, languageLabel, listingPageText, safeLink, timeAgo } from '../lib/format'
 import { useCvFor, useGeneratedMessage } from '../stores/cv'
 import { removeJob, replaceJob } from '../stores/jobs'
 import { copyText, notify } from '../stores/toast'
@@ -63,7 +63,11 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 	const generated = useGeneratedMessage(job.postId)
 	const showGenerated = !!generated && !useDefaultMessage
 	const message = generated && showGenerated ? formatApplicationMessage(generated) : applicationMessage(job.title)
-	const isLong = job.rawContent.length > LONG_POST_CHARS
+	// Vaga de um post com várias: o texto é o da página aberta pelo link dela, não o do post
+	const fromList = !!job.sourcePostId
+	const content = fromList ? listingPageText(job.rawContent) : job.rawContent
+	const contentNoun = fromList ? 'texto' : 'post'
+	const isLong = content.length > LONG_POST_CHARS
 
 	async function toggleRawJson() {
 		if (rawJson !== null) {
@@ -210,27 +214,32 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 				</section>
 			)}
 
-			<section className="flex flex-col gap-2.5" aria-label="Post original">
+			<section className="flex flex-col gap-2.5" aria-label={fromList ? 'Página da vaga' : 'Post original'}>
 				<div className="flex items-center justify-between gap-3">
-					<h3 className={LABEL}>post original_</h3>
+					<h3 className={LABEL}>{fromList ? 'página da vaga_' : 'post original_'}</h3>
 					{/* Com outra forma de candidatura, o post serve mais para conferir (debug): link discreto */}
 					{postLink && !appliesThroughPost && (
 						<TextLink className="text-xs font-mono" href={postLink} external>
-							ir para o post
+							{fromList ? 'ver post com a lista' : 'ir para o post'}
 						</TextLink>
 					)}
 				</div>
+				{fromList && (
+					<p className="text-muted text-xs">
+						Esta vaga veio de um post com várias vagas. O texto abaixo é da página aberta pelo link dela no post.
+					</p>
+				)}
 				<div
 					className={cx(
 						'text-sm leading-relaxed whitespace-pre-line wrap-anywhere',
 						isLong && !expanded && 'max-h-34 overflow-hidden mask-b-from-60%',
 					)}
 				>
-					{job.rawContent}
+					{content}
 				</div>
 				{isLong && (
 					<TextLink className="text-sm" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
-						{expanded ? 'recolher post' : 'mostrar post completo'}
+						{expanded ? `recolher ${contentNoun}` : `mostrar ${contentNoun} completo`}
 					</TextLink>
 				)}
 			</section>

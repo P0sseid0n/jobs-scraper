@@ -129,3 +129,11 @@ export function safeLink(link: string | null) {
 export function isLoginFailure(error: string | null) {
 	return !!error && /login|captcha|2fa|verifica/i.test(error)
 }
+
+/**
+ * O texto da página de uma vaga de post com várias, sem o cabeçalho "Vaga: …" / "Link: …" que o scraper põe para a
+ * IA (o cargo e o link já aparecem no detalhe).
+ */
+export function listingPageText(rawContent: string) {
+	return rawContent.replace(/^Vaga: .*\nLink: .*\n\n/, '')
+}

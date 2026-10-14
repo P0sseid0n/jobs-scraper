@@ -7,6 +7,7 @@ import {
 	isLoginFailure,
 	jobSubtitle,
 	languageLabel,
+	listingPageText,
 	safeLink,
 	timeAgo,
 	workModeOf,
@@ -73,4 +74,16 @@ test('falha de login do LinkedIn pede ação', () => {
 	expect(isLoginFailure('Login não concluído (checkpoint). O LinkedIn pediu verificação (captcha/2FA)')).toBe(true)
 	expect(isLoginFailure('Todas as buscas falharam')).toBe(false)
 	expect(isLoginFailure(null)).toBe(false)
+})
+
+describe('listingPageText', () => {
+	test('tira o cabeçalho de cargo e link que o scraper põe antes da página', () => {
+		expect(listingPageText('Vaga: Dev Front-end\nLink: https://lnkd.in/a1\n\nBuscar vagas\nDev Front-end Pleno')).toBe(
+			'Buscar vagas\nDev Front-end Pleno',
+		)
+	})
+
+	test('texto sem o cabeçalho fica igual', () => {
+		expect(listingPageText('Estamos contratando!\nVaga: Dev')).toBe('Estamos contratando!\nVaga: Dev')
+	})
 })
