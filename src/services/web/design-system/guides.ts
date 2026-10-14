@@ -91,6 +91,13 @@ export const GUIDES: Record<string, string> = {
 
 - \`title\` diz o que aconteceu; \`description\` o porquê ou o que fazer; \`action\` é um \`Button\` ghost que resolve ("limpar filtros", "tentar de novo").
 - \`tone="error"\` mostra o ícone de alerta e avisa o leitor de tela. \`bare\` tira o card quando já está dentro de um.`,
+	CodeBlock: `Texto técnico para ler e copiar (o JSON da vaga, o erro de uma busca), em fonte mono e com as quebras de linha.
+
+- Escuro nos dois temas (\`color-code-bg\`): no tema escuro, um preto translúcido que combina com o fundo de baixo, inclusive o de um card de erro.
+- \`label\` diz o que é o texto, em minúsculas ("documento no mongodb", "erro original").
+- \`onCopy\` mostra o botão "copiar"; no site ele chama o \`copyText\`, que avisa com um toast.
+- \`scroll\` para textos longos (um JSON): limita a altura e rola dentro do bloco.
+- Para detalhes de depuração, deixe o bloco recolhido atrás de um link ou de um \`<details>\`.`,
 	Skeleton: `Bloco pulsando no lugar do conteúdo que ainda está carregando (o tamanho e a cor vêm do \`className\`).
 
 - Dê a cor (\`bg-surface-2\`) e desenhe a forma do conteúdo que vem: linhas com \`h-4\`/\`h-5\` e larguras em fração (\`w-3/4\`), badges com \`rounded-pill\`.`,

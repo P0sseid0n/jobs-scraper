@@ -84,6 +84,8 @@
 	--color-focus: var(--color-lime-text);
 	--color-switch-knob: #ffffff;
 	--color-backdrop: rgb(20 22 19 / 0.45);
+	/* Fundo do CodeBlock: no escuro, preto translúcido, que escurece o fundo de baixo sem trazer outra cor */
+	--color-code-bg: #141613;
 
 	/* Pontos de status: as mesmas cores nos dois temas */
 	--color-ok-dot: #2ecc71;
@@ -155,6 +157,7 @@
 				--color-danger: #ff9c90;
 				--color-danger-bg: #3d1915;
 				--color-ok: #6ee39b;
+				--color-code-bg: rgb(0 0 0 / 0.35);
 				--elevation: 0 18px 40px rgb(0 0 0 / 0.5);
 				--placeholder-mix: 85%;
 

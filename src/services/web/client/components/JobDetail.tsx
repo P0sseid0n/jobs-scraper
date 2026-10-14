@@ -18,6 +18,7 @@ import { ListingBadge } from './ListingBadge'
 import { ReportJobDialog } from './ReportJobDialog'
 import { badge, BadgeList } from './ui/Badge'
 import { Button } from './ui/Button'
+import { CodeBlock } from './ui/CodeBlock'
 import { IconButton } from './ui/IconButton'
 import { Notice } from './ui/Notice'
 import { PdfIcon } from './ui/PdfIcon'
@@ -255,16 +256,9 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 					{loadingRaw ? 'carregando json…' : rawJson !== null ? 'esconder json da vaga' : 'ver json da vaga (debug)'}
 				</TextLink>
 				{rawJson !== null && (
-					<div className={MESSAGE_BOX}>
-						<div className="flex items-center justify-between gap-3">
-							<span className={LABEL}>documento no mongodb</span>
-							<Button variant="ghost" size="xs" onClick={() => copyText(rawJson, 'JSON da vaga')}>
-								<Icon name="copy" size={13} />
-								copiar
-							</Button>
-						</div>
-						<pre className={cx(MESSAGE_TEXT, 'max-h-90 overflow-auto')}>{rawJson}</pre>
-					</div>
+					<CodeBlock label="documento no mongodb" onCopy={() => copyText(rawJson, 'JSON da vaga')} scroll>
+						{rawJson}
+					</CodeBlock>
 				)}
 			</footer>
 		</div>

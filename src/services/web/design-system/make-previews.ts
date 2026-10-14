@@ -189,6 +189,12 @@ const PREVIEWS: Record<string, Preview> = {
 	h(U.EmptyState, { tone: 'error', title: 'Não consegui carregar as vagas', description: 'A API não respondeu.', action: h(U.Button, { variant: 'ghost' }, 'tentar de novo') })
 )`,
 	},
+	CodeBlock: {
+		group: 'Feedback',
+		height: 220,
+		subtitle: 'com copiar e rolagem (JSON)',
+		body: `h(U.CodeBlock, { label: 'documento no mongodb', onCopy: () => {}, scroll: true, className: 'max-w-md' }, JSON.stringify({ title: 'Desenvolvedor Front-end Pleno', company: 'Acme', workMode: 'remote', technologies: ['React', 'TypeScript'] }, null, 2))`,
+	},
 	Skeleton: {
 		group: 'Feedback',
 		height: 120,
