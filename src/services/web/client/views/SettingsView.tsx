@@ -48,7 +48,7 @@ export function SettingsView({ initial }: { initial: WebSettings }) {
 	const [draft, setDraft] = useState<SettingsDraft | null>(() => draftOf(initial))
 	const [serverErrors, setServerErrors] = useState<Record<string, string>>({})
 	const [saveState, setSaveState] = useState<SaveState>('idle')
-	const [saveMessage, setSaveMessage] = useState('')
+	const [saveMessage, setSaveMessage] = useState<{ title: string; detail?: string }>({ title: '' })
 	const [touched, setTouched] = useState(false)
 	const [newTerm, setNewTerm] = useState('')
 	const [savingPause, setSavingPause] = useState(false)
@@ -97,7 +97,7 @@ export function SettingsView({ initial }: { initial: WebSettings }) {
 		setTouched(true)
 		if (Object.keys(clientErrors).length > 0) {
 			setSaveState('error')
-			setSaveMessage('Corrija os campos marcados antes de salvar.')
+			setSaveMessage({ title: 'Não salvo', detail: 'Corrija os campos marcados antes de salvar.' })
 			return
 		}
 
@@ -111,11 +111,14 @@ export function SettingsView({ initial }: { initial: WebSettings }) {
 			}
 			reset(current)
 			setSaveState('saved')
-			setSaveMessage('Salvo. O scraper relê as configurações em até 30 s; os filtros valem para os próximos posts.')
+			setSaveMessage({
+				title: 'Salvo',
+				detail: 'O scraper relê as configurações em até 30 s; os filtros valem para os próximos posts.',
+			})
 		} catch (error) {
 			setSaveState('error')
 			setServerErrors(error instanceof RequestError ? error.fields : {})
-			setSaveMessage((error as Error).message)
+			setSaveMessage({ title: 'Não foi possível salvar', detail: (error as Error).message })
 		}
 	}
 
@@ -454,28 +457,35 @@ export function SettingsView({ initial }: { initial: WebSettings }) {
 			{draft && (
 				<div data-save-bar className="fixed inset-x-0 bottom-0 z-25 border-t border-line bg-bg max-md:bottom-safe-16">
 					<div className="mx-auto flex max-w-270 flex-wrap items-center gap-3 px-6 py-3 max-md:px-4">
-						<span
+						<div
 							role="status"
 							className={cx(
-								'font-mono text-sm grow',
+								'font-mono min-w-48 flex-1',
 								saveState === 'error' && 'text-danger',
 								saveState === 'saved' && 'text-ok',
 							)}
 						>
-							{saveState === 'saving'
-								? 'salvando…'
-								: saveState !== 'idle'
-									? saveMessage
-									: dirty
-										? 'alterações não salvas'
-										: 'tudo salvo'}
-						</span>
-						<Button variant="ghost" disabled={!dirty || saveState === 'saving'} onClick={() => reset()}>
-							descartar
-						</Button>
-						<Button variant="lime" size="lg" disabled={!dirty || saveState === 'saving'} onClick={save}>
-							{saveState === 'saving' ? 'salvando…' : 'salvar alterações'}
-						</Button>
+							<p className="text-sm">
+								{saveState === 'saving'
+									? 'salvando…'
+									: saveState !== 'idle'
+										? saveMessage.title
+										: dirty
+											? 'alterações não salvas'
+											: 'tudo salvo'}
+							</p>
+							{(saveState === 'saved' || saveState === 'error') && saveMessage.detail && (
+								<p className={cx('text-xs', saveState === 'saved' && 'text-muted')}>{saveMessage.detail}</p>
+							)}
+						</div>
+						<div className="flex items-center gap-3 ml-auto">
+							<Button variant="ghost" disabled={!dirty || saveState === 'saving'} onClick={() => reset()}>
+								descartar
+							</Button>
+							<Button variant="lime" size="lg" disabled={!dirty || saveState === 'saving'} onClick={save}>
+								{saveState === 'saving' ? 'salvando…' : 'salvar alterações'}
+							</Button>
+						</div>
 					</div>
 				</div>
 			)}
