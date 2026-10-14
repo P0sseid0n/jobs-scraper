@@ -122,6 +122,7 @@
 	--color-muted: var(--color-inv-muted);
 	--color-line: var(--color-inv-line);
 	--color-ok-bg: var(--color-ok-bg-strong);
+	--placeholder-mix: 85%;
 	/* O lime escuro do tema claro sumiria no fundo escuro */
 	--color-focus: var(--color-lime);
 }
@@ -130,6 +131,8 @@
 	:root {
 		/* Sombra dos elementos flutuantes; fora do @theme para trocar com o tema (use `shadow-(--elevation)`) */
 		--elevation: 0 18px 40px rgb(20 22 19 / 0.18);
+		/* Quanto do `muted` vai no placeholder: no fundo escuro a mistura com o transparente escurece demais */
+		--placeholder-mix: 60%;
 
 		color-scheme: light;
 
@@ -153,6 +156,7 @@
 				--color-danger-bg: #3d1915;
 				--color-ok: #6ee39b;
 				--elevation: 0 18px 40px rgb(0 0 0 / 0.5);
+				--placeholder-mix: 85%;
 
 				color-scheme: dark;
 			}
@@ -164,6 +168,11 @@
 		background-color: var(--color-bg);
 		color: var(--color-ink);
 		-webkit-font-smoothing: antialiased;
+	}
+
+	/* O preflight pinta o placeholder com metade do texto, escuro a ponto de parecer um valor preenchido */
+	::placeholder {
+		color: color-mix(in srgb, var(--color-muted) var(--placeholder-mix), transparent);
 	}
 
 	:focus-visible {
