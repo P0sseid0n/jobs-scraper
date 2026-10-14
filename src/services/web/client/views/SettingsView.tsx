@@ -1,5 +1,5 @@
 import { useBlocker } from '@tanstack/react-router'
-import { useMemo, useState, type FormEvent, type InputHTMLAttributes } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent, type InputHTMLAttributes } from 'react'
 
 import { DATE_POSTED_FILTERS, type DatePostedFilter } from '@shared/contracts'
 
@@ -71,6 +71,18 @@ export function SettingsView({ initial }: { initial: WebSettings }) {
 	}, [draft, loaded])
 
 	const dirty = dirtyKeys.length > 0
+
+	// Ao voltar para a tela, o router mostra o loader da visita anterior e recarrega por trás: quando os dados novos
+	// chegam, passam a ser os salvos (senão um salvar seguinte reenviaria os valores antigos). O rascunho só é trocado
+	// se não houver alterações, para não apagar o que já foi digitado.
+	const shownInitial = useRef(initial)
+	useEffect(() => {
+		if (shownInitial.current === initial || saveState === 'saving') return
+		shownInitial.current = initial
+
+		setLoaded(initial)
+		if (!dirty) reset(initial)
+	}, [initial])
 
 	// Sair da tela (ou fechar a aba) com alterações não salvas pede confirmação
 	const blocker = useBlocker({
