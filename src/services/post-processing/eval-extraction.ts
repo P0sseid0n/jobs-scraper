@@ -29,6 +29,7 @@ import {
 import { EXTRACTION_PROMPT_VERSION } from './extraction-prompt'
 import { DEFAULT_FIXTURES_PATH, readFixtures } from './feedback-fixtures'
 import { extractJobFromPost } from './job-extraction'
+import { checkLanguage } from './post-language'
 
 const logger = createLogger('eval-extraction')
 
@@ -52,7 +53,7 @@ try {
 	process.exit(1)
 }
 
-const { cases, minConfidence } = args.fixtures ? await fromFixtures() : await fromDatabase()
+const { cases, settings } = args.fixtures ? await fromFixtures() : await fromDatabase()
 const selected = args.limit ? cases.slice(-Number(args.limit)) : cases
 
 if (selected.length === 0) {
@@ -66,7 +67,11 @@ const results: { item: ExtractionCase; run: CaseRun }[] = []
 for (const [index, item] of selected.entries()) {
 	let run: CaseRun = { isJob: false, fields: null }
 	try {
-		run = runFromModel(item, await extractJobFromPost(ollama, model, caseToRawPost(item)), minConfidence)
+		// Como no post-processing, o post fora dos idiomas aceitos nem chega à extração
+		const { rejection } = await checkLanguage(ollama, model, item.post.text, settings.allowedLanguages)
+		if (!rejection) {
+			run = runFromModel(item, await extractJobFromPost(ollama, model, caseToRawPost(item)), settings.minJobConfidence)
+		}
 	} catch (error) {
 		// Conta como erro em todos os campos, mas segue com os outros casos
 		logger.warn({ err: error, postId: item.postId }, 'Falha ao extrair o caso')
@@ -77,7 +82,9 @@ for (const [index, item] of selected.entries()) {
 	else if ((index + 1) % 10 === 0) logger.info(`${index + 1}/${selected.length} casos`)
 }
 
-console.log(`\nmodelo ${model} · prompt ${EXTRACTION_PROMPT_VERSION} · ${selected.length} casos · confiança mínima ${minConfidence}\n`)
+console.log(
+	`\nmodelo ${model} · prompt ${EXTRACTION_PROMPT_VERSION} · ${selected.length} casos · confiança mínima ${settings.minJobConfidence} · idiomas ${settings.allowedLanguages.join(', ') || 'todos'}\n`,
+)
 console.log(formatReport(scoreCases(results)))
 console.log('\noriginal: a extração salva na vaga (modelo e prompt da época) · atual: este prompt e modelo')
 
@@ -92,7 +99,7 @@ async function fromDatabase() {
 
 		return {
 			cases: latestPerPost(docs.map(doc => ExtractionCaseSchema.parse(doc))),
-			minConfidence: PostProcessingSettingsSchema.parse(settings?.values ?? {}).minJobConfidence,
+			settings: PostProcessingSettingsSchema.parse(settings?.values ?? {}),
 		}
 	} finally {
 		await disconnectDatabase()
@@ -102,7 +109,7 @@ async function fromDatabase() {
 async function fromFixtures() {
 	return {
 		cases: await readFixtures(DEFAULT_FIXTURES_PATH),
-		minConfidence: PostProcessingSettingsSchema.parse({}).minJobConfidence,
+		settings: PostProcessingSettingsSchema.parse({}),
 	}
 }
 

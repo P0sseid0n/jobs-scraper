@@ -3,7 +3,6 @@ import { Ollama } from 'ollama'
 import { ollamaEnv } from '@shared/config'
 import { ProcessedJobSchema, RawPostSchema, type JobLookup, type RawPost } from '@shared/contracts'
 import { SeenPost, type SeenPostOutcome } from '@shared/database'
-import { checkPostLanguage } from '@shared/language'
 import { QUEUES } from '@shared/messaging'
 import { startService } from '@shared/service'
 import { loadSettings } from '@shared/settings'
@@ -15,6 +14,7 @@ import { relevanceRejection } from './job-relevance'
 import { resumeSavedJob, saveJob } from './job-store'
 import { rejectionReason } from './model-response'
 import { listingPostId, splitMultiJobPost, type JobListing } from './multi-job-post'
+import { checkLanguage } from './post-language'
 
 const { config, logger, queue } = await startService({
 	name: 'post-processing',
@@ -49,8 +49,9 @@ await queue.consume(
 
 /**
  * Post que lista várias vagas: pede ao scraper para abrir o link de cada uma. Senão, descarta o post se ele estiver
- * fora dos idiomas aceitos (sem chamar a IA), extrai a vaga e, se for uma vaga relevante (palavras-chave), salva no
- * MongoDB e anuncia para os canais. Cada post é processado uma única vez.
+ * fora dos idiomas aceitos (antes da extração; em texto curto, o idioma é perguntado ao modelo), extrai a vaga e, se
+ * for uma vaga relevante (palavras-chave), salva no MongoDB e anuncia para os canais. Cada post é processado uma
+ * única vez.
  */
 async function processPost(post: RawPost) {
 	const log = logger.child({ postId: post.postId })
@@ -75,7 +76,7 @@ async function processPost(post: RawPost) {
 		return
 	}
 
-	const { language, rejection } = checkPostLanguage(post.text, settings.allowedLanguages)
+	const { language, rejection } = await checkLanguage(ollama, config.OLLAMA_MODEL, post.text, settings.allowedLanguages)
 
 	if (rejection) {
 		log.info({ reason: rejection }, 'Post descartado')
