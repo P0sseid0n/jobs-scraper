@@ -254,6 +254,22 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 		}
 	}
 
+	// Ao voltar para a tela, o router mostra o loader da visita anterior e recarrega por trás: quando os dados novos
+	// chegam, substituem os da tela (senão a coleta iniciada depois da visita anterior sumia até a próxima consulta)
+	const shownInitial = useRef(initial)
+	useEffect(() => {
+		if (shownInitial.current === initial) return
+		shownInitial.current = initial
+
+		statusRef.current = initial.status
+		setStatus(initial.status)
+		setRuns(initial.runs.runs)
+		setRunsCursor(initial.runs.nextCursor)
+		setRunsState('ready')
+		clearTimeout(pollTimer.current)
+		schedulePoll()
+	}, [initial])
+
 	useEffect(() => {
 		mounted.current = true
 		schedulePoll()
