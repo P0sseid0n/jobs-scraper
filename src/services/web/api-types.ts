@@ -10,7 +10,7 @@ import type {
 	ScraperSettings,
 	SettingsKey,
 } from '@shared/contracts'
-import type { ScraperRunStatus, ScraperRunTrigger, SeenPostOutcome } from '@shared/database'
+import type { ScraperRunStatus, ScraperRunTrigger, ScraperTermErrorKind, SeenPostOutcome } from '@shared/database'
 
 /**
  * Vaga salva: o cargo nunca falta (o post-processing descarta as que vêm sem), `createdAt` é quando entrou no sistema
@@ -73,7 +73,17 @@ export type WebScraperRun = {
 	error: string | null
 }
 
-export type WebScraperRunTerm = { term: string; sent: number; skipped: number; otherLanguage: number; error: string | null }
+export type WebScraperRunTerm = {
+	term: string
+	sent: number
+	skipped: number
+	otherLanguage: number
+	error: string | null
+	/** Por que a busca não trouxe posts (`empty` não é falha); `null` se deu certo. */
+	errorKind: ScraperTermErrorKind | null
+	/** A busca aberta no LinkedIn; `null` nas coletas antigas. */
+	searchUrl: string | null
+}
 
 export type ScraperStatus = {
 	/** Coleta em andamento, se houver. */

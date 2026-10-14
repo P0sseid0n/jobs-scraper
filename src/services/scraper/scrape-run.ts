@@ -1,7 +1,7 @@
-import type { Page } from 'puppeteer'
+import { TimeoutError, type Page } from 'puppeteer'
 
 import type { RawPost, ScraperSettings } from '@shared/contracts'
-import { SeenPost, type ScraperRunTerm } from '@shared/database'
+import { SeenPost, type ScraperRunTerm, type ScraperTermErrorKind } from '@shared/database'
 import { checkPostLanguage } from '@shared/language'
 import type { Logger } from '@shared/logging'
 import { QUEUES, type QueueClient } from '@shared/messaging'
@@ -63,7 +63,7 @@ export async function scrapeOnce(options: ScrapeOptions): Promise<ScraperRunTerm
 			// Mais termos que posts no limite: os últimos ficam sem busca, mas aparecem no histórico
 			if (limit === 0) {
 				logger.info({ term }, 'Termo pulado: o limite de posts da coleta já foi distribuído')
-				results.push({ term, sent: 0, skipped: 0, otherLanguage: 0, postIds: [], error: null })
+				results.push({ term, sent: 0, skipped: 0, otherLanguage: 0, postIds: [], error: null, errorKind: null, searchUrl: null })
 				continue
 			}
 
@@ -86,18 +86,32 @@ export async function scrapeOnce(options: ScrapeOptions): Promise<ScraperRunTerm
 
 type TermSearch = { term: string; limit: number; seen: Set<string>; allowedLanguages: string[] }
 
+/** A busca de um termo não trouxe posts; `kind` diz o motivo para o histórico. */
+class SearchError extends Error {
+	constructor(
+		readonly kind: ScraperTermErrorKind,
+		message: string,
+		options?: ErrorOptions,
+	) {
+		super(message, options)
+	}
+}
+
 async function scrapeTerm(session: BrowserSession, search: TermSearch, options: ScrapeOptions): Promise<ScraperRunTerm> {
 	const logger = options.logger.child({ term: search.term })
+	const searchUrl = buildSearchUrl({ keywords: search.term, datePosted: options.settings.datePosted })
 
 	try {
-		const page = await openSearchResults(session, search.term, { ...options, logger })
+		const page = await openSearchResults(session, searchUrl, { ...options, logger })
 		const { sent, skipped, otherLanguage, postIds } = await publishNewPosts(page, search, { ...options, logger })
 
-		return { term: search.term, sent, skipped, otherLanguage, postIds, error: null }
+		return { term: search.term, sent, skipped, otherLanguage, postIds, error: null, errorKind: null, searchUrl }
 	} catch (error) {
 		if (error instanceof LoginError) throw error
 
-		logger.error({ err: error }, 'Falha na busca deste termo')
+		const kind = error instanceof SearchError ? error.kind : error instanceof TimeoutError ? 'timeout' : 'unknown'
+		if (kind === 'empty') logger.info('A busca deste termo não tem resultados')
+		else logger.error({ err: error }, 'Falha na busca deste termo')
 
 		return {
 			term: search.term,
@@ -106,16 +120,17 @@ async function scrapeTerm(session: BrowserSession, search: TermSearch, options: 
 			otherLanguage: 0,
 			postIds: [],
 			error: error instanceof Error ? error.message : String(error),
+			errorKind: kind,
+			searchUrl,
 		}
 	}
 }
 
 /**
  * Abre a busca do termo, faz login se o LinkedIn pedir e espera os resultados.
- * @throws Se nenhum post aparecer.
+ * @throws {SearchError} Se nenhum post aparecer (`empty` quando o LinkedIn avisa que a busca não tem resultados).
  */
-async function openSearchResults(session: BrowserSession, term: string, { config, settings, logger }: ScrapeOptions): Promise<Page> {
-	const searchUrl = buildSearchUrl({ keywords: term, datePosted: settings.datePosted })
+async function openSearchResults(session: BrowserSession, searchUrl: string, { config, logger }: ScrapeOptions): Promise<Page> {
 	logger.info({ searchUrl }, '🔎 Abrindo a busca do LinkedIn')
 
 	try {
@@ -132,12 +147,28 @@ async function openSearchResults(session: BrowserSession, term: string, { config
 
 	const page = session.page
 
-	try {
-		await page.waitForSelector(`${SELECTORS.post}, ${SELECTORS.postText}`, { timeout: RESULTS_TIMEOUT_MS })
-	} catch (error) {
-		throw new Error(
+	// Espera os posts ou o aviso de busca sem resultados, o que aparecer primeiro
+	const found = await page
+		.waitForFunction(
+			(postSelector, noResults): 'posts' | 'empty' | false => {
+				if (document.querySelector(postSelector)) return 'posts'
+				return new RegExp(noResults.source, noResults.flags).test(document.body?.innerText ?? '') ? 'empty' : false
+			},
+			{ timeout: RESULTS_TIMEOUT_MS },
+			`${SELECTORS.post}, ${SELECTORS.postText}`,
+			{ source: SELECTORS.noResultsText.source, flags: SELECTORS.noResultsText.flags },
+		)
+		.then(handle => handle.jsonValue() as Promise<'posts' | 'empty'>)
+		.catch((error: unknown) => {
+			if (error instanceof TimeoutError) return null
+			throw error
+		})
+
+	if (found === 'empty') throw new SearchError('empty', 'O LinkedIn não encontrou resultados para esta busca')
+	if (!found) {
+		throw new SearchError(
+			'no-posts',
 			`Nenhum post encontrado em ${page.url()}. A busca pode estar vazia ou os seletores em src/services/scraper/linkedin/selectors.ts estão desatualizados.`,
-			{ cause: error },
 		)
 	}
 

@@ -10,7 +10,8 @@ export async function recordRun(trigger: ScraperRunTrigger, collect: () => Promi
 	try {
 		const terms = await collect()
 		const sent = terms.reduce((total, term) => total + term.sent, 0)
-		const failed = terms.every(term => term.error)
+		// Busca sem resultados não é falha: a coleta só falha se todos os termos quebraram de verdade
+		const failed = terms.every(term => term.error && term.errorKind !== 'empty')
 
 		await ScraperRun.updateOne(
 			{ _id: run._id },

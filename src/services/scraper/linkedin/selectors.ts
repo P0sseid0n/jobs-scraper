@@ -14,6 +14,11 @@ export const SELECTORS = {
 	/** Link do perfil do autor; o nome é o primeiro link com texto. */
 	authorLink: 'a[href*="/in/"], a[href*="/company/"]',
 	loadMoreButton: 'button.scaffold-finite-scroll__load-button',
+	/**
+	 * Aviso de busca sem resultados. Sem classe estável, é reconhecido pelo texto (português ou inglês); ainda não
+	 * confirmado numa busca real: se não bater, a busca vazia aparece como "nenhum post reconhecido".
+	 */
+	noResultsText: /nenhum resultado|não encontramos resultados|no results found|no matching results/i,
 	/** Página de uma vaga (/jobs/view): o topo (cargo, empresa, local) e a descrição. Sem eles, lê o `<main>` inteiro. */
 	jobTopCard:
 		'.job-details-jobs-unified-top-card__container--two-pane, .jobs-unified-top-card, .job-details-jobs-unified-top-card__job-title, .top-card-layout',

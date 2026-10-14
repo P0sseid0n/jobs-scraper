@@ -4,6 +4,14 @@ import mongoose, { Schema } from 'mongoose'
 export const SCRAPER_RUN_TRIGGERS = ['schedule', 'manual', 'once'] as const
 export const SCRAPER_RUN_STATUSES = ['running', 'success', 'failed'] as const
 
+/**
+ * Por que a busca de um termo não trouxe posts. `empty`: o LinkedIn disse que a busca não tem resultados (não é
+ * falha); `no-posts`: a página carregou sem nenhum post reconhecido (busca vazia que não foi reconhecida ou seletores
+ * desatualizados); `timeout`: a página não carregou a tempo; `unknown`: qualquer outro erro.
+ */
+export const SCRAPER_TERM_ERROR_KINDS = ['empty', 'no-posts', 'timeout', 'unknown'] as const
+
+export type ScraperTermErrorKind = (typeof SCRAPER_TERM_ERROR_KINDS)[number]
 export type ScraperRunTrigger = (typeof SCRAPER_RUN_TRIGGERS)[number]
 export type ScraperRunStatus = (typeof SCRAPER_RUN_STATUSES)[number]
 
@@ -23,6 +31,12 @@ export type ScraperRunTerm = {
 	postIds: string[]
 
 	error: string | null
+
+	/** O tipo do `error`; ausente nas coletas antigas. */
+	errorKind: ScraperTermErrorKind | null
+
+	/** A busca aberta no LinkedIn, para conferir o resultado; ausente nas coletas antigas. */
+	searchUrl: string | null
 }
 
 type ScraperRunDocument = {
@@ -53,6 +67,8 @@ const scraperRunSchema = new Schema<ScraperRunDocument>(
 					otherLanguage: { type: Number, default: 0 },
 					postIds: { type: [String], default: [] },
 					error: { type: String, default: null },
+					errorKind: { type: String, enum: SCRAPER_TERM_ERROR_KINDS, default: null },
+					searchUrl: { type: String, default: null },
 					_id: false,
 				},
 			],

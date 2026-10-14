@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 
-import type { RunsPage, ScraperStatus, WebScraperRun } from '../../api-types'
+import type { RunsPage, ScraperStatus, WebScraperRun, WebScraperRunTerm } from '../../api-types'
 import { api, type RequestError } from '../api'
 import { Icon } from '../components/Icon'
 import { Badge, badge, BadgeList, type BadgeTone } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { card } from '../components/ui/Card'
+import { CodeBlock } from '../components/ui/CodeBlock'
 import { EmptyState } from '../components/ui/EmptyState'
 import { Notice } from '../components/ui/Notice'
 import { Hero, Page } from '../components/ui/Page'
@@ -13,10 +14,10 @@ import { Skeleton } from '../components/ui/Skeleton'
 import { StatusDot, type StatusDotTone } from '../components/ui/StatusDot'
 import { SwitchField } from '../components/ui/Switch'
 import { LABEL, SECTION_TITLE } from '../components/ui/text'
-import { RouteLink } from '../components/ui/TextLink'
+import { RouteLink, TextLink } from '../components/ui/TextLink'
 import { cx } from '../lib/cx'
 import { formatDateTime, formatDuration, formatInterval, isLoginFailure } from '../lib/format'
-import { notify } from '../stores/toast'
+import { copyText, notify } from '../stores/toast'
 
 const TRIGGERS: Record<WebScraperRun['trigger'], string> = { schedule: 'Agendada', manual: 'Manual', once: 'Execução única' }
 
@@ -46,6 +47,14 @@ const RUN_STATUS: Record<WebScraperRun['status'], { label: string; tone: BadgeTo
 	running: { label: 'em andamento', tone: 'running', dot: 'current' },
 	success: { label: 'sucesso', tone: 'ok', dot: 'ok' },
 	failed: { label: 'falha', tone: 'danger', dot: 'current' },
+}
+
+/** O que mostrar quando a busca de um termo não trouxe posts, pelo tipo do erro. */
+const TERM_ERRORS: Record<NonNullable<WebScraperRunTerm['errorKind']>, { title: string; hint: string }> = {
+	empty: { title: 'sem resultados', hint: 'O LinkedIn não achou posts para este termo. Tente outro termo ou um período maior.' },
+	'no-posts': { title: 'nenhum post', hint: 'A busca veio vazia ou o LinkedIn mudou a página.' },
+	timeout: { title: 'não carregou', hint: 'O LinkedIn demorou demais para responder. A próxima coleta tenta de novo.' },
+	unknown: { title: 'erro inesperado', hint: 'Algo deu errado nesta busca; os detalhes ajudam a investigar.' },
 }
 
 // Células da tabela de coletas: a borda fica na linha, e a última linha não tem
@@ -87,8 +96,51 @@ function lastRunSummary(run: WebScraperRun) {
 	return `${posts} · ${run.newJobs} ${run.newJobs === 1 ? 'vaga nova' : 'vagas novas'}`
 }
 
+function TermCard({ term }: { term: WebScraperRunTerm }) {
+	if (!term.error) {
+		return (
+			<li className={card({ className: 'flex flex-col gap-1.5 p-3' })}>
+				<span className="font-mono text-muted text-xs">{term.term}</span>
+				<span className="font-mono text-lg">
+					{term.sent} novos{term.skipped > 0 && <span className="text-muted"> · {term.skipped} já vistos</span>}
+					{term.otherLanguage > 0 && <span className="text-muted"> · {term.otherLanguage} em outro idioma</span>}
+				</span>
+			</li>
+		)
+	}
+
+	// Busca sem resultados não é falha: aviso em amarelo, sem os detalhes técnicos
+	const empty = term.errorKind === 'empty'
+	const { title, hint } = TERM_ERRORS[term.errorKind ?? 'unknown']
+
+	return (
+		<li className={card({ failed: !empty, className: cx('flex flex-col gap-1.5 p-3', empty ? 'bg-warn-bg' : 'bg-danger-bg') })}>
+			<span className="flex items-center gap-1.5 font-mono text-muted text-xs">
+				<Icon name="alert" size={12} className={empty ? 'text-warn' : 'text-danger'} />
+				{term.term}
+			</span>
+			<span className={cx('font-mono text-lg', empty ? 'text-warn' : 'text-danger')}>{empty ? title : `falhou · ${title}`}</span>
+			<p className="m-0 text-sm">{hint}</p>
+			{term.searchUrl && (
+				<TextLink href={term.searchUrl} external className="self-start text-sm">
+					abrir busca no LinkedIn
+				</TextLink>
+			)}
+			{!empty && (
+				<details className="text-xs">
+					<summary className="cursor-pointer text-muted">detalhes técnicos</summary>
+					<CodeBlock label="erro original" onCopy={() => copyText(term.error ?? '', 'Erro')} className="mt-1.5">
+						{term.error}
+					</CodeBlock>
+				</details>
+			)}
+		</li>
+	)
+}
+
 function RunRows({ run, open, onToggle }: { run: WebScraperRun; open: boolean; onToggle: () => void }) {
-	const failedTerms = run.terms.filter(term => term.error).length
+	const failedTerms = run.terms.filter(term => term.error && term.errorKind !== 'empty').length
+	const emptyTerms = run.terms.filter(term => term.errorKind === 'empty').length
 	const duration = run.finishedAt ? formatDuration(new Date(run.finishedAt).getTime() - new Date(run.startedAt).getTime()) : '–'
 
 	return (
@@ -117,7 +169,13 @@ function RunRows({ run, open, onToggle }: { run: WebScraperRun; open: boolean; o
 					{run.error && run.status === 'failed'
 						? run.error
 						: run.terms.length > 0
-							? `${run.terms.length - failedTerms} de ${run.terms.length}${failedTerms ? ` · ${failedTerms} com falha` : ''}`
+							? [
+									`${run.terms.length - failedTerms} de ${run.terms.length}`,
+									failedTerms > 0 && `${failedTerms} com falha`,
+									emptyTerms > 0 && `${emptyTerms} sem resultados`,
+								]
+									.filter(Boolean)
+									.join(' · ')
 							: '–'}
 				</td>
 				<td className={TD}>
@@ -133,19 +191,7 @@ function RunRows({ run, open, onToggle }: { run: WebScraperRun; open: boolean; o
 					<td colSpan={8} className={cx(TD, 'bg-surface-2 whitespace-normal')}>
 						<ul className="m-0 grid list-none grid-cols-fill-55 gap-2.5 p-0">
 							{run.terms.map(term => (
-								<li key={term.term} className={card({ failed: !!term.error, className: 'flex flex-col gap-1.5 p-3' })}>
-									<span className="font-mono text-muted text-xs">{term.term}</span>
-									{term.error ? (
-										<span className="text-sm text-danger">falhou: {term.error}</span>
-									) : (
-										<span className="font-mono text-lg">
-											{term.sent} novos{term.skipped > 0 && <span className="text-muted"> · {term.skipped} já vistos</span>}
-											{term.otherLanguage > 0 && (
-												<span className="text-muted"> · {term.otherLanguage} em outro idioma</span>
-											)}
-										</span>
-									)}
-								</li>
+								<TermCard key={term.term} term={term} />
 							))}
 						</ul>
 						{run.outcomes && run.sent > 0 && (

@@ -8,6 +8,7 @@ import {
 	type ScraperRunStatus,
 	type ScraperRunTerm,
 	type ScraperRunTrigger,
+	type ScraperTermErrorKind,
 	type SeenPostOutcome,
 } from '@shared/database'
 import { QUEUES, type QueueClient } from '@shared/messaging'
@@ -23,7 +24,7 @@ const RunsQuerySchema = z.object({
 	limit: z.coerce.number().int().min(1).max(100).default(20),
 })
 
-type OptionalTermField = 'skipped' | 'otherLanguage' | 'postIds'
+type OptionalTermField = 'skipped' | 'otherLanguage' | 'postIds' | 'errorKind' | 'searchUrl'
 
 type RunDocument = {
 	_id: unknown
@@ -32,7 +33,7 @@ type RunDocument = {
 	startedAt: Date
 	finishedAt: Date | null
 	sent: number
-	// Coletas antigas não têm `skipped`, `otherLanguage` nem `postIds`
+	// Coletas antigas não têm alguns dos campos de cada termo
 	terms: (Omit<ScraperRunTerm, OptionalTermField> & Partial<Pick<ScraperRunTerm, OptionalTermField>>)[]
 	error: string | null
 }
@@ -113,9 +114,16 @@ async function toWebRun(doc: RunDocument): Promise<WebScraperRun> {
 			skipped: term.skipped ?? 0,
 			otherLanguage: term.otherLanguage ?? 0,
 			error: term.error ?? null,
+			errorKind: term.error ? (term.errorKind ?? legacyErrorKind(term.error)) : null,
+			searchUrl: term.searchUrl ?? null,
 		})),
 		error: doc.error ?? null,
 	}
+}
+
+/** O tipo do erro das coletas anteriores ao `errorKind`, pela mensagem. */
+function legacyErrorKind(error: string): ScraperTermErrorKind {
+	return error.startsWith('Nenhum post encontrado') ? 'no-posts' : 'unknown'
 }
 
 function countNewJobs(postIds: string[]) {
