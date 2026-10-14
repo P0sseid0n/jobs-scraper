@@ -11,17 +11,19 @@ import {
 	type SeenPostOutcome,
 } from '@shared/database'
 import { QUEUES, type QueueClient } from '@shared/messaging'
+import { readSettings } from '@shared/settings'
 
 import { nextRunAt } from '../../scraper/schedule'
 import type { RunsPage, ScraperStatus, WebScraperRun } from '../api-types'
 import { decodeCursor, encodeCursor, HttpError, queryParams } from './http'
 import { afterCursor } from './jobs-query'
-import { readSettings } from './settings'
 
 const RunsQuerySchema = z.object({
 	cursor: z.string().max(200).optional(),
 	limit: z.coerce.number().int().min(1).max(100).default(20),
 })
+
+type OptionalTermField = 'skipped' | 'otherLanguage' | 'postIds'
 
 type RunDocument = {
 	_id: unknown
@@ -30,8 +32,8 @@ type RunDocument = {
 	startedAt: Date
 	finishedAt: Date | null
 	sent: number
-	// Coletas antigas não têm `skipped` nem `postIds`
-	terms: (Omit<ScraperRunTerm, 'skipped' | 'postIds'> & Partial<Pick<ScraperRunTerm, 'skipped' | 'postIds'>>)[]
+	// Coletas antigas não têm `skipped`, `otherLanguage` nem `postIds`
+	terms: (Omit<ScraperRunTerm, OptionalTermField> & Partial<Pick<ScraperRunTerm, OptionalTermField>>)[]
 	error: string | null
 }
 
@@ -102,9 +104,16 @@ async function toWebRun(doc: RunDocument): Promise<WebScraperRun> {
 		finishedAt: doc.finishedAt?.toISOString() ?? null,
 		sent: doc.sent ?? 0,
 		skipped: terms.reduce((total, term) => total + (term.skipped ?? 0), 0),
+		otherLanguage: terms.reduce((total, term) => total + (term.otherLanguage ?? 0), 0),
 		newJobs,
 		outcomes,
-		terms: terms.map(term => ({ term: term.term, sent: term.sent ?? 0, skipped: term.skipped ?? 0, error: term.error ?? null })),
+		terms: terms.map(term => ({
+			term: term.term,
+			sent: term.sent ?? 0,
+			skipped: term.skipped ?? 0,
+			otherLanguage: term.otherLanguage ?? 0,
+			error: term.error ?? null,
+		})),
 		error: doc.error ?? null,
 	}
 }

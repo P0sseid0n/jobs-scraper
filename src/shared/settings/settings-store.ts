@@ -22,6 +22,16 @@ export async function loadSettings<K extends SettingsKey>(key: K, seed: Partial<
 }
 
 /**
+ * Lê as configurações sem criar o documento: quem cria é o próprio serviço, na primeira execução, com os valores
+ * do `.env`. Enquanto ele não rodou, valem os padrões do schema.
+ */
+export async function readSettings<K extends SettingsKey>(key: K): Promise<SettingsOf<K>> {
+	const document = await Settings.findById(key).lean()
+
+	return parseSettings(key, document?.values ?? {})
+}
+
+/**
  * Altera parte das configurações (ponto de entrada para outras fontes), validando o resultado inteiro.
  * @throws {ZodError} Se o resultado for inválido; nesse caso nada é salvo.
  */

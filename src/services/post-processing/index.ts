@@ -3,6 +3,7 @@ import { Ollama } from 'ollama'
 import { ollamaEnv } from '@shared/config'
 import { ProcessedJobSchema, RawPostSchema, type JobLookup, type RawPost } from '@shared/contracts'
 import { SeenPost, type SeenPostOutcome } from '@shared/database'
+import { checkPostLanguage } from '@shared/language'
 import { QUEUES } from '@shared/messaging'
 import { startService } from '@shared/service'
 import { loadSettings } from '@shared/settings'
@@ -14,7 +15,6 @@ import { relevanceRejection } from './job-relevance'
 import { resumeSavedJob, saveJob } from './job-store'
 import { rejectionReason } from './model-response'
 import { listingPostId, splitMultiJobPost, type JobListing } from './multi-job-post'
-import { checkPostLanguage } from './post-language'
 
 const { config, logger, queue } = await startService({
 	name: 'post-processing',

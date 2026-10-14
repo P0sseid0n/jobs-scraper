@@ -74,9 +74,13 @@ function FailureAlert({ status }: { status: ScraperStatus | null }) {
 	)
 }
 
-/** "3 posts novos · 1 vaga nova", ou o aviso de que a busca só trouxe posts já processados. */
+/** "3 posts novos · 1 vaga nova", ou o aviso de que a busca só trouxe posts já processados ou em outro idioma. */
 function lastRunSummary(run: WebScraperRun) {
-	if (run.sent === 0) return run.skipped > 0 ? `nenhum post novo (${run.skipped} já vistos)` : 'nenhum post encontrado'
+	if (run.sent === 0) {
+		const ignored = [run.skipped > 0 && `${run.skipped} já vistos`, run.otherLanguage > 0 && `${run.otherLanguage} em outro idioma`]
+		const reasons = ignored.filter(Boolean).join(', ')
+		return reasons ? `nenhum post novo (${reasons})` : 'nenhum post encontrado'
+	}
 
 	const posts = `${run.sent} ${run.sent === 1 ? 'post novo' : 'posts novos'}`
 	if (run.newJobs === null) return posts
@@ -102,6 +106,7 @@ function RunRows({ run, open, onToggle }: { run: WebScraperRun; open: boolean; o
 				<td className={cx(TD, 'font-mono')}>
 					{run.sent}
 					{run.skipped > 0 && <span className="text-muted text-xs"> · {run.skipped} já vistos</span>}
+					{run.otherLanguage > 0 && <span className="text-muted text-xs"> · {run.otherLanguage} em outro idioma</span>}
 				</td>
 				<td className={cx(TD, 'font-mono')}>
 					{run.newJobs ?? '–'}
@@ -135,6 +140,9 @@ function RunRows({ run, open, onToggle }: { run: WebScraperRun; open: boolean; o
 									) : (
 										<span className="font-mono text-lg">
 											{term.sent} novos{term.skipped > 0 && <span className="text-muted"> · {term.skipped} já vistos</span>}
+											{term.otherLanguage > 0 && (
+												<span className="text-muted"> · {term.otherLanguage} em outro idioma</span>
+											)}
 										</span>
 									)}
 								</li>

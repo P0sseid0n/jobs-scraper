@@ -57,6 +57,8 @@ export type WebScraperRun = {
 	sent: number
 	/** Posts da busca que já tinham passado pela IA (não enviados de novo). */
 	skipped: number
+	/** Posts novos em um idioma fora dos aceitos, ignorados na coleta (não vão para a IA nem contam no limite). */
+	otherLanguage: number
 	/**
 	 * Vagas salvas a partir dos posts da coleta (cresce enquanto a IA processa a fila); `null` nas coletas antigas,
 	 * que não guardavam os posts enviados.
@@ -71,7 +73,7 @@ export type WebScraperRun = {
 	error: string | null
 }
 
-export type WebScraperRunTerm = { term: string; sent: number; skipped: number; error: string | null }
+export type WebScraperRunTerm = { term: string; sent: number; skipped: number; otherLanguage: number; error: string | null }
 
 export type ScraperStatus = {
 	/** Coleta em andamento, se houver. */

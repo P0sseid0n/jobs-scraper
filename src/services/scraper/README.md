@@ -7,6 +7,7 @@ Busca posts de vagas no LinkedIn com o Puppeteer e envia cada um para a fila `po
 ## Coletas
 
 - Cada coleta busca cada termo ativo das configurações (`settings`, editáveis pelo site). O limite de posts é dividido entre os termos.
+- **O que conta no limite:** só os posts enviados para a IA. Posts já processados em coletas anteriores e posts em um idioma fora dos aceitos (`allowedLanguages` do post-processing) são pulados, e a busca continua rolando até completar o limite. Ela só para antes no fim dos resultados ou depois de 15 rolagens seguidas sem nenhum post enviado, para não rolar sem fim (cada rolagem espera os posts carregarem, então um termo assim leva alguns minutos).
 - **Coleta única ou periódica:** com `SCRAPER_INTERVAL_MINUTES=0` (padrão), o scraper coleta uma vez e encerra. Com um intervalo (ex.: `180`), ele fica rodando, coleta na agenda e relê as configurações a cada 30 segundos, sem reiniciar.
 - **Coletar agora:** `bun scraper:run`, ou o botão no site, publica uma mensagem `ScraperCommand` na fila `scraper`. Funciona mesmo com as coletas pausadas.
 - **Histórico:** cada coleta fica em `scraper_runs` por 90 dias, com o status e os posts enviados por termo.

@@ -16,6 +16,9 @@ export type ScraperRunTerm = {
 	/** Posts da busca que já tinham passado pela IA numa coleta anterior (não são enviados de novo). */
 	skipped: number
 
+	/** Posts novos em um idioma fora dos aceitos: ignorados já na coleta, sem contar no limite de posts. */
+	otherLanguage: number
+
 	/** Ids dos posts enviados, para contar as vagas que saíram da coleta; ausente nas coletas antigas. */
 	postIds: string[]
 
@@ -47,6 +50,7 @@ const scraperRunSchema = new Schema<ScraperRunDocument>(
 					term: String,
 					sent: Number,
 					skipped: { type: Number, default: 0 },
+					otherLanguage: { type: Number, default: 0 },
 					postIds: { type: [String], default: [] },
 					error: { type: String, default: null },
 					_id: false,

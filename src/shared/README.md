@@ -12,6 +12,7 @@ Código usado por mais de um serviço, importado pelo barrel de cada módulo (`@
 | `database/` | conexão com o MongoDB e os modelos (`Job`, `SeenPost`, `Settings`, `ScraperRun`, `ExtractionFeedback`) |
 | `messaging/` | cliente RabbitMQ, nomes das filas e política de retry e DLQ |
 | `settings/` | configurações editáveis em tempo de execução |
+| `language/` | detecção do idioma do post (`franc`, sem IA), usada pelo scraper e pelo post-processing |
 | `templates/` | textos compartilhados pelos canais (modelo de mensagem de candidatura) |
 | `logging/`, `lifecycle/` | logger e encerramento gracioso |
 | `health/` | heartbeat dos serviços e o script do healthcheck do Docker |

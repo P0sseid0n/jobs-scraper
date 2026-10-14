@@ -2,8 +2,10 @@ import type { Page } from 'puppeteer'
 
 import type { RawPost, ScraperSettings } from '@shared/contracts'
 import { SeenPost, type ScraperRunTerm } from '@shared/database'
+import { checkPostLanguage } from '@shared/language'
 import type { Logger } from '@shared/logging'
 import { QUEUES, type QueueClient } from '@shared/messaging'
+import { readSettings } from '@shared/settings'
 
 import { browserOptionsFrom, BrowserSession } from './browser-session'
 import type { ScraperConfig } from './config'
@@ -19,6 +21,12 @@ import { postsPerTerm } from './schedule'
 type ScrapeOptions = { config: ScraperConfig; settings: ScraperSettings; queue: QueueClient; logger: Logger }
 
 const RESULTS_TIMEOUT_MS = 30_000
+
+/**
+ * Rolagens seguidas sem nenhum post enviado (só posts já vistos ou em outro idioma) antes de desistir do termo.
+ * Rolar sem fim por uma busca que não traz nada aproveitável aumenta o risco de bloqueio da conta.
+ */
+const MAX_FRUITLESS_SCROLLS = 15
 
 /** Navegador da coleta em andamento, para ser fechado se o serviço for encerrado no meio. */
 let activeSession: BrowserSession | undefined
@@ -40,6 +48,9 @@ export async function scrapeOnce(options: ScrapeOptions): Promise<ScraperRunTerm
 	// Compartilhado entre os termos: um post que aparece em duas buscas só é enviado uma vez
 	const seen = new Set<string>()
 
+	// O filtro de idioma do post-processing, aplicado já aqui para que esses posts não gastem o limite da coleta
+	const { allowedLanguages } = await readSettings('post-processing')
+
 	const session = await BrowserSession.launch(browserOptionsFrom(config, logger))
 	activeSession = session
 
@@ -52,12 +63,12 @@ export async function scrapeOnce(options: ScrapeOptions): Promise<ScraperRunTerm
 			// Mais termos que posts no limite: os últimos ficam sem busca, mas aparecem no histórico
 			if (limit === 0) {
 				logger.info({ term }, 'Termo pulado: o limite de posts da coleta já foi distribuído')
-				results.push({ term, sent: 0, skipped: 0, postIds: [], error: null })
+				results.push({ term, sent: 0, skipped: 0, otherLanguage: 0, postIds: [], error: null })
 				continue
 			}
 
 			if (results.length > 0) await humanPause()
-			results.push(await scrapeTerm(session, { term, limit, seen }, options))
+			results.push(await scrapeTerm(session, { term, limit, seen, allowedLanguages }, options))
 		}
 
 		// Renova a sessão salva (o LinkedIn atualiza os cookies durante a navegação)
@@ -73,22 +84,29 @@ export async function scrapeOnce(options: ScrapeOptions): Promise<ScraperRunTerm
 	}
 }
 
-type TermSearch = { term: string; limit: number; seen: Set<string> }
+type TermSearch = { term: string; limit: number; seen: Set<string>; allowedLanguages: string[] }
 
 async function scrapeTerm(session: BrowserSession, search: TermSearch, options: ScrapeOptions): Promise<ScraperRunTerm> {
 	const logger = options.logger.child({ term: search.term })
 
 	try {
 		const page = await openSearchResults(session, search.term, { ...options, logger })
-		const { sent, skipped, postIds } = await publishNewPosts(page, search, { ...options, logger })
+		const { sent, skipped, otherLanguage, postIds } = await publishNewPosts(page, search, { ...options, logger })
 
-		return { term: search.term, sent, skipped, postIds, error: null }
+		return { term: search.term, sent, skipped, otherLanguage, postIds, error: null }
 	} catch (error) {
 		if (error instanceof LoginError) throw error
 
 		logger.error({ err: error }, 'Falha na busca deste termo')
 
-		return { term: search.term, sent: 0, skipped: 0, postIds: [], error: error instanceof Error ? error.message : String(error) }
+		return {
+			term: search.term,
+			sent: 0,
+			skipped: 0,
+			otherLanguage: 0,
+			postIds: [],
+			error: error instanceof Error ? error.message : String(error),
+		}
 	}
 }
 
@@ -128,15 +146,17 @@ async function openSearchResults(session: BrowserSession, term: string, { config
 }
 
 /**
- * Rola a busca enviando cada post novo para a fila, até o limite do termo ou o fim dos resultados. Posts que já
- * passaram pela IA não são enviados nem contam no limite. A busca é ordenada por data: quando uma rolagem só traz
- * posts já processados, o resto é mais antigo e a busca do termo para.
+ * Rola a busca enviando cada post novo para a fila, até o limite do termo, o fim dos resultados ou muitas rolagens
+ * seguidas sem nada para enviar. Posts que já passaram pela IA e posts em outro idioma não são enviados nem contam
+ * no limite. Posts já vistos não param a busca: a coleta anterior pode ter parado no limite antes dos mais antigos.
  */
-async function publishNewPosts(page: Page, { limit, seen }: TermSearch, { config, queue, logger }: ScrapeOptions) {
+async function publishNewPosts(page: Page, { limit, seen, allowedLanguages }: TermSearch, { config, queue, logger }: ScrapeOptions) {
 	let sent = 0
 	let skipped = 0
+	let otherLanguage = 0
 	const postIds: string[] = []
 	let hasMore = true
+	let fruitlessScrolls = 0
 
 	// Limite de posts por coleta (dividido entre os termos) para reduzir o risco de bloqueio da conta
 	while (sent < limit) {
@@ -168,12 +188,23 @@ async function publishNewPosts(page: Page, { limit, seen }: TermSearch, { config
 
 		const processed = await alreadyProcessed(candidates.map(post => post.postId))
 		let sentNow = 0
+		let unseenNow = 0
 
 		for (const post of candidates) {
 			if (sent >= limit) break
 
 			if (processed.has(post.postId)) {
 				skipped++
+				continue
+			}
+
+			unseenNow++
+
+			const { rejection } = checkPostLanguage(post.text, allowedLanguages)
+			if (rejection) {
+				await markAsOtherLanguage(post.postId)
+				otherLanguage++
+				logger.debug({ postId: post.postId, reason: rejection }, 'Post em outro idioma ignorado')
 				continue
 			}
 
@@ -185,21 +216,30 @@ async function publishNewPosts(page: Page, { limit, seen }: TermSearch, { config
 			logger.debug({ postId: post.postId, url: post.url }, '📨 Post enviado para a fila')
 		}
 
-		logger.info({ found: candidates.length, sent: sentNow, skipped: candidates.length - sentNow }, 'Posts nesta rolagem')
-
-		if (candidates.length > 0 && sentNow === 0 && sent < limit) {
-			logger.info('Só posts já processados nesta rolagem: o resto da busca é mais antigo')
-			break
-		}
+		logger.info(
+			{ found: candidates.length, sent: sentNow, otherLanguage: unseenNow - sentNow, skipped: candidates.length - unseenNow },
+			'Posts nesta rolagem',
+		)
 
 		// Quando nada novo carregou, a coleta acima foi a última (pega posts que renderizaram depois)
 		if (sent >= limit || !hasMore) break
+
+		fruitlessScrolls = sentNow > 0 ? 0 : fruitlessScrolls + 1
+		if (fruitlessScrolls >= MAX_FRUITLESS_SCROLLS) {
+			logger.info({ scrolls: fruitlessScrolls }, 'Rolagens seguidas sem nenhum post para enviar: a busca do termo para')
+			break
+		}
 
 		await humanPause()
 		hasMore = await loadMorePosts(page, config.SCRAPER_SCROLL_DELAY_MS)
 	}
 
-	return { sent, skipped, postIds }
+	return { sent, skipped, otherLanguage, postIds }
+}
+
+/** Registra o post como visto, para as próximas coletas o pularem como fariam com um descartado pelo post-processing. */
+function markAsOtherLanguage(postId: string) {
+	return SeenPost.updateOne({ postId }, { $setOnInsert: { postId, isJob: false, outcome: 'language' } }, { upsert: true })
 }
 
 /** Ids, entre os dados, de posts que já passaram pela IA em coletas anteriores. */
