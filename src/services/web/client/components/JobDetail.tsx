@@ -14,6 +14,7 @@ import { ContractTypeBadge } from './ContractTypeBadge'
 import { CorrectedBadge } from './CorrectedBadge'
 import { CvButton } from './CvButton'
 import { Icon } from './Icon'
+import { ListingBadge } from './ListingBadge'
 import { ReportJobDialog } from './ReportJobDialog'
 import { badge, BadgeList } from './ui/Badge'
 import { Button } from './ui/Button'
@@ -93,6 +94,7 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 						<WorkModeBadge job={job} />
 						<ContractTypeBadge job={job} />
 						<CorrectedBadge job={job} />
+						<ListingBadge job={job} />
 					</div>
 					<div className="flex items-center">
 						<time className="font-mono text-muted text-sm whitespace-nowrap" dateTime={jobDate(job)}>
@@ -224,11 +226,6 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 						</TextLink>
 					)}
 				</div>
-				{fromList && (
-					<p className="text-muted text-xs">
-						Esta vaga veio de um post com várias vagas. O texto abaixo é da página aberta pelo link dela no post.
-					</p>
-				)}
 				<div
 					className={cx(
 						'text-sm leading-relaxed whitespace-pre-line wrap-anywhere',
