@@ -1,4 +1,4 @@
-/** Caixa de seleção nativa, na cor do texto. */
+/** Caixa de seleção: vazia com a borda da linha; marcada, preenchida como o `Switch` ligado (ink, ou lime no escuro). */
 export interface CheckboxProps {
 	checked?: boolean
 	defaultChecked?: boolean

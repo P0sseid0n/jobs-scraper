@@ -336,6 +336,7 @@ export function SettingsView({ initial }: { initial: WebSettings }) {
 						min={0}
 						max={100}
 						value={p.minJobConfidence}
+						aria-valuetext={`${p.minJobConfidence}%`}
 						onChange={event => {
 							const value = Number(event.target.value)
 							edit(next => {

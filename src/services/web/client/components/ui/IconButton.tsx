@@ -5,7 +5,11 @@ import { tv } from '../../lib/cx'
 import { OUTLINED } from './outlined'
 
 const iconButton = tv({
-	base: 'inline-grid place-items-center p-0 border-0 rounded-full bg-transparent',
+	base: [
+		'relative inline-grid place-items-center p-0 border-0 rounded-full bg-transparent transition not-disabled:active:translate-y-px',
+		// No toque, a área de clique tem 44px em qualquer tamanho: um quadrado invisível centralizado por cima do botão
+		'pointer-coarse:after:absolute pointer-coarse:after:top-1/2 pointer-coarse:after:left-1/2 pointer-coarse:after:size-11 pointer-coarse:after:-translate-1/2',
+	],
 	variants: {
 		size: { xs: 'size-6.5', sm: 'size-8', md: 'size-10' },
 		bordered: {

@@ -32,7 +32,7 @@
 @source inline("{leading-tight,leading-snug,leading-normal,leading-relaxed,tracking-tight,tracking-wide,truncate,uppercase,whitespace-nowrap,break-words,tabular-nums}");
 
 /* Cores (só os tokens do projeto) */
-@source inline("{hover:,}{bg,text,border}-{bg,ink,surface,surface-2,line,line-strong,muted,lime,lime-ink,lime-soft,lime-text,lime-hover,ok,ok-bg,warn,warn-bg,danger,danger-bg,inv-bg,inv-ink,inv-muted,inv-line,focus}");
+@source inline("{hover:,}{bg,text,border}-{bg,ink,surface,surface-2,line,line-strong,control,muted,lime,lime-ink,lime-soft,lime-text,lime-hover,ok,ok-bg,warn,warn-bg,danger,danger-bg,inv-bg,inv-ink,inv-muted,inv-line,focus}");
 @source inline("{divide,ring,outline}-{line,line-strong,lime,focus}");
 
 /* Bordas, raio, sombra e outros */

@@ -8,7 +8,7 @@ import { NEW_TAB } from './link'
 import { OUTLINED } from './outlined'
 
 const button = tv({
-	base: 'inline-flex items-center justify-center gap-2 min-h-9.5 px-3.5 py-2 rounded-pill border border-transparent bg-transparent text-sm font-medium no-underline whitespace-nowrap transition disabled:opacity-60',
+	base: 'inline-flex items-center justify-center gap-2 min-h-9.5 px-3.5 py-2 rounded-pill border border-transparent bg-transparent text-sm font-medium no-underline whitespace-nowrap transition not-disabled:active:translate-y-px disabled:opacity-60',
 	variants: {
 		/** `lime`: ação principal da tela. `ghost`: borda, sem preenchimento (numa superfície `inverted`, já sai clara). */
 		variant: {

@@ -18,6 +18,38 @@
 /* A barra de salvar das configurações (`data-save-bar`) está na tela: os elementos fixos embaixo sobem para não cobri-la */
 @custom-variant with-save-bar (&:where(body:has([data-save-bar]) *));
 
+/* As partes do `<input type="range">` (o `Range`), com o pseudo-elemento de cada motor: `range-thumb:size-5` */
+@custom-variant range-thumb {
+	&::-webkit-slider-thumb {
+		@slot;
+	}
+	&::-moz-range-thumb {
+		@slot;
+	}
+}
+
+/* Só a bolinha do Chrome e do Safari, que não centraliza sozinha no trilho (o Firefox centraliza) */
+@custom-variant webkit-range-thumb (&::-webkit-slider-thumb);
+
+@custom-variant range-track {
+	&::-webkit-slider-runnable-track {
+		@slot;
+	}
+	&::-moz-range-track {
+		@slot;
+	}
+}
+
+/* Trilho do Range preenchido em lime até o valor atual (`--range-fill`, que o componente atualiza) */
+@utility bg-range-fill {
+	background: linear-gradient(to right, var(--color-lime-accent) var(--range-fill, 50%), var(--color-control) 0);
+
+	/* O alto contraste do Windows tira o gradiente: o trilho fica na cor do texto do sistema */
+	@media (forced-colors: active) {
+		background: CanvasText;
+	}
+}
+
 /* Distância da borda de baixo somando a área segura do iPhone: `bottom-safe-19` é 76px mais a área */
 @utility bottom-safe-* {
 	bottom: calc(--spacing(--value(number)) + env(safe-area-inset-bottom));
@@ -34,12 +66,12 @@
 
 /* Lista que rola por dentro sem passar da metade da tela (a bandeja de currículos) */
 @utility max-h-half-screen {
-	max-height: 50vh;
+	max-height: 50dvh;
 }
 
 /* Painel fixo abaixo do cabeçalho (`sticky top-19`): cabe na tela, com a margem de baixo */
 @utility max-h-below-topbar {
-	max-height: calc(100vh - --spacing(24));
+	max-height: calc(100dvh - --spacing(24));
 }
 
 /* Só as cores e os raios do projeto: sem a paleta e a escala padrão do Tailwind */
@@ -108,6 +140,8 @@
 /* Calculadas no próprio elemento: acompanham os tokens redefinidos dentro dele (ex.: o card de vaga selecionado) */
 @theme inline {
 	--color-line-strong: color-mix(in srgb, var(--color-ink) 30%, var(--color-line));
+	/* Trilho e borda dos controles (Range, Switch desligado, Checkbox vazio): pelo menos 3:1 com bg, surface e surface-2 */
+	--color-control: color-mix(in srgb, var(--color-ink) 45%, var(--color-line));
 }
 
 /*

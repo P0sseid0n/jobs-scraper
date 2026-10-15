@@ -63,7 +63,7 @@ export async function loadMoreJobs() {
 	if (!nextCursor || loadingMore || status !== 'ready') return
 
 	const id = requestId
-	update({ loadingMore: true })
+	update({ loadingMore: true, error: null })
 	try {
 		const page = await api.jobs(filters, nextCursor)
 		if (id !== requestId) return

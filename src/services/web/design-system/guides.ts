@@ -51,13 +51,14 @@ export const GUIDES: Record<string, string> = {
 	SearchInput: `Busca com a lupa dentro do campo; \`label\` é o nome para o leitor de tela.
 
 - A busca da lista de vagas; o \`placeholder\` diz onde ela procura ("cargo, empresa, tecnologia ou texto do post").`,
-	Checkbox: `Caixa de seleção nativa, na cor do texto.
+	Checkbox: `Caixa de seleção: vazia com a borda da linha; marcada, preenchida como o \`Switch\` ligado (ink, ou lime no escuro).
 
 - Sempre dentro de um \`<label className="flex items-center gap-2 text-sm">\` com o texto ao lado.
 - Para ligar e desligar uma configuração, prefira \`Switch\`/\`SwitchField\`.`,
-	Range: `Controle deslizante nativo, no lime de destaque.
+	Range: `Controle deslizante: o trilho fica em lime até o valor e a bolinha cresce ao arrastar.
 
-- Mostre o valor atual num rótulo acima (\`LABEL\`: "confiança mínima · 70%") e dê \`aria-label\`.`,
+- Mostre o valor atual num rótulo acima (\`LABEL\`: "confiança mínima · 70%") e dê \`aria-label\`.
+- Com unidade, passe \`aria-valuetext\` ("70%"): sem ele, o leitor de tela anuncia só o número.`,
 	Switch: `Interruptor liga/desliga (checkbox nativo, acessível pelo teclado).
 
 - Controlado: \`checked\` e \`onChange(valor)\` são obrigatórios, e \`label\` é o nome para o leitor de tela.

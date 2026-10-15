@@ -24,8 +24,8 @@ export function EmptyState({ title, description, action, tone = 'neutral', bare 
 			className={cx('flex flex-col items-center gap-2.5 px-6 py-12 text-center', !bare && card(), className)}
 		>
 			{tone === 'error' && <Icon name="alert" size={22} />}
-			<p className="font-semibold">{title}</p>
-			{description && <p className="text-sm text-muted">{description}</p>}
+			<p className="font-semibold text-balance">{title}</p>
+			{description && <p className="max-w-130 text-sm text-pretty text-muted">{description}</p>}
 			{action && <div className="mt-1.5">{action}</div>}
 		</div>
 	)

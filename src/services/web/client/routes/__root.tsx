@@ -109,7 +109,7 @@ function RootLayout() {
 	}, [title])
 
 	return (
-		<div className="flex min-h-screen flex-col">
+		<div className="flex min-h-dvh flex-col">
 			<a className="absolute -top-15 left-3 z-50 rounded-pill bg-lime px-3.5 py-2.5 text-lime-ink focus:top-3" href="#main">
 				pular para o conteúdo
 			</a>

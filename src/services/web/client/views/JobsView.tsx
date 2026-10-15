@@ -200,6 +200,7 @@ function Filters({ open }: { open: boolean }) {
 						max={100}
 						step={5}
 						value={filters.minConfidence}
+						aria-valuetext={`${filters.minConfidence}%`}
 						onChange={event => setFilters({ minConfidence: Number(event.target.value) })}
 					/>
 				</label>
@@ -218,8 +219,9 @@ function JobList({ selectedId, keepScroll }: { selectedId: string | null; keepSc
 	const { jobs, status, error, nextCursor, loadingMore } = useJobs()
 	const { filters, clearFilters } = useFilters()
 
-	// A primeira página vem pelo loader da rota (com o pendingComponent); aqui é a recarga ao mudar um filtro
-	if (status === 'loading') {
+	// A primeira página vem pelo loader da rota (com o pendingComponent); aqui é a recarga ao mudar um filtro. Com vagas na
+	// tela, elas ficam (esmaecidas pela seção) até a nova lista chegar, sem piscar a cada letra da busca
+	if (status === 'loading' && jobs.length === 0) {
 		return [1, 2, 3, 4, 5].map(key => <JobCardSkeleton key={key} />)
 	}
 
@@ -268,9 +270,14 @@ function JobList({ selectedId, keepScroll }: { selectedId: string | null; keepSc
 				<JobCard key={job.postId} job={job} selected={selectedId === job.postId} keepScroll={keepScroll} />
 			))}
 			{nextCursor ? (
-				<div ref={observeEnd} className="flex justify-center py-2">
+				<div ref={error ? undefined : observeEnd} className="flex flex-col items-center gap-2 py-2">
+					{error && (
+						<p className="text-sm text-danger" role="alert">
+							Não consegui carregar mais vagas: {error}
+						</p>
+					)}
 					<Button variant="ghost" disabled={loadingMore} onClick={loadMoreJobs}>
-						{loadingMore ? 'carregando…' : 'carregar mais vagas'}
+						{loadingMore ? 'carregando…' : error ? 'tentar de novo' : 'carregar mais vagas'}
 					</Button>
 				</div>
 			) : (
@@ -353,11 +360,14 @@ export function JobsView({ selectedRouteId, detail }: { selectedRouteId: string 
 				<Filters open={filtersOpen} />
 
 				<section
-					className="flex min-w-0 grow-999 basis-110 flex-col gap-2.5 max-md:basis-auto"
+					className={cx(
+						'flex min-w-0 grow-999 basis-110 flex-col gap-2.5 transition-opacity max-md:basis-auto',
+						status === 'loading' && jobs.length > 0 && 'opacity-60',
+					)}
 					aria-label="Lista de vagas"
 					aria-busy={status === 'loading'}
 				>
-					{status === 'ready' && jobs.length > 0 && (
+					{status !== 'error' && jobs.length > 0 && (
 						<div className="flex items-center justify-between gap-3 font-mono text-muted text-xs">
 							<span>
 								{jobs.length}

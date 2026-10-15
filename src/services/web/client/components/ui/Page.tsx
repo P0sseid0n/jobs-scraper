@@ -22,8 +22,8 @@ export function Hero({ title, lead, aside }: { title: ReactNode; lead: ReactNode
 	return (
 		<section className="flex flex-wrap items-end justify-between gap-6">
 			<div>
-				<h1 className="text-4xl font-bold tracking-tight md:text-5xl">{title}</h1>
-				<p className="mt-3.5 max-w-130 text-sm text-muted">{lead}</p>
+				<h1 className="text-4xl font-bold tracking-tight text-balance md:text-5xl">{title}</h1>
+				<p className="mt-3.5 max-w-130 text-sm text-pretty text-muted">{lead}</p>
 			</div>
 			{aside}
 		</section>
