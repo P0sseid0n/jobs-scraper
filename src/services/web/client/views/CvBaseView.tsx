@@ -235,7 +235,7 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 			return (
 				<p role="status" className="flex items-center gap-2 text-sm text-muted">
 					<Icon name="spinner" size={16} />
-					Validando no cv-updater… Se ele estiver gerando um currículo, a validação vem logo depois.
+					Validando no cv-updater…
 				</p>
 			)
 		}

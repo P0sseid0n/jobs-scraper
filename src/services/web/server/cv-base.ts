@@ -15,8 +15,7 @@ const LIST_LIMIT = 30
 const UNUSED_DAYS = 7
 const SUMMARY = { tex: 0, pdf: 0 } as const
 
-export const CV_BASE_TIMEOUT_ERROR =
-	'O cv-updater não respondeu em 10 minutos. Confira se ele está rodando e envie de novo (ele valida depois dos currículos em geração).'
+export const CV_BASE_TIMEOUT_ERROR = 'O cv-updater não respondeu em 10 minutos. Confira se ele está rodando e envie de novo.'
 
 /** Corpo do `POST /api/cv-base/versions`. */
 const NewVersionSchema = z.object({
@@ -101,13 +100,12 @@ export async function createCvBaseVersion(req: Request, { queue, events, logger 
 	})
 
 	const request: CvBaseValidationRequest = {
-		type: 'validate-base',
 		validationId: doc.versionId,
 		tex: doc.tex,
 		replyTo: { queue: QUEUES.webCvBase, context: {} },
 		requestedAt: now.toISOString(),
 	}
-	await queue.publish(QUEUES.cvUpdater, request)
+	await queue.publish(QUEUES.cvUpdaterBase, request)
 
 	const version = toWebCvBaseVersion(doc.toObject())
 	events.broadcast('cvBase', version)

@@ -6,6 +6,11 @@ export const QUEUES = {
 	/** Vagas para o discord-bot publicar (ligada à exchange `job-published`). */
 	discord: 'discord',
 	cvUpdater: 'cv-updater',
+	/**
+	 * Validações do currículo base, também consumidas pelo cv-updater. Ficam fora da `cv-updater` para não esperar um
+	 * currículo em geração: validar é só compilar, leva segundos.
+	 */
+	cvUpdaterBase: 'cv-updater-base',
 	/** Currículos prontos para o discord-bot entregar (é o `replyTo.queue` dos pedidos dele). */
 	discordCv: 'discord-cv',
 	/** Comandos para o scraper (ex.: "coletar agora" vindo de outras fontes). */

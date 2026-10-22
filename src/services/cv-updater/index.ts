@@ -4,7 +4,8 @@ import { Ollama } from 'ollama'
 
 import { ollamaEnv } from '@shared/config'
 import {
-	CvUpdaterMessageSchema,
+	CvBaseValidationRequestSchema,
+	CvRequestSchema,
 	type CvBaseValidationRequest,
 	type CvBaseValidationResult,
 	type CvRequest,
@@ -42,9 +43,9 @@ try {
 	process.exit(1)
 }
 
-await queue.consume(QUEUES.cvUpdater, CvUpdaterMessageSchema, message =>
-	'type' in message ? validateBaseResume(message) : generateCv(message),
-)
+await queue.consume(QUEUES.cvUpdater, CvRequestSchema, generateCv)
+// Em paralelo aos currículos: uma validação não espera a geração em andamento
+await queue.consume(QUEUES.cvUpdaterBase, CvBaseValidationRequestSchema, validateBaseResume)
 
 /** Gera o currículo da vaga pedida e envia o PDF (ou o motivo da falha) para a fila de resposta de quem pediu. */
 async function generateCv(request: CvRequest) {

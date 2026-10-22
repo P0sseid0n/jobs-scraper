@@ -49,11 +49,10 @@ export const CvBaseTexSchema = z
 	.refine(tex => new TextEncoder().encode(tex).length <= CV_BASE_TEX_MAX_BYTES, `O .tex passa de ${CV_BASE_TEX_MAX_BYTES / 1024} KB`)
 
 /**
- * Mensagem da fila `cv-updater`: validar um `.tex` candidato a currículo base (interpretar, conferir as seções e
+ * Mensagem da fila `cv-updater-base`: validar um `.tex` candidato a currículo base (interpretar, conferir as seções e
  * compilar). O resultado vai para `replyTo.queue`, como nos pedidos de currículo.
  */
 export const CvBaseValidationRequestSchema = z.object({
-	type: z.literal('validate-base'),
 	validationId: z.string().min(1),
 	tex: CvBaseTexSchema,
 	replyTo: ReplyToSchema,
@@ -61,9 +60,6 @@ export const CvBaseValidationRequestSchema = z.object({
 })
 
 export type CvBaseValidationRequest = z.infer<typeof CvBaseValidationRequestSchema>
-
-/** Tudo o que chega na fila `cv-updater`: pedidos de currículo (sem `type`, como antes) e validações do currículo base. */
-export const CvUpdaterMessageSchema = z.union([CvBaseValidationRequestSchema, CvRequestSchema])
 
 /** Resultado da validação: sem `errors`, o `.tex` pode virar o currículo base; `pdf` (base64) é a pré-visualização. */
 export const CvBaseValidationResultSchema = z.object({

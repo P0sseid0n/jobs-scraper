@@ -36,6 +36,7 @@ const events = new EventHub()
 onShutdown(() => events.close())
 
 await queue.assertQueue(QUEUES.cvUpdater)
+await queue.assertQueue(QUEUES.cvUpdaterBase)
 await queue.assertQueue(QUEUES.scraper)
 
 // A fila `web` assina o evento `job-published`, como a do Discord: o site recebe todas as vagas novas
