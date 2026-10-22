@@ -1530,5 +1530,532 @@
 		"correctedFields": [],
 		"model": "gemma3:4b",
 		"promptVersion": "3caef3e2ad31"
+	},
+	{
+		"postId": "caso-dev-teaser-link",
+		"anonymized": true,
+		"area": "dev",
+		"kind": "fields",
+		"post": {
+			"text": "🔥 Procurando um desafio técnico de verdade? Vaga para Desenvolvedor(a) Sênior em São Paulo/SP! Stack: Vue, PHP e React, na migração de sistemas críticos de uma empresa de saúde. Candidate-se aqui: https://vagas.exemplo.com/dev-senior-vue-php\n\nPara ver mais vagas: https://vagas.exemplo.com/todas",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Desenvolvedor(a) Sênior",
+			"company": "exemplo",
+			"location": "São Paulo/SP",
+			"workMode": null,
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"Vue",
+				"PHP",
+				"React"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/dev-senior-vue-php",
+			"aiJobConfidence": 100
+		},
+		"expected": {
+			"title": "Desenvolvedor(a) Sênior",
+			"company": null,
+			"location": "São Paulo/SP",
+			"workMode": null,
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"Vue",
+				"PHP",
+				"React"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/dev-senior-vue-php"
+		},
+		"correctedFields": [],
+		"model": "gemma3:4b",
+		"promptVersion": "186cb8044bb7"
+	},
+	{
+		"postId": "caso-dev-varias-vagas-react",
+		"anonymized": true,
+		"area": "dev",
+		"targetRole": "Desenvolvedor React",
+		"kind": "fields",
+		"post": {
+			"text": "📢 Vagas híbridas em São Paulo/SP\n\n📍 Local: Pinheiros, São Paulo/SP\n🏢 Modelo de trabalho: 3 dias no escritório e 2 em casa por semana.\n💼 Contratação: PJ\n\n🧪 Especialista em Qualidade de Software Sênior\nSobre a oportunidade: healthtech em expansão procura alguém para liderar a estratégia de qualidade de cinco produtos em produção.\n\nRequisitos:\n- Testes automatizados com Cypress ou Playwright;\n- Testes de APIs;\n- GitHub Actions.\n\n🔗 Candidate-se: https://vagas.exemplo.com/qa-senior\n\n💻 Desenvolvedor(a) Sênior React/Node.js\nSobre a oportunidade: healthtech brasileira em crescimento procura alguém para evoluir os produtos centrais, usados por milhares de clínicas.\n\nRequisitos:\n- JavaScript e TypeScript de ponta a ponta;\n- React e Node.js;\n- MongoDB.\n\n🔗 Candidate-se: https://vagas.exemplo.com/dev-react-node\n\n#VagasTech #Healthtech #SaoPaulo",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Especialista em Qualidade de Software Sênior",
+			"company": "não especificado",
+			"location": "Pinheiros, São Paulo/SP",
+			"workMode": "hibrido",
+			"contractTypes": [
+				"pj"
+			],
+			"necessaryKnowledge": [
+				"Cypress",
+				"Playwright",
+				"Testes de APIs",
+				"GitHub Actions",
+				"JavaScript",
+				"TypeScript",
+				"React",
+				"Node.js",
+				"MongoDB"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/qa-senior",
+			"aiJobConfidence": 100
+		},
+		"expected": {
+			"title": "Desenvolvedor(a) Sênior React/Node.js",
+			"company": null,
+			"location": "Pinheiros, São Paulo/SP",
+			"workMode": "hibrido",
+			"contractTypes": [
+				"pj"
+			],
+			"necessaryKnowledge": [
+				"JavaScript",
+				"TypeScript",
+				"React",
+				"Node.js",
+				"MongoDB"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/dev-react-node"
+		},
+		"correctedFields": [],
+		"model": "gemma3:4b",
+		"promptVersion": "186cb8044bb7"
+	},
+	{
+		"postId": "caso-dev-varias-vagas-sem-perfil",
+		"anonymized": true,
+		"area": "dev",
+		"kind": "fields",
+		"post": {
+			"text": "📢 Vagas híbridas em São Paulo/SP\n\n📍 Local: Pinheiros, São Paulo/SP\n🏢 Modelo de trabalho: 3 dias no escritório e 2 em casa por semana.\n💼 Contratação: PJ\n\n🧪 Especialista em Qualidade de Software Sênior\nSobre a oportunidade: healthtech em expansão procura alguém para liderar a estratégia de qualidade de cinco produtos em produção.\n\nRequisitos:\n- Testes automatizados com Cypress ou Playwright;\n- Testes de APIs;\n- GitHub Actions.\n\n🔗 Candidate-se: https://vagas.exemplo.com/qa-senior\n\n💻 Desenvolvedor(a) Sênior React/Node.js\nSobre a oportunidade: healthtech brasileira em crescimento procura alguém para evoluir os produtos centrais, usados por milhares de clínicas.\n\nRequisitos:\n- JavaScript e TypeScript de ponta a ponta;\n- React e Node.js;\n- MongoDB.\n\n🔗 Candidate-se: https://vagas.exemplo.com/dev-react-node\n\n#VagasTech #Healthtech #SaoPaulo",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Especialista em Qualidade de Software Sênior",
+			"company": null,
+			"location": "São Paulo/SP",
+			"workMode": "hibrido",
+			"contractTypes": [
+				"pj"
+			],
+			"necessaryKnowledge": [
+				"Cypress",
+				"Playwright",
+				"Testes de APIs",
+				"GitHub Actions",
+				"JavaScript",
+				"TypeScript",
+				"React",
+				"Node.js",
+				"MongoDB"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/qa-senior",
+			"aiJobConfidence": 100
+		},
+		"expected": {
+			"title": "Especialista em Qualidade de Software Sênior",
+			"company": null,
+			"location": "Pinheiros, São Paulo/SP",
+			"workMode": "hibrido",
+			"contractTypes": [
+				"pj"
+			],
+			"necessaryKnowledge": [
+				"Cypress",
+				"Playwright",
+				"Testes de APIs",
+				"GitHub Actions"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/qa-senior"
+		},
+		"correctedFields": [],
+		"model": "gemma3:4b",
+		"promptVersion": "186cb8044bb7"
+	},
+	{
+		"postId": "caso-dev-internacional",
+		"anonymized": true,
+		"area": "dev",
+		"kind": "fields",
+		"post": {
+			"text": "🚀 𝗦𝗼𝗳𝘁𝘄𝗮𝗿𝗲 𝗘𝗻𝗴𝗶𝗻𝗲𝗲𝗿 𝗝Ú𝗡𝗜𝗢𝗥/𝗣𝗟𝗘𝗡𝗢 | 𝗠𝗲𝗱𝗶𝗯𝗶𝗹𝗹 | 𝗥𝗲𝗺𝗼𝘁𝗼 𝗱𝗼 𝗕𝗿𝗮𝘀𝗶𝗹 | 𝗨𝗦$ 35 𝗺𝗶𝗹 𝗮 45 𝗺𝗶𝗹/𝗮𝗻𝗼\n\n📍 Modelo: 100% Remoto (Brasil)\n➡️ Contratação: Full-time internacional\n💲 Remuneração: US$ 35.000 a US$ 45.000/ano\n❗ Senioridade: Júnior/Pleno (2+ anos de experiência)\nA Medibill é uma healthtech americana que automatiza o faturamento de clínicas e hospitais nos EUA.\n\n𝗘𝘀𝘁ã𝗼 𝗽𝗿𝗼𝗰𝘂𝗿𝗮𝗻𝗱𝗼 𝗱𝗲𝘃𝘀 𝗰𝗼𝗺:\n✅ 2+ anos de experiência profissional em desenvolvimento\n✅ TypeScript e React no front-end\n✅ Python ou Go no back-end\n✅ Git, AWS ou GCP, Docker e Kubernetes\n🗣️ O processo é em inglês.\n\n🔗 𝗟𝗶𝗻𝗸 𝗱𝗮 𝘃𝗮𝗴𝗮: https://vagas.exemplo.com/medibill/software-engineer\n➖➖➖➖➖➖➖➖➖➖\n🎓 𝗕Ô𝗡𝗨𝗦: aulas de inglês para TI, todos os dias.\n\n👉 𝗪𝗵𝗮𝘁𝘀𝗔𝗽𝗽: https://cursos.exemplo.com/ingles-ti",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Software Engineer",
+			"company": "Medibill",
+			"location": "Brasil",
+			"workMode": "remoto",
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"TypeScript",
+				"React",
+				"Python",
+				"Go",
+				"Git",
+				"AWS",
+				"GCP",
+				"Docker",
+				"Kubernetes"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/medibill/software-engineer",
+			"aiJobConfidence": 100
+		},
+		"expected": {
+			"title": "Software Engineer JÚNIOR/PLENO",
+			"company": "Medibill",
+			"location": "Brasil",
+			"workMode": "remoto",
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"TypeScript",
+				"React",
+				"Python",
+				"Go",
+				"Git",
+				"AWS",
+				"GCP",
+				"Docker",
+				"Kubernetes"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/medibill/software-engineer"
+		},
+		"correctedFields": [],
+		"model": "gemma3:4b",
+		"promptVersion": "186cb8044bb7"
+	},
+	{
+		"postId": "caso-dev-fullstack-remoto",
+		"anonymized": true,
+		"area": "dev",
+		"kind": "fields",
+		"post": {
+			"text": "🚀 𝗩𝗮𝗴𝗮 𝗗𝗲𝘀𝗲𝗻𝘃𝗼𝗹𝘃𝗲𝗱𝗼𝗿(𝗮) 𝗙𝘂𝗹𝗹-𝘀𝘁𝗮𝗰𝗸 𝗝𝗮𝘃𝗮𝗦𝗰𝗿𝗶𝗽𝘁 𝗣𝗹𝗲𝗻𝗼\n\n📍 Modelo: 100% Remoto (sem restrição de localidade)\n➡️ Contratação: Tempo integral / Efetivo\n💰 Remuneração: R$ 8.000,00 a R$ 13.000,00 por mês\n❗ Senioridade: Pleno\n\nEmpresa de tecnologia está contratando Desenvolvedor(a) Full-stack JavaScript Pleno para desenvolver e manter aplicações completas, do front-end ao back-end, com código limpo, testável e bem documentado.\n\n𝗘𝘀𝘁ã𝗼 𝗽𝗿𝗼𝗰𝘂𝗿𝗮𝗻𝗱𝗼 𝗱𝗲𝘃𝘀 𝗰𝗼𝗺:\n✅ Fluência comprovada em JavaScript\n✅ Fluência comprovada em TypeScript\n✅ Experiência com aplicações full-stack (interfaces e APIs)\n✅ Participação em code review e colaboração com o time\n✅ Proatividade na resolução de problemas\n\n🔗 𝗟𝗶𝗻𝗸 𝗱𝗮 𝘃𝗮𝗴𝗮: https://vagas.exemplo.com/fullstack-js-pleno\n\nQuer destravar o inglês? Aulas para quem é de TI: https://cursos.exemplo.com/ingles",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Desenvolvedor(a) Full-stack JavaScript Pleno",
+			"company": null,
+			"location": "remoto (sem restrição de localidade)",
+			"workMode": "remoto",
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"JavaScript",
+				"TypeScript",
+				"API"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/fullstack-js-pleno",
+			"aiJobConfidence": 100
+		},
+		"expected": {
+			"title": "Desenvolvedor(a) Full-stack JavaScript Pleno",
+			"company": null,
+			"location": null,
+			"workMode": "remoto",
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"JavaScript",
+				"TypeScript"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/fullstack-js-pleno"
+		},
+		"correctedFields": [],
+		"model": "gemma3:4b",
+		"promptVersion": "186cb8044bb7"
+	},
+	{
+		"postId": "caso-dev-front-clt-pj",
+		"anonymized": true,
+		"area": "dev",
+		"kind": "fields",
+		"post": {
+			"text": "✨ VAGA ABERTA! ✨\n⭐ DESENVOLVEDOR(A) FRONT-END PLENO | CLT OU PJ | HÍBRIDO SP ⭐\n\nSe você gosta de criar interfaces modernas e experiências digitais intuitivas, essa oportunidade é para você!\n🔹Atividades:\n* Desenvolver interfaces e componentes com Blazor.\n* Integrar aplicações com APIs REST.\n* Evoluir sistemas legados e novos produtos.\n* Participar de revisões de código e testes.\n🔹Requisitos Técnicos:\n* HTML5, CSS3 e JavaScript.\n* Angular ou Blazor, com Bootstrap.\n* Integração com APIs REST.\n* Git e Azure DevOps.\n🔹Requisitos Comportamentais:\n* Trabalho em equipe.\n* Proatividade.\n* Boa comunicação.\nCadastre-se: https://vagas.exemplo.com/front-blazor\n🔹Modelo de trabalho:\n📍 Híbrido (3x presencial por semana)\n📄 Contratação CLT ou PJ\n💰 Salário a combinar",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "DESENVOLVEDOR(A) FRONT-END",
+			"company": null,
+			"location": "SP",
+			"workMode": "hibrido",
+			"contractTypes": [
+				"clt",
+				"pj"
+			],
+			"necessaryKnowledge": [
+				"HTML5",
+				"CSS3",
+				"JavaScript",
+				"Angular",
+				"Blazor",
+				"Bootstrap",
+				"Git",
+				"Azure DevOps"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/front-blazor",
+			"aiJobConfidence": 100
+		},
+		"expected": {
+			"title": "DESENVOLVEDOR(A) FRONT-END PLENO",
+			"company": null,
+			"location": "SP",
+			"workMode": "hibrido",
+			"contractTypes": [
+				"clt",
+				"pj"
+			],
+			"necessaryKnowledge": [
+				"HTML5",
+				"CSS3",
+				"JavaScript",
+				"Angular",
+				"Blazor",
+				"Bootstrap",
+				"APIs REST",
+				"Git",
+				"Azure DevOps"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/front-blazor"
+		},
+		"correctedFields": [],
+		"model": "gemma3:4b",
+		"promptVersion": "186cb8044bb7"
+	},
+	{
+		"postId": "caso-dev-pagina-vaga",
+		"anonymized": true,
+		"area": "dev",
+		"kind": "fields",
+		"post": {
+			"text": "Vaga: Desenvolvedor Front-End Pleno - Nuvia Sistemas - Home Office\nLink: https://vagas.exemplo.com/nuvia/front-vue\n\nDesenvolvedor Front-End Pleno – Nuvia Sistemas – Home Office\nPeríodo Integral\nRio de Janeiro (Remote)\na combinar R$ / Month\n\nNuvia Sistemas\n\nCargo: Desenvolvedor Front-End Vue.js Pleno\n\nEmpresa: Nuvia Sistemas\n\nDescrição da vaga:\nDesenvolver com Vue.js e TypeScript\nConsumir APIs REST\nUsar Git com pull requests e code review\n\nRequisitos:\nExperiência com Vue.js\nConhecimento sólido de JavaScript e TypeScript\nHTML5 e CSS3\nGit\n\nSalário: A combinar\n\nRegime de contratação: Pessoa Jurídica\n\nModelo de trabalho: Remoto\n\nOs interessados devem se candidatar pelo link acima",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": "post-de-origem"
+		},
+		"aiOutput": {
+			"title": "Desenvolvedor Front-End Pleno",
+			"company": "Nuvia Sistemas",
+			"location": "Rio de Janeiro",
+			"workMode": "remoto",
+			"contractTypes": [
+				"pj"
+			],
+			"necessaryKnowledge": [
+				"Vue.js",
+				"JavaScript",
+				"TypeScript",
+				"HTML5",
+				"CSS3",
+				"Git"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/nuvia/front-vue",
+			"aiJobConfidence": 100
+		},
+		"expected": {
+			"title": "Desenvolvedor Front-End Vue.js Pleno",
+			"company": "Nuvia Sistemas",
+			"location": "Rio de Janeiro",
+			"workMode": "remoto",
+			"contractTypes": [
+				"pj"
+			],
+			"necessaryKnowledge": [
+				"Vue.js",
+				"JavaScript",
+				"TypeScript",
+				"HTML5",
+				"CSS3",
+				"Git",
+				"APIs REST"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/nuvia/front-vue"
+		},
+		"correctedFields": [],
+		"model": "gemma3:4b",
+		"promptVersion": "186cb8044bb7"
+	},
+	{
+		"postId": "caso-dev-java-divulgando",
+		"anonymized": true,
+		"area": "dev",
+		"kind": "fields",
+		"post": {
+			"text": "Divulgando:\n\nDesenvolvedor(a) Full Stack Java Pleno/Sênior - Home Office\n\nProcuramos Desenvolvedor(a) Full Stack Java Pleno/Sênior para o nosso time de Tecnologia, no desenvolvimento e na evolução de soluções digitais para o setor de energia.\n\nPrincipais responsabilidades:\n\nDesenvolver e manter aplicações web com Java e Spring Boot;\nCriar e integrar APIs REST;\nAtuar no front-end com React e TypeScript;\nTrabalhar com bancos de dados relacionais e SQL;\nParticipar de code reviews e testes.\n\nRequisitos:\n\nExperiência como Desenvolvedor(a) Full Stack;\nJava 11 ou superior e Spring Boot;\nReact e TypeScript;\nSQL;\nGit.\n\nCandidate-se: https://vagas.exemplo.com/fullstack-java",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Desenvolvedor(a) Full Stack Java",
+			"company": "não especificado",
+			"location": null,
+			"workMode": "remoto",
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"Java",
+				"Spring Boot",
+				"React",
+				"TypeScript",
+				"SQL",
+				"Git"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/fullstack-java",
+			"aiJobConfidence": 100
+		},
+		"expected": {
+			"title": "Desenvolvedor(a) Full Stack Java Pleno/Sênior",
+			"company": null,
+			"location": null,
+			"workMode": "remoto",
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"Java",
+				"Spring Boot",
+				"React",
+				"TypeScript",
+				"SQL",
+				"Git",
+				"APIs REST"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/fullstack-java"
+		},
+		"correctedFields": [],
+		"model": "gemma3:4b",
+		"promptVersion": "186cb8044bb7"
+	},
+	{
+		"postId": "caso-dev-analista-suporte",
+		"anonymized": true,
+		"area": "dev",
+		"kind": "fields",
+		"post": {
+			"text": "ANALISTA DE DESENVOLVIMENTO E SUPORTE SÊNIOR\n\nCandidate-se gratuitamente!\n\nDesenvolver e manter aplicações web full stack com React e Node.js;\nCriar APIs REST e integrações entre sistemas;\nDesenvolver serviços de backend com Node.js e TypeScript;\nUsar Python em automações e integrações;\nUsar Git e processos de CI/CD;\nUsar containers Docker para padronizar os ambientes;\nElaborar documentação técnica.\n\nConhecimentos\nReact;\nNode.js;\nTypeScript;\nPython;\nDocker;\nGit.\n\nhttps://vagas.exemplo.com/analista-desenvolvimento-suporte",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "ANALISTA DE DESENVOLVIMENTO E SUPORTE SÊNIOR",
+			"company": "exemplo",
+			"location": null,
+			"workMode": null,
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"React",
+				"Node.js",
+				"TypeScript",
+				"Python",
+				"Docker",
+				"Git"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/analista-desenvolvimento-suporte",
+			"aiJobConfidence": 100
+		},
+		"expected": {
+			"title": "ANALISTA DE DESENVOLVIMENTO E SUPORTE SÊNIOR",
+			"company": null,
+			"location": null,
+			"workMode": null,
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"React",
+				"Node.js",
+				"TypeScript",
+				"Python",
+				"Docker",
+				"Git"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/analista-desenvolvimento-suporte"
+		},
+		"correctedFields": [],
+		"model": "gemma3:4b",
+		"promptVersion": "186cb8044bb7"
+	},
+	{
+		"postId": "caso-dev-varias-vagas-php",
+		"anonymized": true,
+		"area": "dev",
+		"targetRole": "Desenvolvedor Backend PHP",
+		"kind": "fields",
+		"post": {
+			"text": "🚀 Vagas abertas em Tecnologia\n🔹 Pessoa Desenvolvedora Front-end Sênior | React.js\nExperiência com React, Next.js e GraphQL. - Link: https://vagas.exemplo.com/front-react\n\n🔹 Pessoa Desenvolvedora Backend Pleno | PHP\nAtuação com PHP, Laravel e MySQL. - Link: https://vagas.exemplo.com/backend-php\n\n🔹 Pessoa Desenvolvedora Java Sênior | IA\nExperiência sólida com Java e Spring Boot. - Link: https://vagas.exemplo.com/java-ia\n\nProcuramos profissionais para projetos escaláveis e desafios técnicos!\n\n#VagasTech #React #PHP #Java\n\n⚠️ Meu perfil é de DIVULGAÇÃO de vagas! Envie o currículo apenas pelo link de cada vaga.",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Pessoa Desenvolvedora Backend Pleno | PHP",
+			"company": null,
+			"location": null,
+			"workMode": null,
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"PHP",
+				"Laravel",
+				"MySQL"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/backend-php",
+			"aiJobConfidence": 100
+		},
+		"expected": {
+			"title": "Pessoa Desenvolvedora Backend Pleno | PHP",
+			"company": null,
+			"location": null,
+			"workMode": null,
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"PHP",
+				"Laravel",
+				"MySQL"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/backend-php"
+		},
+		"correctedFields": [],
+		"model": "gemma3:4b",
+		"promptVersion": "186cb8044bb7"
 	}
 ]
