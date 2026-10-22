@@ -21,6 +21,7 @@ import { CONTRACT_TYPES, LANGUAGE_NAMES, WORK_MODES } from '../lib/format'
 import { hasActiveFilters } from '../lib/job-filters'
 import { useWideLayout } from '../lib/media'
 import { useStore } from '../lib/store'
+import { useTrayRequests } from '../stores/cv'
 import { filtersOpen } from '../stores/filters-panel'
 import { loadJobs, loadMoreJobs, showIncoming, useJobs } from '../stores/jobs'
 import { markAllViewed, useViewedCheck } from '../stores/viewed'
@@ -431,6 +432,7 @@ export function JobsView({ selectedRouteId, detail }: { selectedRouteId: string 
 	const { jobs, status, facets, nextCursor, incoming } = useJobs()
 	const wide = useWideLayout()
 	const showFilters = useStore(filtersOpen)
+	const pendingCvs = useTrayRequests().filter(request => request.status === 'pending').length
 
 	// Destacada na lista: a vaga da URL ou, no desktop sem vaga na URL, a primeira (que o painel mostra)
 	const selectedId = selectedRouteId
@@ -452,6 +454,8 @@ export function JobsView({ selectedRouteId, detail }: { selectedRouteId: string 
 				aside={
 					<span className="font-mono text-muted text-sm">
 						{facets ? facets.total.toLocaleString('pt-BR') : '–'} no histórico
+						{' · '}
+						{pendingCvs === 1 ? '1 currículo gerando' : `${pendingCvs} currículos gerando`}
 					</span>
 				}
 			/>
