@@ -1,59 +1,55 @@
-import { Client, Events, GatewayIntentBits } from 'discord.js'
-
 import { CvResultSchema, JobPublishedSchema } from '@shared/contracts'
 import { onShutdown } from '@shared/lifecycle'
 import { EXCHANGES, QUEUES } from '@shared/messaging'
 import { startService } from '@shared/service'
 
-import { discordEnv } from './config'
 import { handleContactButton } from './contact-button'
 import { CONTACT_BUTTON_PREFIX } from './contact-reply'
 import { deliverCv } from './cv-delivery'
+import { DiscordConnection } from './discord-connection'
 import { toQueueError } from './discord-errors'
-import { publishJob, resolveJobChannel } from './job-publisher'
+import { publishJob } from './job-publisher'
 
-const { config, logger, queue } = await startService({ name: 'discord-bot', env: discordEnv })
+// O banco guarda o token e o canal salvos pelo site (sem eles, valem os do .env)
+const { logger, queue } = await startService({ name: 'discord-bot', database: true })
 
-const client = new Client({ intents: [GatewayIntentBits.Guilds] })
-onShutdown(() => client.destroy())
+const discord = new DiscordConnection({
+	logger,
+	onInteraction: async interaction => {
+		if (!interaction.isButton() || !interaction.customId.startsWith(CONTACT_BUTTON_PREFIX)) return
 
-client.on(Events.InteractionCreate, async interaction => {
-	if (!interaction.isButton() || !interaction.customId.startsWith(CONTACT_BUTTON_PREFIX)) return
+		try {
+			await handleContactButton(interaction, queue, logger)
+		} catch (error) {
+			logger.error({ err: error }, 'Erro ao responder o botão de contato')
+		}
+	},
+})
+onShutdown(() => discord.close())
 
-	try {
-		await handleContactButton(interaction, queue, logger)
-	} catch (error) {
-		logger.error({ err: error }, 'Erro ao responder o botão de contato')
-	}
+await queue.assertQueue(QUEUES.cvUpdater)
+await discord.start()
+
+// Os consumidores esperam o bot estar conectado: sem credenciais (ou trocando de conta), as mensagens ficam na fila
+await queue.consume(QUEUES.discordCv, CvResultSchema, async result => {
+	const { client } = await discord.ready()
+	await deliverCv(client, result, logger)
 })
 
-// As filas só começam a ser consumidas quando o canal do Discord está disponível
-client.once(Events.ClientReady, async readyClient => {
-	logger.info({ user: readyClient.user.tag }, 'Logado no Discord')
+// A fila `discord` assina o evento `job-published`: recebe todas as vagas, independente de outros canais
+await queue.consume(
+	QUEUES.discord,
+	JobPublishedSchema,
+	async job => {
+		const { channel } = await discord.ready()
 
-	const channel = await resolveJobChannel(readyClient, config.DISCORD_CHANNEL_ID, logger)
-	await queue.assertQueue(QUEUES.cvUpdater)
+		try {
+			await publishJob(channel, job)
+		} catch (error) {
+			throw toQueueError(error)
+		}
 
-	await queue.consume(QUEUES.discordCv, CvResultSchema, result => deliverCv(client, result, logger))
-
-	// A fila `discord` assina o evento `job-published`: recebe todas as vagas, independente de outros canais
-	await queue.consume(
-		QUEUES.discord,
-		JobPublishedSchema,
-		async job => {
-			try {
-				await publishJob(channel, job)
-			} catch (error) {
-				throw toQueueError(error)
-			}
-
-			logger.info({ postId: job.postId }, 'Vaga publicada no Discord')
-		},
-		{ bindTo: EXCHANGES.jobPublished },
-	)
-})
-
-await client.login(config.DISCORD_TOKEN).catch(error => {
-	logger.fatal({ err: error }, 'Falha no login do Discord (verifique o DISCORD_TOKEN)')
-	process.exit(1)
-})
+		logger.info({ postId: job.postId }, 'Vaga publicada no Discord')
+	},
+	{ bindTo: EXCHANGES.jobPublished },
+)

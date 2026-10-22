@@ -14,6 +14,7 @@ import {
 import { Job } from '@shared/database'
 import { QUEUES } from '@shared/messaging'
 import { startService } from '@shared/service'
+import { loadCredentials } from '@shared/settings'
 
 import { requestApplicationMessage } from './application-message'
 import { checkBaseResume, loadBaseResume, validateBaseTex } from './base-resume'
@@ -34,7 +35,6 @@ const { config, logger, queue } = await startService({
 
 const compileOptions = { tectonicBin: config.TECTONIC_BIN, fontsDir: config.CV_FONTS_DIR }
 const ollama = new Ollama({ host: config.OLLAMA_HOST })
-const github = createGithubClient()
 
 try {
 	await checkBaseResume(config.CV_TEX_FILE, compileOptions, logger)
@@ -72,7 +72,7 @@ async function generateCv(request: CvRequest) {
 	}
 
 	cv.projects = await chooseProjects(
-		{ github, ollama, model: config.OLLAMA_MODEL, maxProjects: config.CV_MAX_PROJECTS },
+		{ github: await githubClient(), ollama, model: config.OLLAMA_MODEL, maxProjects: config.CV_MAX_PROJECTS },
 		base,
 		cv.projects,
 		job,
@@ -153,15 +153,28 @@ async function savePdf(name: string, pdf: Buffer) {
 	await Bun.write(path.join(config.CV_OUTPUT_DIR, name), pdf)
 }
 
-function createGithubClient() {
-	if (!config.GITHUB_USERNAME) return null
+/** O cliente do GitHub da conta atual, reaproveitado enquanto ela não muda (ele controla o limite de requisições). */
+let github: { key: string; client: GithubRepositories } | null = null
 
-	return new GithubRepositories({
-		username: config.GITHUB_USERNAME,
-		token: config.GITHUB_TOKEN,
-		exclude: config.GITHUB_EXCLUDE_REPOS,
-		cacheDir: config.CV_CACHE_DIR,
-		cacheHours: config.GITHUB_CACHE_HOURS,
-		logger,
-	})
+/** Relê a conta do GitHub a cada currículo: a salva pelo site vale sem reiniciar. Sem conta, ficam os projetos do .tex. */
+async function githubClient() {
+	const account = (await loadCredentials('github'))?.value
+	if (!account) return null
+
+	const key = JSON.stringify([account.username, account.token])
+	if (github?.key !== key) {
+		github = {
+			key,
+			client: new GithubRepositories({
+				username: account.username,
+				token: account.token,
+				exclude: config.GITHUB_EXCLUDE_REPOS,
+				cacheDir: config.CV_CACHE_DIR,
+				cacheHours: config.GITHUB_CACHE_HOURS,
+				logger,
+			}),
+		}
+	}
+
+	return github.client
 }

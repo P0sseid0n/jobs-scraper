@@ -3,6 +3,7 @@ import type { Page } from 'puppeteer'
 import type { JobLookup } from '@shared/contracts'
 import type { Logger } from '@shared/logging'
 import { QUEUES, type QueueClient } from '@shared/messaging'
+import { loadCredentials } from '@shared/settings'
 
 import type { BrowserLock } from './browser-lock'
 import { browserOptionsFrom, BrowserSession } from './browser-session'
@@ -10,7 +11,7 @@ import type { ScraperConfig } from './config'
 import { lookupToRawPost, type ListingPage } from './job-lookup-post'
 import { SELECTORS } from './linkedin/selectors'
 import { canonicalJobUrl, isLinkedInUrl, safetyRedirectTarget } from './linkedin/urls'
-import { ensureLoggedIn, loginOptionsFrom } from './login'
+import { ensureLoggedIn, LoginError, loginOptionsFrom, NO_LINKEDIN_ACCOUNT } from './login'
 
 type LookupOptions = { config: ScraperConfig; queue: QueueClient; logger: Logger; lock: BrowserLock }
 
@@ -65,12 +66,16 @@ export class JobLookupWorker {
 	 */
 	private async readListing(lookup: JobLookup, log: Logger): Promise<ListingPage | null> {
 		try {
-			const session = await this.openSession()
+			// Relida a cada vaga, como na coleta: a conta salva pelo site vale sem reiniciar o serviço
+			const account = (await loadCredentials('linkedin'))?.value
+			if (!account) throw new LoginError(NO_LINKEDIN_ACCOUNT)
+
+			const session = await this.openSession(account.liAt)
 			await session.goto(lookup.link)
 
 			// A sessão e o login só valem no LinkedIn: um site de fora com /login não é o login do LinkedIn
 			if (isLinkedInUrl(session.page.url())) {
-				const loggedInNow = await ensureLoggedIn(session, loginOptionsFrom(this.options.config, log))
+				const loggedInNow = await ensureLoggedIn(session, loginOptionsFrom(this.options.config, account, log))
 				if (loggedInNow) await session.goto(lookup.link)
 			}
 
@@ -87,8 +92,8 @@ export class JobLookupWorker {
 		}
 	}
 
-	private async openSession() {
-		this.session ??= await BrowserSession.launch(browserOptionsFrom(this.options.config, this.options.logger))
+	private async openSession(liAt: string | undefined) {
+		this.session ??= await BrowserSession.launch(browserOptionsFrom(this.options.config, liAt, this.options.logger))
 
 		return this.session
 	}

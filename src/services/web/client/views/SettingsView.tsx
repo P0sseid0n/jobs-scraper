@@ -12,8 +12,9 @@ import {
 	type SeniorityLevel,
 } from '@shared/contracts'
 
-import type { WebSettings } from '../../api-types'
+import type { WebCredentials, WebSettings } from '../../api-types'
 import { api, RequestError } from '../api'
+import { AccountsSection } from '../components/AccountsSection'
 import { Icon } from '../components/Icon'
 import { Button } from '../components/ui/Button'
 import { card } from '../components/ui/Card'
@@ -60,9 +61,9 @@ function draftOf(settings: WebSettings): SettingsDraft {
 
 /**
  * Formulário do perfil profissional, das configurações do scraper e dos filtros das vagas; valem a partir da próxima coleta. As configurações
- * salvas vêm do loader da rota (`routes/configuracoes.tsx`).
+ * salvas vêm do loader da rota (`routes/configuracoes.tsx`). As contas ficam no fim, cada uma com o próprio botão de salvar.
  */
-export function SettingsView({ initial }: { initial: WebSettings }) {
+export function SettingsView({ initial, credentials }: { initial: WebSettings; credentials: WebCredentials }) {
 	const [loaded, setLoaded] = useState<WebSettings | null>(initial)
 	const [draft, setDraft] = useState<SettingsDraft | null>(() => draftOf(initial))
 	const [serverErrors, setServerErrors] = useState<Record<string, string>>({})
@@ -600,6 +601,7 @@ export function SettingsView({ initial }: { initial: WebSettings }) {
 			{draft && renderProfile(draft)}
 			{draft && renderScraper(draft)}
 			{draft && renderProcessing(draft)}
+			<AccountsSection initial={credentials} />
 
 			{draft && (
 				<div data-save-bar className="fixed inset-x-0 bottom-0 z-25 border-t border-line bg-bg max-md:bottom-safe-16">

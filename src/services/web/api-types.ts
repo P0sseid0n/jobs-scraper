@@ -5,6 +5,8 @@
 import type {
 	ApplicationMessage,
 	ContractType,
+	CredentialGroup,
+	CredentialsStatus,
 	PostProcessingSettings,
 	ProcessedJob,
 	ProfileSettings,
@@ -147,6 +149,13 @@ export type RunsPage = { runs: WebScraperRun[]; nextCursor: string | null }
 
 export type WebSettings = { scraper: ScraperSettings; 'post-processing': PostProcessingSettings; profile: ProfileSettings }
 export type { SettingsKey }
+
+/** `GET /api/credentials`: de onde vem cada grupo e os campos públicos; os segredos nunca vêm, só se estão preenchidos. */
+export type WebCredentials = CredentialsStatus
+export type { CredentialGroup }
+
+/** Resultado de `POST /api/credentials/:group/test`: se o serviço aceitou as credenciais, e o que ele respondeu. */
+export type CredentialCheck = { ok: boolean; message: string }
 
 /** Erro da API; em erros de validação, `fields` traz a mensagem de cada campo (caminho com pontos, ex.: "searchTerms.0.term"). */
 export type ApiError = { error: string; fields?: Record<string, string> }

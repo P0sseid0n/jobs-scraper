@@ -10,6 +10,7 @@ import { readSettings } from '@shared/settings'
 import type { ApiError } from './api-types'
 import app from './client/index.html'
 import { webEnv } from './config'
+import { getCredentials, putCredentials, removeCredentials, testCredentials } from './server/credentials'
 import { getCvPdf, getCvRequest, listCvRequests, requestCv, saveCvResult } from './server/cv'
 import {
 	activateCvBaseVersion,
@@ -89,6 +90,9 @@ const server = Bun.serve({
 		'/api/scraper/runs': { GET: api(listRuns) },
 		'/api/scraper/run': { POST: api(() => requestRun(queue)) },
 		'/api/settings/:key': { GET: api(getSettings), PUT: api(putSettings) },
+		'/api/credentials': { GET: api(getCredentials) },
+		'/api/credentials/:group': { PUT: api(putCredentials), DELETE: api(removeCredentials) },
+		'/api/credentials/:group/test': { POST: api(testCredentials) },
 		'/api/setup': { GET: api(() => setupStatus({ skipOnboarding: config.SKIP_ONBOARDING })) },
 		'/api/*': Response.json({ error: 'Rota da API não encontrada' } satisfies ApiError, { status: 404 }),
 		// O resto é a aplicação (as rotas do navegador são resolvidas no cliente)

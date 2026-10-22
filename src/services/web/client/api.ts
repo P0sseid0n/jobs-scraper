@@ -2,12 +2,15 @@ import type { JobCorrectionInput } from '@shared/contracts'
 
 import type {
 	ApiError,
+	CredentialCheck,
+	CredentialGroup,
 	JobFacets,
 	JobsPage,
 	JobsViewedChange,
 	RunsPage,
 	ScraperStatus,
 	SettingsKey,
+	WebCredentials,
 	WebCvBase,
 	WebCvBaseVersion,
 	WebCvBaseVersionWithTex,
@@ -104,6 +107,17 @@ export const api = {
 	settings: <K extends SettingsKey>(key: K) => request<WebSettings[K]>(`/api/settings/${key}`),
 	saveSettings: <K extends SettingsKey>(key: K, patch: Partial<WebSettings[K]>) =>
 		request<WebSettings[K]>(`/api/settings/${key}`, { method: 'PUT', body: JSON.stringify(patch) }),
+
+	/** De onde vem cada conta e os campos públicos (os segredos nunca vêm). */
+	credentials: () => request<WebCredentials>('/api/credentials'),
+	/** Salva os campos enviados da conta (os ausentes ficam como estão); devolve o estado de todas. */
+	saveCredentials: (group: CredentialGroup, patch: Record<string, string>) =>
+		request<WebCredentials>(`/api/credentials/${group}`, { method: 'PUT', body: JSON.stringify(patch) }),
+	/** Apaga a conta salva pelo site (volta a valer a do `.env`, se houver). */
+	deleteCredentials: (group: CredentialGroup) => request<WebCredentials>(`/api/credentials/${group}`, { method: 'DELETE' }),
+	/** Testa a conta com os campos enviados sobre os salvos, sem salvar. */
+	testCredentials: (group: CredentialGroup, patch: Record<string, string>) =>
+		request<CredentialCheck>(`/api/credentials/${group}/test`, { method: 'POST', body: JSON.stringify(patch) }),
 }
 
 export function cvPdfUrl(requestId: string, download = false) {

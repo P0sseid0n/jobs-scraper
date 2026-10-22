@@ -3,7 +3,8 @@ import mongoose, { Schema } from 'mongoose'
 import type { SettingsKey } from '../contracts/settings'
 
 type SettingsDocument = {
-	_id: SettingsKey
+	/** `credentials` guarda as credenciais salvas pelo site (`settings/credentials-store.ts`), fora de SETTINGS_SCHEMAS. */
+	_id: SettingsKey | 'credentials'
 	values: Record<string, unknown>
 	updatedAt: Date
 }

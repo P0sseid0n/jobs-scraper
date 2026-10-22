@@ -80,7 +80,7 @@ export class GithubRepositories {
 
 					rateLimited = true
 					this.options.logger.warn(
-						'Limite da API do GitHub atingido; o restante dos repositórios será detalhado depois (configure GITHUB_TOKEN)',
+						'Limite da API do GitHub atingido; o restante dos repositórios será detalhado depois (informe um token do GitHub em Configurações › Contas)',
 					)
 				}
 			}

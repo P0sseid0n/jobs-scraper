@@ -7,10 +7,7 @@ export const HEADLESS_MODES = ['auto', 'true', 'false'] as const
 export type HeadlessMode = (typeof HEADLESS_MODES)[number]
 
 export const scraperEnv = {
-	// Conta do LinkedIn
-	LINKEDIN_EMAIL: z.email(),
-	LINKEDIN_PASSWORD: z.string().min(1),
-	LINKEDIN_LI_AT: z.string().optional(),
+	// A conta do LinkedIn fica nas credenciais (site ou `.env`, ver `loadCredentials`), relidas a cada coleta
 	/** Sessão do LinkedIn salva entre execuções (cookies), para não precisar logar toda vez. */
 	LINKEDIN_COOKIES_FILE: z.string().min(1).default('data/scraper/linkedin-cookies.json'),
 

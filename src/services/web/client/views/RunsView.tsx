@@ -76,7 +76,7 @@ function FailureAlert({ status }: { status: ScraperStatus | null }) {
 			<p className="text-sm">
 				{formatDateTime(last.startedAt)} · {last.error ?? 'sem detalhes'}
 				{login &&
-					' Resolva o captcha/2FA na sessão do scraper (rode com HEADLESS=false ou renove o LINKEDIN_LI_AT); as próximas coletas vão falhar até lá.'}
+					' Resolva o captcha/2FA na sessão do scraper (rode com HEADLESS=false ou renove o cookie li_at em Configurações › Contas); as próximas coletas vão falhar até lá.'}
 			</p>
 		</Notice>
 	)

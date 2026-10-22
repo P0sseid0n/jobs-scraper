@@ -17,7 +17,7 @@ type BrowserOptions = {
 	/** Onde a sessão do LinkedIn (cookies) é salva entre execuções. */
 	cookieFile: string
 
-	/** Cookie `li_at` vindo do .env, usado quando o arquivo de cookies ainda não tem um. */
+	/** Cookie `li_at` das credenciais (site ou .env), usado quando o arquivo de cookies ainda não tem um. */
 	fallbackLiAt?: string
 
 	logger: Logger
@@ -25,13 +25,13 @@ type BrowserOptions = {
 
 const NAVIGATION_ATTEMPTS = 3
 
-/** As opções do navegador a partir do .env. Com `HEADLESS=auto`, começa sem janela. */
-export function browserOptionsFrom(config: ScraperConfig, logger: Logger): BrowserOptions {
+/** As opções do navegador a partir do .env e do `li_at` da conta. Com `HEADLESS=auto`, começa sem janela. */
+export function browserOptionsFrom(config: ScraperConfig, liAt: string | undefined, logger: Logger): BrowserOptions {
 	return {
 		headless: config.HEADLESS !== 'false',
 		noSandbox: config.BROWSER_NO_SANDBOX,
 		cookieFile: config.LINKEDIN_COOKIES_FILE,
-		fallbackLiAt: config.LINKEDIN_LI_AT,
+		fallbackLiAt: liAt,
 		logger,
 	}
 }

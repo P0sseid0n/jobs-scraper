@@ -137,3 +137,90 @@ export const SETTINGS_SCHEMAS = {
 export type SettingsKey = keyof typeof SETTINGS_SCHEMAS
 export type SettingsOf<K extends SettingsKey> = z.output<(typeof SETTINGS_SCHEMAS)[K]>
 export type SettingsInput<K extends SettingsKey> = z.input<(typeof SETTINGS_SCHEMAS)[K]>
+
+/**
+ * Credenciais das contas usadas pelos serviços, informadas pelo site (documento `credentials` da coleção `settings`)
+ * ou pelo `.env`. Cada grupo vale por inteiro: o do banco, se existir; senão, o do `.env`.
+ */
+export const LinkedinCredentialsSchema = z.object({
+	email: z.string('Informe o e-mail').trim().pipe(z.email('Informe um e-mail válido')),
+	password: z.string('Informe a senha').min(1, 'Informe a senha'),
+	/** Cookie `li_at` de uma sessão já logada, usado enquanto o scraper não tem uma sessão salva. */
+	liAt: z.string().trim().min(1).optional(),
+})
+
+export const DiscordCredentialsSchema = z.object({
+	token: z.string('Informe o token do bot').trim().min(1, 'Informe o token do bot'),
+	channelId: z.string('Informe o ID do canal').trim().regex(/^\d+$/, 'Use o ID numérico do canal'),
+})
+
+export const GithubCredentialsSchema = z.object({
+	username: z
+		.string('Informe o usuário')
+		.trim()
+		.min(1, 'Informe o usuário')
+		.max(39)
+		.regex(/^[a-z\d][a-z\d-]*$/i, 'Use o nome de usuário do GitHub (letras, números e hífen)'),
+	/** Opcional: sem token, a API do GitHub permite só 60 requisições por hora. */
+	token: z.string().trim().min(1).optional(),
+})
+
+export const CREDENTIAL_SCHEMAS = {
+	linkedin: LinkedinCredentialsSchema,
+	discord: DiscordCredentialsSchema,
+	github: GithubCredentialsSchema,
+} as const
+
+export const CredentialsSchema = z.object({
+	linkedin: LinkedinCredentialsSchema.optional(),
+	discord: DiscordCredentialsSchema.optional(),
+	github: GithubCredentialsSchema.optional(),
+})
+
+export type Credentials = z.output<typeof CredentialsSchema>
+export type CredentialGroup = keyof typeof CREDENTIAL_SCHEMAS
+export type CredentialsOf<G extends CredentialGroup> = z.output<(typeof CREDENTIAL_SCHEMAS)[G]>
+
+export const CREDENTIAL_GROUPS = Object.keys(CREDENTIAL_SCHEMAS) as CredentialGroup[]
+
+/** Os campos que nunca saem do servidor (a API só diz se estão preenchidos); os outros são mostrados no site. */
+export const SECRET_FIELDS = {
+	linkedin: ['password', 'liAt'],
+	discord: ['token'],
+	github: ['token'],
+} as const satisfies { [G in CredentialGroup]: readonly (keyof CredentialsOf<G>)[] }
+
+export type SecretField<G extends CredentialGroup> = (typeof SECRET_FIELDS)[G][number]
+export type PublicField<G extends CredentialGroup> = Exclude<keyof CredentialsOf<G> & string, SecretField<G>>
+
+/** De onde vem o grupo em uso: salvo pelo site (`database`) ou lido do `.env` (`env`). */
+export type CredentialSource = 'database' | 'env'
+
+/** O estado de um grupo sem os segredos: os campos públicos com o valor e os segredos só como "preenchido ou não". */
+export type CredentialStatus<G extends CredentialGroup> = {
+	/** `null`: o grupo não está configurado. */
+	source: CredentialSource | null
+	values: { [F in PublicField<G>]: string | null }
+	secrets: { [F in SecretField<G>]: boolean }
+}
+
+export type CredentialsStatus = { [G in CredentialGroup]: CredentialStatus<G> }
+
+/**
+ * O estado do grupo para mostrar no site. Os segredos viram só `true`/`false`: este é o único formato em que as
+ * credenciais saem do servidor.
+ */
+export function credentialStatus<G extends CredentialGroup>(
+	group: G,
+	credentials: { value: CredentialsOf<G>; source: CredentialSource } | null,
+): CredentialStatus<G> {
+	const secretFields: readonly string[] = SECRET_FIELDS[group]
+	const fields = Object.keys(CREDENTIAL_SCHEMAS[group].shape)
+	const value = (credentials?.value ?? {}) as Record<string, string | undefined>
+
+	return {
+		source: credentials?.source ?? null,
+		values: Object.fromEntries(fields.filter(field => !secretFields.includes(field)).map(field => [field, value[field] ?? null])),
+		secrets: Object.fromEntries(secretFields.map(field => [field, !!value[field]])),
+	} as CredentialStatus<G>
+}

@@ -1,11 +1,11 @@
 import { TimeoutError, type Page } from 'puppeteer'
 
-import { activeSearchTerms, type RawPost, type ScraperSettings } from '@shared/contracts'
+import { activeSearchTerms, type CredentialsOf, type RawPost, type ScraperSettings } from '@shared/contracts'
 import { SeenPost, type ScraperRunTerm, type ScraperTermErrorKind } from '@shared/database'
 import { checkPostLanguage } from '@shared/language'
 import type { Logger } from '@shared/logging'
 import { QUEUES, type QueueClient } from '@shared/messaging'
-import { readSettings } from '@shared/settings'
+import { loadCredentials, readSettings } from '@shared/settings'
 
 import { browserOptionsFrom, BrowserSession } from './browser-session'
 import type { ScraperConfig } from './config'
@@ -14,11 +14,14 @@ import { cleanPostText } from './linkedin/post-text'
 import { postedAtFromUrn, postUrlFromUrn, resolvePostUrn } from './linkedin/post-urn'
 import { SELECTORS } from './linkedin/selectors'
 import { buildSearchUrl, externalLink, LOGIN_URL } from './linkedin/urls'
-import { ensureLoggedIn, LoginError, loginOptionsFrom } from './login'
+import { ensureLoggedIn, LoginError, loginOptionsFrom, NO_LINKEDIN_ACCOUNT } from './login'
 import { hashPost } from './post-id'
 import { postsPerTerm } from './schedule'
 
 type ScrapeOptions = { config: ScraperConfig; settings: ScraperSettings; queue: QueueClient; logger: Logger }
+
+/** As opções da coleta com a conta do LinkedIn, lida no começo de cada uma. */
+type RunOptions = ScrapeOptions & { account: CredentialsOf<'linkedin'> }
 
 const RESULTS_TIMEOUT_MS = 30_000
 
@@ -48,10 +51,15 @@ export async function scrapeOnce(options: ScrapeOptions): Promise<ScraperRunTerm
 	// Compartilhado entre os termos: um post que aparece em duas buscas só é enviado uma vez
 	const seen = new Set<string>()
 
+	// A conta é relida a cada coleta: a salva pelo site vale sem reiniciar o serviço
+	const account = (await loadCredentials('linkedin'))?.value
+	if (!account) throw new LoginError(NO_LINKEDIN_ACCOUNT)
+	const runOptions: RunOptions = { ...options, account }
+
 	// O filtro de idioma do post-processing, aplicado já aqui para que esses posts não gastem o limite da coleta
 	const { allowedLanguages } = await readSettings('post-processing')
 
-	const session = await BrowserSession.launch(browserOptionsFrom(config, logger))
+	const session = await BrowserSession.launch(browserOptionsFrom(config, account.liAt, logger))
 	activeSession = session
 
 	try {
@@ -68,7 +76,7 @@ export async function scrapeOnce(options: ScrapeOptions): Promise<ScraperRunTerm
 			}
 
 			if (results.length > 0) await humanPause()
-			results.push(await scrapeTerm(session, { term, limit, seen, allowedLanguages }, options))
+			results.push(await scrapeTerm(session, { term, limit, seen, allowedLanguages }, runOptions))
 		}
 
 		// Renova a sessão salva (o LinkedIn atualiza os cookies durante a navegação)
@@ -97,7 +105,7 @@ class SearchError extends Error {
 	}
 }
 
-async function scrapeTerm(session: BrowserSession, search: TermSearch, options: ScrapeOptions): Promise<ScraperRunTerm> {
+async function scrapeTerm(session: BrowserSession, search: TermSearch, options: RunOptions): Promise<ScraperRunTerm> {
 	const logger = options.logger.child({ term: search.term })
 	const searchUrl = buildSearchUrl({ keywords: search.term, datePosted: options.settings.datePosted })
 
@@ -130,7 +138,7 @@ async function scrapeTerm(session: BrowserSession, search: TermSearch, options: 
  * Abre a busca do termo, faz login se o LinkedIn pedir e espera os resultados.
  * @throws {SearchError} Se nenhum post aparecer (`empty` quando o LinkedIn avisa que a busca não tem resultados).
  */
-async function openSearchResults(session: BrowserSession, searchUrl: string, { config, logger }: ScrapeOptions): Promise<Page> {
+async function openSearchResults(session: BrowserSession, searchUrl: string, { config, account, logger }: RunOptions): Promise<Page> {
 	logger.info({ searchUrl }, '🔎 Abrindo a busca do LinkedIn')
 
 	try {
@@ -142,7 +150,7 @@ async function openSearchResults(session: BrowserSession, searchUrl: string, { c
 		await session.page.goto(LOGIN_URL, { waitUntil: 'domcontentloaded' })
 	}
 
-	const loggedInNow = await ensureLoggedIn(session, loginOptionsFrom(config, logger))
+	const loggedInNow = await ensureLoggedIn(session, loginOptionsFrom(config, account, logger))
 	if (loggedInNow) await session.goto(searchUrl)
 
 	const page = session.page

@@ -2,6 +2,8 @@
 
 O site: mais um canal, ao lado do Discord, com o que o Discord não faz bem. Busca e filtros no histórico, acompanhamento das coletas e edição das configurações. Abre em http://localhost:3000 (`WEB_PORT`). Não tem login: a porta fica só em `127.0.0.1` (`WEB_HOST`).
 
+**Contas:** Configurações › Contas edita as credenciais do LinkedIn, do Discord e do GitHub, salvas no MongoDB local no lugar das do `.env` (ver [shared](../../shared/README.md#credenciais)). `GET /api/credentials` diz de onde vem cada conta (site ou `.env`) e mostra só os campos públicos (e-mail, ID do canal, usuário): dos segredos, só se estão preenchidos. `PUT` e `DELETE /api/credentials/:grupo` salvam (os campos ausentes ficam como estão) e apagam a conta do site, e `POST /api/credentials/:grupo/test` confere o Discord (token e canal) e o GitHub (o usuário existe) sem salvar. O LinkedIn não tem teste: um login a mais aumenta o risco de bloqueio da conta.
+
 `SKIP_ONBOARDING=true` faz o site não abrir o onboarding, para quem configura tudo pelo `.env`. Com `false` (padrão), o onboarding abre enquanto falta o mínimo, com os campos já preenchidos pelo `.env` e editáveis. `GET /api/setup` diz se o onboarding deve abrir e o que já está configurado.
 
 [← voltar ao README principal](../../../README.md)

@@ -75,7 +75,7 @@ Pré-requisitos: [Bun](https://bun.sh) 1.4+ e Docker.
 git clone https://github.com/P0sseid0n/jobs-scraper.git
 cd jobs-scraper
 bun install
-cp .env.example .env      # preencha LinkedIn, Discord e troque as senhas
+cp .env.example .env      # troque as senhas; as contas (LinkedIn, Discord, GitHub) podem ir aqui ou pelo site
 docker compose up -d      # RabbitMQ, MongoDB, mongo-express e Ollama
 bun dev                   # todos os serviços, com hot reload
 ```
@@ -84,6 +84,7 @@ bun dev                   # todos os serviços, com hot reload
 - **Primeira subida:** o `ollama-init` baixa o modelo de `OLLAMA_MODEL` (padrão `gemma3:4b`). Acompanhe com `docker compose logs -f ollama-init`.
 - **Currículo:** para gerar currículos, envie o seu `.tex` pelo site (Meus currículos › currículo base) ou coloque-o em `data/cv/cv.tex`, e configure o Tectonic, como no [README do cv-updater](src/services/cv-updater/README.md#configuração).
 - **Configurações:** termos de busca, filtros e intervalo são editados pelo site; o `.env` só preenche os valores iniciais (veja [shared](src/shared/README.md#configurações-em-tempo-de-execução)).
+- **Contas:** as credenciais do LinkedIn, do Discord e do GitHub podem ser informadas em Configurações › Contas, sem editar o `.env`; o que for salvo lá vale no lugar do `.env` (veja [shared](src/shared/README.md#credenciais)).
 - **Tudo em containers:** `docker compose --profile app up -d --build`.
 - **Coleta única ou periódica:** por padrão o scraper coleta uma vez e encerra. Com `SCRAPER_INTERVAL_MINUTES` (ex.: `180`), ele fica rodando e coleta periodicamente.
 

@@ -13,10 +13,7 @@ export const cvUpdaterEnv = {
 	CV_MAX_PROJECTS: z.coerce.number().int().min(1).default(2),
 	/** Cache local (ex.: repositórios do GitHub). */
 	CV_CACHE_DIR: z.string().min(1).default('data/cache'),
-	/** Usuário do GitHub para escolher os projetos mais relevantes para cada vaga. Sem ele, ficam os projetos do .tex. */
-	GITHUB_USERNAME: z.string().trim().min(1).optional(),
-	/** Opcional: sem token, a API do GitHub permite só 60 requisições por hora. */
-	GITHUB_TOKEN: z.string().trim().min(1).optional(),
+	// O usuário e o token do GitHub ficam nas credenciais (site ou `.env`, ver `loadCredentials`), relidas a cada currículo
 	/** Repositórios que nunca entram no currículo, separados por vírgula. */
 	GITHUB_EXCLUDE_REPOS: z
 		.string()

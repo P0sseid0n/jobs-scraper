@@ -143,6 +143,9 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+      # O token e o canal salvos pelo site ficam no MongoDB
+      mongo:
+        condition: service_healthy
     healthcheck: *app-healthcheck
     restart: unless-stopped
 

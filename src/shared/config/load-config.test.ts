@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'bun:test'
 
-import { discordEnv } from '../../services/discord-bot/config'
 import { scraperEnv } from '../../services/scraper/config'
 import { rabbitmqEnv } from './infrastructure-env'
 import { parseConfig } from './load-config'
@@ -9,7 +8,7 @@ describe('parseConfig', () => {
 	test('aplica valores padrão e converte tipos', () => {
 		const result = parseConfig(
 			{ ...rabbitmqEnv, ...scraperEnv },
-			{ RABBITMQ_URL: 'amqp://u:p@localhost', LINKEDIN_EMAIL: 'a@b.com', LINKEDIN_PASSWORD: 'x', BROWSER_NO_SANDBOX: 'true' },
+			{ RABBITMQ_URL: 'amqp://u:p@localhost', BROWSER_NO_SANDBOX: 'true' },
 		)
 
 		expect(result.success).toBe(true)
@@ -22,10 +21,10 @@ describe('parseConfig', () => {
 	})
 
 	test('falha quando variáveis obrigatórias estão ausentes ou inválidas', () => {
-		const result = parseConfig(discordEnv, { DISCORD_CHANNEL_ID: 'abc' })
+		const result = parseConfig(rabbitmqEnv, { QUEUE_MAX_RETRIES: 'abc' })
 
 		expect(result.success).toBe(false)
 		const paths = result.error?.issues.map(issue => issue.path.join('.'))
-		expect(paths).toEqual(expect.arrayContaining(['DISCORD_TOKEN', 'DISCORD_CHANNEL_ID']))
+		expect(paths).toEqual(expect.arrayContaining(['RABBITMQ_URL', 'QUEUE_MAX_RETRIES']))
 	})
 })

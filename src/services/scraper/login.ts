@@ -1,6 +1,7 @@
 import path from 'node:path'
 import type { ElementHandle, Page } from 'puppeteer'
 
+import type { CredentialsOf } from '@shared/contracts'
 import type { Logger } from '@shared/logging'
 
 import type { BrowserSession } from './browser-session'
@@ -25,11 +26,15 @@ type LoginOptions = {
 	logger: Logger
 }
 
-/** As opções do login a partir do .env (o screenshot da verificação fica ao lado do arquivo de cookies). */
-export function loginOptionsFrom(config: ScraperConfig, logger: Logger): LoginOptions {
+/** A coleta não começa sem a conta: sem ela, o login (e a coleta inteira) falharia de qualquer forma. */
+export const NO_LINKEDIN_ACCOUNT =
+	'Sem conta do LinkedIn: informe o e-mail e a senha em Configurações › Contas (ou LINKEDIN_EMAIL e LINKEDIN_PASSWORD no .env)'
+
+/** As opções do login a partir da conta e do .env (o screenshot da verificação fica ao lado do arquivo de cookies). */
+export function loginOptionsFrom(config: ScraperConfig, account: CredentialsOf<'linkedin'>, logger: Logger): LoginOptions {
 	return {
-		email: config.LINKEDIN_EMAIL,
-		password: config.LINKEDIN_PASSWORD,
+		email: account.email,
+		password: account.password,
 		headlessMode: config.HEADLESS,
 		screenshotFile: path.join(path.dirname(config.LINKEDIN_COOKIES_FILE), 'login-verification.png'),
 		logger,
@@ -235,7 +240,7 @@ async function handleChallenge(session: BrowserSession, state: VerificationState
 			if (windowAllowed) throw new NeedsWindowError('captcha', session.page.url())
 
 			throw new LoginError(
-				`O LinkedIn pediu um captcha, que só dá para resolver na janela do navegador: rode com HEADLESS=auto numa máquina com tela (fora do Docker) ou atualize LINKEDIN_LI_AT. Screenshot: ${screenshotFile}`,
+				`O LinkedIn pediu um captcha, que só dá para resolver na janela do navegador: rode com HEADLESS=auto numa máquina com tela (fora do Docker) ou atualize o cookie li_at (Configurações › Contas ou LINKEDIN_LI_AT no .env). Screenshot: ${screenshotFile}`,
 			)
 		}
 
@@ -275,7 +280,9 @@ async function loginTimeoutError(session: BrowserSession, verification: Verifica
 	const url = session.page.url()
 
 	if (!verification && !isCheckpointPage(url)) {
-		return new LoginError(`Login não concluído (página atual: ${url}). Verifique LINKEDIN_EMAIL e LINKEDIN_PASSWORD.`)
+		return new LoginError(
+			`Login não concluído (página atual: ${url}). Verifique o e-mail e a senha do LinkedIn (Configurações › Contas ou o .env).`,
+		)
 	}
 
 	if (!session.headless) {
@@ -285,7 +292,7 @@ async function loginTimeoutError(session: BrowserSession, verification: Verifica
 	if (verification && !verification.screenshotSaved) await saveScreenshot(session, verification, options)
 
 	return new LoginError(
-		`A verificação do LinkedIn não foi concluída a tempo (página atual: ${url}). Veja o screenshot em ${options.screenshotFile}, rode com HEADLESS=auto numa máquina com tela ou atualize LINKEDIN_LI_AT.`,
+		`A verificação do LinkedIn não foi concluída a tempo (página atual: ${url}). Veja o screenshot em ${options.screenshotFile}, rode com HEADLESS=auto numa máquina com tela ou atualize o cookie li_at (Configurações › Contas ou LINKEDIN_LI_AT no .env).`,
 	)
 }
 
