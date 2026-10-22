@@ -252,7 +252,9 @@ export function SettingsView({ initial }: { initial: WebSettings }) {
 										? 'Escolha uma das sugestões ou digite a sua.'
 										: suggestions.targetRole.length > 0
 											? `Sugestões para ${profile.area.trim()}, ou digite o seu.`
-											: 'Digite o cargo que você procura.'}
+											: profile.area.trim()
+												? `Sem sugestões para ${profile.area.trim()}: digite o cargo que você procura.`
+												: 'Escolha a área para ver sugestões de cargo, ou digite o seu.'}
 								</FieldHelp>
 							)}
 						</div>
