@@ -2,14 +2,17 @@
  * Atualiza as vagas salvas para o formato atual dos campos (pode rodar mais de uma vez):
  * - `necessary_knowledge` e `recruiter_email` viram `necessaryKnowledge` e `recruiterEmail`;
  * - `link` se divide em `postLink` (o post no LinkedIn) e `applyLink` (o site de candidatura);
- * - `sourcePostUrl` (vagas de posts com várias) vira o `postLink`.
+ * - `sourcePostUrl` (vagas de posts com várias) vira o `postLink`;
+ * - `aiJobConfidence` sai (das vagas, das correções e das configurações) e entra `extractionChecks`. Das vagas antigas
+ *   só dá para refazer o check do cargo: os outros dependem da resposta original da IA, que não foi guardada.
  * Uso: bun db:migrate-jobs
  */
 import { loadConfig, mongoEnv } from '@shared/config'
-import { connectDatabase, disconnectDatabase, Job } from '@shared/database'
+import { connectDatabase, disconnectDatabase, ExtractionFeedback, Job, Settings } from '@shared/database'
 import { createLogger } from '@shared/logging'
 
 import { legacyLinkFields } from './legacy-job-links'
+import { titleInPost } from './model-response'
 
 const logger = createLogger('migrate-jobs')
 const { MONGO_URL } = loadConfig(mongoEnv)
@@ -32,5 +35,21 @@ for await (const doc of jobs.find({ $or: [{ link: { $exists: true } }, { sourceP
 	split++
 }
 
-logger.info({ renamed: renamed.modifiedCount, split }, '✅ Vagas migradas')
+let checked = 0
+for await (const doc of jobs.find({ extractionChecks: { $exists: false } })) {
+	// Numa vaga corrigida, o cargo que a IA extraiu fica em `aiExtraction`
+	const title: unknown = doc.aiExtraction?.title ?? doc.title
+	const extractionChecks = typeof title === 'string' && !titleInPost(title, String(doc.rawContent ?? '')) ? ['title'] : []
+
+	await jobs.updateOne({ _id: doc._id }, { $set: { extractionChecks }, $unset: { aiJobConfidence: '' } })
+	checked++
+}
+
+await ExtractionFeedback.collection.updateMany(
+	{ 'aiOutput.aiJobConfidence': { $exists: true } },
+	{ $unset: { 'aiOutput.aiJobConfidence': '' } },
+)
+await Settings.collection.updateMany({ 'values.minJobConfidence': { $exists: true } }, { $unset: { 'values.minJobConfidence': '' } })
+
+logger.info({ renamed: renamed.modifiedCount, split, checked }, '✅ Vagas migradas')
 await disconnectDatabase()

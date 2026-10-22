@@ -19,7 +19,7 @@ import { Combobox } from '../components/ui/Combobox'
 import { ConfirmDialog } from '../components/ui/Dialog'
 import { FieldError, FieldHelp, FieldLabel } from '../components/ui/Field'
 import { IconButton } from '../components/ui/IconButton'
-import { Checkbox, Input, Range, Select } from '../components/ui/Input'
+import { Checkbox, Input, Select } from '../components/ui/Input'
 import { KeywordInput } from '../components/ui/KeywordInput'
 import { Notice } from '../components/ui/Notice'
 import { Hero, Page } from '../components/ui/Page'
@@ -452,28 +452,6 @@ export function SettingsView({ initial }: { initial: WebSettings }) {
 				<h2 id="processing-title" className={SECTION_TITLE}>
 					filtros das vagas <span className="font-mono text-xs font-normal text-muted">pós-processamento</span>
 				</h2>
-
-				<div className="flex flex-col gap-1.5">
-					<span className="flex items-center justify-between gap-3">
-						<FieldLabel htmlFor="minJobConfidence">confiança mínima da IA</FieldLabel>
-						<span className="font-mono">{p.minJobConfidence}%</span>
-					</span>
-					<Range
-						id="minJobConfidence"
-						aria-describedby="minJobConfidence-help"
-						min={0}
-						max={100}
-						value={p.minJobConfidence}
-						aria-valuetext={`${p.minJobConfidence}%`}
-						onChange={event => {
-							const value = Number(event.target.value)
-							edit(next => {
-								next['post-processing'].minJobConfidence = value
-							})
-						}}
-					/>
-					<FieldHelp id="minJobConfidence-help">Posts abaixo disso são descartados como “não é vaga”.</FieldHelp>
-				</div>
 
 				<fieldset className="flex flex-col gap-2.5">
 					<legend className="mb-2.5 p-0 text-sm font-medium">idiomas aceitos</legend>

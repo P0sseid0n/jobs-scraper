@@ -4,16 +4,7 @@ import mongoose, { Schema } from 'mongoose'
  * Destino de cada post no post-processing: `saved` virou vaga; `multi-job` listava várias vagas (cada uma é aberta
  * à parte); os outros são motivos de descarte, na ordem em que os filtros rodam.
  */
-export const SEEN_POST_OUTCOMES = [
-	'saved',
-	'multi-job',
-	'language',
-	'job-seeker',
-	'not-a-job',
-	'low-confidence',
-	'keywords',
-	'missing-fields',
-] as const
+export const SEEN_POST_OUTCOMES = ['saved', 'multi-job', 'language', 'job-seeker', 'not-a-job', 'keywords', 'missing-fields'] as const
 
 export type SeenPostOutcome = (typeof SEEN_POST_OUTCOMES)[number]
 

@@ -16,7 +16,7 @@ const job: WebJob = {
 	author: 'Ana',
 	postedAt: null,
 	createdAt: '2026-10-10T11:00:00.000Z',
-	aiJobConfidence: 80,
+	extractionChecks: [],
 	language: 'pt',
 	sourcePostId: null,
 	postLink: 'https://www.linkedin.com/x',
@@ -54,7 +54,6 @@ describe('matchesFilters (vagas que chegam em tempo real)', () => {
 		expect(matches({ skills: ['vue.js', 'react'] })).toBe(false)
 		expect(matches({ hasEmail: true })).toBe(false)
 		expect(matches({ language: 'en' })).toBe(false)
-		expect(matches({ minConfidence: 85 })).toBe(false)
 		expect(matches({ since: '24h' })).toBe(true)
 		expect(matchesFilters({ ...job, createdAt: '2026-10-01T00:00:00.000Z' }, { ...DEFAULT_FILTERS, since: '7d' }, now)).toBe(false)
 	})
@@ -85,13 +84,12 @@ describe('jobFiltersSearch (os filtros da URL)', () => {
 			since: '7d',
 			hasEmail: true,
 			unviewed: true,
-			minConfidence: 60,
 		} satisfies Partial<JobFilters>
 		expect(jobFiltersSearch.parse(search)).toEqual({ ...DEFAULT_FILTERS, ...search })
 	})
 
 	test('valor inválido (link antigo, URL editada à mão) vira o padrão, sem derrubar os outros', () => {
-		const parsed = jobFiltersSearch.parse({ q: 'vue', workMode: ['marte'], since: 'ontem', minConfidence: 150, hasEmail: 'sim' })
+		const parsed = jobFiltersSearch.parse({ q: 'vue', workMode: ['marte'], since: 'ontem', hasEmail: 'sim' })
 
 		expect(parsed).toEqual({ ...DEFAULT_FILTERS, q: 'vue' })
 	})

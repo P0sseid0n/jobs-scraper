@@ -25,8 +25,7 @@
 				"WebAssembly"
 			],
 			"recruiterEmail": null,
-			"applyLink": "https://lnkd.in/link",
-			"aiJobConfidence": 85
+			"applyLink": "https://lnkd.in/link"
 		},
 		"expected": null,
 		"correctedFields": [],
@@ -58,8 +57,7 @@
 				"APIs REST"
 			],
 			"recruiterEmail": null,
-			"applyLink": null,
-			"aiJobConfidence": 95
+			"applyLink": null
 		},
 		"expected": null,
 		"correctedFields": [],
@@ -86,8 +84,7 @@
 			"contractTypes": null,
 			"necessaryKnowledge": null,
 			"recruiterEmail": null,
-			"applyLink": null,
-			"aiJobConfidence": 95
+			"applyLink": null
 		},
 		"expected": null,
 		"correctedFields": [],
@@ -128,8 +125,7 @@
 				"Docker"
 			],
 			"recruiterEmail": null,
-			"applyLink": null,
-			"aiJobConfidence": 95
+			"applyLink": null
 		},
 		"expected": null,
 		"correctedFields": [],
@@ -159,8 +155,7 @@
 				"Angular"
 			],
 			"recruiterEmail": null,
-			"applyLink": null,
-			"aiJobConfidence": 95
+			"applyLink": null
 		},
 		"expected": null,
 		"correctedFields": [],
@@ -197,8 +192,7 @@
 				"ViaCEP"
 			],
 			"recruiterEmail": null,
-			"applyLink": null,
-			"aiJobConfidence": 95
+			"applyLink": null
 		},
 		"expected": null,
 		"correctedFields": [],
@@ -225,8 +219,7 @@
 			"contractTypes": null,
 			"necessaryKnowledge": null,
 			"recruiterEmail": null,
-			"applyLink": null,
-			"aiJobConfidence": 95
+			"applyLink": null
 		},
 		"expected": null,
 		"correctedFields": [],
@@ -259,8 +252,7 @@
 				"JavaScript"
 			],
 			"recruiterEmail": null,
-			"applyLink": null,
-			"aiJobConfidence": 75
+			"applyLink": null
 		},
 		"expected": null,
 		"correctedFields": [],
@@ -294,8 +286,7 @@
 				"Excel"
 			],
 			"recruiterEmail": null,
-			"applyLink": "https://vagas.exemplo.com/prisma/analista-dados",
-			"aiJobConfidence": 100
+			"applyLink": "https://vagas.exemplo.com/prisma/analista-dados"
 		},
 		"expected": {
 			"title": "Analista de Inteligência de Dados Pleno",
@@ -345,8 +336,7 @@
 				"gestão de processos"
 			],
 			"recruiterEmail": "contato1@exemplo.com",
-			"applyLink": null,
-			"aiJobConfidence": 100
+			"applyLink": null
 		},
 		"expected": {
 			"title": "Analista de Processos e Operações de Marketing",
@@ -393,8 +383,7 @@
 				"Criação de Conteúdo"
 			],
 			"recruiterEmail": null,
-			"applyLink": null,
-			"aiJobConfidence": 0
+			"applyLink": null
 		},
 		"expected": null,
 		"correctedFields": [],
@@ -424,8 +413,7 @@
 				"assistência perioperatória"
 			],
 			"recruiterEmail": null,
-			"applyLink": null,
-			"aiJobConfidence": 100
+			"applyLink": null
 		},
 		"expected": {
 			"title": "Enfermeiro(a) de Centro Cirúrgico",
@@ -469,8 +457,7 @@
 				"Enfermagem do Trabalho"
 			],
 			"recruiterEmail": null,
-			"applyLink": "https://vagas.exemplo.com/andrade/enfermagem-trabalho",
-			"aiJobConfidence": 100
+			"applyLink": "https://vagas.exemplo.com/andrade/enfermagem-trabalho"
 		},
 		"expected": {
 			"title": "Enfermeira/Enfermeiro do Trabalho",
@@ -517,8 +504,7 @@
 				"Protocolo de Manchester"
 			],
 			"recruiterEmail": null,
-			"applyLink": "https://edital.exemplo.com/saude-betim",
-			"aiJobConfidence": 100
+			"applyLink": "https://edital.exemplo.com/saude-betim"
 		},
 		"expected": {
 			"title": "Enfermeiro Obstetra",
@@ -565,8 +551,7 @@
 				"Atenção Primária"
 			],
 			"recruiterEmail": null,
-			"applyLink": null,
-			"aiJobConfidence": 0
+			"applyLink": null
 		},
 		"expected": null,
 		"correctedFields": [],
@@ -596,8 +581,7 @@
 				"Enfermagem do Trabalho"
 			],
 			"recruiterEmail": null,
-			"applyLink": null,
-			"aiJobConfidence": 0
+			"applyLink": null
 		},
 		"expected": null,
 		"correctedFields": [],
@@ -626,8 +610,7 @@
 				"direito tributário"
 			],
 			"recruiterEmail": null,
-			"applyLink": "https://vagas.exemplo.com/mendes-prado/tributario",
-			"aiJobConfidence": 100
+			"applyLink": "https://vagas.exemplo.com/mendes-prado/tributario"
 		},
 		"expected": {
 			"title": "Advogado(a) pleno",
@@ -671,8 +654,7 @@
 				"INSS"
 			],
 			"recruiterEmail": null,
-			"applyLink": "https://vagas.exemplo.com/lacerda-fontes/previdenciario",
-			"aiJobConfidence": 100
+			"applyLink": "https://vagas.exemplo.com/lacerda-fontes/previdenciario"
 		},
 		"expected": {
 			"title": "Advogado(a) Previdenciário Pleno",
@@ -720,8 +702,7 @@
 				"Direito Bancário"
 			],
 			"recruiterEmail": null,
-			"applyLink": "https://vagas.exemplo.com/brandao-teixeira/supervisor",
-			"aiJobConfidence": 100
+			"applyLink": "https://vagas.exemplo.com/brandao-teixeira/supervisor"
 		},
 		"expected": {
 			"title": "Supervisor(a) Jurídico(a)",
@@ -766,8 +747,7 @@
 			"contractTypes": null,
 			"necessaryKnowledge": null,
 			"recruiterEmail": null,
-			"applyLink": "https://cursos.exemplo.com/equiparacao",
-			"aiJobConfidence": 0
+			"applyLink": "https://cursos.exemplo.com/equiparacao"
 		},
 		"expected": null,
 		"correctedFields": [],
@@ -800,8 +780,7 @@
 				"Excel"
 			],
 			"recruiterEmail": null,
-			"applyLink": null,
-			"aiJobConfidence": 100
+			"applyLink": null
 		},
 		"expected": {
 			"title": "Analista de Recursos Humanos",
@@ -848,8 +827,7 @@
 				"Office"
 			],
 			"recruiterEmail": "contato1@exemplo.com",
-			"applyLink": null,
-			"aiJobConfidence": 100
+			"applyLink": null
 		},
 		"expected": {
 			"title": "Analista de Gente e Gestão",
@@ -893,8 +871,7 @@
 				"ingles"
 			],
 			"recruiterEmail": null,
-			"applyLink": "https://vagas.exemplo.com/atlas/analista-rh-ta",
-			"aiJobConfidence": 100
+			"applyLink": "https://vagas.exemplo.com/atlas/analista-rh-ta"
 		},
 		"expected": {
 			"title": "ANALISTA DE RECURSOS HUMANOS (TALENT ACQUISITION) TEMPORÁRIO",
@@ -937,8 +914,7 @@
 			"contractTypes": null,
 			"necessaryKnowledge": null,
 			"recruiterEmail": "contato1@exemplo.com",
-			"applyLink": "https://forms.exemplo.com/vendedor-externo",
-			"aiJobConfidence": 100
+			"applyLink": "https://forms.exemplo.com/vendedor-externo"
 		},
 		"expected": {
 			"title": "Vendedor Externo",
@@ -985,8 +961,7 @@
 				"automação industrial"
 			],
 			"recruiterEmail": "contato1@exemplo.com",
-			"applyLink": null,
-			"aiJobConfidence": 100
+			"applyLink": null
 		},
 		"expected": {
 			"title": "Vendedor Externo",
@@ -1035,8 +1010,7 @@
 				"fórmulas básicas"
 			],
 			"recruiterEmail": "contato1@exemplo.com",
-			"applyLink": null,
-			"aiJobConfidence": 100
+			"applyLink": null
 		},
 		"expected": {
 			"title": "Assistente Administrativo(a) e de Serviços Externos",
@@ -1080,8 +1054,7 @@
 			"contractTypes": null,
 			"necessaryKnowledge": null,
 			"recruiterEmail": null,
-			"applyLink": "https://eventos.exemplo.com/reforma-viagens",
-			"aiJobConfidence": 1
+			"applyLink": "https://eventos.exemplo.com/reforma-viagens"
 		},
 		"expected": null,
 		"correctedFields": [],
@@ -1114,8 +1087,7 @@
 				"Vue 2"
 			],
 			"recruiterEmail": null,
-			"applyLink": "https://vagas.exemplo.com/talentum/dev-senior-react",
-			"aiJobConfidence": 100
+			"applyLink": "https://vagas.exemplo.com/talentum/dev-senior-react"
 		},
 		"expected": {
 			"title": "Desenvolvedor(a) Sênior React e PHP/Laravel",
@@ -1169,8 +1141,7 @@
 				"rabbitmq"
 			],
 			"recruiterEmail": "contato1@exemplo.com",
-			"applyLink": null,
-			"aiJobConfidence": 100
+			"applyLink": null
 		},
 		"expected": {
 			"title": "Desenvolvedor(a) Backend Pleno",
@@ -1219,8 +1190,7 @@
 				"React"
 			],
 			"recruiterEmail": null,
-			"applyLink": "https://vagas.exemplo.com/orbis/front-pleno",
-			"aiJobConfidence": 100
+			"applyLink": "https://vagas.exemplo.com/orbis/front-pleno"
 		},
 		"expected": {
 			"title": "Pessoa Desenvolvedora Front-End Pleno (React)",
@@ -1267,8 +1237,7 @@
 				"git"
 			],
 			"recruiterEmail": "contato1@exemplo.com",
-			"applyLink": null,
-			"aiJobConfidence": 100
+			"applyLink": null
 		},
 		"expected": {
 			"title": "QA Pleno",
@@ -1317,8 +1286,7 @@
 				"restful api"
 			],
 			"recruiterEmail": "contato1@exemplo.com",
-			"applyLink": null,
-			"aiJobConfidence": 100
+			"applyLink": null
 		},
 		"expected": {
 			"title": "Desenvolvedor Full Stack Pleno",
@@ -1366,8 +1334,7 @@
 				"typescript"
 			],
 			"recruiterEmail": "contato1@exemplo.com",
-			"applyLink": null,
-			"aiJobConfidence": 100
+			"applyLink": null
 		},
 		"expected": {
 			"title": "Desenvolvedor(a) Front-end Vue Pleno",
@@ -1415,8 +1382,7 @@
 				"typescript"
 			],
 			"recruiterEmail": "contato1@exemplo.com",
-			"applyLink": null,
-			"aiJobConfidence": 100
+			"applyLink": null
 		},
 		"expected": {
 			"title": "Enfermeiro(a) Assistencial",
@@ -1463,8 +1429,7 @@
 				"Office"
 			],
 			"recruiterEmail": null,
-			"applyLink": "https://vagas.exemplo.com/apice",
-			"aiJobConfidence": 100
+			"applyLink": "https://vagas.exemplo.com/apice"
 		},
 		"expected": {
 			"title": "Analista de Marketing Digital",
@@ -1511,8 +1476,7 @@
 				"Office"
 			],
 			"recruiterEmail": null,
-			"applyLink": "https://vagas.exemplo.com/apice",
-			"aiJobConfidence": 100
+			"applyLink": "https://vagas.exemplo.com/apice"
 		},
 		"expected": {
 			"title": "Vendedor(a) Interno(a)",
@@ -1556,8 +1520,7 @@
 				"React"
 			],
 			"recruiterEmail": null,
-			"applyLink": "https://vagas.exemplo.com/dev-senior-vue-php",
-			"aiJobConfidence": 100
+			"applyLink": "https://vagas.exemplo.com/dev-senior-vue-php"
 		},
 		"expected": {
 			"title": "Desenvolvedor(a) Sênior",
@@ -1610,8 +1573,7 @@
 				"MongoDB"
 			],
 			"recruiterEmail": null,
-			"applyLink": "https://vagas.exemplo.com/qa-senior",
-			"aiJobConfidence": 100
+			"applyLink": "https://vagas.exemplo.com/qa-senior"
 		},
 		"expected": {
 			"title": "Desenvolvedor(a) Sênior React/Node.js",
@@ -1667,8 +1629,7 @@
 				"MongoDB"
 			],
 			"recruiterEmail": null,
-			"applyLink": "https://vagas.exemplo.com/qa-senior",
-			"aiJobConfidence": 100
+			"applyLink": "https://vagas.exemplo.com/qa-senior"
 		},
 		"expected": {
 			"title": "Especialista em Qualidade de Software Sênior",
@@ -1721,8 +1682,7 @@
 				"Kubernetes"
 			],
 			"recruiterEmail": null,
-			"applyLink": "https://vagas.exemplo.com/medibill/software-engineer",
-			"aiJobConfidence": 100
+			"applyLink": "https://vagas.exemplo.com/medibill/software-engineer"
 		},
 		"expected": {
 			"title": "Software Engineer JÚNIOR/PLENO",
@@ -1772,8 +1732,7 @@
 				"API"
 			],
 			"recruiterEmail": null,
-			"applyLink": "https://vagas.exemplo.com/fullstack-js-pleno",
-			"aiJobConfidence": 100
+			"applyLink": "https://vagas.exemplo.com/fullstack-js-pleno"
 		},
 		"expected": {
 			"title": "Desenvolvedor(a) Full-stack JavaScript Pleno",
@@ -1824,8 +1783,7 @@
 				"Azure DevOps"
 			],
 			"recruiterEmail": null,
-			"applyLink": "https://vagas.exemplo.com/front-blazor",
-			"aiJobConfidence": 100
+			"applyLink": "https://vagas.exemplo.com/front-blazor"
 		},
 		"expected": {
 			"title": "DESENVOLVEDOR(A) FRONT-END PLENO",
@@ -1883,8 +1841,7 @@
 				"Git"
 			],
 			"recruiterEmail": null,
-			"applyLink": "https://vagas.exemplo.com/nuvia/front-vue",
-			"aiJobConfidence": 100
+			"applyLink": "https://vagas.exemplo.com/nuvia/front-vue"
 		},
 		"expected": {
 			"title": "Desenvolvedor Front-End Vue.js Pleno",
@@ -1937,8 +1894,7 @@
 				"Git"
 			],
 			"recruiterEmail": null,
-			"applyLink": "https://vagas.exemplo.com/fullstack-java",
-			"aiJobConfidence": 100
+			"applyLink": "https://vagas.exemplo.com/fullstack-java"
 		},
 		"expected": {
 			"title": "Desenvolvedor(a) Full Stack Java Pleno/Sênior",
@@ -1989,8 +1945,7 @@
 				"Git"
 			],
 			"recruiterEmail": null,
-			"applyLink": "https://vagas.exemplo.com/analista-desenvolvimento-suporte",
-			"aiJobConfidence": 100
+			"applyLink": "https://vagas.exemplo.com/analista-desenvolvimento-suporte"
 		},
 		"expected": {
 			"title": "ANALISTA DE DESENVOLVIMENTO E SUPORTE SÊNIOR",
@@ -2038,8 +1993,7 @@
 				"MySQL"
 			],
 			"recruiterEmail": null,
-			"applyLink": "https://vagas.exemplo.com/backend-php",
-			"aiJobConfidence": 100
+			"applyLink": "https://vagas.exemplo.com/backend-php"
 		},
 		"expected": {
 			"title": "Pessoa Desenvolvedora Backend Pleno | PHP",

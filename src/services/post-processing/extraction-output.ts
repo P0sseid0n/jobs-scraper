@@ -90,7 +90,6 @@ export const AiJobOutputSchema = z
 			.nullable()
 			.catch(null),
 		isJob: z.union([z.boolean(), z.enum(['true', 'false']).transform(value => value === 'true')]).catch(false),
-		aiJobConfidence: z.coerce.number().min(0).max(100).catch(0),
 	})
 	// Com `postType` (formato atual), ele decide se é vaga; `isJob` fica como compatibilidade com o formato antigo
 	.transform(({ postType, ...job }) => ({ ...job, postType, isJob: postType ? postType === 'job_opening' : job.isJob }))

@@ -19,7 +19,7 @@ const doc: JobDocument = {
 	recruiterEmail: null,
 	workMode: 'remoto',
 	contractTypes: ['clt'],
-	aiJobConfidence: 90,
+	extractionChecks: [],
 	postedAt: '2026-10-10T10:00:00.000Z',
 	author: 'Ana',
 	language: 'pt',
@@ -51,7 +51,7 @@ describe('planCorrection', () => {
 			postId: doc.postId,
 			kind: 'fields',
 			post: { text: doc.rawContent, author: 'Ana', url: doc.postLink, postedAt: doc.postedAt, sourcePostId: null },
-			aiOutput: { ...jobFields(doc), aiJobConfidence: 90 },
+			aiOutput: jobFields(doc),
 			expected: { ...jobFields(doc), company: 'Acme', workMode: 'hibrido' },
 			correctedFields: ['company', 'workMode'],
 			model: 'gemma3:4b',
@@ -77,7 +77,7 @@ describe('planCorrection', () => {
 		const { set, feedback } = plan({ location: 'Campinas, SP' }, corrected)
 
 		expect(set).not.toHaveProperty('aiExtraction')
-		expect(feedback.aiOutput).toEqual({ ...original, aiJobConfidence: 90 })
+		expect(feedback.aiOutput).toEqual(original)
 		expect(feedback.expected).toEqual({ ...original, company: 'Acme', location: 'Campinas, SP' })
 		expect(feedback.correctedFields).toEqual(['location'])
 	})

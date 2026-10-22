@@ -9,6 +9,7 @@ import {
 	locationWithoutWorkMode,
 	parseModelResponse,
 	rejectionReason,
+	titleInPost,
 } from './model-response'
 
 describe('parseModelResponse', () => {
@@ -18,7 +19,7 @@ describe('parseModelResponse', () => {
 
 	test('normaliza campos com tipo errado ou ausentes', () => {
 		const job = parseModelResponse(
-			'{"title": "Dev Front End", "company": "", "necessary_knowledge": "Vue, TypeScript", "workMode": "Híbrido", "aiJobConfidence": "85"}',
+			'{"title": "Dev Front End", "company": "", "necessary_knowledge": "Vue, TypeScript", "workMode": "Híbrido"}',
 		)
 
 		expect(job).toEqual({
@@ -32,13 +33,12 @@ describe('parseModelResponse', () => {
 			workMode: 'hibrido',
 			postType: null,
 			isJob: false,
-			aiJobConfidence: 85,
 		})
 	})
 
 	test('trata "null" e similares em texto como ausentes', () => {
 		const job = parseModelResponse(
-			'{"title": "null", "company": "N/A", "location": "None", "necessary_knowledge": ["null"], "workMode": "null", "aiJobConfidence": 20}',
+			'{"title": "null", "company": "N/A", "location": "None", "necessary_knowledge": ["null"], "workMode": "null"}',
 		)
 
 		expect(job).toMatchObject({ title: null, company: null, location: null, necessary_knowledge: null, workMode: null })
@@ -46,7 +46,7 @@ describe('parseModelResponse', () => {
 
 	test('trata frases de valor ausente como ausentes', () => {
 		const job = parseModelResponse(
-			'{"title": "Dev Pleno", "company": "Não especificado", "location": "unknown", "necessary_knowledge": ["Vue", "Não informado"], "aiJobConfidence": 90}',
+			'{"title": "Dev Pleno", "company": "Não especificado", "location": "unknown", "necessary_knowledge": ["Vue", "Não informado"]}',
 		)
 		const sentence = parseModelResponse('{"company": "O nome da empresa não foi mencionado no post", "location": "Not specified"}')
 
@@ -69,7 +69,7 @@ describe('parseModelResponse', () => {
 	})
 
 	test('repara JSON levemente quebrado', () => {
-		expect(parseModelResponse("{title: 'Vaga', aiJobConfidence: 90,}")?.title).toBe('Vaga')
+		expect(parseModelResponse("{title: 'Vaga', company: 'Acme',}")?.title).toBe('Vaga')
 	})
 
 	test('lança erro quando a resposta não é um objeto', () => {
@@ -78,26 +78,40 @@ describe('parseModelResponse', () => {
 })
 
 describe('rejectionReason', () => {
-	const job = parseModelResponse('{"title": "Dev Vue", "isJob": true, "aiJobConfidence": 80}')
+	const job = parseModelResponse('{"title": "Dev Vue", "isJob": true}')
 
-	test('aceita vaga com confiança suficiente', () => {
-		expect(rejectionReason(job, 60)).toBeNull()
+	test('aceita vaga', () => {
+		expect(rejectionReason(job)).toBeNull()
 	})
 
-	test('rejeita quando não é vaga, confiança baixa ou resposta null', () => {
-		expect(rejectionReason(parseModelResponse('{"isJob": false, "aiJobConfidence": 90}'), 60)).toContain('não é vaga')
-		expect(rejectionReason(job, 90)).toContain('abaixo do mínimo')
-		expect(rejectionReason(null, 60)).not.toBeNull()
+	test('rejeita quando não é vaga ou resposta null', () => {
+		expect(rejectionReason(parseModelResponse('{"isJob": false}'))).toContain('não é vaga')
+		expect(rejectionReason(null)).not.toBeNull()
 	})
 
 	test('postType decide se é vaga (formato atual)', () => {
-		expect(parseModelResponse('{"postType": "job_opening", "aiJobConfidence": 90}')?.isJob).toBe(true)
-		expect(parseModelResponse('{"postType": "job_seeker", "isJob": true, "aiJobConfidence": 90}')?.isJob).toBe(false)
-		expect(rejectionReason(parseModelResponse('{"postType": "tips_or_list", "aiJobConfidence": 10}'), 60)).toContain('tips_or_list')
+		expect(parseModelResponse('{"postType": "job_opening"}')?.isJob).toBe(true)
+		expect(parseModelResponse('{"postType": "job_seeker", "isJob": true}')?.isJob).toBe(false)
+		expect(rejectionReason(parseModelResponse('{"postType": "tips_or_list"}'))).toContain('tips_or_list')
 	})
 
 	test('aceita isJob como texto', () => {
-		expect(parseModelResponse('{"isJob": "true", "aiJobConfidence": 70}')?.isJob).toBe(true)
+		expect(parseModelResponse('{"isJob": "true"}')?.isJob).toBe(true)
+	})
+})
+
+describe('titleInPost', () => {
+	test('aceita o cargo escrito no post, ignorando caixa, acentos, conectivos, plural e gênero', () => {
+		const text = 'Estamos contratando DESENVOLVEDOR(A) FRONT-END Júnior e Pleno para o time de dados'
+		expect(titleInPost('Desenvolvedor(a) Front-End Junior e Pleno', text)).toBe(true)
+		expect(titleInPost('Desenvolvedora Front-End', text)).toBe(true)
+		expect(titleInPost('Desenvolvedores Front-End', text)).toBe(true)
+	})
+
+	test('recusa cargo com palavra que não está no post', () => {
+		const text = 'Vaga para desenvolvedor backend Node.js'
+		expect(titleInPost('Desenvolvedor Backend Sênior', text)).toBe(false)
+		expect(titleInPost('Backend Developer', text)).toBe(false)
 	})
 })
 

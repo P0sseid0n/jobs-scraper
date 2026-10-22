@@ -53,14 +53,12 @@ describe('ScraperSettingsSchema', () => {
 })
 
 describe('PostProcessingSettingsSchema', () => {
-	test('confiança mínima entre 0 e 100, padrão 60', () => {
+	test('padrões', () => {
 		expect(PostProcessingSettingsSchema.parse({})).toEqual({
-			minJobConfidence: 60,
 			allowedLanguages: ['pt'],
 			requiredKeywords: [],
 			excludedKeywords: [],
 		})
-		expect(PostProcessingSettingsSchema.safeParse({ minJobConfidence: 120 }).success).toBe(false)
 	})
 
 	test('idiomas: normaliza, remove repetidos e exige o código ISO 639-1', () => {

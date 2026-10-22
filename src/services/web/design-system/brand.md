@@ -5,7 +5,7 @@ O site do jobs-scraper: vagas de front-end coletadas do LinkedIn, lidas por uma 
 - Português do Brasil, frases curtas, sem ponto de exclamação e sem emoji.
 - Botões, pills, links e rótulos em **minúsculas**: "gerar currículo", "limpar filtros", "tentar de novo", "mostrar post completo". Títulos começam com maiúscula ("Nenhuma vaga com esses filtros", "Sair sem salvar?").
 - Rótulos de seção e de filtro em mono, minúsculos e em `color-muted` (`LABEL`): "modalidade", "regime", "período".
-- Fale da vaga, não do sistema: "Não consegui carregar as vagas", "A IA teve pouca confiança nesta vaga".
+- Fale da vaga, não do sistema: "Não consegui carregar as vagas", "A IA citou o que não está escrito no post".
 - Números e contadores em mono (`PILL_COUNT`, badges).
 
 ## Cores

@@ -16,7 +16,7 @@ const job: ProcessedJob = {
 	recruiterEmail: 'rh@citiustech.com',
 	workMode: 'hibrido',
 	contractTypes: ['clt', 'pj'],
-	aiJobConfidence: 85,
+	extractionChecks: [],
 	postedAt: '2026-10-07T17:18:50.712Z',
 	author: 'Mandar Wairkar',
 	language: 'pt',
@@ -25,13 +25,14 @@ const job: ProcessedJob = {
 }
 
 describe('buildJobCard', () => {
-	test('monta o embed com título clicável, campos e rodapé', () => {
+	test('monta o embed com título clicável e campos', () => {
 		const embed = buildJobCard(job).embeds[0]!.toJSON()
 
 		expect(embed.title).toBe('Lead Engineer - Vue.js')
 		expect(embed.url).toBe(job.postLink!)
 		expect(embed.color).toBe(0x3498db)
-		expect(embed.footer?.text).toBe('Confiança da IA: 85%')
+		// Sem checks da extração, sem rodapé
+		expect(embed.footer).toBeUndefined()
 		expect(embed.timestamp).toBe('2026-10-07T17:18:50.712Z')
 		expect(embed.fields?.map(field => field.name)).toEqual([
 			'🏢 Empresa',
@@ -46,6 +47,18 @@ describe('buildJobCard', () => {
 		expect(embed.fields?.find(field => field.name === '📄 Regime')?.value).toBe('CLT ou PJ')
 		expect(embed.fields?.find(field => field.name === '🕒 Publicada')?.value).toBe('<t:1791393530:R>')
 		expect(embed.fields?.at(-1)?.value).toBe('`Vue.js` `TypeScript`')
+	})
+
+	test('rodapé com os checks da extração; a partir de 4 de 6, barra vermelha e pede para conferir', () => {
+		const few = buildJobCard({ ...job, extractionChecks: ['workMode', 'necessaryKnowledge'] }).embeds[0]!.toJSON()
+		expect(few.footer?.text).toBe('⚠ 2/6 · a IA citou o que não está no post: modalidade, tecnologias')
+		expect(few.color).toBe(0x3498db)
+
+		const many = buildJobCard({ ...job, extractionChecks: ['title', 'company', 'workMode', 'applyLink'] }).embeds[0]!.toJSON()
+		expect(many.footer?.text).toBe(
+			'⚠ 4/6 · a IA citou o que não está no post: cargo, empresa, modalidade, link. Confira o post original e reporte a vaga no site.',
+		)
+		expect(many.color).toBe(0xe74c3c)
 	})
 
 	test('omite campos vazios em vez de mostrar placeholders', () => {

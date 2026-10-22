@@ -10,7 +10,7 @@ import { Button, ButtonLink } from '../components/ui/Button'
 import { card } from '../components/ui/Card'
 import { EmptyState } from '../components/ui/EmptyState'
 import { IconButton } from '../components/ui/IconButton'
-import { Checkbox, Range, SearchInput, Select } from '../components/ui/Input'
+import { Checkbox, SearchInput, Select } from '../components/ui/Input'
 import { Hero, Page } from '../components/ui/Page'
 import { Pill, PILL_COUNT, PillGroup } from '../components/ui/Pill'
 import { StatusDot } from '../components/ui/StatusDot'
@@ -120,9 +120,6 @@ function activeFilterChips(filters: JobFilters): FilterChip[] {
 		...(filters.hasEmail ? [{ key: 'hasEmail', label: 'com e-mail', remove: { hasEmail: false } }] : []),
 		...(filters.language
 			? [{ key: 'language', label: LANGUAGE_NAMES[filters.language] ?? filters.language, remove: { language: '' } }]
-			: []),
-		...(filters.minConfidence > 0
-			? [{ key: 'minConfidence', label: `confiança ≥ ${filters.minConfidence}%`, remove: { minConfidence: 0 } }]
 			: []),
 	]
 }
@@ -325,19 +322,6 @@ function Filters({ open }: { open: boolean }) {
 								</option>
 							))}
 						</Select>
-					</label>
-					<label className="flex flex-col gap-1.5">
-						<span className="flex items-center justify-between gap-3">
-							confiança mínima <span className="font-mono">{filters.minConfidence}%</span>
-						</span>
-						<Range
-							min={0}
-							max={100}
-							step={5}
-							value={filters.minConfidence}
-							aria-valuetext={`${filters.minConfidence}%`}
-							onChange={event => setFilters({ minConfidence: Number(event.target.value) })}
-						/>
 					</label>
 				</div>
 

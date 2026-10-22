@@ -91,7 +91,7 @@ const PREVIEWS: Record<string, Preview> = {
 		body: `h('div', { className: 'grid max-w-2xl grid-cols-2 gap-3' },
 	h(U.Input, { defaultValue: 'desenvolvedor front-end', 'aria-label': 'Termo de busca' }),
 	h(U.Input, { placeholder: 'ex.: React, Vue', 'aria-label': 'Tecnologias' }),
-	h(U.Input, { size: 'sm', type: 'number', defaultValue: 70, 'aria-label': 'Confiança mínima' }),
+	h(U.Input, { size: 'sm', type: 'number', defaultValue: 50, 'aria-label': 'Posts por coleta' }),
 	h(U.Input, { invalid: true, defaultValue: 'abc', 'aria-label': 'Intervalo' }),
 	h(U.Input, { disabled: true, defaultValue: 'não editável', 'aria-label': 'Desabilitado' })
 )`,
@@ -123,8 +123,8 @@ const PREVIEWS: Record<string, Preview> = {
 	Range: {
 		group: 'Forms',
 		height: 80,
-		subtitle: 'a confiança mínima dos filtros',
-		body: `h('div', { className: 'flex max-w-xs flex-col gap-2' }, h('span', { className: U.LABEL }, 'confiança mínima · 70%'), h(U.Range, { min: 0, max: 100, step: 5, defaultValue: 70, 'aria-label': 'Confiança mínima' }))`,
+		subtitle: 'um número com o valor no rótulo',
+		body: `h('div', { className: 'flex max-w-xs flex-col gap-2' }, h('span', { className: U.LABEL }, 'posts por coleta · 50'), h(U.Range, { min: 1, max: 200, defaultValue: 50, 'aria-label': 'Posts por coleta' }))`,
 	},
 	Switch: {
 		group: 'Forms',
@@ -185,7 +185,7 @@ const PREVIEWS: Record<string, Preview> = {
 		height: 150,
 		subtitle: 'warn / danger, md / lg',
 		body: `col(
-	h(U.Notice, { tone: 'warn', icon: 'alert' }, 'A IA teve pouca confiança nesta vaga: confira o regime e a modalidade no post.'),
+	h(U.Notice, { tone: 'warn', icon: 'alert' }, 'A IA citou o que não está escrito no post (modalidade, regime): confira esses dados no post.'),
 	h(U.Notice, { tone: 'danger', icon: 'alert', size: 'lg' }, 'O login do LinkedIn falhou. Envie o código de verificação para voltar a coletar.')
 )`,
 	},

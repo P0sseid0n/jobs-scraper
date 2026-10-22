@@ -59,9 +59,6 @@ const keywordList = z
 	.transform(keywords => [...new Set(keywords.map(keyword => keyword.toLowerCase()))])
 
 export const PostProcessingSettingsSchema = z.object({
-	/** Posts com confiança da IA abaixo disso são descartados (não viram vaga). */
-	minJobConfidence: z.number().min(0).max(100).default(60),
-
 	/** Idiomas aceitos (ISO 639-1, ex.: "pt", "en"), detectados no texto do post; lista vazia aceita todos. */
 	allowedLanguages: z
 		.array(

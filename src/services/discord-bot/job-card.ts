@@ -9,7 +9,7 @@ import {
 	type MessageActionRowComponentBuilder,
 } from 'discord.js'
 
-import type { ProcessedJob } from '@shared/contracts'
+import { EXTRACTION_CHECK_LABELS, EXTRACTION_CHECKS, needsReview, type ProcessedJob } from '@shared/contracts'
 
 import { CONTACT_BUTTON_PREFIX } from './contact-reply'
 
@@ -19,6 +19,8 @@ const CONTRACT_TYPE_LABELS = { clt: 'CLT', pj: 'PJ', estagio: 'Estágio', freela
 // Cor da barra lateral do embed por modalidade: ajuda a diferenciar as vagas de relance
 const WORK_MODE_COLORS = { remoto: 0x2ecc71, hibrido: 0x3498db, presencial: 0xe67e22 } as const
 const DEFAULT_COLOR = 0x95a5a6
+// Vaga que pede para conferir o post original (muitos checks da extração): a barra fica vermelha
+const REVIEW_COLOR = 0xe74c3c
 
 // Limites da API do Discord
 const TITLE_MAX = 256
@@ -67,8 +69,10 @@ function buildJobEmbed(job: ProcessedJob) {
 	const embed = new EmbedBuilder()
 		.setTitle(truncate(job.title ?? 'Vaga sem título', TITLE_MAX))
 		.setDescription(summarizePost(job.rawContent))
-		.setColor(job.workMode ? WORK_MODE_COLORS[job.workMode] : DEFAULT_COLOR)
-		.setFooter({ text: `Confiança da IA: ${Math.round(job.aiJobConfidence)}%` })
+		.setColor(jobColor(job))
+
+	const checks = checksFooter(job)
+	if (checks) embed.setFooter({ text: checks })
 
 	const titleUrl = isHttpUrl(job.postLink) ? job.postLink : isHttpUrl(job.applyLink) ? job.applyLink : null
 	if (titleUrl) embed.setURL(titleUrl)
@@ -126,6 +130,20 @@ function buildJobComponents(job: ProcessedJob) {
 	if (buttons.length === 0) return []
 
 	return [new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(buttons)]
+}
+
+function jobColor(job: Pick<ProcessedJob, 'workMode' | 'extractionChecks'>) {
+	if (needsReview(job.extractionChecks)) return REVIEW_COLOR
+	return job.workMode ? WORK_MODE_COLORS[job.workMode] : DEFAULT_COLOR
+}
+
+/** "⚠ 2/6 · a IA citou o que não está no post: modalidade, tecnologias"; `null` sem checks. */
+function checksFooter(job: Pick<ProcessedJob, 'extractionChecks'>) {
+	if (job.extractionChecks.length === 0) return null
+
+	const labels = job.extractionChecks.map(check => EXTRACTION_CHECK_LABELS[check]).join(', ')
+	const text = `⚠ ${job.extractionChecks.length}/${EXTRACTION_CHECKS.length} · a IA citou o que não está no post: ${labels}`
+	return needsReview(job.extractionChecks) ? `${text}. Confira o post original e reporte a vaga no site.` : text
 }
 
 function workModeLabel(job: Pick<ProcessedJob, 'workMode'>) {

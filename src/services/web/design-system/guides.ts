@@ -57,8 +57,8 @@ export const GUIDES: Record<string, string> = {
 - Para ligar e desligar uma configuração, prefira \`Switch\`/\`SwitchField\`.`,
 	Range: `Controle deslizante: o trilho fica em lime até o valor e a bolinha cresce ao arrastar.
 
-- Mostre o valor atual num rótulo acima (\`LABEL\`: "confiança mínima · 70%") e dê \`aria-label\`.
-- Com unidade, passe \`aria-valuetext\` ("70%"): sem ele, o leitor de tela anuncia só o número.`,
+- Mostre o valor atual num rótulo acima (\`LABEL\`: "posts por coleta · 50") e dê \`aria-label\`.
+- Com unidade, passe \`aria-valuetext\` ("50 posts"): sem ele, o leitor de tela anuncia só o número.`,
 	Switch: `Interruptor liga/desliga (checkbox nativo, acessível pelo teclado).
 
 - Controlado: \`checked\` e \`onChange(valor)\` são obrigatórios, e \`label\` é o nome para o leitor de tela.

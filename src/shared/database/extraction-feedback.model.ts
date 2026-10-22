@@ -21,7 +21,7 @@ export type ExtractionFeedbackRecord = {
 		sourcePostId: string | null
 	}
 	/** O que a IA extraiu (já com as regras do post-processing), antes de qualquer correção. */
-	aiOutput: JobFields & { aiJobConfidence: number }
+	aiOutput: JobFields
 	/** Os valores certos de todos os campos depois desta correção; `null` quando o post não é vaga. */
 	expected: JobFields | null
 	/** Os campos que esta correção mudou. */

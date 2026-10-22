@@ -21,8 +21,6 @@ export const settingsEnv = {
 	SCRAPER_PAUSED: booleanFromEnv.default(false),
 
 	// Filtros das vagas (post-processing)
-	/** Posts com confiança da IA abaixo disso são descartados. */
-	MIN_JOB_CONFIDENCE: z.coerce.number().min(0).max(100).default(60),
 	/** Idiomas aceitos (ISO 639-1) separados por vírgula; vazio aceita todos. */
 	JOB_LANGUAGES: z.string().default('pt'),
 	/** Palavras que a vaga precisa citar (ao menos uma) no cargo ou nos conhecimentos, separadas por vírgula; vazio desliga. */
@@ -61,7 +59,6 @@ export function settingsSeedsFromEnv(env: SettingsEnv): SettingsSeeds {
 			paused: env.SCRAPER_PAUSED,
 		},
 		'post-processing': {
-			minJobConfidence: env.MIN_JOB_CONFIDENCE,
 			allowedLanguages: listFromEnv(env.JOB_LANGUAGES),
 			requiredKeywords: listFromEnv(env.JOB_REQUIRED_KEYWORDS),
 			excludedKeywords: listFromEnv(env.JOB_EXCLUDED_KEYWORDS),

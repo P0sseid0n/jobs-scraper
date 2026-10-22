@@ -8,6 +8,7 @@ import { filtersOpen } from '../stores/filters-panel'
 import { setViewed, useViewed } from '../stores/viewed'
 import { ContractTypeBadge } from './ContractTypeBadge'
 import { CorrectedBadge } from './CorrectedBadge'
+import { ExtractionChecksBadge } from './ExtractionChecksBadge'
 import { Icon } from './Icon'
 import { ListingBadge } from './ListingBadge'
 import { badge, BadgeList } from './ui/Badge'
@@ -70,6 +71,7 @@ export function JobCard({
 				</Link>
 				<div className="flex shrink-0 flex-col items-end gap-1.5 max-md:w-full max-md:flex-row max-md:flex-wrap max-md:items-center max-md:gap-x-3 max-md:gap-y-1">
 					<div className="flex flex-wrap items-center gap-1.5">
+						<ExtractionChecksBadge job={job} iconOnly />
 						<CorrectedBadge job={job} />
 						<ListingBadge job={job} />
 						<ContractTypeBadge job={job} />

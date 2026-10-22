@@ -25,7 +25,7 @@ LinkedIn → scraper → IA (extração) → banco → evento "vaga publicada" �
 ```
 
 1. **Coleta:** o scraper busca posts no LinkedIn por termos de busca (ex.: "Analista de Marketing"), periodicamente ou quando pedido ("coletar agora").
-2. **Filtros:** posts em idioma não aceito, com baixa confiança da IA ou sem as palavras-chave relevantes são descartados.
+2. **Filtros:** posts em idioma não aceito, que a IA não classificou como vaga ou sem as palavras-chave relevantes são descartados.
 3. **Vaga:** o que sobra vira uma vaga estruturada, salva uma única vez (sem duplicatas).
 4. **Publicação:** cada vaga nova é anunciada para todos os canais ligados. O site receberia em tempo real.
 5. **Currículo:** em qualquer vaga, o usuário pode pedir um currículo ajustado. Ele leva de alguns segundos a ~1 minuto para ficar pronto (IA + compilação LaTeX) e volta como PDF de uma página.
@@ -47,7 +47,7 @@ LinkedIn → scraper → IA (extração) → banco → evento "vaga publicada" �
 | `author`              | string \| null                                 | Quem publicou o post (nome da pessoa no LinkedIn).                                                         |
 | `postedAt`            | data ISO \| null                               | Quando o post foi publicado. Exibir relativo ("há 3 horas").                                               |
 | `createdAt`           | data ISO                                       | Quando a vaga entrou no sistema. Sempre presente.                                                          |
-| `aiJobConfidence`     | número 0–100                                   | Confiança da IA de que o post é uma vaga. Na prática fica entre 60 e 100 (abaixo disso é descartado).     |
+| `extractionChecks`    | lista (de 0 a 6 itens)                         | Campos em que a IA citou o que não está escrito no post: `title`, `company`, `workMode`, `contractTypes`, `necessaryKnowledge`, `applyLink`. A partir de 4, a vaga pede para conferir o post original e reportar. |
 | `language`            | string \| null                                 | Idioma do post, código ISO ("pt", "en").                                                                   |
 | `rawContent`          | string                                         | Texto completo do post original. Pode ser longo (até ~3.000 caracteres), com quebras de linha e emojis.    |
 
@@ -68,7 +68,7 @@ Exemplo:
 	"author": "Mariana Souza",
 	"postedAt": "2026-10-09T13:20:00.000Z",
 	"createdAt": "2026-10-09T15:02:11.000Z",
-	"aiJobConfidence": 92,
+	"extractionChecks": [],
 	"language": "pt",
 	"rawContent": "🚀 Estamos contratando!\n\nVaga: Desenvolvedor(a) Front-end Pleno\nModelo: híbrido (3x na semana em SP)\n\nRequisitos:\n- Vue 3 e Nuxt\n- TypeScript\n..."
 }
@@ -113,7 +113,6 @@ Atenção ao funil: `sent` é quantos posts foram para a IA, não quantas vagas 
 
 | Campo              | Tipo / regras                                                                                      | Padrão |
 | ------------------ | -------------------------------------------------------------------------------------------------- | ------ |
-| `minJobConfidence` | número 0–100: abaixo disso o post é descartado                                                     | 60     |
 | `allowedLanguages` | lista de códigos de 2 letras (`pt`, `en`...), até 20; vazia aceita todos                           | `pt`   |
 | `requiredKeywords` | até 50 palavras; a vaga precisa citar ao menos uma no cargo ou nas tecnologias; vazia desliga       | front-end, vue, react, typescript... |
 | `excludedKeywords` | até 50 palavras; a vaga é descartada se citar alguma                                               | .net, asp.net, dotnet |
@@ -132,7 +131,7 @@ Lista das vagas, mais recentes primeiro, otimizada para escanear.
 - **Cor por modalidade** (já usada no Discord, pode ser mantida como acento): remoto verde `#2ECC71`, híbrido azul `#3498DB`, presencial laranja `#E67E22`, sem modalidade cinza `#95A5A6`.
 - **Tempo real:** vagas novas chegam enquanto a tela está aberta. Não reordenar a lista sob o cursor: mostrar um aviso "3 vagas novas" que, ao clicar, as insere no topo. Marcar vagas ainda não vistas.
 - **Busca textual** (cargo, empresa, tecnologias, texto do post).
-- **Filtros:** modalidade (múltipla), tecnologias (múltipla, com contagem), período (24h, 7 dias, 30 dias, tudo), "tem e-mail de contato", idioma, confiança mínima.
+- **Filtros:** modalidade (múltipla), tecnologias (múltipla, com contagem), período (24h, 7 dias, 30 dias, tudo), "tem e-mail de contato", idioma.
 - **Ações rápidas no card:** abrir post no LinkedIn, gerar currículo.
 - **Estados:** carregando (skeleton), vazio sem vagas ainda ("Nenhuma vaga ainda. Rode uma coleta"), vazio por filtros ("Nenhuma vaga com esses filtros", com limpar filtros), erro de conexão.
 - **Volume esperado:** de 5 a 50 vagas novas por dia; centenas a alguns milhares no histórico. Paginação ou scroll infinito.
@@ -152,7 +151,7 @@ Painel lateral no desktop, tela própria no celular.
   >
   > Obrigado!
 - **Sem e-mail:** a ação principal vira "Ver post e se candidatar" (link) + "Gerar currículo".
-- **Confiança da IA** discreta (ex.: rodapé "Confiança da IA: 92%"). Abaixo de ~75%, um aviso sutil "pode não ser uma vaga".
+- **Checks da extração:** selo "⚠ 2/6" (só com pelo menos um), com o vermelho mais forte a cada check e o hover listando quais dispararam. A partir de 4 de 6, um aviso pede para conferir o post original e reportar a vaga.
 
 ### 4.3 Gerar currículo
 
@@ -179,7 +178,6 @@ Formulário com as duas seções da 3.4.
 
 - **Termos de busca:** lista editável com toggle ativo/inativo, adicionar (até 10) e remover; validação de repetidos e de "ao menos um ativo".
 - **Palavras-chave:** campos de chips (digitar e Enter), com texto de ajuda sobre a regra de comparação.
-- **Confiança mínima:** slider 0–100 com o valor visível.
 - **Idiomas:** seleção múltipla com nomes legíveis ("Português (pt)", "Inglês (en)").
 - **Pausar coletas:** switch em destaque (também acessível pela tela de coletas).
 - Validação inline com as regras da 3.4, botão salvar com estado de sucesso/erro, aviso de que as mudanças valem a partir da próxima coleta.

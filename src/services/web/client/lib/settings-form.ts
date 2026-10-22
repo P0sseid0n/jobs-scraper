@@ -53,7 +53,6 @@ export function validateDraft(draft: SettingsDraft) {
 	if (!isIntIn(intervalMinutes, LIMITS.intervalMinutes)) errors.intervalMinutes = 'Use um número inteiro de 1 a 10.080 (7 dias)'
 
 	const processing = draft['post-processing']
-	if (!(processing.minJobConfidence >= 0 && processing.minJobConfidence <= 100)) errors.minJobConfidence = 'Use um valor de 0 a 100'
 	if (processing.allowedLanguages.length > LIMITS.languages) errors.allowedLanguages = `Escolha no máximo ${LIMITS.languages} idiomas`
 
 	for (const field of ['requiredKeywords', 'excludedKeywords'] as const) {

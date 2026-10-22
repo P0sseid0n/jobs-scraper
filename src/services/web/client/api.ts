@@ -60,7 +60,6 @@ export function jobsQueryString(filters: JobFilters, cursor?: string | null) {
 	if (filters.hasEmail) params.set('hasEmail', 'true')
 	if (filters.unviewed) params.set('viewed', 'false')
 	if (filters.language) params.set('language', filters.language)
-	if (filters.minConfidence > 0) params.set('minConfidence', String(filters.minConfidence))
 	if (cursor) params.set('cursor', cursor)
 
 	return params.toString()

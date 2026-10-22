@@ -78,11 +78,11 @@ async function processPost(post: RawPost) {
 	// Sem perfil, `targetRole` fica ausente e o modelo extrai a primeira vaga de um post com várias
 	const { targetRole } = await readSettings('profile')
 	const aiJob = await extractJobFromPost(ollama, config.OLLAMA_MODEL, post, targetRole ?? null)
-	const reason = rejectionReason(aiJob, settings.minJobConfidence)
+	const reason = rejectionReason(aiJob)
 
 	if (!aiJob || reason) {
-		log.info({ reason, aiJobConfidence: aiJob?.aiJobConfidence }, 'Post descartado')
-		await markAsSeen(post, aiJob?.isJob ? 'low-confidence' : 'not-a-job')
+		log.info({ reason }, 'Post descartado')
+		await markAsSeen(post, 'not-a-job')
 		return
 	}
 
@@ -95,7 +95,7 @@ async function processPost(post: RawPost) {
 		return
 	}
 
-	log.info({ aiJobConfidence: job.aiJobConfidence, title: job.title }, 'Vaga estruturada')
+	log.info({ extractionChecks: job.extractionChecks, title: job.title }, 'Vaga estruturada')
 	const saved = await saveJob(
 		job,
 		{ queue, logger },

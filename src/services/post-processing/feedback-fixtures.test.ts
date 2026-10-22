@@ -17,7 +17,7 @@ const item: ExtractionCase = {
 		postedAt: '2026-10-10T10:00:00.000Z',
 		sourcePostId: null,
 	},
-	aiOutput: { ...jobFields({ title: 'Front-end', company: 'Acme', recruiterEmail: 'mariana@acme.com' }), aiJobConfidence: 90 },
+	aiOutput: { ...jobFields({ title: 'Front-end', company: 'Acme', recruiterEmail: 'mariana@acme.com' }) },
 	expected: jobFields({ title: 'Front-end', company: 'Acme', recruiterEmail: 'vagas@acme.com' }),
 	correctedFields: ['recruiterEmail'],
 	model: 'gemma3:4b',
@@ -49,7 +49,7 @@ describe('anonymizeCase', () => {
 	test('mantém o resto do caso', () => {
 		expect(anonymized).toMatchObject({ kind: 'fields', correctedFields: ['recruiterEmail'], model: 'gemma3:4b' })
 		expect(anonymized.expected?.company).toBe('Acme')
-		expect(anonymized.aiOutput.aiJobConfidence).toBe(90)
+		expect(anonymized.aiOutput.title).toBe('Front-end')
 	})
 
 	test('o caso anonimizado não tem dados pessoais; o original tem', () => {

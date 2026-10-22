@@ -49,7 +49,7 @@ export const ExtractionCaseSchema = z.object({
 		postedAt: z.string().nullable(),
 		sourcePostId: z.string().nullable(),
 	}),
-	aiOutput: FieldsSchema.extend({ aiJobConfidence: z.number() }),
+	aiOutput: FieldsSchema,
 	expected: FieldsSchema.nullable(),
 	correctedFields: z.array(z.string()),
 	model: z.string().nullable(),
@@ -86,10 +86,10 @@ export function caseToRawPost(item: ExtractionCase): RawPost {
 /** Resultado da extração de um caso: se o post passaria como vaga e os campos que sairiam. */
 export type CaseRun = { isJob: boolean; fields: JobFields | null }
 
-/** Aplica à resposta do modelo as mesmas regras do post-processing (confiança mínima e regras do texto). */
-export function runFromModel(item: ExtractionCase, aiJob: AiJobOutput | null, minConfidence: number): CaseRun {
+/** Aplica à resposta do modelo as mesmas regras do post-processing (classificação e regras do texto). */
+export function runFromModel(item: ExtractionCase, aiJob: AiJobOutput | null): CaseRun {
 	return {
-		isJob: rejectionReason(aiJob, minConfidence) === null,
+		isJob: rejectionReason(aiJob) === null,
 		fields: aiJob ? jobFields(buildProcessedJob(caseToRawPost(item), aiJob, null)) : null,
 	}
 }

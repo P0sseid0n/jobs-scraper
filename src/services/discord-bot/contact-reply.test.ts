@@ -16,7 +16,7 @@ const job: ProcessedJob = {
 	recruiterEmail: 'rh@citiustech.com',
 	workMode: 'hibrido',
 	contractTypes: null,
-	aiJobConfidence: 85,
+	extractionChecks: [],
 	postedAt: '2026-10-07T17:18:50.712Z',
 	author: 'Mandar Wairkar',
 	language: 'pt',

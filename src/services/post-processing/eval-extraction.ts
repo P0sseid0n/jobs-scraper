@@ -73,7 +73,7 @@ for (const [index, item] of selected.entries()) {
 		const { rejection } = await checkLanguage(ollama, model, item.post.text, settings.allowedLanguages)
 		if (!rejection) {
 			const aiJob = await extractJobFromPost(ollama, model, caseToRawPost(item), item.targetRole ?? targetRole)
-			run = runFromModel(item, aiJob, settings.minJobConfidence)
+			run = runFromModel(item, aiJob)
 		}
 	} catch (error) {
 		// Conta como erro em todos os campos, mas segue com os outros casos
@@ -86,7 +86,7 @@ for (const [index, item] of selected.entries()) {
 }
 
 console.log(
-	`\nmodelo ${model} · prompt ${EXTRACTION_PROMPT_VERSION} · ${selected.length} casos · confiança mínima ${settings.minJobConfidence} · idiomas ${settings.allowedLanguages.join(', ') || 'todos'} · cargo-alvo ${targetRole ?? 'nenhum'} (fora os casos com o seu)\n`,
+	`\nmodelo ${model} · prompt ${EXTRACTION_PROMPT_VERSION} · ${selected.length} casos · idiomas ${settings.allowedLanguages.join(', ') || 'todos'} · cargo-alvo ${targetRole ?? 'nenhum'} (fora os casos com o seu)\n`,
 )
 console.log(formatReport(scoreCases(results)))
 

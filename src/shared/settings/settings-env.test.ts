@@ -31,7 +31,6 @@ describe('settingsSeedsFromEnv', () => {
 			SCRAPER_MAX_POSTS: '30',
 			SCRAPER_INTERVAL_MINUTES: '180',
 			SCRAPER_PAUSED: 'true',
-			MIN_JOB_CONFIDENCE: '70',
 			JOB_LANGUAGES: 'pt, EN',
 			JOB_REQUIRED_KEYWORDS: 'enfermagem,COREN',
 			JOB_EXCLUDED_KEYWORDS: 'veterinário',
@@ -52,7 +51,6 @@ describe('settingsSeedsFromEnv', () => {
 			paused: true,
 		})
 		expect(PostProcessingSettingsSchema.parse(seeds['post-processing'])).toEqual({
-			minJobConfidence: 70,
 			allowedLanguages: ['pt', 'en'],
 			requiredKeywords: ['enfermagem', 'coren'],
 			excludedKeywords: ['veterinário'],

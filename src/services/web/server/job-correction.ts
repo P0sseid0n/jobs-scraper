@@ -39,7 +39,7 @@ export function planCorrection(doc: JobDocument, correction: JobCorrection, now 
 			postedAt: doc.postedAt ?? null,
 			sourcePostId: doc.sourcePostId ?? null,
 		},
-		aiOutput: { ...aiOutput, aiJobConfidence: doc.aiJobConfidence },
+		aiOutput,
 		expected: correction.notAJob ? null : { ...current, ...changes },
 		correctedFields,
 		model: doc.extractionModel ?? null,

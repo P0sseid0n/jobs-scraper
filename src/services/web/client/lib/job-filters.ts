@@ -24,7 +24,6 @@ export const jobFiltersSearch = z.object({
 	/** Só as vagas ainda não abertas no site. */
 	unviewed: z.boolean().default(false).catch(false),
 	language: z.string().default('').catch(''),
-	minConfidence: z.number().int().min(0).max(100).default(0).catch(0),
 })
 
 /** Os filtros da lista de vagas (o mesmo formato da URL e da API). */
@@ -57,7 +56,6 @@ export function matchesFilters(job: WebJob, filters: JobFilters, now = Date.now(
 	if (filters.hasEmail && !job.recruiterEmail) return false
 	if (filters.unviewed && job.viewedAt) return false
 	if (filters.language && job.language !== filters.language) return false
-	if (job.aiJobConfidence < filters.minConfidence) return false
 
 	return true
 }

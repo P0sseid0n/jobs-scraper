@@ -43,7 +43,6 @@ export const JobsQuerySchema = z.object({
 		.string()
 		.regex(/^[a-z]{2}$/)
 		.optional(),
-	minConfidence: z.coerce.number().min(0).max(100).optional(),
 	cursor: z.string().max(200).optional(),
 	limit: z.coerce.number().int().min(1).max(100).default(30),
 })
@@ -101,7 +100,6 @@ export function buildJobsFilter(query: JobsQuery, now = new Date()) {
 	if (query.hasEmail) conditions.push({ recruiterEmail: { $nin: [null, ''] } })
 	if (query.viewed !== undefined) conditions.push(query.viewed ? VIEWED : NOT_VIEWED)
 	if (query.language) conditions.push({ language: query.language })
-	if (query.minConfidence !== undefined) conditions.push({ aiJobConfidence: { $gte: query.minConfidence } })
 	if (query.cursor) conditions.push(afterCursor(decodeCursor(query.cursor)))
 
 	return { $and: conditions }
@@ -118,10 +116,11 @@ export function afterCursor(cursor: Cursor, field = 'createdAt') {
  * Documento da coleção `jobs` como o `lean()` devolve (com os timestamps do mongoose). Vagas salvas antes do
  * campo `contractTypes`, dos de correção e do `viewedAt` não os têm.
  */
-export type JobDocument = Omit<ProcessedJob, 'title' | 'contractTypes'> &
+export type JobDocument = Omit<ProcessedJob, 'title' | 'contractTypes' | 'extractionChecks'> &
 	Partial<JobExtractionSource & JobCorrectionState & JobViewState> & {
 		title: string | null
 		contractTypes?: ProcessedJob['contractTypes']
+		extractionChecks?: ProcessedJob['extractionChecks']
 		createdAt?: Date | null
 	}
 
@@ -140,7 +139,7 @@ export function toWebJob(doc: JobDocument): WebJob {
 		author: doc.author ?? null,
 		postedAt: doc.postedAt ?? null,
 		createdAt: (doc.createdAt ?? new Date()).toISOString(),
-		aiJobConfidence: doc.aiJobConfidence,
+		extractionChecks: doc.extractionChecks ?? [],
 		language: doc.language ?? null,
 		sourcePostId: doc.sourcePostId ?? null,
 		postLink: doc.postLink ?? null,

@@ -1,6 +1,7 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 
+import { needsReview } from '@shared/contracts'
 import { applicationMessage, formatApplicationMessage } from '@shared/templates'
 
 import type { WebJob } from '../../api-types'
@@ -13,6 +14,7 @@ import { copyText, notify } from '../stores/toast'
 import { ContractTypeBadge } from './ContractTypeBadge'
 import { CorrectedBadge } from './CorrectedBadge'
 import { CvButton } from './CvButton'
+import { extractionCheckList, ExtractionChecksBadge } from './ExtractionChecksBadge'
 import { Icon } from './Icon'
 import { ListingBadge } from './ListingBadge'
 import { ReportJobDialog } from './ReportJobDialog'
@@ -28,7 +30,6 @@ import { WorkModeBadge } from './WorkModeBadge'
 
 /** Posts maiores que isso começam recolhidos. */
 const LONG_POST_CHARS = 600
-const LOW_CONFIDENCE = 75
 
 /** Os botões de candidatura dividem a linha e quebram quando não cabem. */
 const DETAIL_ACTION = 'flex-1 basis-45'
@@ -96,6 +97,7 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 						<ContractTypeBadge job={job} />
 						<CorrectedBadge job={job} />
 						<ListingBadge job={job} />
+						<ExtractionChecksBadge job={job} />
 					</div>
 					<div className="flex items-center">
 						<time className="font-mono text-muted text-sm whitespace-nowrap" dateTime={jobDate(job)}>
@@ -243,15 +245,24 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 			</section>
 
 			<footer className="flex flex-col gap-2 border-t border-line pt-3.5">
-				{job.aiJobConfidence < LOW_CONFIDENCE && (
-					<Notice tone="warn" className="text-sm">
-						A IA não tem certeza de que isto é uma vaga. Confira o post.
+				{job.extractionChecks.length > 0 && (
+					<Notice tone={needsReview(job.extractionChecks) ? 'danger' : 'warn'} icon="alert" className="text-sm">
+						<p>
+							A IA citou o que não está escrito no post ({extractionCheckList(job).join(', ')}). Esses dados foram descartados,
+							mas o resto da vaga pode ter erros também.
+						</p>
+						{needsReview(job.extractionChecks) && (
+							<p className="mt-1.5">
+								Confira o post original e{' '}
+								<TextLink className="text-sm" aria-haspopup="dialog" onClick={() => setReporting(true)}>
+									reporte a vaga
+								</TextLink>
+								.
+							</p>
+						)}
 					</Notice>
 				)}
-				<div className="flex items-center justify-between gap-3 font-mono text-muted text-xs">
-					<span>confiança da IA: {Math.round(job.aiJobConfidence)}%</span>
-					{job.language && <span>idioma: {languageLabel(job.language)}</span>}
-				</div>
+				{job.language && <span className="font-mono text-muted text-xs">idioma: {languageLabel(job.language)}</span>}
 				<TextLink className="text-xs font-mono" aria-expanded={rawJson !== null} disabled={loadingRaw} onClick={toggleRawJson}>
 					{loadingRaw ? 'carregando json…' : rawJson !== null ? 'esconder json da vaga' : 'ver json da vaga (debug)'}
 				</TextLink>

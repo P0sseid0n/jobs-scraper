@@ -28,7 +28,6 @@ const OUTCOMES: Record<keyof NonNullable<WebScraperRun['outcomes']>['counts'], s
 	language: 'idioma fora dos aceitos',
 	'job-seeker': 'candidato procurando vaga',
 	'not-a-job': 'não são vaga, segundo a IA',
-	'low-confidence': 'confiança da IA baixa',
 	keywords: 'fora das palavras-chave',
 	'missing-fields': 'sem cargo ou link do post',
 	unknown: 'processados por uma versão anterior',

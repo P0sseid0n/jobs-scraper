@@ -59,13 +59,12 @@ describe('buildJobsFilter', () => {
 		expect(pattern!.test('Vue.jsx')).toBe(false)
 	})
 
-	test('período, e-mail, idioma e confiança', () => {
-		const conditions = filterFor({ since: '24h', hasEmail: 'true', language: 'pt', minConfidence: '75' })
+	test('período, e-mail e idioma', () => {
+		const conditions = filterFor({ since: '24h', hasEmail: 'true', language: 'pt' })
 
 		expect(conditions).toContainEqual({ createdAt: { $gte: new Date('2026-10-09T12:00:00.000Z') } })
 		expect(conditions).toContainEqual({ recruiterEmail: { $nin: [null, ''] } })
 		expect(conditions).toContainEqual({ language: 'pt' })
-		expect(conditions).toContainEqual({ aiJobConfidence: { $gte: 75 } })
 	})
 
 	test('vistas: "true" só as abertas no site; "false" as não vistas, incluindo as salvas antes do campo', () => {
@@ -101,7 +100,6 @@ describe('toWebJob', () => {
 		necessaryKnowledge: [],
 		recruiterEmail: 'rh@x.com',
 		workMode: null,
-		aiJobConfidence: 80,
 		postedAt: null,
 		author: null,
 		language: null,
@@ -113,6 +111,8 @@ describe('toWebJob', () => {
 	test('preenche os campos opcionais com null e lista de tecnologias vazia vira null', () => {
 		expect(toWebJob(doc)).toMatchObject({
 			title: 'Vaga sem título',
+			// Vaga salva antes dos checks da extração
+			extractionChecks: [],
 			necessaryKnowledge: null,
 			contractTypes: null,
 			createdAt: NOW.toISOString(),

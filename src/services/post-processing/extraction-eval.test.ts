@@ -32,7 +32,7 @@ const item: ExtractionCase = {
 	area: 'dev',
 	kind: 'fields',
 	post: { text, author: 'Ana Souza', url: null, postedAt: null, sourcePostId: null },
-	aiOutput: { ...fields, aiJobConfidence: 90 },
+	aiOutput: fields,
 	expected: { ...fields, company: 'Acme', workMode: 'hibrido', necessaryKnowledge: ['Vue.js', 'TypeScript'] },
 	correctedFields: ['company', 'workMode', 'necessaryKnowledge'],
 	model: 'gemma3:4b',
@@ -42,7 +42,6 @@ const item: ExtractionCase = {
 const modelAnswer = (answer: Record<string, unknown>) =>
 	AiJobOutputSchema.parse({
 		postType: 'job_opening',
-		aiJobConfidence: 95,
 		title: 'Front-end',
 		company: 'Acme',
 		location: 'São Paulo',
@@ -74,12 +73,12 @@ describe('caseToRawPost', () => {
 })
 
 test('runFromModel aplica a confiança mínima e as regras do post (tecnologia fora do texto sai)', () => {
-	const run = runFromModel(item, modelAnswer({ necessary_knowledge: ['Vue.js', 'React'] }), 60)
+	const run = runFromModel(item, modelAnswer({ necessary_knowledge: ['Vue.js', 'React'] }))
 	expect(run.isJob).toBe(true)
 	expect(run.fields?.necessaryKnowledge).toEqual(['Vue.js'])
 
-	expect(runFromModel(item, modelAnswer({ aiJobConfidence: 40 }), 60).isJob).toBe(false)
-	expect(runFromModel(item, null, 60)).toEqual({ isJob: false, fields: null })
+	expect(runFromModel(item, modelAnswer({ postType: 'job_seeker' })).isJob).toBe(false)
+	expect(runFromModel(item, null)).toEqual({ isJob: false, fields: null })
 })
 
 test('sameFieldValue ignora maiúsculas, espaços, ordem das listas e barra no fim do link', () => {
@@ -100,7 +99,7 @@ describe('scoreCases', () => {
 
 	test('acerto por campo da extração original e da atual', () => {
 		const report = scoreCases([
-			{ item, run: runFromModel(item, modelAnswer({}), 60) },
+			{ item, run: runFromModel(item, modelAnswer({})) },
 			{ item: notAJob, run: { isJob: false, fields: null } },
 		])
 
@@ -131,7 +130,7 @@ describe('scoreCases', () => {
 	})
 
 	test('formatReport mostra uma linha por campo', () => {
-		const table = formatReport(scoreCases([{ item, run: runFromModel(item, modelAnswer({}), 60) }]))
+		const table = formatReport(scoreCases([{ item, run: runFromModel(item, modelAnswer({})) }]))
 		expect(table.split('\n')).toHaveLength(10)
 		expect(table).toMatch(/company\s+0% \(0\)\s+100% \(1\)\s+1/)
 	})

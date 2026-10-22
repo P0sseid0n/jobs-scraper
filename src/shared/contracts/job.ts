@@ -6,6 +6,30 @@ export const WORK_MODES = ['remoto', 'presencial', 'hibrido'] as const
 export const CONTRACT_TYPES = ['clt', 'pj', 'estagio', 'freelance'] as const
 export type ContractType = (typeof CONTRACT_TYPES)[number]
 
+/**
+ * Checks da extração: cada um marca um campo em que a IA devolveu algo que não está escrito no post (o valor já foi
+ * descartado, menos o cargo). Quanto mais checks, maior a chance de o resto da vaga também estar errado.
+ */
+export const EXTRACTION_CHECKS = ['title', 'company', 'workMode', 'contractTypes', 'necessaryKnowledge', 'applyLink'] as const
+export type ExtractionCheck = (typeof EXTRACTION_CHECKS)[number]
+
+export const EXTRACTION_CHECK_LABELS: Record<ExtractionCheck, string> = {
+	title: 'cargo',
+	company: 'empresa',
+	workMode: 'modalidade',
+	contractTypes: 'regime',
+	necessaryKnowledge: 'tecnologias',
+	applyLink: 'link',
+}
+
+/** Fração dos checks a partir da qual a vaga pede para conferir o post original e reportar o erro. */
+const REVIEW_CHECKS_RATIO = 0.6
+
+/** Se a vaga tem checks suficientes para pedir que a pessoa confira o post original (4 de 6). */
+export function needsReview(checks: readonly ExtractionCheck[]) {
+	return checks.length >= Math.ceil(EXTRACTION_CHECKS.length * REVIEW_CHECKS_RATIO)
+}
+
 /** Vaga já estruturada: salva pelo post-processing e enviada no evento `job-published`. */
 export const ProcessedJobSchema = z.object({
 	postId: z.string().min(1),
@@ -23,7 +47,8 @@ export const ProcessedJobSchema = z.object({
 	 * O padrão aceita mensagens de antes do campo existir.
 	 */
 	contractTypes: z.array(z.enum(CONTRACT_TYPES)).nullable().default(null),
-	aiJobConfidence: z.number().min(0).max(100),
+	/** Os checks da extração que dispararam; o padrão aceita mensagens de antes do campo existir. */
+	extractionChecks: z.array(z.enum(EXTRACTION_CHECKS)).default([]),
 	postedAt: z.iso.datetime().nullable().default(null),
 	author: z.string().nullable().default(null),
 	/** Idioma do post (ISO 639-1), detectado no texto; `null` se curto demais. */

@@ -66,7 +66,7 @@ describe('JobCorrectionSchema (PATCH /api/jobs/:postId)', () => {
 	})
 
 	test('rejeita campos que não são corrigíveis', () => {
-		expect(errorsOf({ aiJobConfidence: 100 })).not.toBeNull()
+		expect(errorsOf({ extractionChecks: [] })).not.toBeNull()
 		expect(errorsOf({ title: 'Dev', rawContent: 'outro texto' })).not.toBeNull()
 	})
 })

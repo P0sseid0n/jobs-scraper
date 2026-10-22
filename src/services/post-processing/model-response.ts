@@ -22,12 +22,27 @@ export function parseModelResponse(content: string): AiJobOutput | null {
 }
 
 /** Diz por que descartar a resposta do modelo, ou `null` se ela for uma vaga válida. */
-export function rejectionReason(job: AiJobOutput | null, minConfidence: number): string | null {
+export function rejectionReason(job: AiJobOutput | null): string | null {
 	if (!job) return 'modelo respondeu null'
 	if (!job.isJob) return `modelo indicou que não é vaga (${job.postType ?? 'isJob=false'})`
-	if (job.aiJobConfidence < minConfidence) return `confiança ${job.aiJobConfidence} abaixo do mínimo ${minConfidence}`
 	return null
 }
+
+/**
+ * Se o cargo da IA está escrito no post: cada palavra dele precisa começar alguma palavra do texto, ignorando caixa,
+ * acentos, conectivos ("e", "de", "and"), plural e gênero ("Desenvolvedora" ↔ "Desenvolvedor(a)").
+ */
+export function titleInPost(title: string, text: string) {
+	const normalizedText = normalizeForMatch(text.normalize('NFKC'))
+	const words = normalizeForMatch(title.normalize('NFKC'))
+		.split(/[^a-z0-9#+]+/)
+		.filter(word => word.length > 2 && !TITLE_CONNECTIVES.has(word))
+		.map(word => word.replace(/(?<=.{4})(as|os|es|a|o|s)$/, ''))
+
+	return words.every(word => containsWordStart(normalizedText, word))
+}
+
+const TITLE_CONNECTIVES = new Set(['and', 'com', 'das', 'dos', 'for', 'the', 'para'])
 
 /** Mantém o link da IA só se ele estiver escrito no post (evita link inventado). */
 export function keepLinkIfInPost(link: string | null, text: string): string | null {

@@ -21,7 +21,6 @@ describe('contratos das filas', () => {
 			necessaryKnowledge: null,
 			recruiterEmail: null,
 			workMode: 'home office',
-			aiJobConfidence: 50,
 		}
 
 		expect(ProcessedJobSchema.safeParse(job).success).toBe(false)
@@ -39,7 +38,6 @@ describe('contratos das filas', () => {
 			necessaryKnowledge: null,
 			recruiterEmail: null,
 			workMode: null,
-			aiJobConfidence: 50,
 		}
 
 		expect(ProcessedJobSchema.parse(job).contractTypes).toBeNull()
