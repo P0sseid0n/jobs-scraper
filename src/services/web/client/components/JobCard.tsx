@@ -140,7 +140,7 @@ function ViewedDot({ job, viewed }: { job: WebJob; viewed: boolean }) {
 			{viewed ? (
 				<span
 					aria-hidden="true"
-					className="size-2.5 rounded-full border-2 border-current text-muted transition group-hover/dot:scale-125 group-hover/dot:text-ink"
+					className="size-2.5 rounded-full border border-current text-muted transition group-hover/dot:scale-125 group-hover/dot:text-ink"
 				/>
 			) : (
 				<StatusDot tone="lime" glow className="size-2.5 transition group-hover/dot:scale-125" />
