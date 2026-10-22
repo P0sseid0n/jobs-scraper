@@ -26,6 +26,8 @@ const FieldsSchema = z.object({
 	applyLink: z.string().nullable(),
 }) satisfies z.ZodType<JobFields>
 
+const DEV_AREA = 'dev'
+
 /**
  * Caso de avaliação: uma correção feita pelo site (coleção `extraction_feedback`) ou uma fixture versionada
  * (`fixtures/extraction-cases.json`, já sem dados pessoais).
@@ -34,6 +36,9 @@ export const ExtractionCaseSchema = z.object({
 	postId: z.string().min(1),
 	// Fixture com o texto reescrito à mão para não identificar quem postou: o export não a substitui
 	anonymized: z.boolean().default(false),
+	// Área da vaga ou do post (dev, marketing, saude...), para ver o acerto separado por grupo. As correções do site
+	// ficam como dev: é o que o scraper busca
+	area: z.string().min(1).default(DEV_AREA),
 	kind: z.enum(FEEDBACK_KINDS),
 	post: z.object({
 		text: z.string().min(1),
@@ -140,6 +145,18 @@ export function scoreCases(results: { item: ExtractionCase; run: CaseRun }[]): E
 	}
 
 	return report
+}
+
+/**
+ * Separa os resultados em dev e outras áreas, para comparar os dois grupos: uma mudança no prompt pode melhorar um e
+ * piorar o outro. Grupo sem casos fica de fora.
+ */
+export function groupByArea<T extends { item: ExtractionCase }>(results: T[]) {
+	const groups: [string, T[]][] = [
+		['dev', results.filter(({ item }) => item.area === DEV_AREA)],
+		['outras áreas', results.filter(({ item }) => item.area !== DEV_AREA)],
+	]
+	return groups.filter(([, items]) => items.length > 0)
 }
 
 function count(score: Score, correct: boolean) {

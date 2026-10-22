@@ -1,7 +1,7 @@
 /**
  * Roda o prompt e o modelo atuais sobre as vagas corrigidas pelo site e mostra o acerto por campo, ao lado do acerto
- * da extração original. Serve para comparar duas versões do prompt ou dois modelos antes de trocar. Fica fora do
- * CI: precisa do Ollama.
+ * da extração original, no total e separado entre dev e outras áreas (campo `area` do caso). Serve para comparar duas
+ * versões do prompt ou dois modelos antes de trocar. Fica fora do CI: precisa do Ollama.
  *
  * Uso: bun eval:extraction [--model gemma3:12b] [--fixtures] [--limit 50] [--verbose]
  * - sem `--fixtures`, lê a coleção `extraction_feedback` do MongoDB (MONGO_URL);
@@ -19,6 +19,7 @@ import {
 	caseToRawPost,
 	ExtractionCaseSchema,
 	formatReport,
+	groupByArea,
 	latestPerPost,
 	runFromModel,
 	sameFieldValue,
@@ -86,6 +87,11 @@ console.log(
 	`\nmodelo ${model} · prompt ${EXTRACTION_PROMPT_VERSION} · ${selected.length} casos · confiança mínima ${settings.minJobConfidence} · idiomas ${settings.allowedLanguages.join(', ') || 'todos'}\n`,
 )
 console.log(formatReport(scoreCases(results)))
+
+const groups = groupByArea(results)
+if (groups.length > 1) {
+	for (const [label, group] of groups) console.log(`\n${label} (${group.length} casos)\n${formatReport(scoreCases(group))}`)
+}
 console.log('\noriginal: a extração salva na vaga (modelo e prompt da época) · atual: este prompt e modelo')
 
 async function fromDatabase() {
@@ -128,5 +134,6 @@ function printDiff(item: ExtractionCase, run: CaseRun) {
 		}
 	}
 
-	console.log(lines.length ? `✗ ${item.postId}\n${lines.join('\n')}` : `✓ ${item.postId}`)
+	const label = `${item.postId} (${item.area})`
+	console.log(lines.length ? `✗ ${label}\n${lines.join('\n')}` : `✓ ${label}`)
 }

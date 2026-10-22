@@ -8,6 +8,7 @@ import { anonymizeCase, findPersonalData, fixtureProblems, mergeFixtures, readFi
 const item: ExtractionCase = {
 	postId: 'urn:li:activity:7515393090820456448',
 	anonymized: false,
+	area: 'dev',
 	kind: 'fields',
 	post: {
 		text: 'Oi, aqui é a Mariana Lima! Vaga Front-end. Currículos para mariana@acme.com ou vagas@acme.com, WhatsApp (11) 98765-4321. Perfil: https://www.linkedin.com/in/mariana-lima-123 Portfólio: https://lnkd.in/di7FF9Df',

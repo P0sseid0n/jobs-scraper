@@ -2,6 +2,7 @@
 	{
 		"postId": "caso-f316c134befa",
 		"anonymized": true,
+		"area": "dev",
 		"kind": "not-a-job",
 		"post": {
 			"text": "Entrevista para Front-End... e a pergunta foi sobre Go. Isso mesmo, Go. kkkkkk\n\nConfesso que travei uns segundos.\nEra um processo para Desenvolvedor Front-End Pleno, e eu estava pronto para falar de JavaScript, TypeScript, React, hooks, acessibilidade, testes...\n\nAí o entrevistador manda:\n\"E Go, você já usou no front?\"\n\nNa hora pensei: será que abri a chamada errada? kkkkk\n\nAntes que alguém me corrija nos comentários: sei que dá para compilar algumas linguagens para WebAssembly e rodar no navegador. Não é isso que me surpreendeu.\n\nO que me pegou foi ver isso como requisito de uma vaga de Front-End Web. Pra mim, interface web hoje é JavaScript e TypeScript na frente de tudo, com React, Vue ou Angular por cima.\n\nTalvez o time tivesse algum caso bem específico que eu não conhecia. Pode ser.\n\nNo fim, toda entrevista ensina alguma coisa. Às vezes um conceito novo, às vezes só uma boa história para contar aqui. kkkkkk\n\nE vocês, devs, qual foi a pergunta mais fora do roteiro que já ouviram numa entrevista? Quero saber se foi só comigo!\n\n- OpenToWork - Dev. React | Suporte de TI | Analista de Sistemas.\n\n- Portfolio:https://lnkd.in/link\n\n#Frontend #JavaScript #TypeScript #React #WebAssembly #CarreiraDev",
@@ -35,6 +36,7 @@
 	{
 		"postId": "caso-4fdc0637ba63",
 		"anonymized": true,
+		"area": "dev",
 		"kind": "not-a-job",
 		"post": {
 			"text": "Ser Desenvolvedor Front-end é muito mais do que montar telas: é resolver problemas de negócio com interfaces que as pessoas conseguem usar.\n\nNos últimos anos, como Desenvolvedor Front-end, trabalhei na evolução de aplicações web, na migração de sistemas antigos e na criação de interfaces responsivas para produtos de seguros e saúde.\n\nNo dia a dia uso React, TypeScript e JavaScript, com integração a APIs REST, componentização, testes e revisão de código.\n\nAlguns resultados de que me orgulho:\n\nFormulário de cotação: reescrevi o fluxo de cotação online, que passou a ter 30% menos abandono.\nBiblioteca de componentes: juntei botões, tabelas e modais que estavam duplicados em quatro projetos numa biblioteca única, usada hoje por cinco squads.\nMigração: participei da troca de páginas em jQuery por React com TypeScript e CSS Modules, melhorando desempenho e manutenção.\n\nEssas entregas me mostraram que um bom front-end depende de entender o problema, conversar com produto e design e construir algo que dure.\n\nEstou aberto a novas oportunidades como Desenvolvedor Front-end Pleno, Frontend Engineer ou React Developer, em times que trabalhem com React, TypeScript, JavaScript e APIs REST.\n\nRecrutadores e líderes de tecnologia: vou gostar muito de conversar sobre como posso contribuir com o time de vocês.\n\n#Frontend #ReactJS #TypeScript #Carreira #opentowork",
@@ -67,6 +69,7 @@
 	{
 		"postId": "caso-252c8aec26fe",
 		"anonymized": true,
+		"area": "dev",
 		"kind": "not-a-job",
 		"post": {
 			"text": "Feliz em contar uma novidade: a partir de hoje sou Desenvolvedor Front-End Pleno na Nuvio Digital! 🎉\n\nDepois de muito estudo e alguns processos seletivos, chegou a hora de começar essa nova fase, com novos desafios, muita coisa para aprender e projetos bem legais pela frente.\n\nObrigado a todo mundo que me apoiou até aqui. Bora pra cima!! 🚀",
@@ -94,6 +97,7 @@
 	{
 		"postId": "caso-ce6ca360d6e6",
 		"anonymized": true,
+		"area": "dev",
 		"kind": "not-a-job",
 		"post": {
 			"text": "📢 Rede, preciso da ajuda de vocês: estou procurando uma nova oportunidade em tecnologia.\n\nNão vou mentir, a busca tem sido cansativa: muitas candidaturas, algumas entrevistas e processos que param no meio do caminho. Mesmo assim sigo estudando e confiante de que a vaga certa vai aparecer.\n\nSou Desenvolvedor Full Stack, formado em Sistemas de Informação, com experiência em aplicações web, APIs e integrações em tempo real.\n\nJá trabalhei com sistemas para logística e para o varejo, desde painéis web até um aplicativo desktop feito do zero, além de automações, integrações entre sistemas e serviços que precisam ficar no ar o tempo todo.\n\n💻 O que uso no dia a dia:\n⚡ Linguagens: JavaScript, TypeScript, Python\n⚛️ Frontend: React.js, HTML, CSS, Tailwind CSS, Zustand e Vite\n🟢 Backend: Node.js, Express.js, APIs REST e WebSockets\n🖥️ Desktop: Electron.js\n🗄️ Bancos: PostgreSQL, MongoDB e MySQL\n🔐 Segurança: JWT e controle de acesso\n🚀 Infra: Docker, Nginx, GitHub Actions, Git e Postman\n🌐 Inglês intermediário, aberto a vagas no Brasil e no exterior.\n\nBusco vagas de Desenvolvedor Backend Node.js, Desenvolvedor Full Stack ou Desenvolvedor Front-End, de preferência nível Pleno.\n\nTopo CLT ou PJ, remoto ou híbrido, em um time onde eu possa contribuir, aprender e ajudar a construir produtos que resolvem problemas de verdade.\n\n🤝 Se souber de alguma vaga ou puder me indicar para algum recrutador, vou agradecer muito!\n\nCompartilhar este post também ajuda bastante. Estou pronto para o próximo desafio!\n\n🙏 Valeu a todos!\n\n#OpenToWork #DesenvolvedorFullStack #NodeJS #React #TypeScript #JavaScript #Backend #VagasTI",
@@ -135,6 +139,7 @@
 	{
 		"postId": "caso-b809a8bde912",
 		"anonymized": true,
+		"area": "dev",
 		"kind": "not-a-job",
 		"post": {
 			"text": "🚀 We're Hiring! L2 Support Backend Developer (Python+Angular)",
@@ -165,6 +170,7 @@
 	{
 		"postId": "caso-378579e6c230",
 		"anonymized": true,
+		"area": "dev",
 		"kind": "not-a-job",
 		"post": {
 			"text": "Quanta comida boa vai para o lixo no fim da feira?\n\nFoi dessa pergunta que nasceu o SobraZero, uma plataforma que liga feirantes com sobras do dia a ONGs que distribuem refeições. Desenvolvi o projeto com meu grupo na [FACULDADE MODELO / SISTEMAS DE INFORMAÇÃO].\n--O feirante cadastra a doação, com quantidade, tipo de alimento e fotos\n--A ONG recebe as doações e escolhe qual voluntário vai buscar\n--O voluntário faz a rota, e o feirante acompanha a posição dele no mapa, em tempo real\n\nDo que é feito:\n• Front-end: React, Vite, Tailwind, React Router e Leaflet (mapas)\n• Back-end: Java com Spring Boot\n• Banco: PostgreSQL na nuvem\n• Tempo real: WebSocket (STOMP)\n\nO que aprendemos\n\nNo front-end:\n→ Montar telas com componentes reutilizáveis em React\n→ Proteger rotas por perfil: feirante, ONG e voluntário veem telas diferentes\n→ Usar mapas com Leaflet e o GPS do celular para mostrar o voluntário em tempo real\n→ Preencher o endereço a partir do CEP, consultando a API ViaCEP\n→ Comprimir as fotos no navegador antes de enviar: de 5 MB para uns 300 KB\n→ Fazer interfaces responsivas com Tailwind e dar retorno claro ao usuário com alertas\n\nNo back-end:\n→ Organizar o código em camadas (controller, service, repository)\n→ Fazer comunicação em tempo real com WebSocket\n→ Cuidar da segurança desde o começo: login com JWT em cookie, senhas criptografadas e bloqueio de tentativas repetidas\n\nEm equipe:\n→ Trabalhar com Git e entregar em sprints\nObrigado ao time que construiu isso comigo: Fulano de Tal e Ciclano Souza\n#Java #SpringBoot #React #FrontEnd #DesenvolvimentoWeb #Sustentabilidade #Alimentos",
@@ -202,6 +208,7 @@
 	{
 		"postId": "caso-b814e97fa985",
 		"anonymized": true,
+		"area": "dev",
 		"kind": "not-a-job",
 		"post": {
 			"text": "¡He empezado en un nuevo puesto de Desarrollador backend en Grupo Nexa Sistemas!",
@@ -229,6 +236,7 @@
 	{
 		"postId": "caso-ad3fd5255bda",
 		"anonymized": true,
+		"area": "dev",
 		"kind": "not-a-job",
 		"post": {
 			"text": "🚀 نسخه دوم NovaKit منتشر شد\n\nبالاخره نسخه ۲ کتابخانه NovaKit به‌صورت بتا در دسترس است.\n\nنصب با یک دستور:\n\nnpm install novakit\n\n✨ چه چیزهایی تغییر کرده؟\n\n• کامپوننت‌های جدید برای فرم‌ها و جدول‌ها\n• پشتیبانی کامل از React، Vue و Svelte\n• حالت تاریک و تم‌های قابل تنظیم\n• حجم بسته نسبت به نسخه قبل نصف شده است\n\n⚙️ هسته کتابخانه مستقل از فریمورک نوشته شده و هر فریمورک فقط یک لایه نازک روی آن دارد. برای همین اضافه کردن Angular و Solid در نسخه بعدی ساده خواهد بود.\n\n🧪 همه کامپوننت‌ها تست خودکار دارند و مستندات با مثال‌های زنده به‌روز شده است.\n\nاگر باگی دیدید یا پیشنهادی دارید، در صفحه پروژه بنویسید.\n\nReact\nVue\nSvelte\nTypeScript\nFrontend Developers\nFull-stack developer javascript recruitment advertisement\nnovakit",
@@ -258,5 +266,825 @@
 		"correctedFields": [],
 		"model": "gemma3:4b",
 		"promptVersion": "2ad252391dd6"
+	},
+	{
+		"postId": "caso-e8664c9d45e9",
+		"anonymized": true,
+		"area": "marketing",
+		"kind": "fields",
+		"post": {
+			"text": "🎯 Vaga: Analista de Inteligência de Dados Pleno\n📍 Local: Belo Horizonte - MG (Híbrido)\n\n🏢 Sobre a empresa:\nA Prisma Comunicação é uma agência de relações públicas e marketing de influência que une estratégia e execução para gerar resultado aos clientes.\n\n📋 O que você vai fazer e o que pedimos:\n📊 Montar e manter relatórios de desempenho das campanhas.\n🔍 Coletar e organizar métricas de redes sociais e dados qualitativos.\n💡 Transformar dados de mídias digitais em insights para os clientes.\n📱 Acompanhar as redes sociais com ferramentas de social listening.\n🎓 Graduação em Comunicação, Marketing, Administração ou áreas afins.\n✅ Excel ou Google Sheets avançado e ferramentas de visualização como Power BI ou Looker Studio.\n🌐 Experiência com ferramentas de monitoramento como Stilingue ou Brandwatch.\n🇬🇧 Inglês intermediário.\n\n🔗 Inscrições: https://vagas.exemplo.com/prisma/analista-dados\n-----\nAs vagas do dia chegam antes no grupo de quem assina o PRO. No feed elas aparecem depois.\n📌 https://lnkd.in/link\n\n#BI #DataAnalytics #SocialListening #VagasBH #MarketingAnalytics",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Analista de Inteligência de Dados Pleno",
+			"company": "Prisma Comunicação",
+			"location": "Belo Horizonte - MG",
+			"workMode": "hibrido",
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"Power BI",
+				"Looker Studio",
+				"Stilingue",
+				"Brandwatch",
+				"Google Sheets",
+				"Excel"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/prisma/analista-dados",
+			"aiJobConfidence": 100
+		},
+		"expected": {
+			"title": "Analista de Inteligência de Dados Pleno",
+			"company": "Prisma Comunicação",
+			"location": "Belo Horizonte - MG",
+			"workMode": "hibrido",
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"Excel",
+				"Google Sheets",
+				"Power BI",
+				"Looker Studio",
+				"Stilingue",
+				"Brandwatch",
+				"Inglês"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/prisma/analista-dados"
+		},
+		"correctedFields": [
+			"necessaryKnowledge"
+		],
+		"model": "gemma3:4b",
+		"promptVersion": "3caef3e2ad31"
+	},
+	{
+		"postId": "caso-6a02ecfedb84",
+		"anonymized": true,
+		"area": "marketing",
+		"kind": "fields",
+		"post": {
+			"text": "Oportunidade aqui em Juiz de Fora!! A Casa do Café Mineiro está procurando um(a) Analista de Processos e Operações de Marketing para o time. Buscamos alguém organizado, proativo, cuidadoso e com boa comunicação, que se dê bem com planilhas, ferramentas digitais e gestão de processos.\n\nNo dia a dia, a pessoa vai acompanhar pagamentos, recebimentos, fornecedores, contratos e relatórios operacionais, além de organizar as demandas entre as áreas e os fluxos de aprovação e envio dos materiais de Marketing.\n\n📍 Local: Juiz de Fora/MG\n📩 Quem tiver interesse pode mandar o currículo para contato1@exemplo.com.\n\nTem o perfil ou conhece alguém? Compartilhe!!\n\n#Vagas #Oportunidade #JuizDeFora #Marketing #Processos",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Analista de Processos e Operações de Marketing",
+			"company": "Casa do Café Mineiro",
+			"location": "Juiz de Fora/MG",
+			"workMode": null,
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"planilhas",
+				"ferramentas digitais",
+				"gestão de processos"
+			],
+			"recruiterEmail": "contato1@exemplo.com",
+			"applyLink": null,
+			"aiJobConfidence": 100
+		},
+		"expected": {
+			"title": "Analista de Processos e Operações de Marketing",
+			"company": "Casa do Café Mineiro",
+			"location": "Juiz de Fora/MG",
+			"workMode": null,
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"Planilhas",
+				"Gestão de processos"
+			],
+			"recruiterEmail": "contato1@exemplo.com",
+			"applyLink": null
+		},
+		"correctedFields": [
+			"necessaryKnowledge"
+		],
+		"model": "gemma3:4b",
+		"promptVersion": "3caef3e2ad31"
+	},
+	{
+		"postId": "caso-ceef2b83ed41",
+		"anonymized": true,
+		"area": "marketing",
+		"kind": "not-a-job",
+		"post": {
+			"text": "Oi, pessoal! 👋\n\nTenho 20 anos e curso Publicidade e Propaganda. Estou procurando uma oportunidade como Social Media, para trabalhar com criação de conteúdo e gestão de redes sociais.\n\nDesde cedo trabalho com atendimento e rotinas administrativas. Hoje sou Jovem Aprendiz numa empresa de call center, onde cuido de suporte e acompanhamento de demandas.\n\nTambém tenho uma pequena confeitaria, a Doce Ponto, onde faço o atendimento, os orçamentos, as vendas e o conteúdo das redes sociais.\n\nTer o meu próprio negócio me ensinou a me organizar, decidir rápido e entender o que o cliente quer de verdade, e isso muda tudo na hora de criar conteúdo.\n\nEm paralelo, continuo estudando: fiz cursos de Marketing Digital, Excel e Atendimento ao Cliente.\n\nSe você souber de alguma vaga de social media ou puder me indicar, vou ficar muito grata.\n\nCompartilhar este post também ajuda muito! 💛\n\nAgência Exemplo · Banco Modelo · Cafeteria Central · Rede Varejo Sul\n\n#socialmedia #marketingdigital #publicidade #criacaodeconteudo #redessociais #vagas #oportunidade",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Social Media",
+			"company": "Agência Exemplo",
+			"location": null,
+			"workMode": null,
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"Marketing Digital",
+				"Excel",
+				"Atendimento ao Cliente",
+				"Redes Sociais",
+				"Criação de Conteúdo"
+			],
+			"recruiterEmail": null,
+			"applyLink": null,
+			"aiJobConfidence": 0
+		},
+		"expected": null,
+		"correctedFields": [],
+		"model": "gemma3:4b",
+		"promptVersion": "3caef3e2ad31"
+	},
+	{
+		"postId": "caso-54a4a0a2b59f",
+		"anonymized": true,
+		"area": "saude",
+		"kind": "fields",
+		"post": {
+			"text": "💼 Vaga: Enfermeiro(a) de Centro Cirúrgico – Hospital Vale Verde\n\n📝 O que você vai fazer:\nPreparar o paciente cirúrgico e cuidar da segurança dele.\nOrganizar as salas cirúrgicas.\nConferir materiais, instrumentais e equipamentos.\nAcompanhar os procedimentos.\nAplicar o checklist de cirurgia segura.\nPrevenir e controlar infecções.\nFazer os registros de enfermagem.\nControlar o fluxo cirúrgico.\n\n✅ Requisitos\nGraduação completa em Enfermagem.\nCOREN ativo.\nExperiência em Centro Cirúrgico.\nConhecimento em cirurgia segura e assistência perioperatória.\n\n⭐ Competências desejadas\nLiderança, organização, proatividade, boa comunicação e trabalho em equipe.",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Enfermeiro(a) de Centro Cirúrgico",
+			"company": "Hospital Vale Verde",
+			"location": null,
+			"workMode": null,
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"cirurgia segura",
+				"assistência perioperatória"
+			],
+			"recruiterEmail": null,
+			"applyLink": null,
+			"aiJobConfidence": 100
+		},
+		"expected": {
+			"title": "Enfermeiro(a) de Centro Cirúrgico",
+			"company": "Hospital Vale Verde",
+			"location": null,
+			"workMode": null,
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"COREN",
+				"Cirurgia segura",
+				"Assistência perioperatória"
+			],
+			"recruiterEmail": null,
+			"applyLink": null
+		},
+		"correctedFields": [
+			"necessaryKnowledge"
+		],
+		"model": "gemma3:4b",
+		"promptVersion": "3caef3e2ad31"
+	},
+	{
+		"postId": "caso-fc23328de2f5",
+		"anonymized": true,
+		"area": "saude",
+		"kind": "fields",
+		"post": {
+			"text": "🩺 Enfermeira/Enfermeiro do Trabalho!\n\nA Metalúrgica Andrade está buscando um(a) profissional para o nosso Serviço Médico, cuidando da saúde, da segurança e do bem-estar das pessoas que trabalham aqui.\n📍 Local: Diadema/SP\n⏳ Contrato: temporário de 4 meses, podendo ser prorrogado por mais 2.\n\n🔎 O que pedimos?\n✅ Graduação em Enfermagem com especialização em Enfermagem do Trabalho\n✅ COREN ativo\n\n🔗 Para se candidatar: https://vagas.exemplo.com/andrade/enfermagem-trabalho\n\n💙 Conhece alguém com esse perfil? Compartilhe!\n\n#Vagas #EnfermagemDoTrabalho #SaúdeOcupacional #Enfermagem #Diadema",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Enfermeira/Enfermeiro do Trabalho",
+			"company": "Metalúrgica Andrade",
+			"location": "Diadema/SP",
+			"workMode": null,
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"Enfermagem do Trabalho"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/andrade/enfermagem-trabalho",
+			"aiJobConfidence": 100
+		},
+		"expected": {
+			"title": "Enfermeira/Enfermeiro do Trabalho",
+			"company": "Metalúrgica Andrade",
+			"location": "Diadema/SP",
+			"workMode": null,
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"Enfermagem do Trabalho",
+				"COREN"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/andrade/enfermagem-trabalho"
+		},
+		"correctedFields": [
+			"necessaryKnowledge"
+		],
+		"model": "gemma3:4b",
+		"promptVersion": "3caef3e2ad31"
+	},
+	{
+		"postId": "caso-05ec94260bc3",
+		"anonymized": true,
+		"area": "saude",
+		"kind": "fields",
+		"post": {
+			"text": "📢 Oportunidade de Trabalho – Enfermeiro Obstetra\n📍 Local: Betim/MG\n🕒 Modelo de trabalho: 100% presencial\n\nINSCRIÇÕES ABERTAS ATÉ 14/11/2026, às 10h.\n\n🔹 REQUISITOS:\n✅ Graduação completa em Enfermagem;\n✅ Registro ativo no COREN-MG, com título de especialista em Enfermagem Obstétrica;\n✅ Experiência como Enfermeiro Obstetra em centro obstétrico, sala de parto ou alojamento conjunto, com vivência em protocolos de parto humanizado;\n✅ Experiência com classificação de risco em obstetrícia;\n✅ Desejável: curso do Protocolo de Manchester.\n\n💰 CONTRATAÇÃO:\n💵 Salário: R$ 3.950,00 (CLT) + complemento do Piso da Enfermagem, podendo chegar a R$ 4.800,00 conforme as regras do Ministério da Saúde.\n\n🎁 Benefícios:\n✔️ Vale-alimentação (R$ 400)\n✔️ Refeição no local\n✔️ Vale-transporte\n\nO Instituto Municipal de Saúde de Betim promove a inclusão: todas as vagas são abertas para Pessoas com Deficiência (PcD).\n\n🚀 Quer fazer parte da equipe? Leia o edital no link e faça sua inscrição!\n🔗 https://edital.exemplo.com/saude-betim\n\n#Vaga #EnfermagemObstétrica #EnfermeiroObstetra #Saúde",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Enfermeiro Obstetra",
+			"company": "Instituto Municipal de Saúde de Betim",
+			"location": "Betim/MG",
+			"workMode": "presencial",
+			"contractTypes": [
+				"clt"
+			],
+			"necessaryKnowledge": [
+				"Enfermagem Obstétrica",
+				"Classificação de risco em obstetrícia",
+				"Protocolo de Manchester"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://edital.exemplo.com/saude-betim",
+			"aiJobConfidence": 100
+		},
+		"expected": {
+			"title": "Enfermeiro Obstetra",
+			"company": "Instituto Municipal de Saúde de Betim",
+			"location": "Betim/MG",
+			"workMode": "presencial",
+			"contractTypes": [
+				"clt"
+			],
+			"necessaryKnowledge": [
+				"COREN-MG",
+				"Enfermagem Obstétrica",
+				"Classificação de risco",
+				"Protocolo de Manchester"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://edital.exemplo.com/saude-betim"
+		},
+		"correctedFields": [
+			"necessaryKnowledge"
+		],
+		"model": "gemma3:4b",
+		"promptVersion": "3caef3e2ad31"
+	},
+	{
+		"postId": "caso-354d25631d4f",
+		"anonymized": true,
+		"area": "saude",
+		"kind": "not-a-job",
+		"post": {
+			"text": "Mais uma etapa concluída na minha formação em Enfermagem!\n\nTerminei o curso \"Cuidado à Pessoa Idosa na Atenção Básica\", oferecido pela UNA-SUS, com 20 horas de carga horária.\n\nNo curso, aprofundei os conhecimentos sobre a avaliação multidimensional da pessoa idosa e as ferramentas que podem ser usadas na prática, principalmente na Atenção Primária.\n\nO que mais me marcou foi entender como o Plano de Cuidados pode tornar a assistência mais individualizada e melhorar a qualidade de vida de pessoas com doenças crônicas.\n\nAcredito que olhar o paciente no seu contexto familiar e social é essencial para um cuidado humanizado e integral.\n\nSigo buscando novos aprendizados e oportunidades para crescer na área da saúde. 🩵🩺\n\n#Enfermagem #UNASUS #AtençãoPrimária #Saúde #FormaçãoProfissional",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Cuidado à Pessoa Idosa na Atenção Básica",
+			"company": "UNA-SUS",
+			"location": null,
+			"workMode": null,
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"Atenção Primária"
+			],
+			"recruiterEmail": null,
+			"applyLink": null,
+			"aiJobConfidence": 0
+		},
+		"expected": null,
+		"correctedFields": [],
+		"model": "gemma3:4b",
+		"promptVersion": "3caef3e2ad31"
+	},
+	{
+		"postId": "caso-7e3c6ac057c4",
+		"anonymized": true,
+		"area": "saude",
+		"kind": "not-a-job",
+		"post": {
+			"text": "Às vezes, só precisamos de um empurrão para acreditar que somos capazes de ir além. ❤️\n\nEste mês faço um ano na Fortes Engenharia Industrial e, olhando para trás, vejo o quanto cresci.\n\nQuando comecei, não tinha experiência em saúde ocupacional nem em enfermagem do trabalho. Mesmo com o medo do novo, resolvi arriscar e abraçar a oportunidade. Tive ao meu lado pessoas que acreditaram em mim, e isso fez toda a diferença.\n\nPouco depois de entrar na empresa, decidi fazer a especialização em Enfermagem do Trabalho. Terminei o curso em abril e, hoje, ao entrar no site do COREN, vi que minha carteirinha com a especialização já estava liberada. Uma conquista que vai muito além de um certificado: é dedicação, coragem e aprendizado.\n\nSó tenho a agradecer pelo incentivo, pela confiança e por todas as oportunidades de aprender nessa caminhada. Que seja só o começo! 🧡\n\n#EnfermagemDoTrabalho #SaúdeOcupacional #Gratidão",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Enfermagem do Trabalho",
+			"company": "Fortes Engenharia Industrial",
+			"location": null,
+			"workMode": null,
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"Saúde Ocupacional",
+				"Enfermagem do Trabalho"
+			],
+			"recruiterEmail": null,
+			"applyLink": null,
+			"aiJobConfidence": 0
+		},
+		"expected": null,
+		"correctedFields": [],
+		"model": "gemma3:4b",
+		"promptVersion": "3caef3e2ad31"
+	},
+	{
+		"postId": "caso-8c327cb8d8b7",
+		"anonymized": true,
+		"area": "juridico",
+		"kind": "fields",
+		"post": {
+			"text": "Aqui na Mendes & Prado Advogados, estamos buscando profissionais para o time de Contencioso Tributário, no escritório do Itaim Bibi, em São Paulo.\n\nA vaga é para advogado(a) pleno com experiência em contencioso tributário. A pessoa vai elaborar peças nas esferas administrativa e judicial, num ambiente técnico, colaborativo e de aprendizado constante.\n\nRequisitos:\n▪️ Experiência em Contencioso Tributário\n▪️ Pós-graduação em Direito Tributário é um diferencial\n\nInscrições pelo link: https://vagas.exemplo.com/mendes-prado/tributario\n\n#Vagas #Oportunidade #ContenciosoTributario #Advogados",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "advogado(a) pleno",
+			"company": "Mendes & Prado Advogados",
+			"location": "São Paulo",
+			"workMode": null,
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"direito tributário"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/mendes-prado/tributario",
+			"aiJobConfidence": 100
+		},
+		"expected": {
+			"title": "Advogado(a) pleno",
+			"company": "Mendes & Prado Advogados",
+			"location": "São Paulo",
+			"workMode": null,
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"Contencioso Tributário",
+				"Direito Tributário"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/mendes-prado/tributario"
+		},
+		"correctedFields": [
+			"necessaryKnowledge"
+		],
+		"model": "gemma3:4b",
+		"promptVersion": "3caef3e2ad31"
+	},
+	{
+		"postId": "caso-181f3af9458f",
+		"anonymized": true,
+		"area": "juridico",
+		"kind": "fields",
+		"post": {
+			"text": "Advogado(a) Previdenciário | Lacerda & Fontes Advocacia\n\nAtuação: 100% remota\nContratação: associado\nHorário: comercial, de segunda a sexta\n\nRemuneração e benefícios\nSalário base: R$ 4.900,00\nCartão de benefícios: R$ 900,00\nAcesso a academias parceiras\nDay off no aniversário\n\nSobre o escritório\nA Lacerda & Fontes Advocacia atua 100% online em Direito Trabalhista e Previdenciário, com atendimento humanizado e uso de inteligência artificial para agilizar os processos. Buscamos um(a) Advogado(a) Previdenciário Pleno para conduzir ações contra o INSS.\n\nO que você vai fazer\nConduzir processos judiciais contra o INSS, da petição inicial aos recursos.\nAtender clientes e orientar sobre os procedimentos previdenciários.\nParticipar de audiências e fazer sustentações orais.\nControlar prazos processuais.\n\nRequisitos\nGraduação em Direito e OAB ativa.\nPós-graduação em Direito Previdenciário, concluída ou em andamento.\nExperiência na área judicial previdenciária.\nBoa redação jurídica.\nFamiliaridade com peticionamento eletrônico e softwares de gestão jurídica.\n\nComo se candidatar?\nhttps://vagas.exemplo.com/lacerda-fontes/previdenciario\n\n#Vagas #AdvogadoPrevidenciario #DireitoPrevidenciario #INSS #VagaRemota #HomeOffice",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Advogado(a) Previdenciário",
+			"company": "Lacerda & Fontes Advocacia",
+			"location": null,
+			"workMode": "remoto",
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"Direito Previdenciário",
+				"INSS"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/lacerda-fontes/previdenciario",
+			"aiJobConfidence": 100
+		},
+		"expected": {
+			"title": "Advogado(a) Previdenciário",
+			"company": "Lacerda & Fontes Advocacia",
+			"location": null,
+			"workMode": "remoto",
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"OAB",
+				"Direito Previdenciário",
+				"Redação jurídica",
+				"Peticionamento eletrônico"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/lacerda-fontes/previdenciario"
+		},
+		"correctedFields": [
+			"necessaryKnowledge"
+		],
+		"model": "gemma3:4b",
+		"promptVersion": "3caef3e2ad31"
+	},
+	{
+		"postId": "caso-4afc045c6c08",
+		"anonymized": true,
+		"area": "juridico",
+		"kind": "fields",
+		"post": {
+			"text": "⚖️ VENHA LIDERAR COM A GENTE | SUPERVISOR(A) JURÍDICO(A)\n\nTem experiência na área jurídica, perfil de liderança e quer atuar de forma estratégica, desenvolvendo pessoas e garantindo a qualidade técnica? Essa vaga é para você.\n\nO escritório Brandão Teixeira Advogados está buscando um(a) Supervisor(a) Jurídico(a) para o time de Londrina/PR.\n\n📍 Londrina/PR\n🏢 Modelo híbrido\n📄 Regime CLT\n\nO que esperamos:\n• Graduação e pós-graduação em Direito;\n• OAB ativa (obrigatório);\n• Experiência com gestão de equipes;\n• Organização e acompanhamento de indicadores e prazos.\n\nDiferenciais:\n• Conhecimento em Direito Bancário;\n• Experiência com ações de Busca e Apreensão.\n\nNo dia a dia:\n• Liderar e desenvolver a equipe jurídica;\n• Acompanhar a qualidade das entregas e os prazos;\n• Apoiar a definição das estratégias jurídicas.\n\n📩 Candidate-se: https://vagas.exemplo.com/brandao-teixeira/supervisor\n\n#Vagas #SupervisorJurídico #Liderança #Direito #DireitoBancário #OAB #VagasLondrina",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Supervisor(a) Jurídico(a)",
+			"company": "Brandão Teixeira Advogados",
+			"location": "Londrina/PR",
+			"workMode": "hibrido",
+			"contractTypes": [
+				"clt"
+			],
+			"necessaryKnowledge": [
+				"Direito",
+				"Direito Bancário"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/brandao-teixeira/supervisor",
+			"aiJobConfidence": 100
+		},
+		"expected": {
+			"title": "Supervisor(a) Jurídico(a)",
+			"company": "Brandão Teixeira Advogados",
+			"location": "Londrina/PR",
+			"workMode": "hibrido",
+			"contractTypes": [
+				"clt"
+			],
+			"necessaryKnowledge": [
+				"OAB",
+				"Gestão de equipes",
+				"Direito Bancário",
+				"Busca e Apreensão"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/brandao-teixeira/supervisor"
+		},
+		"correctedFields": [
+			"necessaryKnowledge"
+		],
+		"model": "gemma3:4b",
+		"promptVersion": "3caef3e2ad31"
+	},
+	{
+		"postId": "caso-223de3712a8c",
+		"anonymized": true,
+		"area": "juridico",
+		"kind": "not-a-job",
+		"post": {
+			"text": "O erro tributário que muitas clínicas cometem (e que ninguém explica). 🩺📉\n\nMuitas clínicas no Lucro Presumido pagam IRPJ e CSLL com alíquotas cheias sem precisar.\n\nA equiparação hospitalar permite usar alíquotas reduzidas e legítimas no setor de saúde. E o direito depende da natureza dos serviços prestados, não do tamanho da estrutura nem de ter leitos.\n\nMas, para usar o benefício sem risco, é preciso cumprir normas sanitárias rígidas e seguir os precedentes do CARF e dos tribunais.\n\nPara ajudar contadores, advogados e gestores de clínicas a aplicar essa tese com segurança, abrimos as inscrições do Workshop Equiparação Hospitalar na Prática!\n\nO que você vai aprender:\n✅ Quais atividades e serviços têm direito à redução\n✅ O que a Receita Federal exige em documentos e contratos\n✅ Como montar um planejamento tributário seguro\n\n🚨 Inscrições abertas com desconto de lançamento!\n\n🔗 Acesse https://cursos.exemplo.com/equiparacao e garanta sua vaga antes da virada do lote.",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Equiparação Hospitalar na Prática",
+			"company": null,
+			"location": null,
+			"workMode": null,
+			"contractTypes": null,
+			"necessaryKnowledge": null,
+			"recruiterEmail": null,
+			"applyLink": "https://cursos.exemplo.com/equiparacao",
+			"aiJobConfidence": 0
+		},
+		"expected": null,
+		"correctedFields": [],
+		"model": "gemma3:4b",
+		"promptVersion": "3caef3e2ad31"
+	},
+	{
+		"postId": "caso-1164873518d7",
+		"anonymized": true,
+		"area": "rh",
+		"kind": "fields",
+		"post": {
+			"text": "VAGA: Analista de Recursos Humanos – Blumenau\n\nRegime: período integral\nSegmento: indústria têxtil\n\nBuscamos alguém organizado(a), proativo(a), com boa comunicação e visão de processos, para contribuir com o desenvolvimento das pessoas e os resultados da empresa.\n\nPrincipais atividades\n- Conduzir os processos de recrutamento e seleção, do alinhamento do perfil até a contratação;\n- Fazer admissões, conferir documentos e integrar os novos colaboradores;\n- Acompanhar o controle de ponto e tratar as inconsistências;\n- Orientar colaboradores e gestores sobre as políticas e rotinas de RH;\n- Apoiar ações de clima organizacional e comunicação interna.\n\nRequisitos\n- Superior completo ou em andamento em Gestão de RH, Administração, Psicologia ou áreas afins;\n- Experiência com rotinas de RH e/ou Departamento Pessoal;\n- Conhecimento em recrutamento e seleção, admissão e controle de ponto;\n- Pacote Office, principalmente Excel.\n\nDiferenciais\n- Experiência na indústria têxtil;\n- Conhecimento de legislação trabalhista.\n\nHorário\n- Segunda a quinta: 7h às 17h\n- Sexta: 7h às 12h\n\nBenefícios\n- Vale-transporte\n- Plano odontológico\n- Convênio farmácia\n\nPara se candidatar, envie o currículo pelo WhatsApp: (11) 90000-0000",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Analista de Recursos Humanos",
+			"company": null,
+			"location": "Blumenau",
+			"workMode": null,
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"Gestão de RH",
+				"Administração",
+				"Recrutamento e seleção",
+				"Controle de ponto",
+				"Excel"
+			],
+			"recruiterEmail": null,
+			"applyLink": null,
+			"aiJobConfidence": 100
+		},
+		"expected": {
+			"title": "Analista de Recursos Humanos",
+			"company": null,
+			"location": "Blumenau",
+			"workMode": null,
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"Recrutamento e seleção",
+				"Departamento Pessoal",
+				"Controle de ponto",
+				"Pacote Office",
+				"Excel",
+				"Legislação trabalhista"
+			],
+			"recruiterEmail": null,
+			"applyLink": null
+		},
+		"correctedFields": [
+			"necessaryKnowledge"
+		],
+		"model": "gemma3:4b",
+		"promptVersion": "3caef3e2ad31"
+	},
+	{
+		"postId": "caso-266b78b6efda",
+		"anonymized": true,
+		"area": "rh",
+		"kind": "fields",
+		"post": {
+			"text": "VAGA ABERTA | ANALISTA DE GENTE E GESTÃO\n\nBuscamos um(a) profissional para atuar com Recursos Humanos, Departamento Pessoal e ações voltadas aos colaboradores de uma empresa cliente do setor agroindustrial.\nSe você é organizado(a), se comunica bem e gosta de atuar de forma generalista em Gestão de Pessoas, essa vaga pode ser sua!\n\nRequisitos:\n- Superior em Administração, Psicologia ou áreas afins;\n- Conhecimento em rotinas de RH e Departamento Pessoal;\n- Pacote Office;\n- Organização e bom relacionamento interpessoal.\n\nChapecó/SC\n\nEnvie o currículo para: contato1@exemplo.com\nWhatsApp: (11) 90000-0000\n\nNa Conecta Talentos RH®, aproximamos pessoas de oportunidades que fazem sentido.\n\n#VagaDeEmprego #RecursosHumanos #GestãoDePessoas #OportunidadeDeEmprego",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "ANALISTA DE GENTE E GESTÃO",
+			"company": null,
+			"location": "Chapecó/SC",
+			"workMode": null,
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"Office"
+			],
+			"recruiterEmail": "contato1@exemplo.com",
+			"applyLink": null,
+			"aiJobConfidence": 100
+		},
+		"expected": {
+			"title": "Analista de Gente e Gestão",
+			"company": null,
+			"location": "Chapecó/SC",
+			"workMode": null,
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"Rotinas de RH",
+				"Departamento Pessoal",
+				"Pacote Office"
+			],
+			"recruiterEmail": "contato1@exemplo.com",
+			"applyLink": null
+		},
+		"correctedFields": [
+			"necessaryKnowledge"
+		],
+		"model": "gemma3:4b",
+		"promptVersion": "3caef3e2ad31"
+	},
+	{
+		"postId": "caso-34dcdd81cd4f",
+		"anonymized": true,
+		"area": "rh",
+		"kind": "fields",
+		"post": {
+			"text": "A Atlas Talentos é uma consultoria de recursos humanos que conecta pessoas a trabalhos com propósito e ajuda cada profissional a desenvolver a carreira.\n\nEstamos contratando ANALISTA DE RECURSOS HUMANOS (TALENT ACQUISITION) TEMPORÁRIO para trabalhar na Solaris Energia, multinacional do setor de energia, em São Paulo, Zona Sul ⭕\n\nSÓ PERFIS COM INGLÊS AVANÇADO!!\n\nLINK DA VAGA: https://vagas.exemplo.com/atlas/analista-rh-ta",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "ANALISTA DE RECURSOS HUMANOS (TALENT ACQUISITION)",
+			"company": "Atlas Talentos",
+			"location": "São Paulo, Zona Sul",
+			"workMode": null,
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"ingles"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/atlas/analista-rh-ta",
+			"aiJobConfidence": 100
+		},
+		"expected": {
+			"title": "Analista de Recursos Humanos (Talent Acquisition)",
+			"company": "Solaris Energia",
+			"location": "São Paulo",
+			"workMode": null,
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"Inglês"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/atlas/analista-rh-ta"
+		},
+		"correctedFields": [
+			"company",
+			"location",
+			"necessaryKnowledge"
+		],
+		"model": "gemma3:4b",
+		"promptVersion": "3caef3e2ad31"
+	},
+	{
+		"postId": "caso-932793e98e04",
+		"anonymized": true,
+		"area": "vendas",
+		"kind": "fields",
+		"post": {
+			"text": "🚗 ESTAMOS CONTRATANDO | VENDEDOR EXTERNO\nProdutos alimentícios\n\nGosta de vender e de construir relacionamento com clientes? Veja esta vaga para atuação externa!\n\n📍 Ribeirão Preto/SP e região\n💰 Salário: R$ 2.250,00 + comissão de 1% a 3%\n🚗 Carro da empresa para as visitas.\n💼 O que você vai fazer?\n• Visitar e atender clientes em Ribeirão Preto e região;\n• Prospectar novos negócios e apresentar os produtos;\n• Acompanhar pedidos e metas.\n\n🔎 O que buscamos?\n• Experiência com vendas;\n• Boa comunicação e proatividade;\n• CNH B e disponibilidade para visitas;\n• Experiência em vendas externas é um diferencial.\n\n⏰ Horário: segunda a sexta, das 8h às 18h.\n\n📲 Como se candidatar\nPreencha o formulário: https://forms.exemplo.com/vendedor-externo\nOu mande o currículo com o nome da vaga para contato1@exemplo.com\n📱 WhatsApp: (11) 90000-0000\n\n#Vagas #VendedorExterno #VendasExternas #Vendas #RibeirãoPreto",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Vendedor Externo",
+			"company": null,
+			"location": "Ribeirão Preto/SP e região",
+			"workMode": null,
+			"contractTypes": null,
+			"necessaryKnowledge": null,
+			"recruiterEmail": "contato1@exemplo.com",
+			"applyLink": "https://forms.exemplo.com/vendedor-externo",
+			"aiJobConfidence": 100
+		},
+		"expected": {
+			"title": "Vendedor Externo",
+			"company": null,
+			"location": "Ribeirão Preto/SP",
+			"workMode": null,
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"Vendas",
+				"CNH B",
+				"Vendas externas"
+			],
+			"recruiterEmail": "contato1@exemplo.com",
+			"applyLink": "https://forms.exemplo.com/vendedor-externo"
+		},
+		"correctedFields": [
+			"location",
+			"necessaryKnowledge"
+		],
+		"model": "gemma3:4b",
+		"promptVersion": "3caef3e2ad31"
+	},
+	{
+		"postId": "caso-4ae055d5952f",
+		"anonymized": true,
+		"area": "vendas",
+		"kind": "fields",
+		"post": {
+			"text": "OPORTUNIDADE DE CARREIRA: VENDEDOR EXTERNO\n\nA Torque Automação está buscando um profissional dinâmico, com perfil comercial consultivo e foco em prospecção, para desenvolver negócios no setor industrial a partir de Joinville/SC!\n\nSe você enxerga oportunidades no mercado B2B e quer crescer numa empresa de referência em soluções para a indústria, esta vaga é para você.\n\nResponsabilidades e requisitos:\nExperiência sólida em vendas externas B2B na indústria;\nCNH B e disponibilidade total para viagens;\nÓtima comunicação, proatividade e organização.\n\nDiferenciais:\nConhecimento técnico em motores e inversores de frequência;\nFormação técnica ou superior em Engenharia, Automação ou Gestão Comercial;\nVivência em Automação Industrial.\n\nO que oferecemos:\nSalário compatível com o mercado + comissões;\nSuporte técnico para apoiar as negociações;\nCrescimento real na empresa.\n\n📩 Interessou ou conhece alguém com esse perfil? Mande o currículo para contato1@exemplo.com com o assunto \"Vaga Vendedor Externo\".",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Vendedor Externo",
+			"company": "Torque Automação",
+			"location": "Joinville/SC",
+			"workMode": null,
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"motores",
+				"inversores de frequência",
+				"automação industrial"
+			],
+			"recruiterEmail": "contato1@exemplo.com",
+			"applyLink": null,
+			"aiJobConfidence": 100
+		},
+		"expected": {
+			"title": "Vendedor Externo",
+			"company": "Torque Automação",
+			"location": "Joinville/SC",
+			"workMode": null,
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"Vendas externas B2B",
+				"CNH B",
+				"Motores",
+				"Inversores de frequência",
+				"Automação Industrial"
+			],
+			"recruiterEmail": "contato1@exemplo.com",
+			"applyLink": null
+		},
+		"correctedFields": [
+			"necessaryKnowledge"
+		],
+		"model": "gemma3:4b",
+		"promptVersion": "3caef3e2ad31"
+	},
+	{
+		"postId": "caso-db6598ac2117",
+		"anonymized": true,
+		"area": "administrativo",
+		"kind": "fields",
+		"post": {
+			"text": "Vaga aberta!\n\nEstamos contratando um(a) Assistente Administrativo(a) e de Serviços Externos para apoiar as rotinas administrativas e operacionais: organizar documentos, controlar informações e fazer atividades externas conforme a necessidade da empresa.\n\nResponsabilidades\nElaborar, organizar e manter atualizados documentos, arquivos e planilhas.\nConsolidar as planilhas de controle de ponto.\nAjudar nas rotinas administrativas e no acompanhamento dos processos internos.\nFazer compras externas de materiais.\nResolver demandas administrativas em órgãos e prestadores de serviço.\n\nRequisitos\nPacote Office, principalmente Word e Excel (planilhas e fórmulas básicas).\nOrganização, responsabilidade e boa comunicação.\nCNH e veículo próprio.\n\nDiferenciais\nExperiência em funções administrativas.\nExcel intermediário ou avançado.\n\nSalário: R$ 2.600,00 a R$ 3.300,00, conforme experiência.\nCombustível e deslocamentos pagos pela empresa.\n\nLocal: São Paulo/SP (Brás), presencial, com deslocamentos externos.\n\nInteressados, enviem o CV para contato1@exemplo.com",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Assistente Administrativo(a) e de Serviços Externos",
+			"company": null,
+			"location": "São Paulo/SP (Brás)",
+			"workMode": "presencial",
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"Word",
+				"Excel",
+				"planilhas",
+				"fórmulas básicas"
+			],
+			"recruiterEmail": "contato1@exemplo.com",
+			"applyLink": null,
+			"aiJobConfidence": 100
+		},
+		"expected": {
+			"title": "Assistente Administrativo(a) e de Serviços Externos",
+			"company": null,
+			"location": "São Paulo/SP",
+			"workMode": "presencial",
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"Pacote Office",
+				"Word",
+				"Excel",
+				"CNH"
+			],
+			"recruiterEmail": "contato1@exemplo.com",
+			"applyLink": null
+		},
+		"correctedFields": [
+			"location",
+			"necessaryKnowledge"
+		],
+		"model": "gemma3:4b",
+		"promptVersion": "3caef3e2ad31"
+	},
+	{
+		"postId": "caso-e0196d3d5779",
+		"anonymized": true,
+		"area": "administrativo",
+		"kind": "not-a-job",
+		"post": {
+			"text": "Qual a sua maior dúvida sobre a reforma tributária nas viagens corporativas?\n\nA reforma entra numa fase decisiva, e quem cuida de viagens e despesas já se pergunta: o que gera crédito, como emitir e conferir as notas, o que mudar na política de viagens.\n\n📅 Quinta-feira, 12 de novembro\n🕓 15h\n💻 Online e ao vivo\n\nCom dois advogados e contadores especialistas no tema e mediação do nosso diretor de compras.\n\n👉 Garanta sua vaga gratuitamente: https://eventos.exemplo.com/reforma-viagens",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": null,
+			"company": "exemplo",
+			"location": null,
+			"workMode": "hibrido",
+			"contractTypes": null,
+			"necessaryKnowledge": null,
+			"recruiterEmail": null,
+			"applyLink": "https://eventos.exemplo.com/reforma-viagens",
+			"aiJobConfidence": 1
+		},
+		"expected": null,
+		"correctedFields": [],
+		"model": "gemma3:4b",
+		"promptVersion": "3caef3e2ad31"
 	}
 ]

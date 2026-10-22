@@ -5,6 +5,7 @@ import { jobFields } from '@shared/contracts'
 import {
 	caseToRawPost,
 	formatReport,
+	groupByArea,
 	latestPerPost,
 	runFromModel,
 	sameFieldValue,
@@ -28,6 +29,7 @@ const fields = jobFields({
 const item: ExtractionCase = {
 	postId: 'urn:li:activity:1',
 	anonymized: false,
+	area: 'dev',
 	kind: 'fields',
 	post: { text, author: 'Ana Souza', url: null, postedAt: null, sourcePostId: null },
 	aiOutput: { ...fields, aiJobConfidence: 90 },
@@ -114,6 +116,18 @@ describe('scoreCases', () => {
 	test('sem resposta do modelo, todos os campos contam como errados', () => {
 		const report = scoreCases([{ item, run: { isJob: false, fields: null } }])
 		expect(report.fields.title.current).toEqual({ correct: 0, total: 1 })
+	})
+
+	test('groupByArea separa dev das outras áreas e tira o grupo vazio', () => {
+		const dev = { item, run: { isJob: true, fields } }
+		const marketing = { item: { ...item, area: 'marketing' }, run: { isJob: true, fields } }
+		const saude = { item: { ...item, area: 'saude' }, run: { isJob: true, fields } }
+
+		expect(groupByArea([marketing, dev, saude])).toEqual([
+			['dev', [dev]],
+			['outras áreas', [marketing, saude]],
+		])
+		expect(groupByArea([dev])).toEqual([['dev', [dev]]])
 	})
 
 	test('formatReport mostra uma linha por campo', () => {
