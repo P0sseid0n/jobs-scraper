@@ -111,8 +111,9 @@ export function JobCard({
 
 /**
  * A bolinha de não vista é também o botão que muda o estado, como o indicador de não lida do Outlook e do Apple Mail:
- * fica na margem esquerda, na altura do cargo. Na vaga vista, um círculo vazado aparece no lugar com o mouse sobre o
- * card. No toque não há hover: a bolinha só indica, e o link para desmarcar fica no rodapé do detalhe.
+ * fica na margem esquerda, na altura do cargo. Na vaga vista, um círculo vazado fica no lugar, sempre visível (sem
+ * depender do hover, que não existe no toque), com contraste de 3:1 como os outros controles. A área de clique ocupa a
+ * margem toda e tem 24px de altura com o mouse e 44px no toque, sem chegar ao cargo, que abre a vaga.
  */
 function ViewedDot({ job, viewed }: { job: WebJob; viewed: boolean }) {
 	const label = viewed ? 'marcar como não vista' : 'marcar como vista'
@@ -123,16 +124,18 @@ function ViewedDot({ job, viewed }: { job: WebJob; viewed: boolean }) {
 			aria-label={label}
 			title={label}
 			className={cx(
-				'absolute top-4 left-0 z-10 grid h-5.5 w-8 place-items-center border-0 bg-transparent p-0 max-md:top-3.5 max-md:w-7',
-				'pointer-coarse:pointer-events-none',
-				viewed && 'opacity-0 transition-opacity pointer-coarse:hidden group-hover/card:opacity-100 focus-visible:opacity-100',
+				'group/dot absolute top-4 left-0 z-10 grid h-5.5 w-8 place-items-center border-0 bg-transparent p-0 max-md:top-3.5 max-md:w-7',
+				'after:absolute after:inset-x-0 after:top-1/2 after:h-6 after:-translate-y-1/2 pointer-coarse:after:h-11',
 			)}
 			onClick={() => void setViewed(job, !viewed)}
 		>
 			{viewed ? (
-				<span aria-hidden="true" className="size-2 rounded-full border border-current text-muted transition hover:scale-125" />
+				<span
+					aria-hidden="true"
+					className="size-2 rounded-full border border-current text-muted transition group-hover/dot:scale-125 group-hover/dot:text-ink"
+				/>
 			) : (
-				<StatusDot tone="lime" glow className="transition pointer-fine:hover:scale-125" />
+				<StatusDot tone="lime" glow className="transition group-hover/dot:scale-125" />
 			)}
 		</button>
 	)
