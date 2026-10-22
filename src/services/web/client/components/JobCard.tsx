@@ -42,7 +42,8 @@ export function JobCard({
 			aria-current={selected ? 'true' : undefined}
 		>
 			<ViewedDot job={job} viewed={viewed} />
-			<div className="flex items-start gap-3">
+			{/* No celular, os selos e a data descem para debaixo do cargo: ao lado, espremiam o cargo até quebrar no meio da palavra */}
+			<div className="flex items-start gap-3 max-md:flex-col max-md:gap-2">
 				{/* O card todo abre a vaga: o after do link cobre o card; só a bolinha fica por cima */}
 				<Link
 					className="group flex min-w-0 flex-1 flex-col gap-1 no-underline after:absolute after:inset-0 after:rounded-lg"
@@ -64,14 +65,14 @@ export function JobCard({
 					</span>
 					<span className="text-muted text-sm">{jobSubtitle(job)}</span>
 				</Link>
-				<div className="flex shrink-0 flex-col items-end gap-1.5">
+				<div className="flex shrink-0 flex-col items-end gap-1.5 max-md:w-full max-md:flex-row max-md:flex-wrap max-md:items-center max-md:gap-x-3 max-md:gap-y-1">
 					<div className="flex flex-wrap items-center gap-1.5">
 						<CorrectedBadge job={job} />
 						<ListingBadge job={job} />
 						<ContractTypeBadge job={job} />
 						<WorkModeBadge job={job} />
 					</div>
-					<time className="font-mono text-muted text-sm" dateTime={jobDate(job)}>
+					<time className="font-mono text-muted text-sm whitespace-nowrap" dateTime={jobDate(job)}>
 						{timeAgo(jobDate(job))}
 					</time>
 				</div>
