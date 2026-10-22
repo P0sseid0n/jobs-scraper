@@ -15,7 +15,6 @@ import { Button } from './ui/Button'
 import { card } from './ui/Card'
 import { Skeleton } from './ui/Skeleton'
 import { StatusDot } from './ui/StatusDot'
-import { ViewedButton } from './ViewedButton'
 import { WorkModeBadge } from './WorkModeBadge'
 
 const VISIBLE_SKILLS = 4
@@ -121,7 +120,6 @@ export function JobCard({
 					)
 				)}
 				<CvButton job={job} className="max-md:flex-auto" />
-				<ViewedButton job={job} />
 			</div>
 		</article>
 	)

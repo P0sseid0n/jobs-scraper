@@ -24,7 +24,7 @@ import { Notice } from './ui/Notice'
 import { PdfIcon } from './ui/PdfIcon'
 import { LABEL } from './ui/text'
 import { TextLink } from './ui/TextLink'
-import { ViewedButton } from './ViewedButton'
+import { ViewedLink } from './ViewedLink'
 import { WorkModeBadge } from './WorkModeBadge'
 
 /** Posts maiores que isso começam recolhidos. */
@@ -102,13 +102,12 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 						<time className="font-mono text-muted text-sm whitespace-nowrap" dateTime={jobDate(job)}>
 							publicada {timeAgo(jobDate(job))}
 						</time>
-						<ViewedButton job={job} size="sm" className="ml-3 text-ink" />
 						<IconButton
 							label="reportar problema na vaga"
 							size="sm"
 							bordered
 							// Na cor do texto, para não sumir ao lado da data
-							className="ml-2 text-ink"
+							className="ml-3 text-ink"
 							aria-haspopup="dialog"
 							onClick={() => setReporting(true)}
 						>
@@ -254,6 +253,7 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 					<span>confiança da IA: {Math.round(job.aiJobConfidence)}%</span>
 					{job.language && <span>idioma: {languageLabel(job.language)}</span>}
 				</div>
+				<ViewedLink job={job} className="text-xs font-mono" />
 				<TextLink className="text-xs font-mono" aria-expanded={rawJson !== null} disabled={loadingRaw} onClick={toggleRawJson}>
 					{loadingRaw ? 'carregando json…' : rawJson !== null ? 'esconder json da vaga' : 'ver json da vaga (debug)'}
 				</TextLink>
