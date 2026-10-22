@@ -13,7 +13,6 @@ import { ListingBadge } from './ListingBadge'
 import { badge, BadgeList } from './ui/Badge'
 import { Button } from './ui/Button'
 import { card } from './ui/Card'
-import { IconButton } from './ui/IconButton'
 import { Skeleton } from './ui/Skeleton'
 import { StatusDot } from './ui/StatusDot'
 import { WorkModeBadge } from './WorkModeBadge'
@@ -73,24 +72,31 @@ export function JobCard({
 						<ContractTypeBadge job={job} />
 						<WorkModeBadge job={job} />
 					</div>
-					<div className="flex items-center gap-1">
-						{/*
-						 * Desfazer a marcação é raro: o botão só aparece com o mouse sobre o card ou com o foco do teclado. No
-						 * toque não há hover; lá o link fica no rodapé do detalhe
-						 */}
+					{/*
+					 * Desfazer a marcação é raro, então fica escondido: no card visto, o mouse sobre o card troca a data pelo
+					 * botão, no mesmo lugar e sem mexer no resto (como as ações de um e-mail na caixa de entrada). No toque não há
+					 * hover; lá o link fica no rodapé do detalhe
+					 */}
+					<div className="group/when grid items-center justify-items-end">
+						<time
+							className={cx(
+								'col-start-1 row-start-1 font-mono text-muted text-sm transition-opacity',
+								viewed && 'pointer-fine:group-hover/card:opacity-0 group-has-focus-visible/when:opacity-0',
+							)}
+							dateTime={jobDate(job)}
+						>
+							{timeAgo(jobDate(job))}
+						</time>
 						{viewed && (
-							<IconButton
-								label="marcar como não vista"
-								size="xs"
-								className="text-muted opacity-0 group-hover/card:opacity-100 focus-visible:opacity-100 pointer-coarse:hidden"
+							<button
+								type="button"
+								className="relative col-start-1 row-start-1 inline-flex items-center gap-1.5 border-0 bg-transparent p-0 font-mono text-muted text-xs whitespace-nowrap underline-offset-3 opacity-0 transition-opacity hover:text-ink hover:underline pointer-coarse:hidden group-hover/card:opacity-100 focus-visible:opacity-100"
 								onClick={() => void setViewed(job, false)}
 							>
 								<Icon name="eye-off" size={14} />
-							</IconButton>
+								marcar não vista
+							</button>
 						)}
-						<time className="font-mono text-muted text-sm" dateTime={jobDate(job)}>
-							{timeAgo(jobDate(job))}
-						</time>
 					</div>
 				</div>
 			</div>
