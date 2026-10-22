@@ -18,6 +18,8 @@ export const QUEUES = {
 	web: 'web',
 	/** Currículos prontos pedidos pelo site (é o `replyTo.queue` dos pedidos dele). */
 	webCv: 'web-cv',
+	/** Validações do currículo base pedidas pelo site (é o `replyTo.queue` delas). */
+	webCvBase: 'web-cv-base',
 } as const
 
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES]

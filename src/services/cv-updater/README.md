@@ -21,11 +21,17 @@ Se o resultado passar de uma página, primeiro sai um projeto e depois volta a a
 
 ## Configuração
 
-1. Coloque seu currículo em `data/cv/cv.tex`. Use `assets/cv.example.tex` como referência do formato: seções `Apresentação`, `Habilidades Técnicas` (`\item \textbf{Categoria:} item, item`), `Projetos` (blocos separados por `\vspace`) e `Experiência Profissional` (bullets em `itemize`).
+1. Envie seu currículo pelo site, em **Meus currículos › currículo base** (veja abaixo), ou coloque-o em `data/cv/cv.tex`. Use `assets/cv.example.tex` como referência do formato: seções `Apresentação`, `Habilidades Técnicas` (`\item \textbf{Categoria:} item, item`), `Projetos` (blocos separados por `\vspace`) e `Experiência Profissional` (bullets em `itemize`).
 2. Instale o [Tectonic](https://github.com/tectonic-typesetting/tectonic/releases) e aponte `TECTONIC_BIN` para o executável. No Docker, ele já vem na imagem. Na primeira compilação, ele baixa os pacotes LaTeX e guarda em cache.
 3. A fonte Nunito (do modelo) já vem em `assets/fonts/` (licença OFL). Se o seu `.tex` usar outra fonte com `\setmainfont{Fonte}`, coloque nessa pasta os arquivos `Fonte-Regular.otf`, `Fonte-Italic.otf` e `Fonte-Bold.otf` (ou `-ExtraBold.otf`).
 
 Outras variáveis: `CV_TEX_FILE`, `CV_FONTS_DIR`, `CV_OUTPUT_DIR`, `CV_CACHE_DIR`, `GITHUB_TOKEN` e `GITHUB_CACHE_HOURS`, documentadas no `.env.example`.
+
+## Currículo base pelo site
+
+O site guarda as versões do currículo base na coleção `cv_base_versions`. A ativa é a de `activatedAt` mais recente, e o `loadBaseResume` a relê a cada pedido: trocar de versão vale a partir do próximo currículo, sem reiniciar. Sem nenhuma versão ativada, vale o arquivo `CV_TEX_FILE` (`data/cv/cv.tex`).
+
+Uma versão nova passa antes pela validação, uma mensagem `CvBaseValidationRequest` (`type: "validate-base"`) na mesma fila `cv-updater`. O serviço interpreta o `.tex`, confere as seções esperadas (`EXPECTED_SECTIONS` em `base-resume.ts`) e compila com o Tectonic. A resposta, na fila `web-cv-base`, traz os erros e a pré-visualização em PDF. Só uma versão sem erros pode ser ativada. Como a fila atende uma mensagem por vez, uma validação espera o currículo em geração terminar.
 
 ## Como o pedido chega e volta
 
@@ -35,7 +41,7 @@ O pedido (`CvRequest`) traz um `replyTo` com a fila de resposta e um contexto li
 
 | Arquivo | O que faz |
 | --- | --- |
-| `base-resume.ts` | leitura do `cv.tex` base |
+| `base-resume.ts` | leitura do currículo base (banco ou `cv.tex`) e validação de um `.tex` candidato |
 | `tailoring-suggestions.ts`, `tailoring-prompt.ts` | sugestões da IA (apresentação, habilidades, projetos) |
 | `tailor-resume.ts` | monta o currículo da vaga |
 | `application-message.ts` | mensagem de candidatura |

@@ -3,15 +3,21 @@ import path from 'node:path'
 import { Ollama } from 'ollama'
 
 import { ollamaEnv } from '@shared/config'
-import { CvRequestSchema, type CvRequest, type CvResult } from '@shared/contracts'
+import {
+	CvUpdaterMessageSchema,
+	type CvBaseValidationRequest,
+	type CvBaseValidationResult,
+	type CvRequest,
+	type CvResult,
+} from '@shared/contracts'
 import { Job } from '@shared/database'
 import { QUEUES } from '@shared/messaging'
 import { startService } from '@shared/service'
 
 import { requestApplicationMessage } from './application-message'
-import { checkBaseResume, loadBaseResume } from './base-resume'
+import { checkBaseResume, loadBaseResume, validateBaseTex } from './base-resume'
 import { cvUpdaterEnv } from './config'
-import { LatexCompileError } from './latex-compiler'
+import { compileLatex, LatexCompileError } from './latex-compiler'
 import { chooseProjects } from './projects/choose-projects'
 import { GithubRepositories } from './projects/github-repositories'
 import { pdfFileName, renderOnePagePdf } from './resume-pdf'
@@ -36,7 +42,9 @@ try {
 	process.exit(1)
 }
 
-await queue.consume(QUEUES.cvUpdater, CvRequestSchema, generateCv)
+await queue.consume(QUEUES.cvUpdater, CvUpdaterMessageSchema, message =>
+	'type' in message ? validateBaseResume(message) : generateCv(message),
+)
 
 /** Gera o currículo da vaga pedida e envia o PDF (ou o motivo da falha) para a fila de resposta de quem pediu. */
 async function generateCv(request: CvRequest) {
@@ -54,7 +62,7 @@ async function generateCv(request: CvRequest) {
 
 	log.info({ title: job.title }, 'Gerando currículo ajustado')
 
-	const base = await loadBaseResume(config.CV_TEX_FILE)
+	const { resume: base, versionId } = await loadBaseResume(config.CV_TEX_FILE)
 	const suggestions = await requestTailoringSuggestions({ ollama, model: config.OLLAMA_MODEL }, base.model, job, log)
 
 	const { cv, report } = tailorResumeToJob(base.model, job, suggestions)
@@ -95,9 +103,33 @@ async function generateCv(request: CvRequest) {
 	await reply({ jobTitle: job.title, file: { name, base64: pdf.toString('base64') }, error: null, message })
 
 	log.info(
-		{ file: name, added: report.addedSkills.map(entry => entry.skill), removed: report.removedSkills, message: !!message },
+		{
+			file: name,
+			baseVersion: versionId ?? 'arquivo',
+			added: report.addedSkills.map(entry => entry.skill),
+			removed: report.removedSkills,
+			message: !!message,
+		},
 		'Currículo enviado',
 	)
+}
+
+/** Valida um `.tex` candidato a currículo base e devolve os erros (ou nenhum) e a pré-visualização a quem pediu. */
+async function validateBaseResume(request: CvBaseValidationRequest) {
+	const log = logger.child({ validationId: request.validationId, replyTo: request.replyTo.queue })
+	log.info({ bytes: Buffer.byteLength(request.tex) }, 'Validando um currículo base')
+
+	const { errors, pdf, pages } = await validateBaseTex(request.tex, tex => compileLatex(tex, compileOptions))
+
+	await queue.publish(request.replyTo.queue, {
+		validationId: request.validationId,
+		context: request.replyTo.context,
+		errors,
+		pages,
+		pdf: pdf?.toString('base64') ?? null,
+	} satisfies CvBaseValidationResult)
+
+	log.info({ valid: errors.length === 0, errors: errors.length, pages }, 'Validação do currículo base enviada')
 }
 
 async function findTargetJob(postId: string): Promise<CvJob | null> {

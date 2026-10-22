@@ -1,14 +1,16 @@
 import { Link } from '@tanstack/react-router'
 
-import type { WebCvRequest } from '../../api-types'
+import type { WebCvBaseVersion, WebCvRequest } from '../../api-types'
 import { cvPdfUrl } from '../api'
 import { Icon } from '../components/Icon'
+import { Badge } from '../components/ui/Badge'
 import { Button, ButtonLink } from '../components/ui/Button'
 import { card } from '../components/ui/Card'
 import { EmptyState } from '../components/ui/EmptyState'
 import { Hero, Page } from '../components/ui/Page'
 import { PdfIcon } from '../components/ui/PdfIcon'
 import { LABEL } from '../components/ui/text'
+import { activeVersion } from '../lib/cv-base'
 import { formatDateTime } from '../lib/format'
 import { jobParams } from '../router'
 import { requestCv, useCvRequests } from '../stores/cv'
@@ -63,8 +65,41 @@ function CvItem({ request }: { request: WebCvRequest }) {
 	)
 }
 
-/** "Meus currículos": os PDFs gerados pelo site, para baixar de novo sem gerar outro. */
-export function CvsView() {
+/** O currículo base em uso, com o caminho para trocá-lo; `versions` é `null` se não deu para carregar. */
+function CvBaseCard({ versions }: { versions: WebCvBaseVersion[] | null }) {
+	const active = versions && activeVersion(versions)
+	const validating = versions?.some(version => version.status === 'validating')
+
+	const detail = !versions
+		? 'Não consegui carregar as versões do currículo base.'
+		: active
+			? [`versão de ${formatDateTime(active.activatedAt!)}`, active.fileName ?? 'editada no site'].join(' · ')
+			: 'usando o arquivo data/cv/cv.tex'
+
+	return (
+		<section className={card({ className: 'flex flex-wrap items-center gap-3.5 px-5 py-4.5' })} aria-labelledby="cv-base-title">
+			<div className="flex min-w-0 grow flex-col gap-0.5">
+				<span className="flex flex-wrap items-center gap-2">
+					<h2 id="cv-base-title" className="font-semibold">
+						currículo base
+					</h2>
+					{validating && (
+						<Badge tone="running" size="sm">
+							validando
+						</Badge>
+					)}
+				</span>
+				<span className="font-mono text-xs text-muted">{detail}</span>
+			</div>
+			<ButtonLink variant="ghost" to="/curriculos/base">
+				alterar
+			</ButtonLink>
+		</section>
+	)
+}
+
+/** "Meus currículos": o currículo base e os PDFs gerados pelo site, para baixar de novo sem gerar outro. */
+export function CvsView({ baseVersions }: { baseVersions: WebCvBaseVersion[] | null }) {
 	// A lista vem do loader da rota (`routes/curriculos.tsx`), que também cuida do carregamento e do erro
 	const { requests } = useCvRequests()
 
@@ -81,6 +116,8 @@ export function CvsView() {
 				}
 				lead="Um PDF de uma página por vaga: apresentação reescrita para a vaga, tecnologias pedidas nas habilidades, projetos do GitHub mais relevantes e a experiência reordenada."
 			/>
+
+			<CvBaseCard versions={baseVersions} />
 
 			{requests.length === 0 && (
 				<EmptyState

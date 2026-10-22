@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { CvResultSchema, ProcessedJobSchema } from '@shared/contracts'
+import { CvBaseValidationResultSchema, CvResultSchema, ProcessedJobSchema } from '@shared/contracts'
 import { Job } from '@shared/database'
 import { onShutdown } from '@shared/lifecycle'
 import { EXCHANGES, QUEUES } from '@shared/messaging'
@@ -10,6 +10,14 @@ import type { ApiError } from './api-types'
 import app from './client/index.html'
 import { webEnv } from './config'
 import { getCvPdf, getCvRequest, listCvRequests, requestCv, saveCvResult } from './server/cv'
+import {
+	activateCvBaseVersion,
+	createCvBaseVersion,
+	getCvBasePdf,
+	getCvBaseVersion,
+	listCvBaseVersions,
+	saveCvBaseValidation,
+} from './server/cv-base'
 import { EventHub } from './server/event-hub'
 import { handler } from './server/http'
 import { correctJob } from './server/job-correction'
@@ -43,6 +51,7 @@ await queue.consume(
 )
 
 await queue.consume(QUEUES.webCv, CvResultSchema, result => saveCvResult(result, { events, logger }))
+await queue.consume(QUEUES.webCvBase, CvBaseValidationResultSchema, result => saveCvBaseValidation(result, { events, logger }))
 
 const api = <R extends Request>(fn: (req: R) => Promise<Response> | Response) => handler(logger, fn)
 
@@ -68,6 +77,11 @@ const server = Bun.serve({
 		'/api/cv': { GET: api(listCvRequests) },
 		'/api/cv/:requestId': { GET: api(getCvRequest) },
 		'/api/cv/:requestId/pdf': { GET: api(getCvPdf) },
+		'/api/cv-base': { GET: api(listCvBaseVersions) },
+		'/api/cv-base/versions': { POST: api(req => createCvBaseVersion(req, { queue, events, logger })) },
+		'/api/cv-base/versions/:versionId': { GET: api(getCvBaseVersion) },
+		'/api/cv-base/versions/:versionId/pdf': { GET: api(getCvBasePdf) },
+		'/api/cv-base/versions/:versionId/activate': { POST: api(req => activateCvBaseVersion(req, { events, logger })) },
 		'/api/scraper/status': { GET: api(scraperStatus) },
 		'/api/scraper/runs': { GET: api(listRuns) },
 		'/api/scraper/run': { POST: api(() => requestRun(queue)) },

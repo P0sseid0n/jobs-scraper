@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 export const cvUpdaterEnv = {
-	/** Currículo base em LaTeX; é relido a cada pedido, então dá para editar sem reiniciar o serviço. */
+	/** Currículo base em LaTeX quando nenhuma versão foi ativada pelo site; relido a cada pedido, dá para editar sem reiniciar. */
 	CV_TEX_FILE: z.string().min(1).default('data/cv/cv.tex'),
 	/** Fontes usadas pelo .tex (ex.: Nunito-Regular.otf); dispensam ter a fonte instalada no sistema. */
 	CV_FONTS_DIR: z.string().min(1).default('src/services/cv-updater/assets/fonts'),

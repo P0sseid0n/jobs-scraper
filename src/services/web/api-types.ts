@@ -10,7 +10,7 @@ import type {
 	ScraperSettings,
 	SettingsKey,
 } from '@shared/contracts'
-import type { ScraperRunStatus, ScraperRunTrigger, ScraperTermErrorKind, SeenPostOutcome } from '@shared/database'
+import type { CvBaseStatus, ScraperRunStatus, ScraperRunTrigger, ScraperTermErrorKind, SeenPostOutcome } from '@shared/database'
 
 /**
  * Vaga salva: o cargo nunca falta (o post-processing descarta as que vêm sem), `createdAt` é quando entrou no sistema
@@ -54,6 +54,31 @@ export type WebCvRequest = {
 	requestedAt: string
 	finishedAt: string | null
 }
+
+/** Versão do currículo base (sem o `.tex` nem o PDF, buscados à parte). */
+export type WebCvBaseVersion = {
+	versionId: string
+	/** Nome do arquivo enviado; `null` quando o texto foi escrito ou editado no site. */
+	fileName: string | null
+	status: CvBaseStatus
+	/** Por que foi recusada; vazio enquanto valida e nas válidas. */
+	errors: string[]
+	pages: number | null
+	/** Tamanho do `.tex` em bytes. */
+	size: number
+	createdAt: string
+	validatedAt: string | null
+	/** Última vez que virou o currículo base; a ativa é a de data mais recente. */
+	activatedAt: string | null
+	/** Quando some do histórico por nunca ter sido ativada; `null` nas que já foram ativadas. */
+	expiresAt: string | null
+}
+
+/** A versão com o `.tex`, para editar a partir dela. */
+export type WebCvBaseVersionWithTex = WebCvBaseVersion & { tex: string }
+
+/** Versões do currículo base, das mais novas às mais antigas (a ativa sempre vem, mesmo se for antiga). */
+export type WebCvBase = { versions: WebCvBaseVersion[] }
 
 export type WebScraperRun = {
 	id: string
@@ -115,5 +140,8 @@ export type ApiError = { error: string; fields?: Record<string, string> }
 /** Vagas marcadas como vistas (`viewedAt` com a data) ou como não vistas (`viewedAt: null`). */
 export type JobsViewedChange = { postIds: string[]; viewedAt: string | null }
 
-/** Eventos do stream SSE (`/api/jobs/stream`): `viewed` leva a marcação de vista às outras abas e aparelhos. */
-export type StreamEvents = { job: WebJob; cv: WebCvRequest; viewed: JobsViewedChange }
+/**
+ * Eventos do stream SSE (`/api/jobs/stream`): `viewed` leva a marcação de vista às outras abas e aparelhos; `cvBase`,
+ * uma versão do currículo base criada, validada ou ativada.
+ */
+export type StreamEvents = { job: WebJob; cv: WebCvRequest; viewed: JobsViewedChange; cvBase: WebCvBaseVersion }

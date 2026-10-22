@@ -8,6 +8,9 @@ import type {
 	RunsPage,
 	ScraperStatus,
 	SettingsKey,
+	WebCvBase,
+	WebCvBaseVersion,
+	WebCvBaseVersionWithTex,
 	WebCvRequest,
 	WebJob,
 	WebSettings,
@@ -86,6 +89,15 @@ export const api = {
 	cvRequests: () => request<WebCvRequest[]>('/api/cv'),
 	cvRequest: (requestId: string) => request<WebCvRequest>(`/api/cv/${requestId}`),
 
+	cvBase: () => request<WebCvBase>('/api/cv-base'),
+	cvBaseVersion: (versionId: string) => request<WebCvBaseVersionWithTex>(`/api/cv-base/versions/${versionId}`),
+	/** Guarda o `.tex` como versão nova e pede a validação; o resultado chega pelo stream (`cvBase`). */
+	createCvBaseVersion: (tex: string, fileName: string | null) =>
+		request<WebCvBaseVersion>('/api/cv-base/versions', { method: 'POST', body: JSON.stringify({ tex, fileName }) }),
+	/** Torna a versão (já validada) o currículo base; também serve para voltar a uma anterior. */
+	activateCvBaseVersion: (versionId: string) =>
+		request<WebCvBaseVersion>(`/api/cv-base/versions/${versionId}/activate`, { method: 'POST' }),
+
 	scraperStatus: () => request<ScraperStatus>('/api/scraper/status'),
 	runs: (cursor?: string | null) => request<RunsPage>(`/api/scraper/runs${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`),
 	runNow: () => request<{ requested: true }>('/api/scraper/run', { method: 'POST' }),
@@ -97,4 +109,8 @@ export const api = {
 
 export function cvPdfUrl(requestId: string, download = false) {
 	return `/api/cv/${requestId}/pdf${download ? '?download=1' : ''}`
+}
+
+export function cvBasePdfUrl(versionId: string) {
+	return `/api/cv-base/versions/${versionId}/pdf`
 }

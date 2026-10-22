@@ -1,4 +1,5 @@
 export * from './connection'
+export * from './cv-base-version.model'
 export * from './extraction-feedback.model'
 export * from './job.model'
 export * from './scraper-run.model'

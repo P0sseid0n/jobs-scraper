@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { CvRequestSchema } from './cv'
+import { CV_BASE_TEX_MAX_BYTES, CvRequestSchema, CvUpdaterMessageSchema } from './cv'
 import { ProcessedJobSchema } from './job'
 import { RawPostSchema } from './raw-post'
 
@@ -53,5 +53,17 @@ describe('contratos das filas', () => {
 		expect(CvRequestSchema.parse({ ...request, replyTo: { queue: 'telegram-cv' } }).replyTo.context).toEqual({})
 		expect(CvRequestSchema.safeParse({ ...request, replyTo: { queue: 'discord-cv', context: { token: 'x' } } }).success).toBe(true)
 		expect(CvRequestSchema.safeParse({ ...request, replyTo: { queue: 'Fila Inválida' } }).success).toBe(false)
+	})
+
+	test('a fila do cv-updater aceita pedidos de currículo (sem type) e validações do currículo base', () => {
+		const replyTo = { queue: 'web-cv-base', context: {} }
+		const requestedAt = new Date().toISOString()
+		const validation = { type: 'validate-base', validationId: 'v1', tex: '\\documentclass{article}', replyTo, requestedAt }
+
+		expect(CvUpdaterMessageSchema.parse(validation)).toMatchObject({ type: 'validate-base' })
+		expect(CvUpdaterMessageSchema.parse({ postId: 'abc', requestedBy: 'web', replyTo, requestedAt })).not.toHaveProperty('type')
+
+		expect(CvUpdaterMessageSchema.safeParse({ ...validation, tex: '   ' }).success).toBe(false)
+		expect(CvUpdaterMessageSchema.safeParse({ ...validation, tex: 'é'.repeat(CV_BASE_TEX_MAX_BYTES / 2 + 1) }).success).toBe(false)
 	})
 })
