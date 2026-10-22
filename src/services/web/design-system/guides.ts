@@ -122,6 +122,6 @@ export const GUIDES: Record<string, string> = {
 - Os blocos dentro dele já ficam com \`gap-7\` (\`gap-5\` no celular). A tela costuma abrir com um \`Hero\`.`,
 	Hero: `Abertura da tela: título numa linha (a parte em mono vem em \`<Hero.Mono>\`), texto de apoio opcional e, à direita, \`aside\`.
 
-- \`title\` em minúsculas com a parte final em \`Hero.Mono\` ("vagas <Hero.Mono>coletadas.</Hero.Mono>"); \`lead\` só quando explica algo que a tela não mostra, em uma frase curta. A lista de vagas, aberta todo dia, não tem.
+- \`title\` em minúsculas com a parte final em \`Hero.Mono\` ("vagas <Hero.Mono>coletadas.</Hero.Mono>"); \`lead\` só quando explica algo que a tela não mostra, em uma frase curta.
 - \`aside\` leva o status ou a ação da tela (um \`Badge\` \`lg\` com \`StatusDot\`, um \`Button\`).`,
 }
