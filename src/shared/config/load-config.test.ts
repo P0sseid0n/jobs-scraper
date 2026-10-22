@@ -13,7 +13,12 @@ describe('parseConfig', () => {
 		)
 
 		expect(result.success).toBe(true)
-		expect(result.data).toMatchObject({ QUEUE_MAX_RETRIES: 3, BROWSER_NO_SANDBOX: true, HEADLESS: 'auto', SCRAPER_MAX_POSTS: 50 })
+		expect(result.data).toMatchObject({
+			QUEUE_MAX_RETRIES: 3,
+			BROWSER_NO_SANDBOX: true,
+			HEADLESS: 'auto',
+			SCRAPER_INTERVAL_MINUTES: 0,
+		})
 	})
 
 	test('falha quando variáveis obrigatórias estão ausentes ou inválidas', () => {

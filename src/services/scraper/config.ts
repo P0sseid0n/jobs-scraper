@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 import { booleanFromEnv } from '@shared/config'
-import { DATE_POSTED_FILTERS } from '@shared/contracts'
+import { settingsEnv } from '@shared/settings'
 
 export const HEADLESS_MODES = ['auto', 'true', 'false'] as const
 export type HeadlessMode = (typeof HEADLESS_MODES)[number]
@@ -22,16 +22,8 @@ export const scraperEnv = {
 	HEADLESS: z.enum(HEADLESS_MODES).default('auto'),
 	BROWSER_NO_SANDBOX: booleanFromEnv.default(false),
 
-	// Busca e limites: só os valores iniciais. Depois valem os da coleção `settings` (editável por outras fontes)
-	/** Termos de busca separados por vírgula; cada um vira uma busca na mesma coleta. Vazio: o onboarding preenche. */
-	SEARCH_KEYWORDS: z.string().trim().default(''),
-	SCRAPER_DATE_POSTED: z.enum(DATE_POSTED_FILTERS).default('past-24h'),
-	SCRAPER_MAX_POSTS: z.coerce.number().int().positive().default(50),
-	/**
-	 * 0 = roda uma coleta e termina. > 0 = fica rodando: coleta a cada N minutos e atende o "coletar agora"
-	 * (fila `scraper`). Com o serviço rodando, o intervalo passa a ser o da coleção `settings`.
-	 */
-	SCRAPER_INTERVAL_MINUTES: z.coerce.number().int().min(0).default(0),
+	// A busca e os limites ficam nas configurações (`settingsEnv`); o intervalo também decide o modo de execução
+	SCRAPER_INTERVAL_MINUTES: settingsEnv.SCRAPER_INTERVAL_MINUTES,
 
 	/** Tempo máximo esperando novos posts aparecerem depois de rolar a página. */
 	SCRAPER_SCROLL_DELAY_MS: z.coerce.number().int().min(1_000).default(10_000),

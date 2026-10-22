@@ -2,6 +2,8 @@
 
 O site: mais um canal, ao lado do Discord, com o que o Discord não faz bem. Busca e filtros no histórico, acompanhamento das coletas e edição das configurações. Abre em http://localhost:3000 (`WEB_PORT`). Não tem login: a porta fica só em `127.0.0.1` (`WEB_HOST`).
 
+`SKIP_ONBOARDING=true` faz o site não abrir o onboarding, para quem configura tudo pelo `.env`. Com `false` (padrão), o onboarding abre enquanto falta o mínimo, com os campos já preenchidos pelo `.env` e editáveis. `GET /api/setup` diz se o onboarding deve abrir e o que já está configurado.
+
 [← voltar ao README principal](../../../README.md)
 
 ## Telas

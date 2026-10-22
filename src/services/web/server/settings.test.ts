@@ -1,6 +1,8 @@
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
 
+import { parseConfig } from '@shared/config'
 import { createLogger } from '@shared/logging'
+import { seedSettings, settingsEnv, settingsSeedsFromEnv } from '@shared/settings'
 
 import { handler } from './http'
 
@@ -10,13 +12,17 @@ const stored = new Map<string, { values: Record<string, unknown> }>()
 mock.module('../../../shared/database/settings.model', () => ({
 	Settings: {
 		findById: (id: string) => ({ lean: async () => stored.get(id) ?? null }),
-		updateOne: async ({ _id }: { _id: string }, document: { values: Record<string, unknown> }) => {
-			stored.set(_id, document)
+		updateOne: async (
+			{ _id }: { _id: string },
+			document: { values: Record<string, unknown> } | { $setOnInsert: { values: Record<string, unknown> } },
+		) => {
+			if (!('$setOnInsert' in document)) stored.set(_id, document)
+			else if (!stored.has(_id)) stored.set(_id, document.$setOnInsert)
 		},
 	},
 }))
 
-const { getSettings, putSettings } = await import('./settings')
+const { getSettings, putSettings, setupStatus } = await import('./settings')
 
 const logger = createLogger('test')
 logger.level = 'silent'
@@ -72,5 +78,77 @@ describe('/api/settings/profile', () => {
 	test('corpo que não é objeto vira 400; chave desconhecida, 404', async () => {
 		expect((await put(request('profile', ['Marketing']))).status).toBe(400)
 		expect((await get(request('perfil'))).status).toBe(404)
+	})
+})
+
+describe('valores do .env', () => {
+	/** Grava as configurações a partir de um `.env` parcial, como o `startService` faz ao subir. */
+	function seedFrom(env: Record<string, string>) {
+		const config = parseConfig(settingsEnv, env)
+		if (!config.success) throw config.error
+
+		return seedSettings(settingsSeedsFromEnv(config.data))
+	}
+
+	afterEach(async () => {
+		await seedFrom({})
+		stored.clear()
+	})
+
+	test('ao subir, o .env preenche as configurações que ainda não existem', async () => {
+		await seedFrom({ PROFILE_AREA: 'Enfermagem', PROFILE_TARGET_ROLE: 'Enfermeiro', SEARCH_KEYWORDS: 'Enfermeiro' })
+
+		expect(await (await get(request('profile'))).json()).toMatchObject({ area: 'Enfermagem', targetRole: 'Enfermeiro' })
+		expect(await (await get(request('scraper'))).json()).toMatchObject({ searchTerms: [{ term: 'Enfermeiro', enabled: true }] })
+	})
+
+	test('as configurações já salvas não mudam', async () => {
+		await put(request('profile', { area: 'Marketing', targetRole: 'Analista de Marketing' }))
+		await seedFrom({ PROFILE_AREA: 'Enfermagem', PROFILE_TARGET_ROLE: 'Enfermeiro' })
+
+		expect(await (await get(request('profile'))).json()).toMatchObject({ area: 'Marketing', targetRole: 'Analista de Marketing' })
+	})
+
+	test('os campos vindos do .env continuam editáveis pelo site', async () => {
+		await seedFrom({ PROFILE_AREA: 'Enfermagem', PROFILE_TARGET_ROLE: 'Enfermeiro' })
+		const response = await put(request('profile', { targetRole: 'Enfermeiro de UTI' }))
+
+		expect(await response.json()).toMatchObject({ area: 'Enfermagem', targetRole: 'Enfermeiro de UTI' })
+	})
+
+	test('documento apagado depois volta a valer o .env, também no PUT', async () => {
+		await seedFrom({ PROFILE_AREA: 'Enfermagem', PROFILE_TARGET_ROLE: 'Enfermeiro' })
+		stored.delete('profile')
+
+		expect(await (await get(request('profile'))).json()).toMatchObject({ area: 'Enfermagem' })
+		expect(await (await put(request('profile', { seniority: 'senior' }))).json()).toMatchObject({
+			area: 'Enfermagem',
+			seniority: 'senior',
+		})
+	})
+
+	test('valor do .env que os schemas recusam impede a subida, sem gravar nada', async () => {
+		stored.clear()
+
+		await expect(seedFrom({ SCRAPER_MAX_POSTS: '500' })).rejects.toThrow('Valores do .env inválidos para as configurações "scraper"')
+		expect(stored.size).toBe(0)
+	})
+})
+
+describe('/api/setup', () => {
+	afterEach(() => stored.clear())
+
+	test('diz se o onboarding deve abrir e o que já está configurado', async () => {
+		const empty = await (await setupStatus({ skipOnboarding: false })).json()
+		expect(empty).toEqual({ skipOnboarding: false, profileComplete: false, activeSearchTerms: 0 })
+
+		await put(request('profile', { area: 'Enfermagem', targetRole: 'Enfermeiro' }))
+		await put(request('scraper', { searchTerms: [{ term: 'Enfermeiro' }, { term: 'Enfermeira', enabled: false }] }))
+
+		expect(await (await setupStatus({ skipOnboarding: true })).json()).toEqual({
+			skipOnboarding: true,
+			profileComplete: true,
+			activeSearchTerms: 1,
+		})
 	})
 })

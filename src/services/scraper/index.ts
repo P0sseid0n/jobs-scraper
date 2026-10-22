@@ -9,7 +9,7 @@ import { BrowserLock } from './browser-lock'
 import { scraperEnv } from './config'
 import { JobLookupWorker } from './job-lookup'
 import { markInterruptedRuns, recordRun } from './run-history'
-import { NO_SEARCH_TERMS, settingsSeedFromEnv } from './schedule'
+import { NO_SEARCH_TERMS } from './schedule'
 import { runOnSchedule } from './scheduler'
 import { closeActiveBrowser, scrapeOnce } from './scrape-run'
 import { submitVerificationCode } from './verification-inbox'
@@ -33,8 +33,6 @@ await queue.consume(QUEUES.scraperVerification, VerificationCodeSchema, async ({
 
 // Vagas de posts com várias (enviadas pelo post-processing): cada uma é aberta no navegador, com pausa entre elas
 await queue.consume(QUEUES.scraperLookup, JobLookupSchema, lookup => lookups.handle(lookup))
-
-const settingsSeed = settingsSeedFromEnv(config)
 
 try {
 	logger.info('🚀 Iniciando scraper')
@@ -70,5 +68,5 @@ async function collect(trigger: ScraperRunTrigger) {
 }
 
 function loadScraperSettings() {
-	return loadSettings('scraper', settingsSeed)
+	return loadSettings('scraper')
 }

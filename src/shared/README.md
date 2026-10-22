@@ -28,12 +28,14 @@ As mensagens são persistentes e validadas com os schemas de `contracts/`.
 
 ## Configurações em tempo de execução
 
-Os termos de busca, o filtro de data, o limite de posts, o intervalo, a pausa das coletas, a confiança mínima da IA, os idiomas aceitos e as palavras-chave ficam na coleção `settings` do MongoDB, um documento por serviço. O site edita esses valores; outras fontes também podem.
+O perfil profissional, os termos de busca, o filtro de data, o limite de posts, o intervalo, a pausa das coletas, a confiança mínima da IA, os idiomas aceitos e as palavras-chave ficam na coleção `settings` do MongoDB, um documento por serviço (`scraper`, `post-processing`, `profile`). O site edita esses valores; outras fontes também podem.
 
-- Os valores do `.env` (`SEARCH_KEYWORDS`, `SCRAPER_DATE_POSTED`, `SCRAPER_MAX_POSTS`, `SCRAPER_INTERVAL_MINUTES`, `MIN_JOB_CONFIDENCE`, `JOB_LANGUAGES`, `JOB_REQUIRED_KEYWORDS`, `JOB_EXCLUDED_KEYWORDS`) só preenchem o documento na primeira execução. Depois, valem os do banco. Para voltar a usar o `.env`, apague o documento (ex.: pelo mongo-express).
-- Os termos de busca e as palavras-chave nascem vazios (no `.env.example` e nos schemas): o onboarding do site preenche, a partir do perfil. Quem já tem o documento salvo continua com os valores dele.
+- **O `.env` vem primeiro:** todas essas opções têm variável no `.env` (`settingsEnv`, em `settings/settings-env.ts`). Ao subir, todo serviço com banco lê essas variáveis antes de qualquer outra coisa e grava os documentos que ainda não existem (`seedSettings`, chamada pelo `startService`). Assim, não importa qual serviço sobe primeiro, nem se o site é aberto antes do scraper rodar.
+- Depois, valem os do banco, editáveis pelo site: mudar o `.env` não altera documentos já salvos. Para voltar a usar o `.env`, apague o documento (ex.: pelo mongo-express); até ele ser recriado, as leituras já usam os valores do `.env`.
+- Valor do `.env` que os schemas recusam (ex.: `SCRAPER_MAX_POSTS=500`) impede o serviço de subir, com a mensagem do campo.
+- Os termos de busca, as palavras-chave e o perfil nascem vazios no `.env.example`: o onboarding do site preenche. Preenchidos no `.env`, aparecem já completos no onboarding, ainda editáveis; com `SKIP_ONBOARDING=true` (site), o onboarding não abre.
 - Leitura e gravação com `loadSettings`/`updateSettings` (`settings/`), que validam tudo com os schemas de `contracts/` (`ScraperSettingsSchema`, `PostProcessingSettingsSchema`, `ProfileSettingsSchema`).
-- O documento `profile` guarda o perfil profissional (área, cargo-alvo, senioridade e idiomas). Não tem valor no `.env`: nasce sem área nem cargo-alvo e é preenchido pelo site. `isProfileComplete` diz se já tem o mínimo; enquanto não tem, os serviços seguem supondo vagas de desenvolvimento. A exceção é o post-processing: num post com várias vagas, ele extrai a mais próxima do cargo-alvo ou, sem cargo-alvo, a primeira.
+- O documento `profile` guarda o perfil profissional (área, cargo-alvo, senioridade e idiomas): `PROFILE_AREA`, `PROFILE_TARGET_ROLE`, `PROFILE_SENIORITY` e `PROFILE_LANGUAGES` no `.env`, ou pelo site. `isProfileComplete` diz se já tem o mínimo; enquanto não tem, os serviços seguem supondo vagas de desenvolvimento. A exceção é o post-processing: num post com várias vagas, ele extrai a mais próxima do cargo-alvo ou, sem cargo-alvo, a primeira.
 
 ## Healthcheck
 

@@ -1,38 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import type { ScraperConfig } from './config'
-import { nextRunAt, postsPerTerm, settingsSeedFromEnv } from './schedule'
-
-const baseConfig = {
-	SEARCH_KEYWORDS: 'Enfermagem',
-	SCRAPER_DATE_POSTED: 'past-week',
-	SCRAPER_MAX_POSTS: 30,
-	SCRAPER_INTERVAL_MINUTES: 0,
-} as ScraperConfig
-
-describe('settingsSeedFromEnv', () => {
-	test('separa os termos por vírgula, sem vazios nem repetidos', () => {
-		const seed = settingsSeedFromEnv({ ...baseConfig, SEARCH_KEYWORDS: 'Vue, React ,, Vue' })
-
-		expect(seed.searchTerms).toEqual([
-			{ term: 'Vue', enabled: true },
-			{ term: 'React', enabled: true },
-		])
-	})
-
-	test('sem termos no .env, nasce sem termos', () => {
-		expect(settingsSeedFromEnv({ ...baseConfig, SEARCH_KEYWORDS: '' }).searchTerms).toEqual([])
-	})
-
-	test('intervalo 0 (execução única) não define o intervalo', () => {
-		expect(settingsSeedFromEnv(baseConfig).intervalMinutes).toBeUndefined()
-		expect(settingsSeedFromEnv({ ...baseConfig, SCRAPER_INTERVAL_MINUTES: 180 }).intervalMinutes).toBe(180)
-	})
-
-	test('leva o filtro de data e o limite de posts', () => {
-		expect(settingsSeedFromEnv(baseConfig)).toMatchObject({ datePosted: 'past-week', maxPostsPerRun: 30 })
-	})
-})
+import { nextRunAt, postsPerTerm } from './schedule'
 
 describe('postsPerTerm', () => {
 	test('divide o limite exato entre os termos, com o resto nos primeiros', () => {

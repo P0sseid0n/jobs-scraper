@@ -7,7 +7,7 @@ Busca posts de vagas no LinkedIn com o Puppeteer e envia cada um para a fila `po
 ## Coletas
 
 - Cada coleta busca cada termo ativo das configurações (`settings`, editáveis pelo site). O limite de posts é dividido entre os termos.
-- **Sem termos:** o `.env.example` e as configurações nascem sem termos de busca (o onboarding do site preenche). Sem nenhum termo ativo, o scraper não coleta: fica em espera, registra o motivo no log e volta a coletar quando um termo for ativado. A tela de Coletas mostra o que falta.
+- **Sem termos:** o `.env.example` e as configurações nascem sem termos de busca (o `.env` ou o onboarding do site preenchem). Sem nenhum termo ativo, o scraper não coleta: fica em espera, registra o motivo no log e volta a coletar quando um termo for ativado. A tela de Coletas mostra o que falta.
 - **O que conta no limite:** só os posts enviados para a IA. Posts já processados em coletas anteriores e posts em um idioma fora dos aceitos (`allowedLanguages` do post-processing) são pulados, e a busca continua rolando até completar o limite. Ela só para antes no fim dos resultados ou depois de 15 rolagens seguidas sem nenhum post enviado, para não rolar sem fim (cada rolagem espera os posts carregarem, então um termo assim leva alguns minutos).
 - **Coleta única ou periódica:** com `SCRAPER_INTERVAL_MINUTES=0` (padrão), o scraper coleta uma vez e encerra. Com um intervalo (ex.: `180`), ele fica rodando, coleta na agenda e relê as configurações a cada 30 segundos, sem reiniciar.
 - **Coletar agora:** `bun scraper:run`, ou o botão no site, publica uma mensagem `ScraperCommand` na fila `scraper`. Funciona mesmo com as coletas pausadas.
@@ -30,7 +30,7 @@ A sessão fica salva em `data/scraper/linkedin-cookies.json` (no Docker, no volu
 
 ## Variáveis
 
-`LINKEDIN_EMAIL`, `LINKEDIN_PASSWORD`, `LINKEDIN_LI_AT`, `LINKEDIN_COOKIES_FILE`, `HEADLESS`, `BROWSER_NO_SANDBOX`, `SCRAPER_SCROLL_DELAY_MS` e `SCRAPER_LOOKUP_DELAY_MS`. `SEARCH_KEYWORDS`, `SCRAPER_DATE_POSTED`, `SCRAPER_MAX_POSTS` e `SCRAPER_INTERVAL_MINUTES` só preenchem as configurações na primeira execução. Todas estão documentadas no `.env.example`.
+`LINKEDIN_EMAIL`, `LINKEDIN_PASSWORD`, `LINKEDIN_LI_AT`, `LINKEDIN_COOKIES_FILE`, `HEADLESS`, `BROWSER_NO_SANDBOX`, `SCRAPER_SCROLL_DELAY_MS` e `SCRAPER_LOOKUP_DELAY_MS`. `SEARCH_KEYWORDS`, `SCRAPER_DATE_POSTED`, `SCRAPER_MAX_POSTS`, `SCRAPER_INTERVAL_MINUTES` e `SCRAPER_PAUSED` só preenchem as configurações que ainda não existem (ver [shared](../../shared/README.md#configurações-em-tempo-de-execução)); `SCRAPER_INTERVAL_MINUTES` também decide se o scraper roda uma vez (0) ou fica rodando. Todas estão documentadas no `.env.example`.
 
 ## Arquivos
 

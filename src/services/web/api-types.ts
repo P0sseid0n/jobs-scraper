@@ -132,6 +132,15 @@ export type ScraperStatus = {
 	activeSearchTerms: number
 }
 
+/** `GET /api/setup`: se o onboarding deve abrir e o que já está configurado (pelo `.env` ou pelo site). */
+export type SetupStatus = {
+	/** `SKIP_ONBOARDING` do `.env`: com `true`, o site não abre o onboarding. */
+	skipOnboarding: boolean
+	/** Área e cargo-alvo preenchidos (`isProfileComplete`). */
+	profileComplete: boolean
+	activeSearchTerms: number
+}
+
 export type RunsPage = { runs: WebScraperRun[]; nextCursor: string | null }
 
 export type WebSettings = { scraper: ScraperSettings; 'post-processing': PostProcessingSettings; profile: ProfileSettings }

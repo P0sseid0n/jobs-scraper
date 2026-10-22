@@ -2,15 +2,39 @@ import type { z } from 'zod'
 
 import { SETTINGS_SCHEMAS, type SettingsInput, type SettingsKey, type SettingsOf } from '../contracts/settings'
 import { Settings } from '../database/settings.model'
+import type { SettingsSeeds } from './settings-env'
+
+/** Os valores do `.env` (guardados por `seedSettings`), usados sempre que um documento ainda não existe. */
+let seeds: Partial<SettingsSeeds> = {}
 
 /**
- * Lê as configurações de um serviço; na primeira vez, cria o documento com `seed` (valores do `.env`).
- * Depois valem os do banco; campos ausentes recebem o padrão do schema.
+ * Grava os documentos que ainda não existem com os valores do `.env` e os guarda para quando um documento for apagado
+ * depois. Os que já existem não mudam. Chamada por `startService` ao subir, antes de qualquer leitura.
+ * @throws {Error} Se os valores do `.env` não passarem nos schemas; nesse caso nada é gravado.
  */
-export async function loadSettings<K extends SettingsKey>(key: K, seed: Partial<SettingsInput<K>> = {}): Promise<SettingsOf<K>> {
+export async function seedSettings(envSeeds: SettingsSeeds) {
+	const keys = Object.keys(SETTINGS_SCHEMAS) as SettingsKey[]
+	const values = keys.map(key => {
+		try {
+			return parseSettings(key, envSeeds[key])
+		} catch (error) {
+			throw new Error(`Valores do .env inválidos para as configurações "${key}"`, { cause: error })
+		}
+	})
+
+	seeds = envSeeds
+	await Promise.all(
+		keys.map((key, index) =>
+			Settings.updateOne({ _id: key }, { $setOnInsert: { values: values[index], updatedAt: new Date() } }, { upsert: true }),
+		),
+	)
+}
+
+/** Lê as configurações de um serviço; se o documento não existir (foi apagado), recria com os valores do `.env`. */
+export async function loadSettings<K extends SettingsKey>(key: K): Promise<SettingsOf<K>> {
 	const document = await Settings.findOneAndUpdate(
 		{ _id: key },
-		{ $setOnInsert: { values: parseSettings(key, seed), updatedAt: new Date() } },
+		{ $setOnInsert: { values: parseSettings(key, seeds[key] ?? {}), updatedAt: new Date() } },
 		{ upsert: true, returnDocument: 'after', lean: true },
 	)
 
@@ -21,14 +45,11 @@ export async function loadSettings<K extends SettingsKey>(key: K, seed: Partial<
 	}
 }
 
-/**
- * Lê as configurações sem criar o documento: quem cria é o próprio serviço, na primeira execução, com os valores
- * do `.env`. Enquanto ele não rodou, valem os padrões do schema.
- */
+/** Lê as configurações sem criar o documento; sem ele, valem os valores do `.env` (ou, fora de um serviço, os padrões). */
 export async function readSettings<K extends SettingsKey>(key: K): Promise<SettingsOf<K>> {
 	const document = await Settings.findById(key).lean()
 
-	return parseSettings(key, document?.values ?? {})
+	return parseSettings(key, document?.values ?? seeds[key] ?? {})
 }
 
 /**
@@ -37,7 +58,7 @@ export async function readSettings<K extends SettingsKey>(key: K): Promise<Setti
  */
 export async function updateSettings<K extends SettingsKey>(key: K, patch: Partial<SettingsInput<K>>): Promise<SettingsOf<K>> {
 	const current = await Settings.findById(key).lean()
-	const values = parseSettings(key, { ...current?.values, ...patch })
+	const values = parseSettings(key, { ...(current?.values ?? seeds[key]), ...patch })
 
 	await Settings.updateOne({ _id: key }, { values, updatedAt: new Date() }, { upsert: true })
 

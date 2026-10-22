@@ -25,7 +25,7 @@ import { setJobsViewed, setJobViewed } from './server/job-viewed'
 import { getJob, getRawJob, jobFacets, listJobs } from './server/jobs'
 import { toWebJob, type JobDocument } from './server/jobs-query'
 import { listRuns, requestRun, scraperStatus } from './server/scraper'
-import { getSettings, putSettings } from './server/settings'
+import { getSettings, putSettings, setupStatus } from './server/settings'
 
 const { config, logger, queue } = await startService({ name: 'web', env: webEnv, database: true })
 
@@ -87,6 +87,7 @@ const server = Bun.serve({
 		'/api/scraper/runs': { GET: api(listRuns) },
 		'/api/scraper/run': { POST: api(() => requestRun(queue)) },
 		'/api/settings/:key': { GET: api(getSettings), PUT: api(putSettings) },
+		'/api/setup': { GET: api(() => setupStatus({ skipOnboarding: config.SKIP_ONBOARDING })) },
 		'/api/*': Response.json({ error: 'Rota da API não encontrada' } satisfies ApiError, { status: 404 }),
 		// O resto é a aplicação (as rotas do navegador são resolvidas no cliente)
 		'/*': app,

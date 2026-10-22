@@ -13,7 +13,7 @@ Transforma cada post da fila `post-processing` numa vaga estruturada, com um mod
 5. **Relevância:** a busca do LinkedIn traz vagas de outras áreas. A vaga precisa citar no cargo ou nos conhecimentos ao menos uma palavra de `requiredKeywords` e nenhuma de `excludedKeywords`. A comparação é por palavra inteira ("java" não pega "javascript") e ignora caixa, acentos, ".js" e a marca de gênero dos cargos ("Vue.js" = "vue", "Técnico(a)" = "técnico"). O hífen vale junto e separado: "Front-end" casa com "frontend", e "COREN-SP" com "coren". Listas vazias desligam o filtro.
 6. **Salvar e anunciar:** vagas sem cargo ou sem o link do post no LinkedIn são descartadas (`job-validation.ts`). As outras são salvas com upsert por `postId` (índice único), então a mesma vaga nunca é salva duas vezes. Cada vaga nova vai para o evento `job-published` (exchange fanout): o bot liga a fila `discord` e o site, a `web`. Outro canal (Telegram…) ligaria a própria fila e receberia todas as vagas. Se nenhum canal estiver ligado, a publicação falha e o post volta pelo retry; na nova tentativa a vaga já salva é só anunciada, sem chamar a IA de novo.
 
-Confiança, idiomas e palavras-chave ficam nas [configurações](../../shared/README.md#configurações-em-tempo-de-execução) e são editados pelo site. `MIN_JOB_CONFIDENCE`, `JOB_LANGUAGES`, `JOB_REQUIRED_KEYWORDS` e `JOB_EXCLUDED_KEYWORDS` só preenchem esses valores na primeira execução.
+Confiança, idiomas e palavras-chave ficam nas [configurações](../../shared/README.md#configurações-em-tempo-de-execução) e são editados pelo site. `MIN_JOB_CONFIDENCE`, `JOB_LANGUAGES`, `JOB_REQUIRED_KEYWORDS` e `JOB_EXCLUDED_KEYWORDS` só preenchem esses valores quando eles ainda não existem no banco.
 
 ## Arquivos
 

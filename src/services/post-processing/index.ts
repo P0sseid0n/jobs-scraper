@@ -7,7 +7,6 @@ import { QUEUES } from '@shared/messaging'
 import { startService } from '@shared/service'
 import { loadSettings, readSettings } from '@shared/settings'
 
-import { extractionEnv, listFromEnv } from './config'
 import { EXTRACTION_PROMPT_VERSION } from './extraction-prompt'
 import { buildProcessedJob, extractJobFromPost } from './job-extraction'
 import { relevanceRejection } from './job-relevance'
@@ -18,21 +17,12 @@ import { checkLanguage } from './post-language'
 
 const { config, logger, queue } = await startService({
 	name: 'post-processing',
-	env: { ...ollamaEnv, ...extractionEnv },
+	env: ollamaEnv,
 	database: true,
 })
 
 const ollama = new Ollama({ host: config.OLLAMA_HOST })
 await ensureModelAvailable()
-
-// Valores iniciais da coleção `settings`; depois as regras de descarte são editáveis por outras fontes
-const settingsSeed = {
-	minJobConfidence: config.MIN_JOB_CONFIDENCE,
-	allowedLanguages: listFromEnv(config.JOB_LANGUAGES),
-	requiredKeywords: listFromEnv(config.JOB_REQUIRED_KEYWORDS),
-	excludedKeywords: listFromEnv(config.JOB_EXCLUDED_KEYWORDS),
-}
-await loadSettings('post-processing', settingsSeed)
 
 await queue.assertQueue(QUEUES.scraperLookup)
 await queue.consume(QUEUES.postProcessing, RawPostSchema, processPost)
@@ -66,7 +56,7 @@ async function processPost(post: RawPost) {
 		return
 	}
 
-	const settings = await loadSettings('post-processing', settingsSeed)
+	const settings = await loadSettings('post-processing')
 
 	// Antes do idioma: esses posts costumam misturar cargos em inglês; o idioma de cada vaga é visto na página dela
 	const listings = post.sourcePostId ? null : splitMultiJobPost(post.text)
