@@ -4,7 +4,7 @@ import { Job } from '@shared/database'
 import type { JobFacets, JobsPage, WebJob } from '../api-types'
 import { postIdCandidates } from '../job-route-id'
 import { encodeCursor, HttpError, queryParams } from './http'
-import { buildJobsFilter, JobsQuerySchema, LISTABLE_JOBS, toWebJob, type JobDocument } from './jobs-query'
+import { buildJobsFilter, JobsQuerySchema, LISTABLE_JOBS, NOT_VIEWED, toWebJob, type JobDocument } from './jobs-query'
 
 const TOP_SKILLS = 40
 
@@ -25,10 +25,11 @@ export async function listJobs(req: Request) {
 	return Response.json({ jobs: page.map(toWebJob), nextCursor } satisfies JobsPage)
 }
 
-/** `GET /api/jobs/facets`: contagens para os filtros (modalidades, regimes e tecnologias mais pedidas). */
+/** `GET /api/jobs/facets`: contagens para os filtros (não vistas, modalidades, regimes e tecnologias mais pedidas). */
 export async function jobFacets() {
-	const [total, modes, contracts, skills] = await Promise.all([
+	const [total, unviewed, modes, contracts, skills] = await Promise.all([
 		Job.countDocuments(LISTABLE_JOBS),
+		Job.countDocuments({ ...LISTABLE_JOBS, ...NOT_VIEWED }),
 		Job.aggregate<{ _id: string | null; count: number }>([
 			{ $match: LISTABLE_JOBS },
 			{ $group: { _id: '$workMode', count: { $sum: 1 } } },
@@ -61,7 +62,7 @@ export async function jobFacets() {
 		contractTypes[key] += contract.count
 	}
 
-	return Response.json({ total, workModes, contractTypes, skills } satisfies JobFacets)
+	return Response.json({ total, unviewed, workModes, contractTypes, skills } satisfies JobFacets)
 }
 
 /** `GET /api/jobs/:postId` */

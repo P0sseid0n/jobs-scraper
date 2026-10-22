@@ -4,7 +4,7 @@ import type { WebJob } from '../../api-types'
 import { cx } from '../lib/cx'
 import { jobDate, jobSubtitle, safeLink, timeAgo } from '../lib/format'
 import { jobParams } from '../router'
-import { markSeen, useUnseen } from '../stores/seen'
+import { useViewed } from '../stores/viewed'
 import { ContractTypeBadge } from './ContractTypeBadge'
 import { CorrectedBadge } from './CorrectedBadge'
 import { CvButton } from './CvButton'
@@ -15,6 +15,7 @@ import { Button } from './ui/Button'
 import { card } from './ui/Card'
 import { Skeleton } from './ui/Skeleton'
 import { StatusDot } from './ui/StatusDot'
+import { ViewedButton } from './ViewedButton'
 import { WorkModeBadge } from './WorkModeBadge'
 
 const VISIBLE_SKILLS = 4
@@ -32,7 +33,7 @@ export function JobCard({
 	/** Não volta ao topo ao abrir: no desktop a vaga abre no painel ao lado da lista. */
 	keepScroll?: boolean
 }) {
-	const unseen = useUnseen(job)
+	const viewed = useViewed(job)
 	const skills = job.necessaryKnowledge ?? []
 	const hidden = skills.length - VISIBLE_SKILLS
 	const postLink = safeLink(job.postLink)
@@ -51,11 +52,16 @@ export function JobCard({
 					// Os filtros da lista continuam na URL
 					search
 					resetScroll={!keepScroll}
-					onClick={() => markSeen(job.postId)}
 				>
-					<span className="flex items-center gap-2 text-base leading-snug font-semibold wrap-break-word group-hover:underline group-hover:underline-offset-3">
-						{unseen && <StatusDot tone="lime" glow />}
-						{unseen && <span className="sr-only">vaga nova:</span>}
+					{/* Já vista: o cargo perde o contraste; não vista: a bolinha */}
+					<span
+						className={cx(
+							'flex items-center gap-2 text-base leading-snug font-semibold wrap-break-word group-hover:underline group-hover:underline-offset-3',
+							viewed && 'text-muted',
+						)}
+					>
+						{!viewed && <StatusDot tone="lime" glow />}
+						{!viewed && <span className="sr-only">não vista:</span>}
 						{job.title}
 					</span>
 					<span className="text-muted text-sm">{jobSubtitle(job)}</span>
@@ -115,6 +121,7 @@ export function JobCard({
 					)
 				)}
 				<CvButton job={job} className="max-md:flex-auto" />
+				<ViewedButton job={job} />
 			</div>
 		</article>
 	)

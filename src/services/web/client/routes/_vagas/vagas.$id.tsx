@@ -9,7 +9,7 @@ import { EmptyState } from '../../components/ui/EmptyState'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { useWideLayout } from '../../lib/media'
 import { jobsStore, useJobs } from '../../stores/jobs'
-import { markSeen } from '../../stores/seen'
+import { markViewed } from '../../stores/viewed'
 import { JobPage } from '../../views/JobPage'
 import { DetailPanel } from '../../views/JobsView'
 
@@ -31,8 +31,9 @@ function OpenJob() {
 	// A da lista acompanha as mudanças (correção pelo site, vaga que chegou em tempo real)
 	const job = useJobs().jobs.find(item => item.postId === loaded.postId) ?? loaded
 
+	// Abrir a vaga a marca como vista; só ao trocar de vaga, para não marcar de novo a que foi desmarcada aqui
 	useEffect(() => {
-		markSeen(job.postId)
+		markViewed(job.postId)
 	}, [job.postId])
 
 	if (!wide) return <JobPage job={job} />

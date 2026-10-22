@@ -2,7 +2,7 @@ import { Types } from 'mongoose'
 import { z } from 'zod'
 
 import { CONTRACT_TYPES, WORK_MODES, type ProcessedJob } from '@shared/contracts'
-import type { JobCorrectionState, JobExtractionSource } from '@shared/database'
+import type { JobCorrectionState, JobExtractionSource, JobViewState } from '@shared/database'
 
 import type { WebJob } from '../api-types'
 import { decodeCursor, type Cursor } from './http'
@@ -34,6 +34,11 @@ export const JobsQuerySchema = z.object({
 		.enum(['true', 'false'])
 		.optional()
 		.transform(value => value === 'true'),
+	/** `true`: só as vagas já abertas no site; `false`: só as não vistas; ausente: todas. */
+	viewed: z
+		.enum(['true', 'false'])
+		.optional()
+		.transform(value => (value === undefined ? undefined : value === 'true')),
 	language: z
 		.string()
 		.regex(/^[a-z]{2}$/)
@@ -54,6 +59,11 @@ export const LISTABLE_JOBS = {
 	title: { $type: 'string' as const },
 	notAJob: { $ne: true },
 }
+
+/** Vagas já abertas no site. */
+export const VIEWED = { viewedAt: { $type: 'date' as const } }
+/** Vagas não vistas: `null` ou sem o campo (salvas antes de ele existir). */
+export const NOT_VIEWED = { viewedAt: null }
 
 /** Monta o filtro do MongoDB para a lista de vagas (mais recentes primeiro, paginada por cursor). */
 export function buildJobsFilter(query: JobsQuery, now = new Date()) {
@@ -89,6 +99,7 @@ export function buildJobsFilter(query: JobsQuery, now = new Date()) {
 	}
 
 	if (query.hasEmail) conditions.push({ recruiterEmail: { $nin: [null, ''] } })
+	if (query.viewed !== undefined) conditions.push(query.viewed ? VIEWED : NOT_VIEWED)
 	if (query.language) conditions.push({ language: query.language })
 	if (query.minConfidence !== undefined) conditions.push({ aiJobConfidence: { $gte: query.minConfidence } })
 	if (query.cursor) conditions.push(afterCursor(decodeCursor(query.cursor)))
@@ -105,10 +116,10 @@ export function afterCursor(cursor: Cursor, field = 'createdAt') {
 
 /**
  * Documento da coleção `jobs` como o `lean()` devolve (com os timestamps do mongoose). Vagas salvas antes do
- * campo `contractTypes` e dos de correção não os têm.
+ * campo `contractTypes`, dos de correção e do `viewedAt` não os têm.
  */
 export type JobDocument = Omit<ProcessedJob, 'title' | 'contractTypes'> &
-	Partial<JobExtractionSource & JobCorrectionState> & {
+	Partial<JobExtractionSource & JobCorrectionState & JobViewState> & {
 		title: string | null
 		contractTypes?: ProcessedJob['contractTypes']
 		createdAt?: Date | null
@@ -135,6 +146,7 @@ export function toWebJob(doc: JobDocument): WebJob {
 		postLink: doc.postLink ?? null,
 		rawContent: doc.rawContent,
 		correctedAt: doc.correctedAt?.toISOString() ?? null,
+		viewedAt: doc.viewedAt?.toISOString() ?? null,
 	}
 }
 

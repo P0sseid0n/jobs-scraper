@@ -14,14 +14,22 @@ import type { ScraperRunStatus, ScraperRunTrigger, ScraperTermErrorKind, SeenPos
 
 /**
  * Vaga salva: o cargo nunca falta (o post-processing descarta as que vêm sem), `createdAt` é quando entrou no sistema
- * e `correctedAt`, quando foi corrigida pelo site pela última vez (`null` se nunca foi).
+ * `correctedAt`, quando foi corrigida pelo site pela última vez (`null` se nunca foi) e `viewedAt`, quando foi aberta
+ * no site (`null` se ainda não foi vista).
  */
-export type WebJob = Omit<ProcessedJob, 'title'> & { title: string; createdAt: string; correctedAt: string | null }
+export type WebJob = Omit<ProcessedJob, 'title'> & {
+	title: string
+	createdAt: string
+	correctedAt: string | null
+	viewedAt: string | null
+}
 
 export type JobsPage = { jobs: WebJob[]; nextCursor: string | null }
 
 export type JobFacets = {
 	total: number
+	/** Vagas ainda não abertas no site. */
+	unviewed: number
 	/** Quantidade por modalidade; `none` são as vagas sem modalidade. */
 	workModes: Record<NonNullable<ProcessedJob['workMode']> | 'none', number>
 	/** Quantidade por regime (uma vaga com dois regimes conta nos dois); `none` são as vagas sem regime. */
@@ -104,5 +112,8 @@ export type { SettingsKey }
 /** Erro da API; em erros de validação, `fields` traz a mensagem de cada campo (caminho com pontos, ex.: "searchTerms.0.term"). */
 export type ApiError = { error: string; fields?: Record<string, string> }
 
-/** Eventos do stream SSE (`/api/jobs/stream`). */
-export type StreamEvents = { job: WebJob; cv: WebCvRequest }
+/** Vagas marcadas como vistas (`viewedAt` com a data) ou como não vistas (`viewedAt: null`). */
+export type JobsViewedChange = { postIds: string[]; viewedAt: string | null }
+
+/** Eventos do stream SSE (`/api/jobs/stream`): `viewed` leva a marcação de vista às outras abas e aparelhos. */
+export type StreamEvents = { job: WebJob; cv: WebCvRequest; viewed: JobsViewedChange }

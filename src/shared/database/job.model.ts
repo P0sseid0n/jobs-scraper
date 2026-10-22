@@ -15,7 +15,10 @@ export type JobCorrectionState = {
 	notAJob: boolean
 }
 
-type JobDocument = ProcessedJob & JobExtractionSource & JobCorrectionState & { notifiedAt: Date | null }
+/** Quando a vaga foi aberta no site (`null`: ainda não vista). O sistema tem um único usuário: o campo fica na vaga. */
+export type JobViewState = { viewedAt: Date | null }
+
+type JobDocument = ProcessedJob & JobExtractionSource & JobCorrectionState & JobViewState & { notifiedAt: Date | null }
 
 const jobSchema = new Schema<JobDocument>(
 	{
@@ -43,6 +46,7 @@ const jobSchema = new Schema<JobDocument>(
 		aiExtraction: { type: Schema.Types.Mixed, default: null },
 		correctedAt: { type: Date, default: null },
 		notAJob: { type: Boolean, default: false },
+		viewedAt: { type: Date, default: null },
 		// Quando o evento `job-published` foi publicado (com pelo menos uma fila ligada); não confirma a entrega
 		notifiedAt: { type: Date, default: null },
 	},

@@ -3,7 +3,6 @@ import { api, type JobFilters } from '../api'
 import { DEFAULT_FILTERS, matchesFilters } from '../lib/job-filters'
 import { createStore, useStore } from '../lib/store'
 import { onLive } from './live'
-import { markArrived } from './seen'
 
 type JobsState = {
 	filters: JobFilters
@@ -42,6 +41,7 @@ let requestId = 0
 let loaded = false
 let following = false
 let filtersTimer: ReturnType<typeof setTimeout> | undefined
+let facetsTimer: ReturnType<typeof setTimeout> | undefined
 
 export async function loadJobs() {
 	const id = ++requestId
@@ -101,6 +101,21 @@ export function replaceJob(job: WebJob) {
 	void loadFacets()
 }
 
+/**
+ * Atualiza quando as vagas foram vistas na lista (e nas que esperam para entrar), sem tirá-las da tela mesmo com o
+ * filtro "só não vistas": a vaga aberta não some debaixo do cursor.
+ */
+export function setViewedAt(postIds: string[], viewedAt: string | null) {
+	const { jobs, incoming } = jobsStore.get()
+	const ids = new Set(postIds)
+	const patch = (list: WebJob[]) => list.map(job => (ids.has(job.postId) && job.viewedAt !== viewedAt ? { ...job, viewedAt } : job))
+
+	update({ jobs: patch(jobs), incoming: patch(incoming) })
+	// A mesma marcação chega pela resposta e pelo stream: uma recontagem só
+	clearTimeout(facetsTimer)
+	facetsTimer = setTimeout(loadFacets, 300)
+}
+
 /** Tira da lista a vaga marcada como "não é vaga" (o documento continua no banco). */
 export function removeJob(postId: string) {
 	const { jobs, incoming } = jobsStore.get()
@@ -142,8 +157,6 @@ function followLive() {
 	following = true
 
 	onLive('job', job => {
-		markArrived(job.postId)
-
 		const { jobs, incoming, status, filters } = jobsStore.get()
 		if (!matchesFilters(job, filters) || jobs.some(existing => existing.postId === job.postId)) return
 

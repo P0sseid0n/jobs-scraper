@@ -22,6 +22,7 @@ const job: WebJob = {
 	postLink: 'https://www.linkedin.com/x',
 	rawContent: 'Vaga com Nuxt',
 	correctedAt: null,
+	viewedAt: null,
 }
 
 const now = new Date('2026-10-10T12:00:00.000Z').getTime()
@@ -57,6 +58,12 @@ describe('matchesFilters (vagas que chegam em tempo real)', () => {
 		expect(matches({ since: '24h' })).toBe(true)
 		expect(matchesFilters({ ...job, createdAt: '2026-10-01T00:00:00.000Z' }, { ...DEFAULT_FILTERS, since: '7d' }, now)).toBe(false)
 	})
+
+	test('"só não vistas": a vaga já aberta no site fica de fora', () => {
+		expect(matches({ unviewed: true })).toBe(true)
+		expect(matchesFilters({ ...job, viewedAt: '2026-10-10T11:30:00.000Z' }, { ...DEFAULT_FILTERS, unviewed: true }, now)).toBe(false)
+		expect(matchesFilters({ ...job, viewedAt: '2026-10-10T11:30:00.000Z' }, DEFAULT_FILTERS, now)).toBe(true)
+	})
 })
 
 test('hasActiveFilters', () => {
@@ -77,6 +84,7 @@ describe('jobFiltersSearch (os filtros da URL)', () => {
 			contractType: ['pj'],
 			since: '7d',
 			hasEmail: true,
+			unviewed: true,
 			minConfidence: 60,
 		} satisfies Partial<JobFilters>
 		expect(jobFiltersSearch.parse(search)).toEqual({ ...DEFAULT_FILTERS, ...search })

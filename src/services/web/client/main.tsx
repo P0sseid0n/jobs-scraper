@@ -6,6 +6,7 @@ import { setFavicon } from './components/ProjectIcon'
 import { router } from './router'
 import { loadCvRequests } from './stores/cv'
 import { connectLive } from './stores/live'
+import { importLocalSeen } from './stores/viewed'
 
 import './stores/theme'
 import './tailwind.css'
@@ -13,6 +14,7 @@ import './tailwind.css'
 setFavicon()
 connectLive()
 void loadCvRequests()
+void importLocalSeen()
 
 createRoot(document.getElementById('app')!).render(
 	<StrictMode>

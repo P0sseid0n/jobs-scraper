@@ -68,6 +68,13 @@ describe('buildJobsFilter', () => {
 		expect(conditions).toContainEqual({ aiJobConfidence: { $gte: 75 } })
 	})
 
+	test('vistas: "true" só as abertas no site; "false" as não vistas, incluindo as salvas antes do campo', () => {
+		expect(filterFor({ viewed: 'true' })).toContainEqual({ viewedAt: { $type: 'date' } })
+		expect(filterFor({ viewed: 'false' })).toContainEqual({ viewedAt: null })
+		expect(filterFor({})).toEqual([LISTABLE_JOBS])
+		expect(JobsQuerySchema.safeParse({ viewed: 'sim' }).success).toBe(false)
+	})
+
 	test('cursor: depois do último item (data, com o _id desempatando)', () => {
 		const at = new Date('2026-10-09T10:00:00.000Z')
 		const cursor = encodeCursor({ at, id: '6ac9a547e4a3ee550b03ecd3' })
@@ -110,7 +117,12 @@ describe('toWebJob', () => {
 			contractTypes: null,
 			createdAt: NOW.toISOString(),
 			correctedAt: null,
+			viewedAt: null,
 		})
+	})
+
+	test('data em que a vaga foi vista', () => {
+		expect(toWebJob({ ...doc, viewedAt: NOW }).viewedAt).toBe(NOW.toISOString())
 	})
 
 	test('mantém os regimes da vaga', () => {

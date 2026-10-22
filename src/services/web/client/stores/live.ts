@@ -3,7 +3,7 @@ import { createStore, useStore } from '../lib/store'
 
 type Listener<E extends keyof StreamEvents> = (data: StreamEvents[E]) => void
 
-const listeners: { [E in keyof StreamEvents]: Set<Listener<E>> } = { job: new Set(), cv: new Set() }
+const listeners: { [E in keyof StreamEvents]: Set<Listener<E>> } = { job: new Set(), cv: new Set(), viewed: new Set() }
 
 /** Se o navegador está recebendo as vagas novas em tempo real. */
 export const connected = createStore(false)

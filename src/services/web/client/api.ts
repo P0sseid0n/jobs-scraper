@@ -4,6 +4,7 @@ import type {
 	ApiError,
 	JobFacets,
 	JobsPage,
+	JobsViewedChange,
 	RunsPage,
 	ScraperStatus,
 	SettingsKey,
@@ -54,6 +55,7 @@ export function jobsQueryString(filters: JobFilters, cursor?: string | null) {
 	if (filters.skills.length) params.set('skills', filters.skills.join(','))
 	if (filters.since !== 'all') params.set('since', filters.since)
 	if (filters.hasEmail) params.set('hasEmail', 'true')
+	if (filters.unviewed) params.set('viewed', 'false')
 	if (filters.language) params.set('language', filters.language)
 	if (filters.minConfidence > 0) params.set('minConfidence', String(filters.minConfidence))
 	if (cursor) params.set('cursor', cursor)
@@ -68,6 +70,15 @@ export const api = {
 	/** Corrige campos da vaga ou a marca como "não é vaga"; devolve a vaga atualizada. */
 	correctJob: (postId: string, correction: JobCorrectionInput) =>
 		request<WebJob>(`/api/jobs/${encodeURIComponent(postId)}`, { method: 'PATCH', body: JSON.stringify(correction) }),
+	/** Marca a vaga como vista ou não vista; devolve a data como ficou no banco (`null`: não vista). */
+	setViewed: (postId: string, viewed: boolean) =>
+		request<{ postId: string; viewedAt: string | null }>(`/api/jobs/${encodeURIComponent(postId)}/viewed`, {
+			method: 'PUT',
+			body: JSON.stringify({ viewed }),
+		}),
+	/** Marca ou desmarca várias vagas; devolve só as que mudaram. */
+	setJobsViewed: (postIds: string[], viewed: boolean) =>
+		request<JobsViewedChange>('/api/jobs/viewed', { method: 'PUT', body: JSON.stringify({ postIds, viewed }) }),
 	/** O documento da vaga no MongoDB, para depuração. */
 	rawJob: (postId: string) => request<Record<string, unknown>>(`/api/jobs/${encodeURIComponent(postId)}/raw`),
 

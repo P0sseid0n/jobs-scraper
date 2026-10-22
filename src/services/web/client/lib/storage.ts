@@ -16,4 +16,12 @@ export const storage = {
 			// preferência não salva; segue funcionando
 		}
 	},
+
+	remove(key: string) {
+		try {
+			localStorage.removeItem(key)
+		} catch {
+			// nada a apagar sem o armazenamento
+		}
+	},
 }

@@ -14,12 +14,14 @@ import { Hero, Page } from '../components/ui/Page'
 import { Pill, PILL_COUNT, PillGroup } from '../components/ui/Pill'
 import { StatusDot } from '../components/ui/StatusDot'
 import { FIELDSET, LABEL } from '../components/ui/text'
+import { TextLink } from '../components/ui/TextLink'
 import { cx } from '../lib/cx'
 import { CONTRACT_TYPES, LANGUAGE_NAMES, WORK_MODES } from '../lib/format'
 import { hasActiveFilters } from '../lib/job-filters'
 import { useWideLayout } from '../lib/media'
 import { useTrayRequests } from '../stores/cv'
 import { loadJobs, loadMoreJobs, showIncoming, useJobs } from '../stores/jobs'
+import { markAllViewed, useViewedCheck } from '../stores/viewed'
 
 const PERIODS = [
 	['24h', '24h'],
@@ -177,6 +179,12 @@ function Filters({ open }: { open: boolean }) {
 
 			<div className={cx(FIELDSET, 'gap-3 border-t border-line pt-4 text-sm')}>
 				<label className="flex items-center justify-between gap-3">
+					<span>
+						só não vistas {facets && <span className="font-mono text-muted">{facets.unviewed.toLocaleString('pt-BR')}</span>}
+					</span>
+					<Checkbox checked={filters.unviewed} onChange={event => setFilters({ unviewed: event.target.checked })} />
+				</label>
+				<label className="flex items-center justify-between gap-3">
 					tem e-mail de contato
 					<Checkbox checked={filters.hasEmail} onChange={event => setFilters({ hasEmail: event.target.checked })} />
 				</label>
@@ -306,6 +314,8 @@ export function JobsView({ selectedRouteId, detail }: { selectedRouteId: string 
 			? (jobs[0]?.postId ?? null)
 			: null
 	const pendingCvs = tray.filter(request => request.status === 'pending').length
+	const isViewed = useViewedCheck()
+	const unviewedOnScreen = jobs.some(job => !isViewed(job))
 
 	return (
 		<Page>
@@ -372,6 +382,14 @@ export function JobsView({ selectedRouteId, detail }: { selectedRouteId: string 
 							<span>
 								{jobs.length}
 								{nextCursor ? '+' : ''} vagas
+								{unviewedOnScreen && (
+									<>
+										{' · '}
+										<TextLink className="text-xs" onClick={() => void markAllViewed(jobs)}>
+											marcar todas como vistas
+										</TextLink>
+									</>
+								)}
 							</span>
 							<span>mais recentes primeiro</span>
 						</div>
