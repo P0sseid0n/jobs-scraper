@@ -1,7 +1,6 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 
-import { needsReview } from '@shared/contracts'
 import { applicationMessage, formatApplicationMessage } from '@shared/templates'
 
 import type { WebJob } from '../../api-types'
@@ -246,12 +245,12 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 
 			<footer className="flex flex-col gap-2 border-t border-line pt-3.5">
 				{job.extractionChecks.length > 0 && (
-					<Notice tone={needsReview(job.extractionChecks) ? 'danger' : 'warn'} icon="alert" className="text-sm">
+					<Notice tone={job.needsReview ? 'danger' : 'warn'} icon="alert" className="text-sm">
 						<p>
 							A IA citou o que não está escrito no post ({extractionCheckList(job).join(', ')}). Esses dados foram descartados,
 							mas o resto da vaga pode ter erros também.
 						</p>
-						{needsReview(job.extractionChecks) && (
+						{job.needsReview && (
 							<p className="mt-1.5">
 								Confira o post original e{' '}
 								<TextLink className="text-sm" aria-haspopup="dialog" onClick={() => setReporting(true)}>

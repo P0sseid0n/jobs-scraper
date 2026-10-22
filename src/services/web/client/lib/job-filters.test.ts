@@ -17,6 +17,7 @@ const job: WebJob = {
 	postedAt: null,
 	createdAt: '2026-10-10T11:00:00.000Z',
 	extractionChecks: [],
+	needsReview: false,
 	language: 'pt',
 	sourcePostId: null,
 	postLink: 'https://www.linkedin.com/x',

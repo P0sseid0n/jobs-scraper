@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'bun:test'
 
-import type { ProcessedJob } from '@shared/contracts'
+import type { JobPublished } from '@shared/contracts'
 
 import { buildContactReply, CONTACT_BUTTON_PREFIX, CV_PENDING_NOTE, emailFromEmbed, parseContactButton } from './contact-reply'
 import { buildJobCard } from './job-card'
 
-const job: ProcessedJob = {
+const job: JobPublished = {
 	postId: 'urn:li:share:7513649051440021505',
 	rawContent: '𝐋𝐞𝐚𝐝 Engineer - Vue.js\n\n\n\nResponsabilidades: liderar o *front-end*.',
 	title: 'Lead Engineer - Vue.js',
@@ -17,6 +17,7 @@ const job: ProcessedJob = {
 	workMode: 'hibrido',
 	contractTypes: null,
 	extractionChecks: [],
+	needsReview: false,
 	postedAt: '2026-10-07T17:18:50.712Z',
 	author: 'Mandar Wairkar',
 	language: 'pt',

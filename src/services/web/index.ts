@@ -5,6 +5,7 @@ import { Job } from '@shared/database'
 import { onShutdown } from '@shared/lifecycle'
 import { EXCHANGES, QUEUES } from '@shared/messaging'
 import { startService } from '@shared/service'
+import { readSettings } from '@shared/settings'
 
 import type { ApiError } from './api-types'
 import app from './client/index.html'
@@ -46,7 +47,8 @@ await queue.consume(
 	async job => {
 		// O post-processing salva antes de publicar: o documento traz o `createdAt`
 		const saved = await Job.findOne({ postId: job.postId }).lean<JobDocument>()
-		events.broadcast('job', toWebJob(saved ?? job))
+		const { reviewChecksPercent } = await readSettings('post-processing')
+		events.broadcast('job', toWebJob(saved ?? job, reviewChecksPercent))
 	},
 	{ bindTo: EXCHANGES.jobPublished, prefetch: 10 },
 )

@@ -1,7 +1,8 @@
-import { ProcessedJobSchema, type ProcessedJob } from '@shared/contracts'
+import { needsReview, ProcessedJobSchema, type JobPublished, type ProcessedJob } from '@shared/contracts'
 import { Job, type JobExtractionSource } from '@shared/database'
 import type { Logger } from '@shared/logging'
 import { EXCHANGES, type QueueClient } from '@shared/messaging'
+import { readSettings } from '@shared/settings'
 
 import { missingRequiredFields } from './job-validation'
 
@@ -54,7 +55,11 @@ export async function resumeSavedJob(postId: string, { queue, logger }: Deps) {
 	return true
 }
 
+/** Publica a vaga com o aviso de conferir o post calculado pelo limite de checks em vigor agora. */
 async function announce(job: ProcessedJob, queue: QueueClient) {
-	await queue.publishEvent(EXCHANGES.jobPublished, job)
+	const { reviewChecksPercent } = await readSettings('post-processing')
+	const event: JobPublished = { ...job, needsReview: needsReview(job.extractionChecks, reviewChecksPercent) }
+
+	await queue.publishEvent(EXCHANGES.jobPublished, event)
 	await Job.updateOne({ postId: job.postId }, { notifiedAt: new Date() })
 }

@@ -1,6 +1,6 @@
 import { ChannelType, type Client, type ForumChannel, type SendableChannels } from 'discord.js'
 
-import type { ProcessedJob } from '@shared/contracts'
+import type { JobPublished } from '@shared/contracts'
 import type { Logger } from '@shared/logging'
 
 import { buildJobCard, buildThreadName, pickForumTags } from './job-card'
@@ -22,7 +22,7 @@ export async function resolveJobChannel(client: Client<true>, channelId: string,
 }
 
 /** Publica a vaga: num fórum, como post próprio com tags; num canal de texto, como mensagem. */
-export async function publishJob(channel: JobChannel, job: ProcessedJob) {
+export async function publishJob(channel: JobChannel, job: JobPublished) {
 	const card = buildJobCard(job)
 
 	if (channel.type === ChannelType.GuildForum) {

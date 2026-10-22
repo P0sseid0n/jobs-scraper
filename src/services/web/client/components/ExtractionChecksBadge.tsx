@@ -1,4 +1,4 @@
-import { EXTRACTION_CHECK_LABELS, EXTRACTION_CHECKS, needsReview } from '@shared/contracts'
+import { EXTRACTION_CHECK_LABELS, EXTRACTION_CHECKS } from '@shared/contracts'
 
 import type { WebJob } from '../../api-types'
 import { cx } from '../lib/cx'
@@ -32,7 +32,7 @@ export function ExtractionChecksBadge({
 	iconOnly = false,
 	className,
 }: {
-	job: Pick<WebJob, 'extractionChecks'>
+	job: Pick<WebJob, 'extractionChecks' | 'needsReview'>
 	iconOnly?: boolean
 	className?: string
 }) {
@@ -41,7 +41,7 @@ export function ExtractionChecksBadge({
 
 	const total = EXTRACTION_CHECKS.length
 	const description = `A IA citou o que não está escrito no post: ${extractionCheckList(job).join(', ')}`
-	const review = needsReview(job.extractionChecks)
+	const review = job.needsReview
 	const title = review ? `${description}. Confira o post original e reporte a vaga.` : description
 
 	if (iconOnly) {

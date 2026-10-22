@@ -1,5 +1,6 @@
 import { CONTRACT_TYPES } from '@shared/contracts'
 import { Job } from '@shared/database'
+import { readSettings } from '@shared/settings'
 
 import type { JobFacets, JobsPage, WebJob } from '../api-types'
 import { postIdCandidates } from '../job-route-id'
@@ -21,8 +22,9 @@ export async function listJobs(req: Request) {
 	const page = docs.slice(0, query.limit)
 	const last = page.at(-1)
 	const nextCursor = docs.length > query.limit && last ? encodeCursor({ at: last.createdAt, id: String(last._id) }) : null
+	const { reviewChecksPercent } = await readSettings('post-processing')
 
-	return Response.json({ jobs: page.map(toWebJob), nextCursor } satisfies JobsPage)
+	return Response.json({ jobs: page.map(doc => toWebJob(doc, reviewChecksPercent)), nextCursor } satisfies JobsPage)
 }
 
 /** `GET /api/jobs/facets`: contagens para os filtros (não vistas, modalidades, regimes e tecnologias mais pedidas). */
@@ -74,7 +76,8 @@ export async function getJob(req: Request & { params: { postId: string } }) {
 	}).lean<JobDocument>()
 	if (!doc) throw new HttpError(404, 'Vaga não encontrada')
 
-	return Response.json(toWebJob(doc) satisfies WebJob)
+	const { reviewChecksPercent } = await readSettings('post-processing')
+	return Response.json(toWebJob(doc, reviewChecksPercent) satisfies WebJob)
 }
 
 /**

@@ -53,12 +53,15 @@ describe('ScraperSettingsSchema', () => {
 })
 
 describe('PostProcessingSettingsSchema', () => {
-	test('padrões', () => {
+	test('padrões; limite dos checks entre 1 e 100%', () => {
 		expect(PostProcessingSettingsSchema.parse({})).toEqual({
+			reviewChecksPercent: 60,
 			allowedLanguages: ['pt'],
 			requiredKeywords: [],
 			excludedKeywords: [],
 		})
+		expect(PostProcessingSettingsSchema.safeParse({ reviewChecksPercent: 0 }).success).toBe(false)
+		expect(PostProcessingSettingsSchema.safeParse({ reviewChecksPercent: 120 }).success).toBe(false)
 	})
 
 	test('idiomas: normaliza, remove repetidos e exige o código ISO 639-1', () => {

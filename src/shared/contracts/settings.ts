@@ -59,6 +59,12 @@ const keywordList = z
 	.transform(keywords => [...new Set(keywords.map(keyword => keyword.toLowerCase()))])
 
 export const PostProcessingSettingsSchema = z.object({
+	/**
+	 * Porcentagem dos checks da extração (campos em que a IA citou o que não está no post) a partir da qual a vaga pede
+	 * para conferir o post original e reportar. 60% = 4 de 6.
+	 */
+	reviewChecksPercent: z.number().int().min(1).max(100).default(60),
+
 	/** Idiomas aceitos (ISO 639-1, ex.: "pt", "en"), detectados no texto do post; lista vazia aceita todos. */
 	allowedLanguages: z
 		.array(

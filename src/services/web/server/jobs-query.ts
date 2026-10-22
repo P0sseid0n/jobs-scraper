@@ -1,7 +1,7 @@
 import { Types } from 'mongoose'
 import { z } from 'zod'
 
-import { CONTRACT_TYPES, WORK_MODES, type ProcessedJob } from '@shared/contracts'
+import { CONTRACT_TYPES, needsReview, WORK_MODES, type ProcessedJob } from '@shared/contracts'
 import type { JobCorrectionState, JobExtractionSource, JobViewState } from '@shared/database'
 
 import type { WebJob } from '../api-types'
@@ -124,8 +124,13 @@ export type JobDocument = Omit<ProcessedJob, 'title' | 'contractTypes' | 'extrac
 		createdAt?: Date | null
 	}
 
-/** Converte o documento do MongoDB no formato da API (sem campos internos como `_id` e `notifiedAt`). */
-export function toWebJob(doc: JobDocument): WebJob {
+/**
+ * Converte o documento do MongoDB no formato da API (sem campos internos como `_id` e `notifiedAt`).
+ * @param reviewChecksPercent O limite de checks das configurações, para dizer se a vaga pede para conferir o post.
+ */
+export function toWebJob(doc: JobDocument, reviewChecksPercent: number): WebJob {
+	const extractionChecks = doc.extractionChecks ?? []
+
 	return {
 		postId: doc.postId,
 		title: doc.title ?? 'Vaga sem título',
@@ -139,7 +144,8 @@ export function toWebJob(doc: JobDocument): WebJob {
 		author: doc.author ?? null,
 		postedAt: doc.postedAt ?? null,
 		createdAt: (doc.createdAt ?? new Date()).toISOString(),
-		extractionChecks: doc.extractionChecks ?? [],
+		extractionChecks,
+		needsReview: needsReview(extractionChecks, reviewChecksPercent),
 		language: doc.language ?? null,
 		sourcePostId: doc.sourcePostId ?? null,
 		postLink: doc.postLink ?? null,

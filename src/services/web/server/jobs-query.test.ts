@@ -109,10 +109,11 @@ describe('toWebJob', () => {
 	}
 
 	test('preenche os campos opcionais com null e lista de tecnologias vazia vira null', () => {
-		expect(toWebJob(doc)).toMatchObject({
+		expect(toWebJob(doc, 60)).toMatchObject({
 			title: 'Vaga sem título',
 			// Vaga salva antes dos checks da extração
 			extractionChecks: [],
+			needsReview: false,
 			necessaryKnowledge: null,
 			contractTypes: null,
 			createdAt: NOW.toISOString(),
@@ -122,12 +123,18 @@ describe('toWebJob', () => {
 	})
 
 	test('data em que a vaga foi vista', () => {
-		expect(toWebJob({ ...doc, viewedAt: NOW }).viewedAt).toBe(NOW.toISOString())
+		expect(toWebJob({ ...doc, viewedAt: NOW }, 60).viewedAt).toBe(NOW.toISOString())
+	})
+
+	test('pede para conferir o post a partir do limite de checks', () => {
+		// 3 de 6 checks: abaixo de 60% (4 checks), dentro de 50% (3 checks)
+		expect(toWebJob({ ...doc, extractionChecks: ['title', 'company', 'workMode'] }, 60).needsReview).toBe(false)
+		expect(toWebJob({ ...doc, extractionChecks: ['title', 'company', 'workMode'] }, 50).needsReview).toBe(true)
 	})
 
 	test('mantém os regimes da vaga', () => {
-		expect(toWebJob({ ...doc, contractTypes: ['clt', 'pj'] }).contractTypes).toEqual(['clt', 'pj'])
-		expect(toWebJob({ ...doc, contractTypes: [] }).contractTypes).toBeNull()
+		expect(toWebJob({ ...doc, contractTypes: ['clt', 'pj'] }, 60).contractTypes).toEqual(['clt', 'pj'])
+		expect(toWebJob({ ...doc, contractTypes: [] }, 60).contractTypes).toBeNull()
 	})
 })
 

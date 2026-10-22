@@ -1,6 +1,6 @@
 import { Client, Events, GatewayIntentBits } from 'discord.js'
 
-import { CvResultSchema, ProcessedJobSchema } from '@shared/contracts'
+import { CvResultSchema, JobPublishedSchema } from '@shared/contracts'
 import { onShutdown } from '@shared/lifecycle'
 import { EXCHANGES, QUEUES } from '@shared/messaging'
 import { startService } from '@shared/service'
@@ -39,7 +39,7 @@ client.once(Events.ClientReady, async readyClient => {
 	// A fila `discord` assina o evento `job-published`: recebe todas as vagas, independente de outros canais
 	await queue.consume(
 		QUEUES.discord,
-		ProcessedJobSchema,
+		JobPublishedSchema,
 		async job => {
 			try {
 				await publishJob(channel, job)

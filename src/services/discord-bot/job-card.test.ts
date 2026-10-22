@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'bun:test'
 
-import type { ProcessedJob } from '@shared/contracts'
+import type { JobPublished } from '@shared/contracts'
 
 import { CONTACT_BUTTON_PREFIX } from './contact-reply'
 import { buildJobCard, buildThreadName, pickForumTags, summarizePost } from './job-card'
 
-const job: ProcessedJob = {
+const job: JobPublished = {
 	postId: 'urn:li:share:7513649051440021505',
 	rawContent: '𝐋𝐞𝐚𝐝 Engineer - Vue.js\n\n\n\nResponsabilidades: liderar o *front-end*.',
 	title: 'Lead Engineer - Vue.js',
@@ -17,6 +17,7 @@ const job: ProcessedJob = {
 	workMode: 'hibrido',
 	contractTypes: ['clt', 'pj'],
 	extractionChecks: [],
+	needsReview: false,
 	postedAt: '2026-10-07T17:18:50.712Z',
 	author: 'Mandar Wairkar',
 	language: 'pt',
@@ -49,12 +50,16 @@ describe('buildJobCard', () => {
 		expect(embed.fields?.at(-1)?.value).toBe('`Vue.js` `TypeScript`')
 	})
 
-	test('rodapé com os checks da extração; a partir de 4 de 6, barra vermelha e pede para conferir', () => {
+	test('rodapé com os checks da extração; com o aviso de conferir, barra vermelha e pede para reportar', () => {
 		const few = buildJobCard({ ...job, extractionChecks: ['workMode', 'necessaryKnowledge'] }).embeds[0]!.toJSON()
 		expect(few.footer?.text).toBe('⚠ 2/6 · a IA citou o que não está no post: modalidade, tecnologias')
 		expect(few.color).toBe(0x3498db)
 
-		const many = buildJobCard({ ...job, extractionChecks: ['title', 'company', 'workMode', 'applyLink'] }).embeds[0]!.toJSON()
+		const many = buildJobCard({
+			...job,
+			extractionChecks: ['title', 'company', 'workMode', 'applyLink'],
+			needsReview: true,
+		}).embeds[0]!.toJSON()
 		expect(many.footer?.text).toBe(
 			'⚠ 4/6 · a IA citou o que não está no post: cargo, empresa, modalidade, link. Confira o post original e reporte a vaga no site.',
 		)

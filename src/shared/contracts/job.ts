@@ -22,12 +22,17 @@ export const EXTRACTION_CHECK_LABELS: Record<ExtractionCheck, string> = {
 	applyLink: 'link',
 }
 
-/** Fração dos checks a partir da qual a vaga pede para conferir o post original e reportar o erro. */
-const REVIEW_CHECKS_RATIO = 0.6
+/** Quantos checks a vaga precisa ter para pedir que a pessoa confira o post original (`percent` dos checks). */
+export function reviewChecksThreshold(percent: number) {
+	return Math.max(1, Math.ceil((EXTRACTION_CHECKS.length * percent) / 100))
+}
 
-/** Se a vaga tem checks suficientes para pedir que a pessoa confira o post original (4 de 6). */
-export function needsReview(checks: readonly ExtractionCheck[]) {
-	return checks.length >= Math.ceil(EXTRACTION_CHECKS.length * REVIEW_CHECKS_RATIO)
+/**
+ * Se a vaga tem checks suficientes para pedir que a pessoa confira o post original e reporte o erro.
+ * @param percent O `reviewChecksPercent` das configurações do post-processing.
+ */
+export function needsReview(checks: readonly ExtractionCheck[], percent: number) {
+	return checks.length >= reviewChecksThreshold(percent)
 }
 
 /** Vaga já estruturada: salva pelo post-processing e enviada no evento `job-published`. */
@@ -59,3 +64,10 @@ export const ProcessedJobSchema = z.object({
 	postLink: z.string().nullable().default(null),
 })
 export type ProcessedJob = z.infer<typeof ProcessedJobSchema>
+
+/**
+ * Evento `job-published`: a vaga e se ela pede para conferir o post original, pelo limite de checks em vigor quando
+ * foi anunciada. O padrão aceita mensagens de antes do campo existir.
+ */
+export const JobPublishedSchema = ProcessedJobSchema.extend({ needsReview: z.boolean().default(false) })
+export type JobPublished = z.infer<typeof JobPublishedSchema>

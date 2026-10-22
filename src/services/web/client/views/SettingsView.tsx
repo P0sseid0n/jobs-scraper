@@ -3,7 +3,9 @@ import { useEffect, useMemo, useRef, useState, type FormEvent, type InputHTMLAtt
 
 import {
 	DATE_POSTED_FILTERS,
+	EXTRACTION_CHECKS,
 	PROFILE_AREAS,
+	reviewChecksThreshold,
 	SENIORITY_LEVELS,
 	suggestedRoles,
 	type DatePostedFilter,
@@ -19,7 +21,7 @@ import { Combobox } from '../components/ui/Combobox'
 import { ConfirmDialog } from '../components/ui/Dialog'
 import { FieldError, FieldHelp, FieldLabel } from '../components/ui/Field'
 import { IconButton } from '../components/ui/IconButton'
-import { Checkbox, Input, Select } from '../components/ui/Input'
+import { Checkbox, Input, Range, Select } from '../components/ui/Input'
 import { KeywordInput } from '../components/ui/KeywordInput'
 import { Notice } from '../components/ui/Notice'
 import { Hero, Page } from '../components/ui/Page'
@@ -452,6 +454,31 @@ export function SettingsView({ initial }: { initial: WebSettings }) {
 				<h2 id="processing-title" className={SECTION_TITLE}>
 					filtros das vagas <span className="font-mono text-xs font-normal text-muted">pós-processamento</span>
 				</h2>
+
+				<div className="flex flex-col gap-1.5">
+					<span className="flex items-center justify-between gap-3">
+						<FieldLabel htmlFor="reviewChecksPercent">pedir para conferir o post a partir de</FieldLabel>
+						<span className="font-mono">{p.reviewChecksPercent}%</span>
+					</span>
+					<Range
+						id="reviewChecksPercent"
+						aria-describedby="reviewChecksPercent-help"
+						min={1}
+						max={100}
+						value={p.reviewChecksPercent}
+						aria-valuetext={`${p.reviewChecksPercent}% dos checks`}
+						onChange={event => {
+							const value = Number(event.target.value)
+							edit(next => {
+								next['post-processing'].reviewChecksPercent = value
+							})
+						}}
+					/>
+					<FieldHelp id="reviewChecksPercent-help">
+						{reviewChecksThreshold(p.reviewChecksPercent)} de {EXTRACTION_CHECKS.length} checks da extração (campos que a IA
+						citou sem estarem no post). Daí em diante, a vaga fica em vermelho e pede para conferir o post original e reportar.
+					</FieldHelp>
+				</div>
 
 				<fieldset className="flex flex-col gap-2.5">
 					<legend className="mb-2.5 p-0 text-sm font-medium">idiomas aceitos</legend>

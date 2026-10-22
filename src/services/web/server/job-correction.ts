@@ -1,6 +1,7 @@
 import { CORRECTABLE_FIELDS, JobCorrectionSchema, jobFields, type JobCorrection, type JobFields } from '@shared/contracts'
 import { ExtractionFeedback, Job, type ExtractionFeedbackRecord } from '@shared/database'
 import type { Logger } from '@shared/logging'
+import { readSettings } from '@shared/settings'
 
 import type { WebJob } from '../api-types'
 import { HttpError, readJson } from './http'
@@ -68,5 +69,6 @@ export async function correctJob(req: Request & { params: { postId: string } }, 
 	await ExtractionFeedback.create(feedback)
 	logger.info({ postId, kind: feedback.kind, fields: feedback.correctedFields }, 'Vaga corrigida pelo site')
 
-	return Response.json(toWebJob(updated as JobDocument) satisfies WebJob)
+	const { reviewChecksPercent } = await readSettings('post-processing')
+	return Response.json(toWebJob(updated as JobDocument, reviewChecksPercent) satisfies WebJob)
 }

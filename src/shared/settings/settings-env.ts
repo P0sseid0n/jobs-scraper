@@ -21,6 +21,8 @@ export const settingsEnv = {
 	SCRAPER_PAUSED: booleanFromEnv.default(false),
 
 	// Filtros das vagas (post-processing)
+	/** Porcentagem dos checks da extração a partir da qual a vaga pede para conferir o post original. */
+	REVIEW_CHECKS_PERCENT: z.coerce.number().int().min(1).max(100).default(60),
 	/** Idiomas aceitos (ISO 639-1) separados por vírgula; vazio aceita todos. */
 	JOB_LANGUAGES: z.string().default('pt'),
 	/** Palavras que a vaga precisa citar (ao menos uma) no cargo ou nos conhecimentos, separadas por vírgula; vazio desliga. */
@@ -59,6 +61,7 @@ export function settingsSeedsFromEnv(env: SettingsEnv): SettingsSeeds {
 			paused: env.SCRAPER_PAUSED,
 		},
 		'post-processing': {
+			reviewChecksPercent: env.REVIEW_CHECKS_PERCENT,
 			allowedLanguages: listFromEnv(env.JOB_LANGUAGES),
 			requiredKeywords: listFromEnv(env.JOB_REQUIRED_KEYWORDS),
 			excludedKeywords: listFromEnv(env.JOB_EXCLUDED_KEYWORDS),

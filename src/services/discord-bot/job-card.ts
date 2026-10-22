@@ -9,7 +9,7 @@ import {
 	type MessageActionRowComponentBuilder,
 } from 'discord.js'
 
-import { EXTRACTION_CHECK_LABELS, EXTRACTION_CHECKS, needsReview, type ProcessedJob } from '@shared/contracts'
+import { EXTRACTION_CHECK_LABELS, EXTRACTION_CHECKS, type JobPublished, type ProcessedJob } from '@shared/contracts'
 
 import { CONTACT_BUTTON_PREFIX } from './contact-reply'
 
@@ -31,7 +31,7 @@ const CUSTOM_ID_MAX = 100
 const FORUM_TAGS_MAX = 5
 
 /** Monta a mensagem da vaga: embed com os dados e botões de link e contato/currículo. */
-export function buildJobCard(job: ProcessedJob) {
+export function buildJobCard(job: JobPublished) {
 	return { embeds: [buildJobEmbed(job)], components: buildJobComponents(job) }
 }
 
@@ -65,7 +65,7 @@ export function summarizePost(text: string, max = SUMMARY_MAX) {
 	return truncate(escapeMarkdown(normalized), max)
 }
 
-function buildJobEmbed(job: ProcessedJob) {
+function buildJobEmbed(job: JobPublished) {
 	const embed = new EmbedBuilder()
 		.setTitle(truncate(job.title ?? 'Vaga sem título', TITLE_MAX))
 		.setDescription(summarizePost(job.rawContent))
@@ -132,18 +132,18 @@ function buildJobComponents(job: ProcessedJob) {
 	return [new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(buttons)]
 }
 
-function jobColor(job: Pick<ProcessedJob, 'workMode' | 'extractionChecks'>) {
-	if (needsReview(job.extractionChecks)) return REVIEW_COLOR
+function jobColor(job: Pick<JobPublished, 'workMode' | 'needsReview'>) {
+	if (job.needsReview) return REVIEW_COLOR
 	return job.workMode ? WORK_MODE_COLORS[job.workMode] : DEFAULT_COLOR
 }
 
 /** "⚠ 2/6 · a IA citou o que não está no post: modalidade, tecnologias"; `null` sem checks. */
-function checksFooter(job: Pick<ProcessedJob, 'extractionChecks'>) {
+function checksFooter(job: Pick<JobPublished, 'extractionChecks' | 'needsReview'>) {
 	if (job.extractionChecks.length === 0) return null
 
 	const labels = job.extractionChecks.map(check => EXTRACTION_CHECK_LABELS[check]).join(', ')
 	const text = `⚠ ${job.extractionChecks.length}/${EXTRACTION_CHECKS.length} · a IA citou o que não está no post: ${labels}`
-	return needsReview(job.extractionChecks) ? `${text}. Confira o post original e reporte a vaga no site.` : text
+	return job.needsReview ? `${text}. Confira o post original e reporte a vaga no site.` : text
 }
 
 function workModeLabel(job: Pick<ProcessedJob, 'workMode'>) {

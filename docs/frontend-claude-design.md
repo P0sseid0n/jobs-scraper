@@ -47,7 +47,7 @@ LinkedIn → scraper → IA (extração) → banco → evento "vaga publicada" �
 | `author`              | string \| null                                 | Quem publicou o post (nome da pessoa no LinkedIn).                                                         |
 | `postedAt`            | data ISO \| null                               | Quando o post foi publicado. Exibir relativo ("há 3 horas").                                               |
 | `createdAt`           | data ISO                                       | Quando a vaga entrou no sistema. Sempre presente.                                                          |
-| `extractionChecks`    | lista (de 0 a 6 itens)                         | Campos em que a IA citou o que não está escrito no post: `title`, `company`, `workMode`, `contractTypes`, `necessaryKnowledge`, `applyLink`. A partir de 4, a vaga pede para conferir o post original e reportar. |
+| `extractionChecks`    | lista (de 0 a 6 itens)                         | Campos em que a IA citou o que não está escrito no post: `title`, `company`, `workMode`, `contractTypes`, `necessaryKnowledge`, `applyLink`. A partir do limite das configurações (padrão 4), a vaga pede para conferir o post original e reportar. |
 | `language`            | string \| null                                 | Idioma do post, código ISO ("pt", "en").                                                                   |
 | `rawContent`          | string                                         | Texto completo do post original. Pode ser longo (até ~3.000 caracteres), com quebras de linha e emojis.    |
 
@@ -113,6 +113,7 @@ Atenção ao funil: `sent` é quantos posts foram para a IA, não quantas vagas 
 
 | Campo              | Tipo / regras                                                                                      | Padrão |
 | ------------------ | -------------------------------------------------------------------------------------------------- | ------ |
+| `reviewChecksPercent` | número 1–100: porcentagem dos checks da extração a partir da qual a vaga pede para conferir o post original | 60 |
 | `allowedLanguages` | lista de códigos de 2 letras (`pt`, `en`...), até 20; vazia aceita todos                           | `pt`   |
 | `requiredKeywords` | até 50 palavras; a vaga precisa citar ao menos uma no cargo ou nas tecnologias; vazia desliga       | front-end, vue, react, typescript... |
 | `excludedKeywords` | até 50 palavras; a vaga é descartada se citar alguma                                               | .net, asp.net, dotnet |
@@ -151,7 +152,7 @@ Painel lateral no desktop, tela própria no celular.
   >
   > Obrigado!
 - **Sem e-mail:** a ação principal vira "Ver post e se candidatar" (link) + "Gerar currículo".
-- **Checks da extração:** selo "⚠ 2/6" (só com pelo menos um), com o vermelho mais forte a cada check e o hover listando quais dispararam. A partir de 4 de 6, um aviso pede para conferir o post original e reportar a vaga.
+- **Checks da extração:** selo "⚠ 2/6" (só com pelo menos um), com o vermelho mais forte a cada check e o hover listando quais dispararam. A partir do limite das configurações (`reviewChecksPercent`, padrão 60% = 4 de 6), um aviso pede para conferir o post original e reportar a vaga.
 
 ### 4.3 Gerar currículo
 

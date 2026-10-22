@@ -28,7 +28,7 @@ As mensagens são persistentes e validadas com os schemas de `contracts/`.
 
 ## Configurações em tempo de execução
 
-O perfil profissional, os termos de busca, o filtro de data, o limite de posts, o intervalo, a pausa das coletas, os idiomas aceitos e as palavras-chave ficam na coleção `settings` do MongoDB, um documento por serviço (`scraper`, `post-processing`, `profile`). O site edita esses valores; outras fontes também podem.
+O perfil profissional, os termos de busca, o filtro de data, o limite de posts, o intervalo, a pausa das coletas, o limite dos checks da extração, os idiomas aceitos e as palavras-chave ficam na coleção `settings` do MongoDB, um documento por serviço (`scraper`, `post-processing`, `profile`). O site edita esses valores; outras fontes também podem.
 
 - **O `.env` vem primeiro:** todas essas opções têm variável no `.env` (`settingsEnv`, em `settings/settings-env.ts`). Ao subir, todo serviço com banco lê essas variáveis antes de qualquer outra coisa e grava os documentos que ainda não existem (`seedSettings`, chamada pelo `startService`). Assim, não importa qual serviço sobe primeiro, nem se o site é aberto antes do scraper rodar.
 - Depois, valem os do banco, editáveis pelo site: mudar o `.env` não altera documentos já salvos. Para voltar a usar o `.env`, apague o documento (ex.: pelo mongo-express); até ele ser recriado, as leituras já usam os valores do `.env`.

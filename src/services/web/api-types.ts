@@ -16,13 +16,15 @@ import type { CvBaseStatus, ScraperRunStatus, ScraperRunTrigger, ScraperTermErro
 /**
  * Vaga salva: o cargo nunca falta (o post-processing descarta as que vêm sem), `createdAt` é quando entrou no sistema
  * `correctedAt`, quando foi corrigida pelo site pela última vez (`null` se nunca foi) e `viewedAt`, quando foi aberta
- * no site (`null` se ainda não foi vista).
+ * no site (`null` se ainda não foi vista). `needsReview`: tem checks da extração suficientes para pedir que a pessoa
+ * confira o post original (pelo limite das configurações).
  */
 export type WebJob = Omit<ProcessedJob, 'title'> & {
 	title: string
 	createdAt: string
 	correctedAt: string | null
 	viewedAt: string | null
+	needsReview: boolean
 }
 
 export type JobsPage = { jobs: WebJob[]; nextCursor: string | null }
