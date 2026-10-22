@@ -97,11 +97,39 @@ async function runTectonic(tectonicBin: string, dir: string) {
 
 	if (exitCode === 0) return
 
-	// Linhas do LaTeX que começam com "!" descrevem o erro (ex.: "! Undefined control sequence.")
-	const errors = `${stdout}\n${stderr}`
-		.split('\n')
-		.filter(line => line.startsWith('!') || line.startsWith('error:'))
-		.slice(0, 5)
+	const errors = latexErrors(`${stdout}\n${stderr}`)
 
 	throw new LatexCompileError(`Falha ao compilar o currículo: ${errors.join(' | ') || `tectonic saiu com código ${exitCode}`}`)
+}
+
+/**
+ * Os erros do LaTeX na saída do Tectonic, com a linha do `.tex` quando o TeX a informa
+ * (ex.: "Undefined control sequence. (linha 94: \naoexiste)"). As linhas que começam com "!" descrevem o erro, a
+ * "l.94 ..." seguinte diz onde e as "*** ..." explicam a parada. Sem nenhuma, ficam as linhas "error:" do Tectonic.
+ */
+export function latexErrors(output: string) {
+	const lines = output.split(/\r?\n/)
+	const errors: string[] = []
+
+	lines.forEach((line, index) => {
+		if (!line.startsWith('! ')) return
+
+		let message = line.slice(2).trim()
+		for (const next of lines.slice(index + 1, index + 8)) {
+			if (next.startsWith('! ')) break
+
+			const where = next.match(/^l\.(\d+)\s*(.*)$/)
+			if (where) {
+				message += where[2] ? ` (linha ${where[1]}: ${where[2].trim()})` : ` (linha ${where[1]})`
+				break
+			}
+			if (next.startsWith('*** ')) message += ` ${next.slice(4).trim()}`
+		}
+
+		if (!errors.includes(message)) errors.push(message)
+	})
+
+	if (errors.length > 0) return errors.slice(0, 5)
+
+	return lines.filter(line => line.startsWith('error:')).slice(0, 5)
 }
