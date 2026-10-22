@@ -1,7 +1,14 @@
 import { useBlocker } from '@tanstack/react-router'
 import { useEffect, useMemo, useRef, useState, type FormEvent, type InputHTMLAttributes } from 'react'
 
-import { DATE_POSTED_FILTERS, SENIORITY_LEVELS, type DatePostedFilter, type SeniorityLevel } from '@shared/contracts'
+import {
+	DATE_POSTED_FILTERS,
+	PROFILE_AREAS,
+	SENIORITY_LEVELS,
+	suggestedRoles,
+	type DatePostedFilter,
+	type SeniorityLevel,
+} from '@shared/contracts'
 
 import type { WebSettings } from '../../api-types'
 import { api, RequestError } from '../api'
@@ -207,6 +214,7 @@ export function SettingsView({ initial }: { initial: WebSettings }) {
 	function renderProfile(d: SettingsDraft) {
 		const profile = d.profile
 		const languages = [...new Set([...Object.keys(LANGUAGE_NAMES), ...profile.languages])]
+		const suggestions = { area: Object.keys(PROFILE_AREAS), targetRole: suggestedRoles(profile.area) }
 
 		return (
 			<section className={SETTINGS_CARD} aria-labelledby="profile-title">
@@ -225,11 +233,13 @@ export function SettingsView({ initial }: { initial: WebSettings }) {
 							<FieldLabel htmlFor={field}>{label}</FieldLabel>
 							<Input
 								id={field}
+								list={`${field}-options`}
+								autoComplete="off"
 								value={profile[field]}
 								maxLength={maxLength}
 								placeholder={placeholder}
 								invalid={!!errors[field]}
-								aria-describedby={errors[field] ? `${field}-error` : undefined}
+								aria-describedby={errors[field] ? `${field}-error` : `${field}-help`}
 								onChange={event => {
 									const value = event.target.value
 									edit(next => {
@@ -237,7 +247,21 @@ export function SettingsView({ initial }: { initial: WebSettings }) {
 									})
 								}}
 							/>
-							{fieldError(field)}
+							{/* Sugestões do navegador; o campo continua aceitando qualquer texto */}
+							<datalist id={`${field}-options`}>
+								{suggestions[field].map(option => (
+									<option key={option} value={option} />
+								))}
+							</datalist>
+							{fieldError(field) ?? (
+								<FieldHelp id={`${field}-help`}>
+									{field === 'area'
+										? 'Escolha uma das sugestões ou digite a sua.'
+										: suggestions.targetRole.length > 0
+											? `Sugestões para ${profile.area.trim()}, ou digite o seu.`
+											: 'Digite o cargo que você procura.'}
+								</FieldHelp>
+							)}
 						</div>
 					))}
 				</div>
