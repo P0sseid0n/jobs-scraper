@@ -21,6 +21,7 @@ export interface IconProps {
 		| 'plus'
 		| 'flag'
 		| 'spinner'
+		| 'eye-off'
 	size?: number
 	className?: string
 }

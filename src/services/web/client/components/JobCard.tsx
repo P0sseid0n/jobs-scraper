@@ -4,7 +4,7 @@ import type { WebJob } from '../../api-types'
 import { cx } from '../lib/cx'
 import { jobDate, jobSubtitle, safeLink, timeAgo } from '../lib/format'
 import { jobParams } from '../router'
-import { useViewed } from '../stores/viewed'
+import { setViewed, useViewed } from '../stores/viewed'
 import { ContractTypeBadge } from './ContractTypeBadge'
 import { CorrectedBadge } from './CorrectedBadge'
 import { CvButton } from './CvButton'
@@ -13,6 +13,7 @@ import { ListingBadge } from './ListingBadge'
 import { badge, BadgeList } from './ui/Badge'
 import { Button } from './ui/Button'
 import { card } from './ui/Card'
+import { IconButton } from './ui/IconButton'
 import { Skeleton } from './ui/Skeleton'
 import { StatusDot } from './ui/StatusDot'
 import { WorkModeBadge } from './WorkModeBadge'
@@ -40,7 +41,7 @@ export function JobCard({
 
 	return (
 		<article
-			className={cx(JOB_CARD, selected ? 'inverted border-inv-bg' : 'hover:border-line-strong')}
+			className={cx(JOB_CARD, 'group/card', selected ? 'inverted border-inv-bg' : 'hover:border-line-strong')}
 			aria-current={selected ? 'true' : undefined}
 		>
 			<div className="flex items-start gap-3">
@@ -72,9 +73,25 @@ export function JobCard({
 						<ContractTypeBadge job={job} />
 						<WorkModeBadge job={job} />
 					</div>
-					<time className="font-mono text-muted text-sm" dateTime={jobDate(job)}>
-						{timeAgo(jobDate(job))}
-					</time>
+					<div className="flex items-center gap-1">
+						{/*
+						 * Desfazer a marcação é raro: o botão só aparece com o mouse sobre o card ou com o foco do teclado. No
+						 * toque não há hover; lá o link fica no rodapé do detalhe
+						 */}
+						{viewed && (
+							<IconButton
+								label="marcar como não vista"
+								size="xs"
+								className="text-muted opacity-0 group-hover/card:opacity-100 focus-visible:opacity-100 pointer-coarse:hidden"
+								onClick={() => void setViewed(job, false)}
+							>
+								<Icon name="eye-off" size={14} />
+							</IconButton>
+						)}
+						<time className="font-mono text-muted text-sm" dateTime={jobDate(job)}>
+							{timeAgo(jobDate(job))}
+						</time>
+					</div>
 				</div>
 			</div>
 
