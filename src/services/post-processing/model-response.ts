@@ -35,6 +35,26 @@ export function keepLinkIfInPost(link: string | null, text: string): string | nu
 	return text.includes(link) ? link : null
 }
 
+/**
+ * Mantém a empresa da IA só se ela estiver escrita no post fora dos links e e-mails: o modelo às vezes tira o nome
+ * do domínio ("vagas.acme.com" → "acme"). Vale escrita separada ou junta, como numa hashtag ("#AcmeTech").
+ */
+export function keepCompanyIfInPost(company: string | null, text: string): string | null {
+	if (!company) return null
+
+	const textWithoutLinks = normalizeForMatch(text.normalize('NFKC'))
+		.replace(/https?:\/\/\S+|www\.\S+/g, ' ')
+		.replace(/[\w.+-]+@[\w-]+(\.[\w-]+)+/g, ' ')
+		.replace(/(?<![a-z0-9])[a-z0-9-]+(\.[a-z0-9-]+)*\.(com|net|org|io|dev|app|br)(\/\S*)?/g, ' ')
+	const words = normalizeForMatch(company)
+		.split(/[^a-z0-9#+&]+/)
+		.filter(Boolean)
+	const compact = words.join('')
+
+	if (words.length > 0 && words.every(word => containsWordStart(textWithoutLinks, word))) return company
+	return compact.length >= 4 && textWithoutLinks.replace(/[^a-z0-9#+&]+/g, '').includes(compact) ? company : null
+}
+
 /** Descarta o local quando ele é só a modalidade ("Remoto", "100% home office"), que já tem campo próprio. */
 export function locationWithoutWorkMode(location: string | null): string | null {
 	if (!location) return null

@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
 import {
+	keepCompanyIfInPost,
 	keepContractTypesInPost,
 	keepLinkIfInPost,
 	keepSkillsInPost,
@@ -40,6 +41,16 @@ describe('parseModelResponse', () => {
 		)
 
 		expect(job).toMatchObject({ title: null, company: null, location: null, necessary_knowledge: null, workMode: null })
+	})
+
+	test('trata frases de valor ausente como ausentes', () => {
+		const job = parseModelResponse(
+			'{"title": "Dev Pleno", "company": "Não especificado", "location": "unknown", "necessary_knowledge": ["Vue", "Não informado"], "aiJobConfidence": 90}',
+		)
+		const sentence = parseModelResponse('{"company": "O nome da empresa não foi mencionado no post", "location": "Not specified"}')
+
+		expect(job).toMatchObject({ title: 'Dev Pleno', company: null, location: null, necessary_knowledge: ['Vue'] })
+		expect(sentence).toMatchObject({ company: null, location: null })
 	})
 
 	test('regimes: aceita grafias do modelo, remove repetidos e ordena', () => {
@@ -100,6 +111,25 @@ describe('keepLinkIfInPost', () => {
 		expect(keepLinkIfInPost('https://empresa.com/careers', text)).toBeNull()
 		expect(keepLinkIfInPost('empresa.com', text)).toBeNull()
 		expect(keepLinkIfInPost(null, text)).toBeNull()
+	})
+})
+
+describe('keepCompanyIfInPost', () => {
+	test('mantém a empresa escrita no post, junta ou em negrito Unicode', () => {
+		expect(keepCompanyIfInPost('Spread Tecnologia', 'Vaga na Spread Tecnologia, home office')).toBe('Spread Tecnologia')
+		expect(keepCompanyIfInPost('CapitaniGroup', 'Envie o CV #VagaPJ #CapitaniGroup')).toBe('CapitaniGroup')
+		expect(keepCompanyIfInPost('Capitani Group', 'Envie o CV #CapitaniGroup')).toBe('Capitani Group')
+		expect(keepCompanyIfInPost('Commure', 'Vaga | 𝗖𝗼𝗺𝗺𝘂𝗿𝗲 | Remoto')).toBe('Commure')
+		expect(keepCompanyIfInPost('EY', 'Banco de talentos EY, São Paulo')).toBe('EY')
+	})
+
+	test('descarta a empresa tirada de um link ou e-mail', () => {
+		const text = 'Candidate-se: https://vagas.exemplo.com/dev ou envie para rh@acmetech.com.br (ver acmetech.com.br/vagas)'
+
+		expect(keepCompanyIfInPost('exemplo', text)).toBeNull()
+		expect(keepCompanyIfInPost('Acmetech', text)).toBeNull()
+		expect(keepCompanyIfInPost('Orbis', text)).toBeNull()
+		expect(keepCompanyIfInPost(null, text)).toBeNull()
 	})
 })
 

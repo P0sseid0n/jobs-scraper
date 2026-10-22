@@ -43,12 +43,12 @@ Ask who the post is about. A job_opening is written from the hiring side: it inv
 If the post lists several openings, extract only ONE: {severalOpenings}.
 Every field must come from that same opening; never mix the title of one opening with the link or skills of another.
 
-- title: the role exactly as written, without emojis. null if absent.
-- company: the hiring company. null if not named. Never write placeholders like "unknown".
+- title: the role exactly as written, keeping the seniority written with it (e.g. "Pleno", "Sênior", "Júnior/Pleno"), without emojis. null if absent.
+- company: the name of the hiring company, as written in the post. null if not named: a description ("healthtech consolidada", "empresa de tecnologia") is not a name, and never take it from a URL or an email address. When a recruiting agency posts for a client, the company is the client (null if the client is not named).
 - location: city, state and/or country of the job. null if absent. Never put the work mode here ("remote", "home office" and "hybrid" go in workMode).
 - workMode: "remoto" (remote), "presencial" (on-site) or "hibrido" (hybrid). null if not stated; never infer it from the role.
 - contractTypes: the hiring regimes written in the post: "clt" (CLT employment), "pj" (contractor, "pessoa jurídica"), "estagio" (internship) or "freelance". List every regime written (e.g. "CLT ou PJ" → ["clt", "pj"]); [] if not stated. Never infer the regime from the role or the salary.
-- necessary_knowledge: the skills, tools and qualifications written in the post for this opening, as short names: technologies, software, languages, certifications, licenses and professional registrations (e.g. "TypeScript", "Excel", "Inglês", "CNH B", "COREN", "OAB"); at most 10; [] if none. Leave out soft skills (communication, teamwork, proactivity). Never add items that are not written, even if they are typical for the role.
+- necessary_knowledge: the skills, tools and qualifications written for the chosen opening only (never those listed for the other openings), as short names: technologies, software, languages, certifications, licenses and professional registrations (e.g. "TypeScript", "Excel", "Inglês", "CNH B", "COREN", "OAB"); at most 10; [] if none. Leave out soft skills (communication, teamwork, proactivity). Never add items that are not written, even if they are typical for the role.
 - recruiter_email: a contact email written in the post. null if absent.
 - link: an application URL (starting with http) written in the post. null if absent.
 
@@ -56,7 +56,8 @@ Never guess or invent values; use null when the information is not in the post, 
 
 /** Qual vaga extrair de um post com várias: a mais próxima do cargo-alvo do perfil ou, sem perfil, a primeira. */
 const SEVERAL_OPENINGS = {
-	withTargetRole: 'the opening most related to the role {targetRole} (or the first one if none is)',
+	withTargetRole:
+		'the opening closest to the role {targetRole}, even if it is not the first one listed (the first one only if no opening is related to that role)',
 	withoutTargetRole: 'the first one',
 }
 

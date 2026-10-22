@@ -30,7 +30,7 @@ describe('post com várias vagas', () => {
 
 	test('com perfil, escolhe a vaga mais próxima do cargo-alvo', () => {
 		expect(systemFor('Analista de Marketing Digital')).toContain(
-			'extract only ONE: the opening most related to the role "Analista de Marketing Digital" (or the first one if none is).',
+			'extract only ONE: the opening closest to the role "Analista de Marketing Digital", even if it is not the first one listed',
 		)
 	})
 

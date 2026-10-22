@@ -8,10 +8,23 @@ export const POST_TYPES = ['job_opening', 'job_seeker', 'course_or_graduation', 
 /** Textos que o modelo às vezes devolve como string em vez do `null` do JSON. */
 const EMPTY_VALUES = new Set(['', 'null', 'none', 'n/a', 'na', 'undefined', '-', 'string'])
 
+/** Frases que dizem que o valor falta ("unknown", "Não especificado", "O nome da empresa não foi mencionado no post"). */
+const MISSING_VALUE =
+	/\b(unknown|desconhecid[oa]|not (specified|mentioned|stated|informed)|nao (foi |e |esta )?(especificad|informad|mencionad|divulgad|citad|identificad)[oa])\b/
+
+function isEmptyValue(value: string) {
+	const normalized = value
+		.normalize('NFKD')
+		.replace(/\p{Diacritic}/gu, '')
+		.toLowerCase()
+
+	return EMPTY_VALUES.has(normalized) || MISSING_VALUE.test(normalized)
+}
+
 const nullableString = z
 	.string()
 	.trim()
-	.transform(value => (EMPTY_VALUES.has(value.toLowerCase()) ? null : value))
+	.transform(value => (isEmptyValue(value) ? null : value))
 	.nullable()
 	.catch(null)
 
@@ -49,7 +62,7 @@ export const AiJobOutputSchema = z
 		necessary_knowledge: z
 			.union([z.array(z.string()), z.string().transform(value => value.split(','))])
 			.transform(items => {
-				const knowledge = items.map(item => item.trim()).filter(item => !EMPTY_VALUES.has(item.toLowerCase()))
+				const knowledge = items.map(item => item.trim()).filter(item => !isEmptyValue(item))
 				return knowledge.length > 0 ? knowledge : null
 			})
 			.nullable()
