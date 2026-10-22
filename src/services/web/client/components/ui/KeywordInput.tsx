@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent } from 'react'
+import { useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
 
 import { cx } from '../../lib/cx'
 import { Icon } from '../Icon'
@@ -30,6 +30,7 @@ export function KeywordInput({
 	onChange: (value: string[]) => void
 }) {
 	const [draft, setDraft] = useState('')
+	const inputRef = useRef<HTMLInputElement>(null)
 
 	function add() {
 		const words = draft
@@ -55,8 +56,18 @@ export function KeywordInput({
 		}
 	}
 
+	// A caixa toda leva ao campo de digitar, menos o "x" dos chips
+	function onBoxClick(event: MouseEvent<HTMLDivElement>) {
+		if (!(event.target as Element).closest('button')) inputRef.current?.focus()
+	}
+
 	return (
-		<div className={field({ invalid, className: cx('flex min-h-24 flex-wrap content-start gap-1.5 p-2', FOCUS_WITHIN) })}>
+		// biome-ignore lint/a11y/noStaticElementInteractions: só atalho do mouse; pelo teclado o foco já vai direto ao input
+		// biome-ignore lint/a11y/useKeyWithClickEvents: idem
+		<div
+			className={field({ invalid, className: cx('flex min-h-24 cursor-text flex-wrap content-start gap-1.5 p-2', FOCUS_WITHIN) })}
+			onClick={onBoxClick}
+		>
 			{value.map(word => (
 				<span className={badge({ className: 'gap-0.5 py-0.5 pr-0.5 pl-2.5 text-xs whitespace-normal' })} key={word}>
 					{word}
@@ -71,6 +82,7 @@ export function KeywordInput({
 				</span>
 			))}
 			<input
+				ref={inputRef}
 				id={id}
 				className="h-7.5 min-w-25 flex-1 basis-30 border-0 bg-transparent text-sm outline-none"
 				value={draft}

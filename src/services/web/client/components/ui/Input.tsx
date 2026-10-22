@@ -6,7 +6,8 @@ import { Icon } from '../Icon'
 
 /** A caixa dos campos de texto e seleção; use `field()` em um contêiner que se comporta como campo (ex.: o de palavras-chave). */
 export const field = tv({
-	base: 'min-w-0 rounded-sm border border-line bg-surface text-ink',
+	// Desativado, o campo fica com o fundo e o texto apagados para não parecer editável
+	base: 'min-w-0 rounded-sm border border-line bg-surface text-ink disabled:cursor-not-allowed disabled:bg-surface-2 disabled:text-muted',
 	variants: {
 		/** `sm`: nos filtros, ao lado do texto. `md`: nos formulários. */
 		size: { sm: 'min-h-8 px-2 py-0 text-sm', md: 'min-h-11 px-3 py-0 text-sm' },
@@ -71,6 +72,8 @@ const RANGE = [
 	'range-track:h-1.5 range-track:rounded-pill range-track:bg-range-fill',
 	// A bolinha (20px) sobe metade da diferença para o trilho (6px): 7px
 	'range-thumb:box-border range-thumb:size-5 webkit-range-thumb:-mt-1.75 range-thumb:appearance-none range-thumb:rounded-full range-thumb:border-2 range-thumb:border-ink dark:range-thumb:border-lime range-thumb:bg-surface range-thumb:shadow-sm range-thumb:transition',
+	// A mãozinha também na bolinha, não só no trilho
+	'range-thumb:cursor-pointer disabled:range-thumb:cursor-not-allowed',
 	'not-disabled:hover:range-thumb:scale-110 not-disabled:active:range-thumb:scale-115 not-disabled:active:range-thumb:bg-lime',
 	// O contorno de foco vai na bolinha, não na caixa toda do campo
 	'focus-visible:range-thumb:outline-2 focus-visible:range-thumb:outline-offset-2 focus-visible:range-thumb:outline-focus',
