@@ -67,6 +67,12 @@ export const GUIDES: Record<string, string> = {
 
 - \`id\` liga o texto ao interruptor; \`title\` é o texto (e o nome acessível); \`description\` explica em uma linha.
 - Usado nas configurações, um por linha, numa coluna com \`gap-4\`.`,
+	Combobox: `Campo de texto com sugestões, como um select com filtro: a lista abre ao focar o campo, filtra enquanto se digita (ignorando maiúsculas e acentos) e aceita qualquer texto.
+
+- Controlado: \`value\` (o texto) e \`onChange(texto)\`; \`options\` são as sugestões.
+- Setas e Enter escolhem uma opção; Esc fecha a lista.
+- Use quando há respostas comuns mas a pessoa pode escrever a dela (área, cargo). Se só valem as opções, use \`Select\`.
+- Dê um \`FieldLabel\` com o mesmo \`id\`.`,
 	KeywordInput: `Campo de chips: digite e Enter (ou vírgula) para adicionar; Backspace no campo vazio remove o último.
 
 - Controlado: \`value\` (as palavras) e \`onChange(palavras)\`; \`max\` limita a quantidade e \`maxLength\` (50) o tamanho de cada uma.

@@ -4,6 +4,7 @@
 export { Badge, BadgeList, badge, type BadgeTone } from '../client/components/ui/Badge'
 export { Button } from '../client/components/ui/Button'
 export { card } from '../client/components/ui/Card'
+export { Combobox } from '../client/components/ui/Combobox'
 export { CodeBlock } from '../client/components/ui/CodeBlock'
 export { ConfirmDialog, DIALOG } from '../client/components/ui/Dialog'
 export { EmptyState } from '../client/components/ui/EmptyState'

@@ -141,6 +141,15 @@ const PREVIEWS: Record<string, Preview> = {
 	h(U.SwitchField, { id: 'discord', title: 'Publicar no Discord', checked: false, onChange: function () {} })
 )`,
 	},
+	Combobox: {
+		group: 'Forms',
+		height: 320,
+		subtitle: 'texto livre com sugestões filtradas',
+		body: `h(function Demo() {
+	var s = React.useState('')
+	return h('div', { className: 'flex max-w-sm flex-col gap-1.5' }, h(U.FieldLabel, { htmlFor: 'area' }, 'Área'), h(U.Combobox, { id: 'area', value: s[0], options: ['Administração', 'Design', 'Enfermagem', 'Logística', 'Marketing', 'Vendas'], placeholder: 'ex.: Marketing', onChange: s[1] }))
+})`,
+	},
 	KeywordInput: {
 		group: 'Forms',
 		height: 130,

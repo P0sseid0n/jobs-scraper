@@ -15,6 +15,7 @@ import { api, RequestError } from '../api'
 import { Icon } from '../components/Icon'
 import { Button } from '../components/ui/Button'
 import { card } from '../components/ui/Card'
+import { Combobox } from '../components/ui/Combobox'
 import { ConfirmDialog } from '../components/ui/Dialog'
 import { FieldError, FieldHelp, FieldLabel } from '../components/ui/Field'
 import { IconButton } from '../components/ui/IconButton'
@@ -231,28 +232,20 @@ export function SettingsView({ initial }: { initial: WebSettings }) {
 					).map(([field, label, placeholder, maxLength]) => (
 						<div className="flex flex-col gap-1.5" key={field}>
 							<FieldLabel htmlFor={field}>{label}</FieldLabel>
-							<Input
+							<Combobox
 								id={field}
-								list={`${field}-options`}
-								autoComplete="off"
 								value={profile[field]}
+								options={suggestions[field]}
 								maxLength={maxLength}
 								placeholder={placeholder}
 								invalid={!!errors[field]}
-								aria-describedby={errors[field] ? `${field}-error` : `${field}-help`}
-								onChange={event => {
-									const value = event.target.value
+								describedBy={errors[field] ? `${field}-error` : `${field}-help`}
+								onChange={value =>
 									edit(next => {
 										next.profile[field] = value
 									})
-								}}
+								}
 							/>
-							{/* Sugestões do navegador; o campo continua aceitando qualquer texto */}
-							<datalist id={`${field}-options`}>
-								{suggestions[field].map(option => (
-									<option key={option} value={option} />
-								))}
-							</datalist>
 							{fieldError(field) ?? (
 								<FieldHelp id={`${field}-help`}>
 									{field === 'area'
