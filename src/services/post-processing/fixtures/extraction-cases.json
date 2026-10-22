@@ -675,7 +675,7 @@
 			"aiJobConfidence": 100
 		},
 		"expected": {
-			"title": "Advogado(a) Previdenciário",
+			"title": "Advogado(a) Previdenciário Pleno",
 			"company": "Lacerda & Fontes Advocacia",
 			"location": null,
 			"workMode": "remoto",

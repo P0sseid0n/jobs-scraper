@@ -11,6 +11,7 @@ import {
 	keepContractTypesInPost,
 	keepLinkIfInPost,
 	keepSkillsInPost,
+	keepWorkModeInPost,
 	locationWithoutWorkMode,
 	parseModelResponse,
 } from './model-response'
@@ -64,7 +65,8 @@ export function buildProcessedJob(post: RawPost, aiJob: AiJobOutput, language: s
 		// Só os conhecimentos escritos no post: o modelo às vezes completa com tecnologias "típicas" do cargo
 		necessaryKnowledge: keepSkillsInPost(aiJob.necessary_knowledge, post.text),
 		recruiterEmail: aiJob.recruiter_email,
-		workMode: aiJob.workMode,
+		// Só a modalidade escrita no post: o modelo às vezes a deduz do cargo
+		workMode: keepWorkModeInPost(aiJob.workMode, post.text),
 		// Só os regimes escritos no post; "CLT" e "PJ" entram pelo texto mesmo se o modelo não os devolver
 		contractTypes: keepContractTypesInPost(aiJob.contractTypes, post.text),
 		aiJobConfidence: aiJob.aiJobConfidence,

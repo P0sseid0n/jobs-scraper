@@ -5,6 +5,7 @@ import {
 	keepContractTypesInPost,
 	keepLinkIfInPost,
 	keepSkillsInPost,
+	keepWorkModeInPost,
 	locationWithoutWorkMode,
 	parseModelResponse,
 	rejectionReason,
@@ -171,6 +172,27 @@ describe('locationWithoutWorkMode', () => {
 })
 
 // Textos no formato dos posts coletados (empresas e contatos trocados)
+describe('keepWorkModeInPost', () => {
+	test('mantém a modalidade escrita no post, em qualquer grafia comum', () => {
+		expect(keepWorkModeInPost('remoto', 'Atuação: 100% remota')).toBe('remoto')
+		expect(keepWorkModeInPost('remoto', 'Rio de Janeiro (Remote) #HomeOffice')).toBe('remoto')
+		expect(keepWorkModeInPost('remoto', 'Vaga Front-end #TrabalhoRemoto')).toBe('remoto')
+		expect(keepWorkModeInPost('presencial', '📍 Recife/PE · Presencial · CLT')).toBe('presencial')
+		expect(keepWorkModeInPost('hibrido', '⭐ FRONT-END PLENO | HÍBRIDO SP ⭐')).toBe('hibrido')
+		expect(keepWorkModeInPost('hibrido', 'Vaga 𝗛í𝗯𝗿𝗶𝗱𝗮 em Campinas')).toBe('hibrido')
+	})
+
+	test('"dias presenciais" e "remotos" no mesmo post valem como híbrido', () => {
+		expect(keepWorkModeInPost('hibrido', '3 dias presenciais e 2 remotos por semana')).toBe('hibrido')
+	})
+
+	test('descarta a modalidade deduzida do cargo ou de outra modalidade', () => {
+		expect(keepWorkModeInPost('presencial', 'Enfermeiro(a) de Centro Cirúrgico, plantão 12x36')).toBeNull()
+		expect(keepWorkModeInPost('hibrido', 'Desenvolvedor Front-End Pleno – Home Office')).toBeNull()
+		expect(keepWorkModeInPost(null, 'Vaga remota')).toBeNull()
+	})
+})
+
 describe('keepContractTypesInPost', () => {
 	test('post com PJ sai com PJ', () => {
 		const text = `🚀 Vaga: Desenvolvedor(a) Front-end Vue.js Pleno

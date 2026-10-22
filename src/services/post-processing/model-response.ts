@@ -1,6 +1,6 @@
 import { jsonrepair } from 'jsonrepair'
 
-import { CONTRACT_TYPES, type ContractType } from '@shared/contracts'
+import { CONTRACT_TYPES, type ContractType, type WORK_MODES } from '@shared/contracts'
 
 import { AiJobOutputSchema, type AiJobOutput } from './extraction-output'
 
@@ -111,6 +111,30 @@ export function keepContractTypesInPost(types: ContractType[] | null, text: stri
 	})
 
 	return kept.length > 0 ? kept : null
+}
+
+type WorkMode = (typeof WORK_MODES)[number]
+
+/** Termos de cada modalidade no texto sem acentos e em minúsculas; sem fronteira de palavra, para valer em hashtags. */
+const WORK_MODE_TERMS: Record<WorkMode, RegExp> = {
+	remoto: /remot[oa]|remote|home ?-?office|teletrabalho/,
+	presencial: /presencia(l|is)|on-?site|in-?office/,
+	hibrido: /hibrid[oa]|hybrid/,
+}
+
+/**
+ * Mantém a modalidade da IA só se ela estiver escrita no post: o modelo às vezes a deduz do cargo (enfermeiro de
+ * centro cirúrgico → presencial). "3 dias presenciais e 2 remotos" também vale como híbrido.
+ */
+export function keepWorkModeInPost(workMode: WorkMode | null, text: string): WorkMode | null {
+	if (!workMode) return null
+
+	const normalizedText = normalizeForMatch(text.normalize('NFKC'))
+	if (WORK_MODE_TERMS[workMode].test(normalizedText)) return workMode
+	if (workMode === 'hibrido' && WORK_MODE_TERMS.presencial.test(normalizedText) && WORK_MODE_TERMS.remoto.test(normalizedText)) {
+		return workMode
+	}
+	return null
 }
 
 function skillWords(skill: string) {
