@@ -8,12 +8,23 @@ export const LIMITS = {
 	keywords: 50,
 	keywordLength: 50,
 	languages: 20,
+	area: 80,
+	targetRole: 100,
+	profileLanguages: 10,
 } as const
+
+/** O perfil no formulário: área e cargo-alvo ainda não preenchidos ficam como texto vazio. */
+export type ProfileDraft = Omit<WebSettings['profile'], 'area' | 'targetRole'> & { area: string; targetRole: string }
 
 /** Campos editáveis no formulário (o `paused` é salvo na hora, pelo interruptor). */
 export type SettingsDraft = {
 	scraper: Omit<WebSettings['scraper'], 'paused'>
 	'post-processing': WebSettings['post-processing']
+	profile: ProfileDraft
+}
+
+export function profileDraftOf(profile: WebSettings['profile']): ProfileDraft {
+	return { ...profile, area: profile.area ?? '', targetRole: profile.targetRole ?? '' }
 }
 
 /**
@@ -49,6 +60,28 @@ export function validateDraft(draft: SettingsDraft) {
 	for (const field of ['requiredKeywords', 'excludedKeywords'] as const) {
 		if (processing[field].length > LIMITS.keywords) errors[field] = `Use no máximo ${LIMITS.keywords} palavras`
 	}
+
+	return errors
+}
+
+/**
+ * As regras do perfil, à parte porque ele nasce vazio: só vale validar quando a pessoa mexe nele (aí área e cargo-alvo
+ * passam a ser obrigatórios, como no servidor depois de preenchidos).
+ */
+export function validateProfile(profile: ProfileDraft) {
+	const errors: Record<string, string> = {}
+	const area = profile.area.trim()
+	const targetRole = profile.targetRole.trim()
+
+	if (!area) errors.area = 'Informe a área'
+	else if (area.length > LIMITS.area) errors.area = `Use até ${LIMITS.area} caracteres`
+
+	if (!targetRole) errors.targetRole = 'Informe o cargo-alvo'
+	else if (targetRole.length > LIMITS.targetRole) errors.targetRole = `Use até ${LIMITS.targetRole} caracteres`
+
+	if (profile.languages.length === 0) errors.languages = 'Escolha pelo menos um idioma'
+	else if (profile.languages.length > LIMITS.profileLanguages)
+		errors.languages = `Escolha no máximo ${LIMITS.profileLanguages} idiomas`
 
 	return errors
 }

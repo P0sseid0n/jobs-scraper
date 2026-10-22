@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { PostProcessingSettingsSchema, ScraperSettingsSchema } from './settings'
+import { isProfileComplete, PostProcessingSettingsSchema, ProfileSettingsSchema, ScraperSettingsSchema } from './settings'
 
 describe('ScraperSettingsSchema', () => {
 	test('preenche os campos ausentes com os padrões', () => {
@@ -54,5 +54,50 @@ describe('PostProcessingSettingsSchema', () => {
 			'front-end',
 		])
 		expect(PostProcessingSettingsSchema.safeParse({ excludedKeywords: [' '] }).success).toBe(false)
+	})
+})
+
+describe('ProfileSettingsSchema', () => {
+	test('nasce sem área nem cargo-alvo, e incompleto', () => {
+		const profile = ProfileSettingsSchema.parse({})
+
+		expect(profile).toEqual({ seniority: null, languages: ['pt'] })
+		expect(isProfileComplete(profile)).toBe(false)
+	})
+
+	test('normaliza os textos e os idiomas', () => {
+		const profile = ProfileSettingsSchema.parse({
+			area: ' Marketing ',
+			targetRole: ' Analista de Marketing Digital ',
+			languages: ['PT', ' en ', 'pt'],
+		})
+
+		expect(profile).toEqual({
+			area: 'Marketing',
+			targetRole: 'Analista de Marketing Digital',
+			seniority: null,
+			languages: ['pt', 'en'],
+		})
+		expect(isProfileComplete(profile)).toBe(true)
+	})
+
+	test('área e cargo-alvo não podem ficar em branco, e é preciso ao menos um idioma', () => {
+		const result = ProfileSettingsSchema.safeParse({ area: ' ', targetRole: '', languages: [] })
+
+		expect(result.error?.issues.map(issue => [issue.path.join('.'), issue.message])).toEqual([
+			['area', 'Informe a área'],
+			['targetRole', 'Informe o cargo-alvo'],
+			['languages', 'Escolha pelo menos um idioma'],
+		])
+	})
+
+	test('senioridade: um dos níveis ou nenhuma', () => {
+		expect(ProfileSettingsSchema.parse({ seniority: 'senior' }).seniority).toBe('senior')
+		expect(ProfileSettingsSchema.parse({ seniority: null }).seniority).toBeNull()
+		expect(ProfileSettingsSchema.safeParse({ seniority: 'sênior' }).success).toBe(false)
+	})
+
+	test('idiomas: exige o código ISO 639-1', () => {
+		expect(ProfileSettingsSchema.safeParse({ languages: ['português'] }).success).toBe(false)
 	})
 })

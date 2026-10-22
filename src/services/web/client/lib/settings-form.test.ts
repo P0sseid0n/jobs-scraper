@@ -1,12 +1,16 @@
 import { describe, expect, test } from 'bun:test'
 
-import { PostProcessingSettingsSchema, ScraperSettingsSchema } from '@shared/contracts'
+import { PostProcessingSettingsSchema, ProfileSettingsSchema, ScraperSettingsSchema } from '@shared/contracts'
 
-import { errorFor, validateDraft, type SettingsDraft } from './settings-form'
+import { errorFor, profileDraftOf, validateDraft, validateProfile, type SettingsDraft } from './settings-form'
 
 function draft(): SettingsDraft {
 	const { paused: _paused, ...scraper } = ScraperSettingsSchema.parse({})
-	return { scraper, 'post-processing': PostProcessingSettingsSchema.parse({}) }
+	return {
+		scraper,
+		'post-processing': PostProcessingSettingsSchema.parse({}),
+		profile: profileDraftOf(ProfileSettingsSchema.parse({})),
+	}
 }
 
 describe('validateDraft (as mesmas regras do servidor)', () => {
@@ -43,6 +47,28 @@ describe('validateDraft (as mesmas regras do servidor)', () => {
 
 		expect(validateDraft(value)).toEqual({})
 		expect(ScraperSettingsSchema.safeParse({ ...value.scraper, paused: false }).success).toBe(true)
+	})
+})
+
+describe('validateProfile', () => {
+	test('área, cargo-alvo e ao menos um idioma são obrigatórios', () => {
+		const value = draft()
+		value.profile.area = '  '
+		value.profile.languages = []
+
+		expect(validateProfile(value.profile)).toEqual({
+			area: 'Informe a área',
+			targetRole: 'Informe o cargo-alvo',
+			languages: 'Escolha pelo menos um idioma',
+		})
+	})
+
+	test('o perfil aceito pelo cliente também passa no schema do servidor', () => {
+		const value = draft()
+		value.profile = { area: 'Marketing', targetRole: 'Analista de Marketing Digital', seniority: 'mid', languages: ['pt', 'en'] }
+
+		expect(validateProfile(value.profile)).toEqual({})
+		expect(ProfileSettingsSchema.safeParse(value.profile).success).toBe(true)
 	})
 })
 

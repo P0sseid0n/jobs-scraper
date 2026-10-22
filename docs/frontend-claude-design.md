@@ -205,7 +205,7 @@ Endpoints sugeridos **(proposta)**:
 | `GET /api/cv/:requestId`          | Status/resultado do pedido (fallback do SSE)              |
 | `GET /api/scraper/runs`           | Histórico de coletas                                      |
 | `POST /api/scraper/run`           | Coletar agora                                             |
-| `GET / PUT /api/settings/:key`    | `key` = `scraper` ou `post-processing`                     |
+| `GET / PUT /api/settings/:key`    | `key` = `scraper`, `post-processing` ou `profile`          |
 
 ## 6. Fora do escopo agora
 

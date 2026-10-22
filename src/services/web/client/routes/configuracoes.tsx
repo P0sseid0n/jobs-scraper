@@ -7,8 +7,12 @@ import { SettingsView } from '../views/SettingsView'
 export const Route = createFileRoute('/configuracoes')({
 	staticData: { title: 'Configurações' },
 	loader: async () => {
-		const [scraper, processing] = await Promise.all([api.settings('scraper'), api.settings('post-processing')])
-		return { scraper, 'post-processing': processing }
+		const [scraper, processing, profile] = await Promise.all([
+			api.settings('scraper'),
+			api.settings('post-processing'),
+			api.settings('profile'),
+		])
+		return { scraper, 'post-processing': processing, profile }
 	},
 	pendingComponent: () => <RoutePending width="medium" />,
 	errorComponent: routeError('Não consegui carregar as configurações', 'medium'),

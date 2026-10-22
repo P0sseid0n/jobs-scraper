@@ -84,10 +84,51 @@ export const PostProcessingSettingsSchema = z.object({
 
 export type PostProcessingSettings = z.output<typeof PostProcessingSettingsSchema>
 
+export const SENIORITY_LEVELS = ['intern', 'junior', 'mid', 'senior', 'lead'] as const
+export type SeniorityLevel = (typeof SENIORITY_LEVELS)[number]
+
+export const MAX_PROFILE_LANGUAGES = 10
+
+/**
+ * O perfil profissional da pessoa, lido pelos serviços para não supor uma área. Sem valor no `.env`: nasce sem área
+ * e cargo-alvo, e o onboarding preenche. Depois de preenchidos, eles não podem ficar em branco.
+ */
+export const ProfileSettingsSchema = z.object({
+	/** A área de atuação (ex.: "Marketing", "Enfermagem"). */
+	area: z.string().trim().min(1, 'Informe a área').max(80).optional(),
+
+	/** O cargo procurado (ex.: "Analista de Marketing Digital"). */
+	targetRole: z.string().trim().min(1, 'Informe o cargo-alvo').max(100).optional(),
+
+	seniority: z.enum(SENIORITY_LEVELS).nullable().default(null),
+
+	/** Idiomas em que a pessoa trabalha (ISO 639-1, ex.: "pt", "en"). */
+	languages: z
+		.array(
+			z
+				.string()
+				.trim()
+				.toLowerCase()
+				.regex(/^[a-z]{2}$/, 'Use o código ISO 639-1 do idioma (ex.: "pt", "en")'),
+		)
+		.min(1, 'Escolha pelo menos um idioma')
+		.max(MAX_PROFILE_LANGUAGES)
+		.default(['pt'])
+		.transform(languages => [...new Set(languages)]),
+})
+
+export type ProfileSettings = z.output<typeof ProfileSettingsSchema>
+
+/** Se o perfil tem o mínimo para os serviços e o onboarding deixarem de supor a área (área e cargo-alvo). */
+export function isProfileComplete(profile: ProfileSettings) {
+	return !!profile.area && !!profile.targetRole
+}
+
 /** Schema de cada documento da coleção `settings`, pelo `_id`. */
 export const SETTINGS_SCHEMAS = {
 	scraper: ScraperSettingsSchema,
 	'post-processing': PostProcessingSettingsSchema,
+	profile: ProfileSettingsSchema,
 } as const
 
 export type SettingsKey = keyof typeof SETTINGS_SCHEMAS

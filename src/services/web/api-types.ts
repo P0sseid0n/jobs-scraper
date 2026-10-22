@@ -7,6 +7,7 @@ import type {
 	ContractType,
 	PostProcessingSettings,
 	ProcessedJob,
+	ProfileSettings,
 	ScraperSettings,
 	SettingsKey,
 } from '@shared/contracts'
@@ -131,7 +132,7 @@ export type ScraperStatus = {
 
 export type RunsPage = { runs: WebScraperRun[]; nextCursor: string | null }
 
-export type WebSettings = { scraper: ScraperSettings; 'post-processing': PostProcessingSettings }
+export type WebSettings = { scraper: ScraperSettings; 'post-processing': PostProcessingSettings; profile: ProfileSettings }
 export type { SettingsKey }
 
 /** Erro da API; em erros de validação, `fields` traz a mensagem de cada campo (caminho com pontos, ex.: "searchTerms.0.term"). */

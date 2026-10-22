@@ -1,7 +1,7 @@
 import { useBlocker } from '@tanstack/react-router'
 import { useEffect, useMemo, useRef, useState, type FormEvent, type InputHTMLAttributes } from 'react'
 
-import { DATE_POSTED_FILTERS, type DatePostedFilter } from '@shared/contracts'
+import { DATE_POSTED_FILTERS, SENIORITY_LEVELS, type DatePostedFilter, type SeniorityLevel } from '@shared/contracts'
 
 import type { WebSettings } from '../../api-types'
 import { api, RequestError } from '../api'
@@ -19,7 +19,7 @@ import { Switch, SwitchField } from '../components/ui/Switch'
 import { SECTION_TITLE } from '../components/ui/text'
 import { cx } from '../lib/cx'
 import { formatInterval, LANGUAGE_NAMES, languageLabel } from '../lib/format'
-import { LIMITS, validateDraft, type SettingsDraft } from '../lib/settings-form'
+import { LIMITS, profileDraftOf, validateDraft, validateProfile, type SettingsDraft } from '../lib/settings-form'
 import { notify } from '../stores/toast'
 
 const DATE_POSTED_LABELS: Record<DatePostedFilter, string> = {
@@ -29,6 +29,14 @@ const DATE_POSTED_LABELS: Record<DatePostedFilter, string> = {
 	any: 'Qualquer data',
 }
 
+const SENIORITY_LABELS: Record<SeniorityLevel, string> = {
+	intern: 'Estágio',
+	junior: 'Júnior',
+	mid: 'Pleno',
+	senior: 'Sênior',
+	lead: 'Liderança',
+}
+
 const SETTINGS_CARD = card({ className: 'flex flex-col gap-6.5 p-7 max-md:p-4.5' })
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
@@ -36,11 +44,11 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 /** O rascunho editável das configurações (o `paused` é salvo na hora, fora do formulário). */
 function draftOf(settings: WebSettings): SettingsDraft {
 	const { paused: _paused, ...scraper } = settings.scraper
-	return structuredClone({ scraper, 'post-processing': settings['post-processing'] })
+	return structuredClone({ scraper, 'post-processing': settings['post-processing'], profile: profileDraftOf(settings.profile) })
 }
 
 /**
- * Formulário das configurações do scraper e dos filtros das vagas; valem a partir da próxima coleta. As configurações
+ * Formulário do perfil profissional, das configurações do scraper e dos filtros das vagas; valem a partir da próxima coleta. As configurações
  * salvas vêm do loader da rota (`routes/configuracoes.tsx`).
  */
 export function SettingsView({ initial }: { initial: WebSettings }) {
@@ -61,16 +69,22 @@ export function SettingsView({ initial }: { initial: WebSettings }) {
 		setSaveState('idle')
 	}
 
-	const clientErrors = useMemo(() => (draft ? validateDraft(draft) : {}), [draft])
-	const errors: Record<string, string> = { ...serverErrors, ...(touched ? clientErrors : {}) }
-
 	const dirtyKeys = useMemo(() => {
 		if (!draft || !loaded) return []
 		const saved = draftOf(loaded)
-		return (['scraper', 'post-processing'] as const).filter(key => JSON.stringify(draft[key]) !== JSON.stringify(saved[key]))
+		return (['profile', 'scraper', 'post-processing'] as const).filter(
+			key => JSON.stringify(draft[key]) !== JSON.stringify(saved[key]),
+		)
 	}, [draft, loaded])
 
 	const dirty = dirtyKeys.length > 0
+
+	// O perfil nasce vazio: só é validado (e salvo) se a pessoa mexer nele
+	const clientErrors = useMemo(
+		() => (draft ? { ...validateDraft(draft), ...(dirtyKeys.includes('profile') ? validateProfile(draft.profile) : {}) } : {}),
+		[draft, dirtyKeys],
+	)
+	const errors: Record<string, string> = { ...serverErrors, ...(touched ? clientErrors : {}) }
 
 	// Ao voltar para a tela, o router mostra o loader da visita anterior e recarrega por trás: quando os dados novos
 	// chegam, passam a ser os salvos (senão um salvar seguinte reenviaria os valores antigos). O rascunho só é trocado
@@ -189,6 +203,96 @@ export function SettingsView({ initial }: { initial: WebSettings }) {
 			{...attrs}
 		/>
 	)
+
+	function renderProfile(d: SettingsDraft) {
+		const profile = d.profile
+		const languages = [...new Set([...Object.keys(LANGUAGE_NAMES), ...profile.languages])]
+
+		return (
+			<section className={SETTINGS_CARD} aria-labelledby="profile-title">
+				<h2 id="profile-title" className={SECTION_TITLE}>
+					perfil <span className="font-mono text-xs font-normal text-muted">profissional</span>
+				</h2>
+
+				<div className="grid grid-cols-2 gap-5 max-md:grid-cols-1">
+					{(
+						[
+							['area', 'área', 'ex.: Marketing, Enfermagem, Desenvolvimento de software', LIMITS.area],
+							['targetRole', 'cargo-alvo', 'ex.: Analista de Marketing Digital', LIMITS.targetRole],
+						] as const
+					).map(([field, label, placeholder, maxLength]) => (
+						<div className="flex flex-col gap-1.5" key={field}>
+							<FieldLabel htmlFor={field}>{label}</FieldLabel>
+							<Input
+								id={field}
+								value={profile[field]}
+								maxLength={maxLength}
+								placeholder={placeholder}
+								invalid={!!errors[field]}
+								aria-describedby={errors[field] ? `${field}-error` : undefined}
+								onChange={event => {
+									const value = event.target.value
+									edit(next => {
+										next.profile[field] = value
+									})
+								}}
+							/>
+							{fieldError(field)}
+						</div>
+					))}
+				</div>
+
+				<div className="flex flex-col gap-1.5">
+					<FieldLabel htmlFor="seniority">senioridade</FieldLabel>
+					<Select
+						id="seniority"
+						className="max-w-80 max-md:max-w-none"
+						value={profile.seniority ?? ''}
+						onChange={event => {
+							const value = (event.target.value || null) as SeniorityLevel | null
+							edit(next => {
+								next.profile.seniority = value
+							})
+						}}
+					>
+						<option value="">Não informar</option>
+						{SENIORITY_LEVELS.map(value => (
+							<option key={value} value={value}>
+								{SENIORITY_LABELS[value]}
+							</option>
+						))}
+					</Select>
+				</div>
+
+				<fieldset className="flex flex-col gap-2.5">
+					<legend className="mb-2.5 p-0 text-sm font-medium">idiomas em que trabalha</legend>
+					<PillGroup>
+						{languages.map(code => (
+							<label key={code} className={pill({ className: 'cursor-pointer' })}>
+								<Checkbox
+									checked={profile.languages.includes(code)}
+									onChange={event => {
+										const checked = event.target.checked
+										edit(next => {
+											const current = next.profile.languages
+											next.profile.languages = checked ? [...current, code] : current.filter(item => item !== code)
+										})
+									}}
+								/>
+								{languageLabel(code)}
+							</label>
+						))}
+					</PillGroup>
+					{fieldError('languages')}
+				</fieldset>
+
+				<FieldHelp>
+					Usado para buscar e ler vagas da sua área. Enquanto área e cargo-alvo estão vazios, o sistema continua supondo vagas de
+					desenvolvimento.
+				</FieldHelp>
+			</section>
+		)
+	}
 
 	function renderScraper(d: SettingsDraft) {
 		const terms = d.scraper.searchTerms
@@ -464,6 +568,7 @@ export function SettingsView({ initial }: { initial: WebSettings }) {
 				</div>
 			)}
 
+			{draft && renderProfile(draft)}
 			{draft && renderScraper(draft)}
 			{draft && renderProcessing(draft)}
 
