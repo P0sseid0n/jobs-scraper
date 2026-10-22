@@ -23,8 +23,6 @@ const PATHS = {
 	plus: 'M12 5v14 M5 12h14',
 	flag: 'M5 21V4 M5 4h12l-2 4 2 4H5',
 	spinner: 'M21 12a9 9 0 1 1-6.2-8.6',
-	'eye-off':
-		'M3 3l18 18 M10.6 5.1A9.7 9.7 0 0 1 12 5c6.5 0 10 7 10 7a17.6 17.6 0 0 1-3.2 4.2 M6.6 6.6A17.4 17.4 0 0 0 2 12s3.5 7 10 7a9.4 9.4 0 0 0 5.4-1.6 M9.9 9.9a3 3 0 0 0 4.2 4.2',
 } as const
 
 export type IconName = keyof typeof PATHS
