@@ -21,7 +21,6 @@ import { CONTRACT_TYPES, LANGUAGE_NAMES, WORK_MODES } from '../lib/format'
 import { hasActiveFilters } from '../lib/job-filters'
 import { useWideLayout } from '../lib/media'
 import { useStore } from '../lib/store'
-import { useTrayRequests } from '../stores/cv'
 import { filtersOpen } from '../stores/filters-panel'
 import { loadJobs, loadMoreJobs, showIncoming, useJobs } from '../stores/jobs'
 import { markAllViewed, useViewedCheck } from '../stores/viewed'
@@ -431,7 +430,6 @@ function JobList({ selectedId, keepScroll }: { selectedId: string | null; keepSc
 export function JobsView({ selectedRouteId, detail }: { selectedRouteId: string | null; detail: ReactNode }) {
 	const { jobs, status, facets, nextCursor, incoming } = useJobs()
 	const wide = useWideLayout()
-	const tray = useTrayRequests()
 	const showFilters = useStore(filtersOpen)
 
 	// Destacada na lista: a vaga da URL ou, no desktop sem vaga na URL, a primeira (que o painel mostra)
@@ -440,7 +438,6 @@ export function JobsView({ selectedRouteId, detail }: { selectedRouteId: string 
 		: wide
 			? (jobs[0]?.postId ?? null)
 			: null
-	const pendingCvs = tray.filter(request => request.status === 'pending').length
 	const isViewed = useViewedCheck()
 	const unviewedOnScreen = jobs.some(job => !isViewed(job))
 
@@ -449,23 +446,13 @@ export function JobsView({ selectedRouteId, detail }: { selectedRouteId: string 
 			<Hero
 				title={
 					<>
-						vagas de front-end,
-						<br />
-						<Hero.Mono>coletadas.</Hero.Mono>
+						vagas <Hero.Mono>coletadas.</Hero.Mono>
 					</>
 				}
-				lead="Posts do LinkedIn lidos pela IA, filtrados e prontos pra você agir: abrir o post, copiar o contato, gerar o currículo."
 				aside={
-					<dl className="m-0 flex gap-10 max-md:gap-7">
-						<div className="flex flex-col-reverse">
-							<dt className="text-muted text-sm">no histórico</dt>
-							<dd className="m-0 font-mono text-3xl">{facets ? facets.total.toLocaleString('pt-BR') : '–'}</dd>
-						</div>
-						<div className="flex flex-col-reverse">
-							<dt className="text-muted text-sm">currículos gerando</dt>
-							<dd className="m-0 font-mono text-3xl">{pendingCvs}</dd>
-						</div>
-					</dl>
+					<span className="font-mono text-muted text-sm">
+						{facets ? facets.total.toLocaleString('pt-BR') : '–'} no histórico
+					</span>
 				}
 			/>
 
@@ -499,20 +486,17 @@ export function JobsView({ selectedRouteId, detail }: { selectedRouteId: string 
 				>
 					{!showFilters && <FilterChips className="mb-1 max-md:hidden" />}
 					{status !== 'error' && jobs.length > 0 && (
-						<div className="flex items-center justify-between gap-3 font-mono text-muted text-xs">
-							<span>
-								{jobs.length}
-								{nextCursor ? '+' : ''} vagas
-								{unviewedOnScreen && (
-									<>
-										{' · '}
-										<TextLink className="text-xs" onClick={() => void markAllViewed(jobs)}>
-											marcar todas como vistas
-										</TextLink>
-									</>
-								)}
-							</span>
-							<span>mais recentes primeiro</span>
+						<div className="font-mono text-muted text-xs">
+							{jobs.length}
+							{nextCursor ? '+' : ''} vagas
+							{unviewedOnScreen && (
+								<>
+									{' · '}
+									<TextLink className="text-xs" onClick={() => void markAllViewed(jobs)}>
+										marcar todas como vistas
+									</TextLink>
+								</>
+							)}
 						</div>
 					)}
 					<JobList selectedId={wide ? selectedId : null} keepScroll={wide} />

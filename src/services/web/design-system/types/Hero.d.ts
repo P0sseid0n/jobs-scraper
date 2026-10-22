@@ -1,7 +1,7 @@
-/** Abertura da tela: título grande (a parte em mono vem em `<Hero.Mono>`), texto de apoio e, à direita, `aside`. */
+/** Abertura da tela: título numa linha (a parte em mono vem em `<Hero.Mono>`), texto de apoio opcional e, à direita, `aside`. */
 export interface HeroProps {
 	title: React.ReactNode
-	lead: React.ReactNode
+	lead?: React.ReactNode
 	aside?: React.ReactNode
 }
 

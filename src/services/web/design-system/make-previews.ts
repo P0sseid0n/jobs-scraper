@@ -236,9 +236,9 @@ const PREVIEWS: Record<string, Preview> = {
 	},
 	Hero: {
 		group: 'Layout',
-		height: 160,
+		height: 110,
 		subtitle: 'título com parte em mono, lead e aside',
-		body: `h(U.Hero, { title: h(React.Fragment, null, 'vagas de front-end, ', h(U.Hero.Mono, null, 'coletadas.')), lead: 'Do LinkedIn para cá, lidas pela IA: cargo, regime, modalidade e tecnologias de cada post.', aside: h(U.Badge, { size: 'lg', bordered: true }, h(U.StatusDot, { tone: 'lime', glow: true, pulse: true }), 'próxima coleta em 12 min') })`,
+		body: `h(U.Hero, { title: h(React.Fragment, null, 'coletas ', h(U.Hero.Mono, null, 'do scraper.')), lead: 'Histórico dos últimos 90 dias.', aside: h(U.Badge, { size: 'lg', bordered: true }, h(U.StatusDot, { tone: 'lime', glow: true, pulse: true }), 'próxima coleta em 12 min') })`,
 	},
 }
 
