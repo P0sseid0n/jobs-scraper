@@ -4,6 +4,7 @@ import type { WebJob } from '../../api-types'
 import { cx } from '../lib/cx'
 import { jobDate, jobSubtitle, safeLink, timeAgo } from '../lib/format'
 import { jobParams } from '../router'
+import { filtersOpen } from '../stores/filters-panel'
 import { setViewed, useViewed } from '../stores/viewed'
 import { ContractTypeBadge } from './ContractTypeBadge'
 import { CorrectedBadge } from './CorrectedBadge'
@@ -52,6 +53,8 @@ export function JobCard({
 					// Os filtros da lista continuam na URL
 					search
 					resetScroll={!keepScroll}
+					// Escolhida a vaga, os filtros saem do caminho (a vaga ganha o espaço deles)
+					onClick={() => filtersOpen.set(false)}
 				>
 					{/* Já vista: o cargo perde o contraste; não vista: a bolinha (fora do link, na margem do card) */}
 					<span
@@ -115,9 +118,9 @@ export function JobCard({
  * fica na margem esquerda, na altura do cargo. Na vaga vista, um círculo vazado fica no lugar, sempre visível (sem
  * depender do hover, que não existe no toque), com contraste de 3:1 como os outros controles.
  *
- * A área de clique tem 44×44px em qualquer aparelho (WCAG 2.5.5 e Apple; o mínimo AA é 24px): termina onde o cargo
- * começa, para não disputar o toque com o link que abre a vaga, e o que falta da largura avança na margem da página,
- * onde não há outro alvo.
+ * A área de clique tem 44×44px em qualquer aparelho (WCAG 2.5.5 e Apple; o mínimo AA é 24px), centrada na bolinha
+ * para que errar por pouco para qualquer lado ainda acerte. Ela avança uns 8px no começo do cargo: marcar sem querer
+ * aparece na hora e se desfaz com outro toque, e abrir a vaga sem querer troca de página (e ainda a marca como vista).
  */
 function ViewedDot({ job, viewed }: { job: WebJob; viewed: boolean }) {
 	const action = viewed ? 'marcar como não vista' : 'marcar como vista'
@@ -130,17 +133,17 @@ function ViewedDot({ job, viewed }: { job: WebJob; viewed: boolean }) {
 			title={action}
 			className={cx(
 				'group/dot absolute top-4 left-0 z-10 grid h-5.5 w-8 place-items-center border-0 bg-transparent p-0 max-md:top-3.5 max-md:w-7',
-				'after:absolute after:top-1/2 after:right-0 after:size-11 after:-translate-y-1/2',
+				'after:absolute after:top-1/2 after:left-1/2 after:size-11 after:-translate-1/2',
 			)}
 			onClick={() => void setViewed(job, !viewed)}
 		>
 			{viewed ? (
 				<span
 					aria-hidden="true"
-					className="size-2 rounded-full border border-current text-muted transition group-hover/dot:scale-125 group-hover/dot:text-ink"
+					className="size-2.5 rounded-full border-2 border-current text-muted transition group-hover/dot:scale-125 group-hover/dot:text-ink"
 				/>
 			) : (
-				<StatusDot tone="lime" glow className="transition group-hover/dot:scale-125" />
+				<StatusDot tone="lime" glow className="size-2.5 transition group-hover/dot:scale-125" />
 			)}
 		</button>
 	)
