@@ -558,7 +558,7 @@ export function SettingsView({ initial }: { initial: WebSettings }) {
 						configurações <Hero.Mono>da máquina.</Hero.Mono>
 					</>
 				}
-				lead="As mudanças valem a partir da próxima coleta, sem reiniciar nada. Os filtros não reprocessam vagas antigas."
+				lead="As mudanças valem para as próximas coletas, sem mexer nas vagas já salvas."
 			/>
 
 			{blocker.status === 'blocked' && (
