@@ -21,6 +21,7 @@ import { FieldError, FieldHelp, FieldLabel } from '../components/ui/Field'
 import { IconButton } from '../components/ui/IconButton'
 import { Checkbox, Input, Range, Select } from '../components/ui/Input'
 import { KeywordInput } from '../components/ui/KeywordInput'
+import { Notice } from '../components/ui/Notice'
 import { Hero, Page } from '../components/ui/Page'
 import { pill, PillGroup } from '../components/ui/Pill'
 import { Switch, SwitchField } from '../components/ui/Switch'
@@ -374,7 +375,7 @@ export function SettingsView({ initial }: { initial: WebSettings }) {
 							className="grow"
 							value={newTerm}
 							maxLength={LIMITS.termLength}
-							placeholder="novo termo, ex.: Front-end Nuxt"
+							placeholder="novo termo, ex.: Analista de Marketing"
 							aria-label="Novo termo de busca"
 							disabled={terms.length >= LIMITS.searchTerms}
 							onChange={event => setNewTerm(event.target.value)}
@@ -385,9 +386,13 @@ export function SettingsView({ initial }: { initial: WebSettings }) {
 						</Button>
 					</form>
 					{fieldError('searchTerms')}
+					{!terms.some(term => term.enabled) && (
+						<Notice tone="warn" icon="alert">
+							<p className="text-sm">Sem nenhum termo ativo, o scraper fica em espera e não coleta.</p>
+						</Notice>
+					)}
 					<FieldHelp>
-						De 1 a 10 termos, até 100 caracteres, sem repetidos e ao menos um ativo. Os posts por coleta são divididos entre os
-						termos ativos.
+						Até 10 termos, com até 100 caracteres e sem repetidos. Os posts por coleta são divididos entre os termos ativos.
 					</FieldHelp>
 				</fieldset>
 

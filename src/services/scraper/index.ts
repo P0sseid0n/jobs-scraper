@@ -1,4 +1,4 @@
-import { JobLookupSchema, VerificationCodeSchema } from '@shared/contracts'
+import { activeSearchTerms, JobLookupSchema, VerificationCodeSchema } from '@shared/contracts'
 import type { ScraperRunTrigger } from '@shared/database'
 import { onShutdown, shutdown } from '@shared/lifecycle'
 import { QUEUES } from '@shared/messaging'
@@ -9,7 +9,7 @@ import { BrowserLock } from './browser-lock'
 import { scraperEnv } from './config'
 import { JobLookupWorker } from './job-lookup'
 import { markInterruptedRuns, recordRun } from './run-history'
-import { settingsSeedFromEnv } from './schedule'
+import { NO_SEARCH_TERMS, settingsSeedFromEnv } from './schedule'
 import { runOnSchedule } from './scheduler'
 import { closeActiveBrowser, scrapeOnce } from './scrape-run'
 import { submitVerificationCode } from './verification-inbox'
@@ -51,9 +51,17 @@ try {
 	await shutdown(logger, 1)
 }
 
-/** Faz uma coleta com as configurações atuais do banco e a registra no histórico. */
+/**
+ * Faz uma coleta com as configurações atuais do banco e a registra no histórico. Sem termos de busca ativos, só
+ * registra o motivo no log (não é falha nem entra no histórico).
+ */
 async function collect(trigger: ScraperRunTrigger) {
 	const settings = await loadScraperSettings()
+
+	if (activeSearchTerms(settings).length === 0) {
+		logger.warn({ trigger }, NO_SEARCH_TERMS)
+		return { failed: false }
+	}
 
 	return browserLock.run(async () => {
 		await lookups.close()

@@ -2,6 +2,10 @@ import type { SettingsInput } from '@shared/contracts'
 
 import type { ScraperConfig } from './config'
 
+/** Por que o scraper não coleta enquanto nenhum termo de busca está ativo (registrado no log). */
+export const NO_SEARCH_TERMS =
+	'Nenhum termo de busca ativo: as coletas ficam em espera até você configurar os termos no site (Configurações)'
+
 /** Converte o `.env` nos valores iniciais da coleção `settings` (usados só na primeira execução). */
 export function settingsSeedFromEnv(config: ScraperConfig): Partial<SettingsInput<'scraper'>> {
 	const terms = [...new Set(config.SEARCH_KEYWORDS.split(',').map(term => term.trim()))].filter(Boolean)

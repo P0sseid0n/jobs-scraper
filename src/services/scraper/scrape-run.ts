@@ -1,6 +1,6 @@
 import { TimeoutError, type Page } from 'puppeteer'
 
-import type { RawPost, ScraperSettings } from '@shared/contracts'
+import { activeSearchTerms, type RawPost, type ScraperSettings } from '@shared/contracts'
 import { SeenPost, type ScraperRunTerm, type ScraperTermErrorKind } from '@shared/database'
 import { checkPostLanguage } from '@shared/language'
 import type { Logger } from '@shared/logging'
@@ -42,7 +42,7 @@ export function closeActiveBrowser() {
 export async function scrapeOnce(options: ScrapeOptions): Promise<ScraperRunTerm[]> {
 	const { config, settings, logger } = options
 
-	const terms = settings.searchTerms.filter(term => term.enabled).map(term => term.term)
+	const terms = activeSearchTerms(settings)
 	const limits = postsPerTerm(settings.maxPostsPerRun, terms.length)
 
 	// Compartilhado entre os termos: um post que aparece em duas buscas só é enviado uma vez

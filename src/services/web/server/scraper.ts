@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import type { ScraperCommand } from '@shared/contracts'
+import { activeSearchTerms, type ScraperCommand } from '@shared/contracts'
 import {
 	Job,
 	ScraperRun,
@@ -50,7 +50,8 @@ export async function scraperStatus() {
 
 	// Mesma conta do scraper: intervalo a partir do início da última coleta (em andamento ou não)
 	const lastStartedAt = current?.startedAt ?? last?.startedAt ?? null
-	const next = settings.paused ? null : nextRunAt(lastStartedAt, settings.intervalMinutes)
+	const terms = activeSearchTerms(settings).length
+	const next = settings.paused || terms === 0 ? null : nextRunAt(lastStartedAt, settings.intervalMinutes)
 
 	return Response.json({
 		current: current ? await toWebRun(current) : null,
@@ -58,6 +59,7 @@ export async function scraperStatus() {
 		nextRunAt: next?.toISOString() ?? null,
 		paused: settings.paused,
 		intervalMinutes: settings.intervalMinutes,
+		activeSearchTerms: terms,
 	} satisfies ScraperStatus)
 }
 
@@ -78,10 +80,11 @@ export async function listRuns(req: Request) {
 	return Response.json({ runs: await Promise.all(page.map(toWebRun)), nextCursor } satisfies RunsPage)
 }
 
-/** `POST /api/scraper/run`: "coletar agora" (funciona mesmo com as coletas pausadas). */
+/** `POST /api/scraper/run`: "coletar agora" (funciona mesmo com as coletas pausadas, mas não sem termos de busca). */
 export async function requestRun(queue: QueueClient) {
-	const running = await ScraperRun.exists({ status: 'running' })
+	const [running, settings] = await Promise.all([ScraperRun.exists({ status: 'running' }), readSettings('scraper')])
 	if (running) throw new HttpError(409, 'Já há uma coleta em andamento')
+	if (activeSearchTerms(settings).length === 0) throw new HttpError(409, 'Configure os termos de busca antes de coletar')
 
 	const command: ScraperCommand = { command: 'run-now', requestedBy: 'web', requestedAt: new Date().toISOString() }
 	await queue.publish(QUEUES.scraper, command)

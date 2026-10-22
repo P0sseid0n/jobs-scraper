@@ -17,12 +17,11 @@ const SearchTermSchema = z.object({
 
 export const ScraperSettingsSchema = z
 	.object({
-		/** Cada termo ativo vira uma busca no LinkedIn, em sequência, na mesma coleta. */
-		searchTerms: z
-			.array(SearchTermSchema)
-			.min(1)
-			.max(MAX_SEARCH_TERMS)
-			.default([{ term: 'Front End Vue', enabled: true }]),
+		/**
+		 * Cada termo ativo vira uma busca no LinkedIn, em sequência, na mesma coleta. Nasce vazio (o onboarding preenche):
+		 * sem nenhum termo ativo, o scraper fica em espera.
+		 */
+		searchTerms: z.array(SearchTermSchema).max(MAX_SEARCH_TERMS).default([]),
 
 		datePosted: z.enum(DATE_POSTED_FILTERS).default('past-24h'),
 
@@ -40,16 +39,17 @@ export const ScraperSettingsSchema = z
 		/** Pausa as coletas automáticas; um pedido manual ("coletar agora") ainda funciona. */
 		paused: z.boolean().default(false),
 	})
-	.refine(settings => settings.searchTerms.some(term => term.enabled), {
-		message: 'Pelo menos um termo de busca precisa estar ativo',
-		path: ['searchTerms'],
-	})
 	.refine(settings => new Set(settings.searchTerms.map(term => term.term.toLowerCase())).size === settings.searchTerms.length, {
 		message: 'Há termos de busca repetidos',
 		path: ['searchTerms'],
 	})
 
 export type ScraperSettings = z.output<typeof ScraperSettingsSchema>
+
+/** Os termos que viram busca na coleta; lista vazia = o scraper fica em espera até a pessoa configurar. */
+export function activeSearchTerms(settings: Pick<ScraperSettings, 'searchTerms'>) {
+	return settings.searchTerms.filter(term => term.enabled).map(term => term.term)
+}
 
 /** Lista de palavras-chave sem repetidos (a comparação ignora caixa, acentos, hífen e ".js"). */
 const keywordList = z

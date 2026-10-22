@@ -31,6 +31,7 @@ As mensagens são persistentes e validadas com os schemas de `contracts/`.
 Os termos de busca, o filtro de data, o limite de posts, o intervalo, a pausa das coletas, a confiança mínima da IA, os idiomas aceitos e as palavras-chave ficam na coleção `settings` do MongoDB, um documento por serviço. O site edita esses valores; outras fontes também podem.
 
 - Os valores do `.env` (`SEARCH_KEYWORDS`, `SCRAPER_DATE_POSTED`, `SCRAPER_MAX_POSTS`, `SCRAPER_INTERVAL_MINUTES`, `MIN_JOB_CONFIDENCE`, `JOB_LANGUAGES`, `JOB_REQUIRED_KEYWORDS`, `JOB_EXCLUDED_KEYWORDS`) só preenchem o documento na primeira execução. Depois, valem os do banco. Para voltar a usar o `.env`, apague o documento (ex.: pelo mongo-express).
+- Os termos de busca e as palavras-chave nascem vazios (no `.env.example` e nos schemas): o onboarding do site preenche, a partir do perfil. Quem já tem o documento salvo continua com os valores dele.
 - Leitura e gravação com `loadSettings`/`updateSettings` (`settings/`), que validam tudo com os schemas de `contracts/` (`ScraperSettingsSchema`, `PostProcessingSettingsSchema`, `ProfileSettingsSchema`).
 - O documento `profile` guarda o perfil profissional (área, cargo-alvo, senioridade e idiomas). Não tem valor no `.env`: nasce sem área nem cargo-alvo e é preenchido pelo site. `isProfileComplete` diz se já tem o mínimo; enquanto não tem, os serviços seguem supondo vagas de desenvolvimento. A exceção é o post-processing: num post com várias vagas, ele extrai a mais próxima do cargo-alvo ou, sem cargo-alvo, a primeira.
 

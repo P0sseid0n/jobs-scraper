@@ -24,7 +24,7 @@ LinkedIn → scraper → IA (extração) → banco → evento "vaga publicada" �
                                                          pedido de currículo → gerador de CV → PDF volta para o canal
 ```
 
-1. **Coleta:** o scraper busca posts no LinkedIn por termos de busca (ex.: "Front End Vue"), periodicamente ou quando pedido ("coletar agora").
+1. **Coleta:** o scraper busca posts no LinkedIn por termos de busca (ex.: "Analista de Marketing"), periodicamente ou quando pedido ("coletar agora").
 2. **Filtros:** posts em idioma não aceito, com baixa confiança da IA ou sem as palavras-chave relevantes são descartados.
 3. **Vaga:** o que sobra vira uma vaga estruturada, salva uma única vez (sem duplicatas).
 4. **Publicação:** cada vaga nova é anunciada para todos os canais ligados. O site receberia em tempo real.
@@ -103,7 +103,7 @@ Atenção ao funil: `sent` é quantos posts foram para a IA, não quantas vagas 
 
 | Campo             | Tipo / regras                                                                          | Padrão                 |
 | ----------------- | -------------------------------------------------------------------------------------- | ---------------------- |
-| `searchTerms`     | lista de `{ term, enabled }`, 1 a 10 termos, até 100 caracteres, sem repetidos, ao menos 1 ativo | `Front End Vue` ativo  |
+| `searchTerms`     | lista de `{ term, enabled }`, até 10 termos, até 100 caracteres, sem repetidos; sem nenhum ativo, o scraper fica em espera | nenhum termo           |
 | `datePosted`      | `past-24h` \| `past-week` \| `past-month` \| `any` ("Últimas 24h", "Última semana"...) | `past-24h`             |
 | `maxPostsPerRun`  | inteiro 1–200 (dividido entre os termos ativos)                                        | 50                     |
 | `intervalMinutes` | inteiro de 1 a 10.080 (7 dias)                                                         | 240                    |

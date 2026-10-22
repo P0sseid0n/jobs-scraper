@@ -18,7 +18,7 @@ describe('validateDraft (as mesmas regras do servidor)', () => {
 		expect(validateDraft(draft())).toEqual({})
 	})
 
-	test('termos: repetidos, vazios e ao menos um ativo', () => {
+	test('termos: repetidos e vazios; sem nenhum ativo é válido', () => {
 		const value = draft()
 		value.scraper.searchTerms = [
 			{ term: 'Vue', enabled: false },
@@ -29,7 +29,6 @@ describe('validateDraft (as mesmas regras do servidor)', () => {
 		expect(validateDraft(value)).toEqual({
 			'searchTerms.1.term': 'Termo repetido',
 			'searchTerms.2.term': 'Escreva o termo ou remova a linha',
-			searchTerms: 'Pelo menos um termo de busca precisa estar ativo',
 		})
 	})
 
@@ -43,7 +42,7 @@ describe('validateDraft (as mesmas regras do servidor)', () => {
 
 	test('o resultado aceito pelo cliente também passa no schema do servidor', () => {
 		const value = draft()
-		value.scraper.searchTerms.push({ term: 'Front-end React', enabled: true })
+		value.scraper.searchTerms.push({ term: 'Técnico de Enfermagem', enabled: true })
 
 		expect(validateDraft(value)).toEqual({})
 		expect(ScraperSettingsSchema.safeParse({ ...value.scraper, paused: false }).success).toBe(true)

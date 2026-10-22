@@ -1,11 +1,17 @@
 import { describe, expect, test } from 'bun:test'
 
-import { isProfileComplete, PostProcessingSettingsSchema, ProfileSettingsSchema, ScraperSettingsSchema } from './settings'
+import {
+	activeSearchTerms,
+	isProfileComplete,
+	PostProcessingSettingsSchema,
+	ProfileSettingsSchema,
+	ScraperSettingsSchema,
+} from './settings'
 
 describe('ScraperSettingsSchema', () => {
-	test('preenche os campos ausentes com os padrões', () => {
+	test('preenche os campos ausentes com os padrões, sem nenhum termo de busca', () => {
 		expect(ScraperSettingsSchema.parse({})).toEqual({
-			searchTerms: [{ term: 'Front End Vue', enabled: true }],
+			searchTerms: [],
 			datePosted: 'past-24h',
 			maxPostsPerRun: 50,
 			intervalMinutes: 240,
@@ -13,11 +19,25 @@ describe('ScraperSettingsSchema', () => {
 		})
 	})
 
-	test('exige pelo menos um termo ativo', () => {
-		const result = ScraperSettingsSchema.safeParse({ searchTerms: [{ term: 'Vue', enabled: false }] })
+	test('aceita ficar sem termos ativos (o scraper espera a configuração)', () => {
+		const settings = ScraperSettingsSchema.parse({ searchTerms: [{ term: 'Enfermagem', enabled: false }] })
 
-		expect(result.success).toBe(false)
-		expect(result.error?.issues[0]?.message).toBe('Pelo menos um termo de busca precisa estar ativo')
+		expect(activeSearchTerms(settings)).toEqual([])
+		expect(activeSearchTerms(ScraperSettingsSchema.parse({}))).toEqual([])
+	})
+
+	test('termos ativos: só os ligados, na ordem', () => {
+		const settings = ScraperSettingsSchema.parse({
+			searchTerms: [{ term: 'Enfermeiro' }, { term: 'Técnico de Enfermagem', enabled: false }, { term: 'Enfermeira' }],
+		})
+
+		expect(activeSearchTerms(settings)).toEqual(['Enfermeiro', 'Enfermeira'])
+	})
+
+	test('mantém os termos já salvos', () => {
+		const saved = { searchTerms: [{ term: 'Front End Vue', enabled: true }] }
+
+		expect(ScraperSettingsSchema.parse(saved).searchTerms).toEqual(saved.searchTerms)
 	})
 
 	test('rejeita termos repetidos (sem diferenciar maiúsculas)', () => {

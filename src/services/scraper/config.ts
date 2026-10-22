@@ -23,8 +23,8 @@ export const scraperEnv = {
 	BROWSER_NO_SANDBOX: booleanFromEnv.default(false),
 
 	// Busca e limites: só os valores iniciais. Depois valem os da coleção `settings` (editável por outras fontes)
-	/** Termos de busca separados por vírgula; cada um vira uma busca na mesma coleta. */
-	SEARCH_KEYWORDS: z.string().trim().min(1).default('Front End Vue'),
+	/** Termos de busca separados por vírgula; cada um vira uma busca na mesma coleta. Vazio: o onboarding preenche. */
+	SEARCH_KEYWORDS: z.string().trim().default(''),
 	SCRAPER_DATE_POSTED: z.enum(DATE_POSTED_FILTERS).default('past-24h'),
 	SCRAPER_MAX_POSTS: z.coerce.number().int().positive().default(50),
 	/**

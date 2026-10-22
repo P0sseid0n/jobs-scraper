@@ -46,9 +46,8 @@ export function validateDraft(draft: SettingsDraft) {
 		seen.add(key)
 	})
 
-	if (searchTerms.length === 0) errors.searchTerms = 'Adicione pelo menos um termo de busca'
-	else if (searchTerms.length > LIMITS.searchTerms) errors.searchTerms = `Use no máximo ${LIMITS.searchTerms} termos`
-	else if (!searchTerms.some(term => term.enabled)) errors.searchTerms = 'Pelo menos um termo de busca precisa estar ativo'
+	// Sem termos ativos é válido: o scraper fica em espera (a tela avisa)
+	if (searchTerms.length > LIMITS.searchTerms) errors.searchTerms = `Use no máximo ${LIMITS.searchTerms} termos`
 
 	if (!isIntIn(maxPostsPerRun, LIMITS.maxPostsPerRun)) errors.maxPostsPerRun = 'Use um número inteiro de 1 a 200'
 	if (!isIntIn(intervalMinutes, LIMITS.intervalMinutes)) errors.intervalMinutes = 'Use um número inteiro de 1 a 10.080 (7 dias)'

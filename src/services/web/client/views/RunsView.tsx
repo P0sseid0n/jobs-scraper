@@ -83,6 +83,21 @@ function FailureAlert({ status }: { status: ScraperStatus | null }) {
 	)
 }
 
+/** Sem termos de busca ativos, o scraper não coleta: a tela diz o que falta e onde configurar. */
+function NoSearchTermsAlert({ status }: { status: ScraperStatus }) {
+	if (status.activeSearchTerms > 0 || status.current) return null
+
+	return (
+		<Notice tone="warn" size="lg" icon="alert">
+			<p className="font-semibold">Configure os termos de busca</p>
+			<p className="text-sm">
+				Sem nenhum termo ativo, o scraper fica em espera e não coleta.{' '}
+				<RouteLink to="/configuracoes">adicionar termos em configurações</RouteLink>
+			</p>
+		</Notice>
+	)
+}
+
 /** "3 posts novos · 1 vaga nova", ou o aviso de que a busca só trouxe posts já processados ou em outro idioma. */
 function lastRunSummary(run: WebScraperRun) {
 	if (run.sent === 0) {
@@ -339,14 +354,15 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 	function renderCurrent() {
 		const running = status.current
 		const next = status.nextRunAt ? new Date(status.nextRunAt).getTime() - now : null
+		const noTerms = status.activeSearchTerms === 0
 
 		return (
 			<div className="flex flex-wrap gap-4">
 				<section className="inverted flex grow-2 basis-130 flex-col gap-5 rounded-xl p-6" aria-live="polite">
 					<div className="flex items-center justify-between gap-3 flex-wrap">
 						<div className="flex items-center gap-2.5">
-							<Badge tone={running ? 'lime' : status.paused ? 'muted' : 'ok'}>
-								{running ? 'em andamento' : status.paused ? 'pausada' : 'ociosa'}
+							<Badge tone={running ? 'lime' : status.paused || noTerms ? 'muted' : 'ok'}>
+								{running ? 'em andamento' : status.paused ? 'pausada' : noTerms ? 'em espera' : 'ociosa'}
 							</Badge>
 							{running && (
 								<span className="font-mono text-xs text-muted">
@@ -370,23 +386,29 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 							<p className="mt-1 font-mono text-3xl">
 								{status.paused
 									? 'coletas pausadas'
-									: next !== null && next > 0
-										? `em ${formatDuration(next)}`
-										: 'a qualquer momento'}
+									: noTerms
+										? 'sem termos de busca'
+										: next !== null && next > 0
+											? `em ${formatDuration(next)}`
+											: 'a qualquer momento'}
 							</p>
 						</div>
 					)}
 
 					<div className="flex items-center justify-between gap-3 flex-wrap">
 						<span className="font-mono text-xs text-muted">
-							{status.paused ? '“coletar agora” continua funcionando' : formatInterval(status.intervalMinutes)}
+							{noTerms
+								? 'adicione um termo para coletar'
+								: status.paused
+									? '“coletar agora” continua funcionando'
+									: formatInterval(status.intervalMinutes)}
 						</span>
 						<Button
 							variant="lime"
 							size="lg"
 							// No card escuro, o lime apagado sumia: desativado, o botão fica na cor da borda
 							className="disabled:bg-line disabled:text-muted disabled:opacity-100"
-							disabled={!!running || requesting}
+							disabled={!!running || requesting || noTerms}
 							onClick={runNow}
 						>
 							<Icon name={running ? 'spinner' : 'refresh'} />
@@ -431,6 +453,7 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 			/>
 
 			<FailureAlert status={status} />
+			<NoSearchTermsAlert status={status} />
 			{renderCurrent()}
 
 			<section className="flex flex-col gap-2.5">

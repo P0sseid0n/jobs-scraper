@@ -4,7 +4,7 @@ import type { ScraperConfig } from './config'
 import { nextRunAt, postsPerTerm, settingsSeedFromEnv } from './schedule'
 
 const baseConfig = {
-	SEARCH_KEYWORDS: 'Front End Vue',
+	SEARCH_KEYWORDS: 'Enfermagem',
 	SCRAPER_DATE_POSTED: 'past-week',
 	SCRAPER_MAX_POSTS: 30,
 	SCRAPER_INTERVAL_MINUTES: 0,
@@ -18,6 +18,10 @@ describe('settingsSeedFromEnv', () => {
 			{ term: 'Vue', enabled: true },
 			{ term: 'React', enabled: true },
 		])
+	})
+
+	test('sem termos no .env, nasce sem termos', () => {
+		expect(settingsSeedFromEnv({ ...baseConfig, SEARCH_KEYWORDS: '' }).searchTerms).toEqual([])
 	})
 
 	test('intervalo 0 (execução única) não define o intervalo', () => {
