@@ -897,7 +897,7 @@
 			"aiJobConfidence": 100
 		},
 		"expected": {
-			"title": "Analista de Recursos Humanos (Talent Acquisition)",
+			"title": "ANALISTA DE RECURSOS HUMANOS (TALENT ACQUISITION) TEMPORÁRIO",
 			"company": "Solaris Energia",
 			"location": "São Paulo",
 			"workMode": null,
@@ -911,7 +911,8 @@
 		"correctedFields": [
 			"company",
 			"location",
-			"necessaryKnowledge"
+			"necessaryKnowledge",
+			"title"
 		],
 		"model": "gemma3:4b",
 		"promptVersion": "3caef3e2ad31"
