@@ -68,12 +68,12 @@ export function Checkbox({ className, ...props }: Omit<InputHTMLAttributes<HTMLI
 }
 
 const RANGE = [
-	'm-0 h-5 w-full cursor-pointer appearance-none bg-transparent focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50',
+	'm-0 h-5 w-full not-disabled:cursor-grab not-disabled:active:cursor-grabbing appearance-none bg-transparent focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50',
 	'range-track:h-1.5 range-track:rounded-pill range-track:bg-range-fill',
 	// A bolinha (20px) sobe metade da diferença para o trilho (6px): 7px
 	'range-thumb:box-border range-thumb:size-5 webkit-range-thumb:-mt-1.75 range-thumb:appearance-none range-thumb:rounded-full range-thumb:border-2 range-thumb:border-ink dark:range-thumb:border-lime range-thumb:bg-surface range-thumb:shadow-sm range-thumb:transition',
-	// A mãozinha também na bolinha, não só no trilho
-	'range-thumb:cursor-pointer disabled:range-thumb:cursor-not-allowed',
+	// A mão de arrastar (fechada ao segurar) também na bolinha, não só no trilho
+	'not-disabled:range-thumb:cursor-grab not-disabled:active:range-thumb:cursor-grabbing disabled:range-thumb:cursor-not-allowed',
 	'not-disabled:hover:range-thumb:scale-110 not-disabled:active:range-thumb:scale-115 not-disabled:active:range-thumb:bg-lime',
 	// O contorno de foco vai na bolinha, não na caixa toda do campo
 	'focus-visible:range-thumb:outline-2 focus-visible:range-thumb:outline-offset-2 focus-visible:range-thumb:outline-focus',
