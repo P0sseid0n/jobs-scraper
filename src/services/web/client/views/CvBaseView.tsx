@@ -241,20 +241,27 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 		}
 		if (version.status === 'invalid') return <Errors version={version} />
 
-		const isActive = version.versionId === active?.versionId
+		// Depois de ativada, a prévia já aparece em "versão ativa": aqui fica só a confirmação
+		if (version.versionId === active?.versionId) {
+			return (
+				<p role="status" className="flex items-center gap-2 text-sm text-ok">
+					<Icon name="check" size={16} />
+					Esta versão é o currículo base.
+				</p>
+			)
+		}
+
 		return (
 			<div className="flex flex-col gap-3.5">
 				<div className="flex flex-wrap items-center gap-3">
 					<p role="status" className="flex grow items-center gap-2 text-sm text-ok">
 						<Icon name="check" size={16} />
-						{isActive
-							? 'Esta versão é o currículo base.'
-							: `Compilou sem erros${version.pages ? ` (${pagesLabel(version.pages)})` : ''}. Confira a prévia e ative.`}
+						{`Compilou sem erros${version.pages ? ` (${pagesLabel(version.pages)})` : ''}. Confira a prévia e ative.`}
 					</p>
 					<Button variant="ghost" href={cvBasePdfUrl(version.versionId)} external>
 						abrir PDF
 					</Button>
-					{!isActive && activateButton(version)}
+					{activateButton(version)}
 				</div>
 				{version.pages !== null && version.pages > 1 && (
 					<Notice tone="warn" icon="alert">
