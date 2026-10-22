@@ -427,7 +427,7 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 						coletas <Hero.Mono>do scraper.</Hero.Mono>
 					</>
 				}
-				lead="As coletas dos últimos 90 dias, com os posts achados por termo."
+				lead="Histórico dos últimos 90 dias. Cada coleta busca posts por termo e manda para a IA."
 			/>
 
 			<FailureAlert status={status} />

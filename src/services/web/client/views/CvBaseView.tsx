@@ -405,7 +405,7 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 						currículo <Hero.Mono>base.</Hero.Mono>
 					</>
 				}
-				lead="O .tex de onde saem todos os currículos. Cada versão nova é compilada antes de poder ser ativada."
+				lead="O .tex de onde saem todos os currículos, no site e no Discord. Cada versão nova é compilada antes de poder ser ativada."
 			/>
 
 			{blocker.status === 'blocked' && (

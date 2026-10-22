@@ -451,7 +451,7 @@ export function JobsView({ selectedRouteId, detail }: { selectedRouteId: string 
 						vagas <Hero.Mono>coletadas.</Hero.Mono>
 					</>
 				}
-				lead="Posts do LinkedIn lidos pela IA, prontos pra você agir."
+				lead="Posts do LinkedIn lidos pela IA. Abra o post, copie o contato ou gere o currículo."
 				aside={
 					<span className="font-mono text-muted text-sm">
 						{facets ? facets.total.toLocaleString('pt-BR') : '–'} no histórico

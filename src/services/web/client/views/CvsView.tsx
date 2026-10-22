@@ -114,7 +114,7 @@ export function CvsView({ baseVersions }: { baseVersions: WebCvBaseVersion[] | n
 						meus <Hero.Mono>currículos.</Hero.Mono>
 					</>
 				}
-				lead="Um PDF de uma página por vaga, ajustado ao que ela pede."
+				lead="Um PDF de uma página por vaga. Apresentação, habilidades, projetos e experiência se ajustam ao que ela pede."
 			/>
 
 			<CvBaseCard versions={baseVersions} />
