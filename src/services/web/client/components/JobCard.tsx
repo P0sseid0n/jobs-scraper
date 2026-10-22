@@ -97,7 +97,7 @@ export function JobCard({
 				{job.recruiterEmail ? (
 					<>
 						<Icon name="mail" size={14} />
-						tem e-mail de contato
+						com e-mail de contato
 					</>
 				) : safeLink(job.applyLink) ? (
 					'candidatura pelo site da vaga'
