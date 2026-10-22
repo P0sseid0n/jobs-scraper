@@ -50,6 +50,39 @@ describe('relevanceRejection', () => {
 		).not.toBeNull()
 	})
 
+	test('termos de outras áreas, com acento, hífen e mais de uma palavra', () => {
+		const rh = { title: 'Analista de Recursos Humanos', necessaryKnowledge: ['Atendimento ao cliente', 'Pacote Office'] }
+		const saude = { title: 'Técnico(a) de Enfermagem', necessaryKnowledge: ['COREN-SP', 'Pós-graduação em UTI'] }
+		const required = (...requiredKeywords: string[]) => ({ requiredKeywords, excludedKeywords: [] })
+
+		expect(relevanceRejection(rh, required('recursos humanos'))).toBeNull()
+		expect(relevanceRejection(rh, required('atendimento ao cliente'))).toBeNull()
+		expect(relevanceRejection(rh, required('pacote office'))).toBeNull()
+		expect(relevanceRejection(saude, required('técnico de enfermagem'))).toBeNull()
+		expect(relevanceRejection(saude, required('tecnico'))).toBeNull()
+		expect(relevanceRejection(saude, required('coren'))).toBeNull()
+		expect(relevanceRejection(saude, required('coren-sp'))).toBeNull()
+		expect(relevanceRejection(saude, required('pós graduação'))).toBeNull()
+		expect(relevanceRejection(saude, required('pós-graduação'))).toBeNull()
+		expect(relevanceRejection({ title: 'Enfermeiro/a', necessaryKnowledge: null }, required('enfermeiro'))).toBeNull()
+		// Sem prefixo: "enfermagem" não casa com "enfermeiro"
+		expect(relevanceRejection({ title: 'Enfermeiro', necessaryKnowledge: null }, required('enfermagem'))).not.toBeNull()
+	})
+
+	test('hífen junto e separado, nos dois lados', () => {
+		const required = (...requiredKeywords: string[]) => ({ requiredKeywords, excludedKeywords: [] })
+
+		expect(
+			relevanceRejection({ title: 'Full-Stack Developer', necessaryKnowledge: null }, required('fullstack developer')),
+		).toBeNull()
+		expect(
+			relevanceRejection({ title: 'Full Stack Developer', necessaryKnowledge: null }, required('full-stack developer')),
+		).toBeNull()
+		expect(
+			relevanceRejection({ title: 'Fullstack Developer', necessaryKnowledge: null }, required('full-stack developer')),
+		).toBeNull()
+	})
+
 	test('listas vazias desligam o filtro', () => {
 		expect(
 			relevanceRejection({ title: 'Dev Golang', necessaryKnowledge: null }, { requiredKeywords: [], excludedKeywords: [] }),

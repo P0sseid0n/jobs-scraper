@@ -5,7 +5,7 @@ import { ProcessedJobSchema, RawPostSchema, type JobLookup, type RawPost } from 
 import { SeenPost, type SeenPostOutcome } from '@shared/database'
 import { QUEUES } from '@shared/messaging'
 import { startService } from '@shared/service'
-import { loadSettings } from '@shared/settings'
+import { loadSettings, readSettings } from '@shared/settings'
 
 import { extractionEnv, listFromEnv } from './config'
 import { EXTRACTION_PROMPT_VERSION } from './extraction-prompt'
@@ -85,7 +85,9 @@ async function processPost(post: RawPost) {
 	}
 
 	log.info({ language }, 'Processando post')
-	const aiJob = await extractJobFromPost(ollama, config.OLLAMA_MODEL, post)
+	// Sem perfil, `targetRole` fica ausente e o modelo extrai a primeira vaga de um post com várias
+	const { targetRole } = await readSettings('profile')
+	const aiJob = await extractJobFromPost(ollama, config.OLLAMA_MODEL, post, targetRole ?? null)
 	const reason = rejectionReason(aiJob, settings.minJobConfidence)
 
 	if (!aiJob || reason) {

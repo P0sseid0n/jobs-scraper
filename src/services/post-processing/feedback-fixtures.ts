@@ -64,7 +64,8 @@ export function anonymizeCase(item: ExtractionCase): ExtractionCase {
 
 /** Dados pessoais que sobraram num caso já anonimizado (e-mails reais, perfis, links curtos, telefones); vazio se não há nenhum. */
 export function findPersonalData(item: ExtractionCase) {
-	const text = JSON.stringify(item)
+	// Os textos em si, não o JSON: nele, o "\n" antes de um e-mail no começo da linha entraria no e-mail ("ncontato1@...")
+	const text = textsOf(item).join('\n')
 	const found = [
 		...[...text.matchAll(EMAIL)].map(match => match[0]).filter(email => !PLACEHOLDER_EMAIL.test(email.toLowerCase())),
 		...[...text.matchAll(LINKEDIN_PROFILE)]
@@ -76,6 +77,12 @@ export function findPersonalData(item: ExtractionCase) {
 	if (item.post.url) found.push(item.post.url)
 
 	return found
+}
+
+function textsOf(value: unknown): string[] {
+	if (typeof value === 'string') return [value]
+	if (value && typeof value === 'object') return Object.values(value).flatMap(textsOf)
+	return []
 }
 
 /**

@@ -32,7 +32,7 @@ Os termos de busca, o filtro de data, o limite de posts, o intervalo, a pausa da
 
 - Os valores do `.env` (`SEARCH_KEYWORDS`, `SCRAPER_DATE_POSTED`, `SCRAPER_MAX_POSTS`, `SCRAPER_INTERVAL_MINUTES`, `MIN_JOB_CONFIDENCE`, `JOB_LANGUAGES`, `JOB_REQUIRED_KEYWORDS`, `JOB_EXCLUDED_KEYWORDS`) só preenchem o documento na primeira execução. Depois, valem os do banco. Para voltar a usar o `.env`, apague o documento (ex.: pelo mongo-express).
 - Leitura e gravação com `loadSettings`/`updateSettings` (`settings/`), que validam tudo com os schemas de `contracts/` (`ScraperSettingsSchema`, `PostProcessingSettingsSchema`, `ProfileSettingsSchema`).
-- O documento `profile` guarda o perfil profissional (área, cargo-alvo, senioridade e idiomas). Não tem valor no `.env`: nasce sem área nem cargo-alvo e é preenchido pelo site. `isProfileComplete` diz se já tem o mínimo; enquanto não tem, os serviços seguem supondo vagas de desenvolvimento.
+- O documento `profile` guarda o perfil profissional (área, cargo-alvo, senioridade e idiomas). Não tem valor no `.env`: nasce sem área nem cargo-alvo e é preenchido pelo site. `isProfileComplete` diz se já tem o mínimo; enquanto não tem, os serviços seguem supondo vagas de desenvolvimento. A exceção é o post-processing: num post com várias vagas, ele extrai a mais próxima do cargo-alvo ou, sem cargo-alvo, a primeira.
 
 ## Healthcheck
 

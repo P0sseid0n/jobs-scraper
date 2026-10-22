@@ -14,12 +14,20 @@ import {
 	parseModelResponse,
 } from './model-response'
 
-/** Pede ao modelo os dados da vaga contidos no post (`null` se ele responder `null`). */
-export async function extractJobFromPost(ollama: Ollama, model: string, post: RawPost): Promise<AiJobOutput | null> {
+/**
+ * Pede ao modelo os dados da vaga contidos no post (`null` se ele responder `null`). Num post com várias vagas, o
+ * modelo escolhe a mais próxima de `targetRole` (o cargo-alvo do perfil) ou, sem ele, a primeira.
+ */
+export async function extractJobFromPost(
+	ollama: Ollama,
+	model: string,
+	post: RawPost,
+	targetRole: string | null,
+): Promise<AiJobOutput | null> {
 	// Erros do Ollama (fora do ar, timeout) são transitórios: o QueueClient tenta de novo
 	const response = await ollama.chat({
 		model,
-		messages: buildExtractionMessages({ text: normalizePostText(post.text), author: post.author }),
+		messages: buildExtractionMessages({ text: normalizePostText(post.text), author: post.author }, targetRole),
 		format: EXTRACTION_OUTPUT_FORMAT,
 		options: { temperature: 0 },
 		// A confiança sai da probabilidade dos tokens do `postType`, não de um número escrito pelo modelo

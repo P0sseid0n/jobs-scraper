@@ -39,6 +39,8 @@ export const ExtractionCaseSchema = z.object({
 	// Área da vaga ou do post (dev, marketing, saude...), para ver o acerto separado por grupo. As correções do site
 	// ficam como dev: é o que o scraper busca
 	area: z.string().min(1).default(DEV_AREA),
+	// Cargo-alvo do perfil para este caso (post com várias vagas); sem ele vale o do perfil salvo, ou nenhum
+	targetRole: z.string().min(1).optional(),
 	kind: z.enum(FEEDBACK_KINDS),
 	post: z.object({
 		text: z.string().min(1),

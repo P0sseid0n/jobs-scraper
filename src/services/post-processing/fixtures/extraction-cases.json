@@ -1086,5 +1086,449 @@
 		"correctedFields": [],
 		"model": "gemma3:4b",
 		"promptVersion": "3caef3e2ad31"
+	},
+	{
+		"postId": "caso-dev-react-php",
+		"anonymized": true,
+		"area": "dev",
+		"kind": "fields",
+		"post": {
+			"text": "🚀 VAGA TECH: Desenvolvedor(a) Sênior React e PHP/Laravel\nA Talentum Consultoria de RH está conduzindo o processo seletivo de uma healthtech consolidada, que procura um(a) Desenvolvedor(a) Sênior React e PHP/Laravel para modernizar um dos seus principais produtos.\nProcuramos alguém com experiência sólida em React, PHP/Laravel e MySQL, acostumado a sistemas complexos que não podem parar.\n💻 Responsabilidades:\nConduzir a migração gradual do frontend para React.\nManter e evoluir os sistemas atuais em Vue 2 e Laravel.\nParticipar das decisões de arquitetura do backend.\nReduzir dívidas técnicas sem perder a estabilidade durante a migração.\n🎯 Requisitos:\nExperiência como Desenvolvedor(a) Sênior.\nDomínio de React e PHP/Laravel. Conhecimento avançado em MySQL.\nVivência com Vue 2 e sistemas legados.\n⭐ Diferenciais:\nNode.js e TypeScript.\n📩 Candidate-se pelo link:\nhttps://vagas.exemplo.com/talentum/dev-senior-react\nou fale comigo pelo LinkedIn para saber mais.\n\n🔄 Conhece alguém com esse perfil? Compartilhe!\n\n#VagasTech #DesenvolvedorSenior #ReactJS #PHP #Laravel #MySQL #Healthtech",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Desenvolvedor(a) Sênior React e PHP/Laravel",
+			"company": "Talentum Consultoria de RH",
+			"location": "unknown",
+			"workMode": "presencial",
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"React",
+				"PHP",
+				"Laravel",
+				"MySQL",
+				"Vue 2"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/talentum/dev-senior-react",
+			"aiJobConfidence": 100
+		},
+		"expected": {
+			"title": "Desenvolvedor(a) Sênior React e PHP/Laravel",
+			"company": null,
+			"location": null,
+			"workMode": null,
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"React",
+				"PHP",
+				"Laravel",
+				"MySQL",
+				"Vue 2",
+				"Node.js",
+				"TypeScript"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/talentum/dev-senior-react"
+		},
+		"correctedFields": [],
+		"model": "gemma3:4b",
+		"promptVersion": "3caef3e2ad31"
+	},
+	{
+		"postId": "caso-dev-backend-pj",
+		"anonymized": true,
+		"area": "dev",
+		"kind": "fields",
+		"post": {
+			"text": "🚀 Você escreve teste antes de escrever código? Então essa vaga é a sua cara.\n\nAqui na NorteDev, estamos buscando um(a) Desenvolvedor(a) Backend Pleno para um time que leva qualidade a sério: revisão de código, integração contínua e refatoração de verdade, não só no discurso.\n\nA pessoa participa da discussão de design antes de codar e entende o problema de negócio por trás de cada entrega. Perfil fullstack é um diferencial.\n\n💻 Stack: TypeScript/Node.js, NestJS, PostgreSQL, AWS, Docker, mensageria com RabbitMQ e um pé no front com React\n🏠 100% remoto\n📄 Contratação PJ\n⏳ Projeto de 6 meses, com possibilidade de extensão\n\n📩 Interessou? Envie seu currículo para contato1@exemplo.com\n\n#VagaTI #DesenvolvedorBackend #NodeJS #TypeScript #NestJS #AWS #TrabalhoRemoto #VagaPJ",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Desenvolvedor(a) Backend Pleno",
+			"company": "NorteDev",
+			"location": null,
+			"workMode": "remoto",
+			"contractTypes": [
+				"pj"
+			],
+			"necessaryKnowledge": [
+				"typescript",
+				"nodejs",
+				"nestjs",
+				"postgresql",
+				"aws",
+				"docker",
+				"rabbitmq"
+			],
+			"recruiterEmail": "contato1@exemplo.com",
+			"applyLink": null,
+			"aiJobConfidence": 100
+		},
+		"expected": {
+			"title": "Desenvolvedor(a) Backend Pleno",
+			"company": "NorteDev",
+			"location": null,
+			"workMode": "remoto",
+			"contractTypes": [
+				"pj"
+			],
+			"necessaryKnowledge": [
+				"TypeScript",
+				"Node.js",
+				"NestJS",
+				"PostgreSQL",
+				"AWS",
+				"Docker",
+				"RabbitMQ",
+				"React"
+			],
+			"recruiterEmail": "contato1@exemplo.com",
+			"applyLink": null
+		},
+		"correctedFields": [],
+		"model": "gemma3:4b",
+		"promptVersion": "3caef3e2ad31"
+	},
+	{
+		"postId": "caso-dev-front-hibrido",
+		"anonymized": true,
+		"area": "dev",
+		"kind": "fields",
+		"post": {
+			"text": "📢 Estamos contratando: Pessoa Desenvolvedora Front-End Pleno (React) – Híbrido/SP\nOrbis · Santo André, SP · Remoto\n\nA Orbis está em busca de uma Pessoa Desenvolvedora Front-End Pleno (React) para o nosso time de tecnologia, em modelo híbrido, com dois dias por semana no escritório de Santo André/SP. Você vai desenvolver e manter interfaces modernas com React, junto com os times de produto e back-end, para entregar experiências rápidas e acessíveis. Principais responsabilidades: - Criar e manter componentes em React, com foco em performance; - Consumir APIs REST e tratar os estados de carregamento e erro; - Escrever testes com Jest; - Participar de code reviews. Buscamos alguém com boa comunicação, autonomia e vontade de aprender.\n\nConfira os detalhes e candidate-se pelo link abaixo.\nhttps://vagas.exemplo.com/orbis/front-pleno",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Pessoa Desenvolvedora Front-End Pleno (React)",
+			"company": "Orbis",
+			"location": "Santo André, SP",
+			"workMode": "hibrido",
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"React"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/orbis/front-pleno",
+			"aiJobConfidence": 100
+		},
+		"expected": {
+			"title": "Pessoa Desenvolvedora Front-End Pleno (React)",
+			"company": "Orbis",
+			"location": "Santo André, SP",
+			"workMode": "hibrido",
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"React",
+				"APIs REST",
+				"Jest"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/orbis/front-pleno"
+		},
+		"correctedFields": [],
+		"model": "gemma3:4b",
+		"promptVersion": "3caef3e2ad31"
+	},
+	{
+		"postId": "caso-dev-qa-clt",
+		"anonymized": true,
+		"area": "dev",
+		"kind": "fields",
+		"post": {
+			"text": "Fala pessoal, tudo certo?\n\nVaga de QA Pleno\nClt + remoto\nR$5,2 a 6K\n\nInteressados enviar cv para contato1@exemplo.com\nOBS: Só aceitamos candidaturas por email.\n\nPerfil\nProcuramos uma pessoa de QA com boa experiência em automação de testes, com foco em automações usando Cypress e TypeScript.\nTambém é importante saber especificar cenários de teste a partir dos requisitos e das regras de negócio.\n\nO que esperamos na parte técnica:\nExperiência prática com Cypress + TypeScript;\nTestes de API com Postman;\nVersionamento com Git;\nOrganização de suítes, comandos e fixtures no Cypress;",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "QA Pleno",
+			"company": null,
+			"location": null,
+			"workMode": "remoto",
+			"contractTypes": [
+				"clt"
+			],
+			"necessaryKnowledge": [
+				"cypress",
+				"typescript",
+				"postman",
+				"git"
+			],
+			"recruiterEmail": "contato1@exemplo.com",
+			"applyLink": null,
+			"aiJobConfidence": 100
+		},
+		"expected": {
+			"title": "QA Pleno",
+			"company": null,
+			"location": null,
+			"workMode": "remoto",
+			"contractTypes": [
+				"clt"
+			],
+			"necessaryKnowledge": [
+				"Cypress",
+				"TypeScript",
+				"Postman",
+				"Git"
+			],
+			"recruiterEmail": "contato1@exemplo.com",
+			"applyLink": null
+		},
+		"correctedFields": [],
+		"model": "gemma3:4b",
+		"promptVersion": "3caef3e2ad31"
+	},
+	{
+		"postId": "caso-dev-fullstack-hibrido",
+		"anonymized": true,
+		"area": "dev",
+		"kind": "fields",
+		"post": {
+			"text": "Seu próximo desafio em desenvolvimento de software pode estar aqui.\nA Codevale está com oportunidade aberta para Desenvolvedor Full Stack Pleno, para criar soluções completas, unindo back-end e front-end com qualidade e visão de produto.\n\nNo dia a dia, você vai:\n\n• Desenvolver e manter APIs escaláveis com TypeScript;\n• Criar interfaces responsivas com Angular ou React;\n• Participar de revisões de código;\n• Trabalhar num ambiente colaborativo, com ritos ágeis.\n\nBuscamos alguém com experiência em TypeScript no front-end e no back-end, APIs RESTful e Git.\n\nModelo híbrido, em Campinas/SP.\n\nSe você gosta de transformar ideias em aplicações eficientes, essa oportunidade pode ser para você.\n\nEnvie seu currículo para:\ncontato1@exemplo.com\n\n#VagasTI #DesenvolvedorFullStack #FullStack #TypeScript #Angular #React #Tecnologia",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Desenvolvedor Full Stack Pleno",
+			"company": "Codevale",
+			"location": "Campinas/SP",
+			"workMode": "hibrido",
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"typescript",
+				"angular",
+				"react",
+				"git",
+				"restful api"
+			],
+			"recruiterEmail": "contato1@exemplo.com",
+			"applyLink": null,
+			"aiJobConfidence": 100
+		},
+		"expected": {
+			"title": "Desenvolvedor Full Stack Pleno",
+			"company": "Codevale",
+			"location": "Campinas/SP",
+			"workMode": "hibrido",
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"TypeScript",
+				"Angular",
+				"React",
+				"APIs RESTful",
+				"Git"
+			],
+			"recruiterEmail": "contato1@exemplo.com",
+			"applyLink": null
+		},
+		"correctedFields": [],
+		"model": "gemma3:4b",
+		"promptVersion": "3caef3e2ad31"
+	},
+	{
+		"postId": "caso-varias-vagas-dev",
+		"anonymized": true,
+		"area": "dev",
+		"targetRole": "Desenvolvedor Front-end Vue",
+		"kind": "fields",
+		"post": {
+			"text": "🚨 Oportunidades abertas na Lumen Saúde!\n\nEstamos ampliando o time e temos 3 vagas:\n\n1️⃣ Analista Financeiro Pleno\nRequisitos: Excel avançado, conciliação bancária e SAP.\n\n2️⃣ Desenvolvedor(a) Front-end Vue Pleno\nRequisitos: Vue.js, TypeScript e testes com Vitest.\n\n3️⃣ Enfermeiro(a) Assistencial\nRequisitos: COREN ativo e curso de ACLS.\n\n📍 Recife/PE · Presencial · CLT\n📩 Envie o currículo para contato1@exemplo.com com o nome da vaga no assunto.\n\n#Vagas #Recife #Saúde #Tecnologia",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Desenvolvedor(a) Front-end Vue",
+			"company": "Lumen Saúde",
+			"location": "Recife/PE",
+			"workMode": "presencial",
+			"contractTypes": [
+				"clt"
+			],
+			"necessaryKnowledge": [
+				"vue.js",
+				"typescript"
+			],
+			"recruiterEmail": "contato1@exemplo.com",
+			"applyLink": null,
+			"aiJobConfidence": 100
+		},
+		"expected": {
+			"title": "Desenvolvedor(a) Front-end Vue Pleno",
+			"company": "Lumen Saúde",
+			"location": "Recife/PE",
+			"workMode": "presencial",
+			"contractTypes": [
+				"clt"
+			],
+			"necessaryKnowledge": [
+				"Vue.js",
+				"TypeScript",
+				"Vitest"
+			],
+			"recruiterEmail": "contato1@exemplo.com",
+			"applyLink": null
+		},
+		"correctedFields": [],
+		"model": "gemma3:4b",
+		"promptVersion": "3caef3e2ad31"
+	},
+	{
+		"postId": "caso-varias-vagas-saude",
+		"anonymized": true,
+		"area": "saude",
+		"targetRole": "Enfermeiro Assistencial",
+		"kind": "fields",
+		"post": {
+			"text": "🚨 Oportunidades abertas na Lumen Saúde!\n\nEstamos ampliando o time e temos 3 vagas:\n\n1️⃣ Analista Financeiro Pleno\nRequisitos: Excel avançado, conciliação bancária e SAP.\n\n2️⃣ Desenvolvedor(a) Front-end Vue Pleno\nRequisitos: Vue.js, TypeScript e testes com Vitest.\n\n3️⃣ Enfermeiro(a) Assistencial\nRequisitos: COREN ativo e curso de ACLS.\n\n📍 Recife/PE · Presencial · CLT\n📩 Envie o currículo para contato1@exemplo.com com o nome da vaga no assunto.\n\n#Vagas #Recife #Saúde #Tecnologia",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Desenvolvedor(a) Front-end Vue",
+			"company": "Lumen Saúde",
+			"location": "Recife/PE",
+			"workMode": "presencial",
+			"contractTypes": [
+				"clt"
+			],
+			"necessaryKnowledge": [
+				"vue.js",
+				"typescript"
+			],
+			"recruiterEmail": "contato1@exemplo.com",
+			"applyLink": null,
+			"aiJobConfidence": 100
+		},
+		"expected": {
+			"title": "Enfermeiro(a) Assistencial",
+			"company": "Lumen Saúde",
+			"location": "Recife/PE",
+			"workMode": "presencial",
+			"contractTypes": [
+				"clt"
+			],
+			"necessaryKnowledge": [
+				"COREN",
+				"ACLS"
+			],
+			"recruiterEmail": "contato1@exemplo.com",
+			"applyLink": null
+		},
+		"correctedFields": [],
+		"model": "gemma3:4b",
+		"promptVersion": "3caef3e2ad31"
+	},
+	{
+		"postId": "caso-varias-vagas-marketing",
+		"anonymized": true,
+		"area": "marketing",
+		"targetRole": "Analista de Marketing Digital",
+		"kind": "fields",
+		"post": {
+			"text": "Vagas abertas na Ápice Varejo 🛒\n\n• Vendedor(a) Interno(a): experiência com CRM e metas de vendas.\n• Analista de Marketing Digital: Google Ads, Meta Ads e RD Station.\n• Assistente de Logística: Pacote Office e CNH B.\n\nTodas presenciais em Goiânia/GO, CLT.\nInscrições: https://vagas.exemplo.com/apice\n\n#VagasGoiania #Varejo #Marketing",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Vendedor(a) Interno(a)",
+			"company": "Ápice Varejo",
+			"location": "Goiânia/GO",
+			"workMode": "presencial",
+			"contractTypes": [
+				"clt"
+			],
+			"necessaryKnowledge": [
+				"CRM",
+				"Office"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/apice",
+			"aiJobConfidence": 100
+		},
+		"expected": {
+			"title": "Analista de Marketing Digital",
+			"company": "Ápice Varejo",
+			"location": "Goiânia/GO",
+			"workMode": "presencial",
+			"contractTypes": [
+				"clt"
+			],
+			"necessaryKnowledge": [
+				"Google Ads",
+				"Meta Ads",
+				"RD Station"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/apice"
+		},
+		"correctedFields": [],
+		"model": "gemma3:4b",
+		"promptVersion": "3caef3e2ad31"
+	},
+	{
+		"postId": "caso-varias-vagas-sem-perfil",
+		"anonymized": true,
+		"area": "vendas",
+		"kind": "fields",
+		"post": {
+			"text": "Vagas abertas na Ápice Varejo 🛒\n\n• Vendedor(a) Interno(a): experiência com CRM e metas de vendas.\n• Analista de Marketing Digital: Google Ads, Meta Ads e RD Station.\n• Assistente de Logística: Pacote Office e CNH B.\n\nTodas presenciais em Goiânia/GO, CLT.\nInscrições: https://vagas.exemplo.com/apice\n\n#VagasGoiania #Varejo #Marketing",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Vendedor(a) Interno(a)",
+			"company": "Ápice Varejo",
+			"location": "Goiânia/GO",
+			"workMode": "presencial",
+			"contractTypes": [
+				"clt"
+			],
+			"necessaryKnowledge": [
+				"CRM",
+				"Office"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/apice",
+			"aiJobConfidence": 100
+		},
+		"expected": {
+			"title": "Vendedor(a) Interno(a)",
+			"company": "Ápice Varejo",
+			"location": "Goiânia/GO",
+			"workMode": "presencial",
+			"contractTypes": [
+				"clt"
+			],
+			"necessaryKnowledge": [
+				"CRM"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://vagas.exemplo.com/apice"
+		},
+		"correctedFields": [],
+		"model": "gemma3:4b",
+		"promptVersion": "3caef3e2ad31"
 	}
 ]

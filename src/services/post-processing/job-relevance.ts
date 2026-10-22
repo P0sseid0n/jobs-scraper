@@ -21,8 +21,9 @@ export function relevanceRejection(job: Pick<ProcessedJob, 'title' | 'necessaryK
 }
 
 /**
- * Palavra a palavra, sem prefixo: "java" não casa com "javascript". Ignora caixa, acentos, hífen e ".js"
- * ("Vue.js" = "vue", "Front-end" = "frontend"), e "front end" separado também casa com "frontend".
+ * Palavra a palavra, sem prefixo: "java" não casa com "javascript". Ignora caixa, acentos, ".js" e a marca de gênero
+ * dos cargos ("Vue.js" = "vue", "Técnico(a)" = "técnico"). O hífen vale junto e separado: "Front-end" = "frontend" e
+ * "COREN-SP" também tem "coren". E "front end" separado também casa com "frontend".
  */
 function matchesKeyword(terms: Set<string>, keyword: string) {
 	return keywordForms(keyword).some(form => terms.has(form))
@@ -30,33 +31,37 @@ function matchesKeyword(terms: Set<string>, keyword: string) {
 
 /** As palavras do texto, os pares vizinhos juntos ("front end" → "frontend") e as sequências de até 3 palavras. */
 function searchableTerms(text: string) {
-	const words = tokenize(text)
-	const terms = new Set(words)
+	const terms = new Set<string>()
 
-	for (let index = 0; index < words.length; index++) {
-		const pair = words.slice(index, index + 2)
-		const triple = words.slice(index, index + 3)
+	for (const words of [tokenize(text, true), tokenize(text, false)]) {
+		for (let index = 0; index < words.length; index++) {
+			const pair = words.slice(index, index + 2)
+			const triple = words.slice(index, index + 3)
 
-		if (pair.length === 2) terms.add(pair.join('')).add(pair.join(' '))
-		if (triple.length === 3) terms.add(triple.join(' '))
+			terms.add(words[index]!)
+			if (pair.length === 2) terms.add(pair.join('')).add(pair.join(' '))
+			if (triple.length === 3) terms.add(triple.join(' '))
+		}
 	}
 
 	return terms
 }
 
 function keywordForms(keyword: string) {
-	const words = tokenize(keyword)
+	const forms = [tokenize(keyword, true), tokenize(keyword, false)].flatMap(words => [words.join(' '), words.join('')])
 
-	return [words.join(' '), words.join('')].filter(Boolean)
+	return [...new Set(forms)].filter(Boolean)
 }
 
-function tokenize(text: string) {
+/** @param joinHyphenated Junta as partes ligadas por hífen, ponto ou "_" ("front-end" → "frontend"); senão, separa. */
+function tokenize(text: string, joinHyphenated: boolean) {
 	return text
 		.normalize('NFKD')
 		.replace(/\p{Diacritic}/gu, '')
 		.toLowerCase()
 		.replace(/\.js\b/g, '')
-		.replace(/(?<=[a-z0-9])[-_.](?=[a-z0-9])/g, '')
+		.replace(/(?<=[a-z])(\((a|o|as|os|es)\)|\/(a|o)\b)/g, '')
+		.replace(/(?<=[a-z0-9])[-_.](?=[a-z0-9])/g, joinHyphenated ? '' : ' ')
 		.split(/[^a-z0-9#+]+/)
 		.map(word => word.replace(/(?<=.{3})js$/, ''))
 		.filter(Boolean)

@@ -84,6 +84,14 @@ test('fixtureProblems aponta texto não reescrito e dados pessoais', () => {
 	expect(fixtureProblems([{ ...item, anonymized: true }])[0]?.problems.length).toBeGreaterThan(0)
 })
 
+test('fixtureProblems aceita o e-mail de exemplo no começo de uma linha', () => {
+	const rewritten = { ...anonymizeCase(item), anonymized: true }
+	const post = { ...rewritten.post, text: 'Envie o currículo para:\ncontato1@exemplo.com' }
+
+	expect(fixtureProblems([{ ...rewritten, post }])).toEqual([])
+	expect(findPersonalData({ ...rewritten, post: { ...post, text: 'Envie para:\nana@empresa.com' } })).toEqual(['ana@empresa.com'])
+})
+
 test('as fixtures versionadas são válidas, foram reescritas à mão e não têm dados pessoais', async () => {
 	expect(fixtureProblems(await readFixtures())).toEqual([])
 })

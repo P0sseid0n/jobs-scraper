@@ -6,12 +6,13 @@
  * Uso: bun eval:extraction [--model gemma3:12b] [--fixtures] [--limit 50] [--verbose]
  * - sem `--fixtures`, lê a coleção `extraction_feedback` do MongoDB (MONGO_URL);
  * - com `--fixtures`, usa os casos versionados (`fixtures/extraction-cases.json`), sem banco.
+ * O cargo-alvo de cada caso é o dele (`targetRole`) ou, sem ele, o do perfil salvo (só sem `--fixtures`).
  */
 import { parseArgs } from 'node:util'
 import { Ollama } from 'ollama'
 
 import { loadConfig, mongoEnv, ollamaEnv } from '@shared/config'
-import { CORRECTABLE_FIELDS, PostProcessingSettingsSchema } from '@shared/contracts'
+import { CORRECTABLE_FIELDS, PostProcessingSettingsSchema, ProfileSettingsSchema } from '@shared/contracts'
 import { connectDatabase, disconnectDatabase, ExtractionFeedback, Settings } from '@shared/database'
 import { createLogger } from '@shared/logging'
 
@@ -54,7 +55,7 @@ try {
 	process.exit(1)
 }
 
-const { cases, settings } = args.fixtures ? await fromFixtures() : await fromDatabase()
+const { cases, settings, targetRole } = args.fixtures ? await fromFixtures() : await fromDatabase()
 const selected = args.limit ? cases.slice(-Number(args.limit)) : cases
 
 if (selected.length === 0) {
@@ -71,7 +72,8 @@ for (const [index, item] of selected.entries()) {
 		// Como no post-processing, o post fora dos idiomas aceitos nem chega à extração
 		const { rejection } = await checkLanguage(ollama, model, item.post.text, settings.allowedLanguages)
 		if (!rejection) {
-			run = runFromModel(item, await extractJobFromPost(ollama, model, caseToRawPost(item)), settings.minJobConfidence)
+			const aiJob = await extractJobFromPost(ollama, model, caseToRawPost(item), item.targetRole ?? targetRole)
+			run = runFromModel(item, aiJob, settings.minJobConfidence)
 		}
 	} catch (error) {
 		// Conta como erro em todos os campos, mas segue com os outros casos
@@ -84,7 +86,7 @@ for (const [index, item] of selected.entries()) {
 }
 
 console.log(
-	`\nmodelo ${model} · prompt ${EXTRACTION_PROMPT_VERSION} · ${selected.length} casos · confiança mínima ${settings.minJobConfidence} · idiomas ${settings.allowedLanguages.join(', ') || 'todos'}\n`,
+	`\nmodelo ${model} · prompt ${EXTRACTION_PROMPT_VERSION} · ${selected.length} casos · confiança mínima ${settings.minJobConfidence} · idiomas ${settings.allowedLanguages.join(', ') || 'todos'} · cargo-alvo ${targetRole ?? 'nenhum'} (fora os casos com o seu)\n`,
 )
 console.log(formatReport(scoreCases(results)))
 
@@ -102,10 +104,12 @@ async function fromDatabase() {
 		// Em ordem cronológica: de cada post fica a correção mais recente
 		const docs = await ExtractionFeedback.find().sort({ createdAt: 1 }).lean()
 		const settings = await Settings.findById('post-processing').lean()
+		const profile = await Settings.findById('profile').lean()
 
 		return {
 			cases: latestPerPost(docs.map(doc => ExtractionCaseSchema.parse(doc))),
 			settings: PostProcessingSettingsSchema.parse(settings?.values ?? {}),
+			targetRole: ProfileSettingsSchema.parse(profile?.values ?? {}).targetRole ?? null,
 		}
 	} finally {
 		await disconnectDatabase()
@@ -116,6 +120,7 @@ async function fromFixtures() {
 	return {
 		cases: await readFixtures(DEFAULT_FIXTURES_PATH),
 		settings: PostProcessingSettingsSchema.parse({}),
+		targetRole: null,
 	}
 }
 
@@ -134,6 +139,6 @@ function printDiff(item: ExtractionCase, run: CaseRun) {
 		}
 	}
 
-	const label = `${item.postId} (${item.area})`
+	const label = `${item.postId} (${item.area}${item.targetRole ? `, cargo-alvo ${item.targetRole}` : ''})`
 	console.log(lines.length ? `✗ ${label}\n${lines.join('\n')}` : `✓ ${label}`)
 }
