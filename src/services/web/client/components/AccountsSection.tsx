@@ -12,7 +12,6 @@ import { ConfirmDialog } from './ui/Dialog'
 import { FieldError, FieldHelp, FieldLabel } from './ui/Field'
 import { IconButton } from './ui/IconButton'
 import { Input } from './ui/Input'
-import { StatusDot } from './ui/StatusDot'
 import { SECTION_TITLE } from './ui/text'
 
 type FieldDef = {
@@ -78,9 +77,9 @@ const GROUPS: Record<CredentialGroup, { title: string; note: string; testable: b
 }
 
 const SOURCE_BADGES = {
-	database: { tone: 'ok', dot: 'ok', label: 'salva no site' },
-	env: { tone: 'neutral', dot: 'lime', label: 'do .env' },
-	none: { tone: 'muted', dot: 'muted', label: 'não configurada' },
+	database: { tone: 'ok', label: 'salva no site' },
+	env: { tone: 'neutral', label: 'do .env' },
+	none: { tone: 'muted', label: 'não configurada' },
 } as const
 
 const GROUP_KEYS = Object.keys(GROUPS) as CredentialGroup[]
@@ -145,7 +144,6 @@ export function AccountsSection({ initial }: { initial: WebCredentials }) {
 							className={TAB}
 							onClick={() => setSelected(group)}
 						>
-							<StatusDot tone={SOURCE_BADGES[status[group].source ?? 'none'].dot} />
 							{GROUPS[group].title}
 						</button>
 					))}
