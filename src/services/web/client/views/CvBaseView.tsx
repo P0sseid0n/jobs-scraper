@@ -405,7 +405,7 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 						currículo <Hero.Mono>base.</Hero.Mono>
 					</>
 				}
-				lead="O .tex de onde saem todos os currículos ajustados, no site e no Discord. Uma versão nova é compilada pelo cv-updater antes de poder ser ativada e vale a partir do próximo currículo, sem reiniciar nada."
+				lead="O .tex de onde saem todos os currículos. Cada versão nova é compilada antes de poder ser ativada."
 			/>
 
 			{blocker.status === 'blocked' && (
