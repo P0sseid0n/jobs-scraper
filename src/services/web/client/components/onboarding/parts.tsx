@@ -21,7 +21,16 @@ export function Rise({
 	children: ReactNode
 }) {
 	return (
-		<div id={id} className={cx('animate-rise-in motion-reduce:animate-none', STAGGER[order], className)}>
+		// A animação (com `both`) deixa cada bloco num contexto de empilhamento próprio, e os blocos seguintes cobririam a
+		// lista aberta de um Combobox: o bloco com o foco fica por cima
+		<div
+			id={id}
+			className={cx(
+				'animate-rise-in focus-within:relative focus-within:z-10 motion-reduce:animate-none',
+				STAGGER[order],
+				className,
+			)}
+		>
 			{children}
 		</div>
 	)
