@@ -121,6 +121,9 @@ const MAX_LIST_ITEM_WORDS = 8
 function isShortListItem(line: string) {
 	const marker = LIST_MARKER.exec(line)
 	if (!marker) return false
-	const words = line.slice(marker[0].length).split(/\s+/).filter(word => /\p{L}/u.test(word))
+	const words = line
+		.slice(marker[0].length)
+		.split(/\s+/)
+		.filter(word => /\p{L}/u.test(word))
 	return words.length <= MAX_LIST_ITEM_WORDS
 }
