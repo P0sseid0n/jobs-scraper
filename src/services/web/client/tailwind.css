@@ -180,6 +180,16 @@
 	gap: inherit;
 }
 
+/*
+ * Transição dos botões (`PRESS`): o movimento (subir, afundar) usa a mola; cor, borda e sombra, uma curva que não passa
+ * do ponto. No Chrome, a cor de fundo com mola num elemento que também se move pisca a cor antiga no começo do hover.
+ */
+@utility transition-press {
+	transition-property: translate, scale, color, background-color, border-color, outline-color, box-shadow, opacity;
+	transition-timing-function: var(--ease-spring), var(--ease-spring), ease-out, ease-out, ease-out, ease-out, ease-out, ease-out;
+	transition-duration: 300ms, 300ms, 200ms, 200ms, 200ms, 200ms, 200ms, 200ms;
+}
+
 /* Os tokens (tema claro). `static` gera todas as variáveis, também as usadas só aqui (ex.: no `inverted`) */
 @theme static {
 	--color-bg: #f5f6ef;
