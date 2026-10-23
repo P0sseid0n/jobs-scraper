@@ -176,12 +176,11 @@
 
 	/*
 	 * Onboarding: o texto sobe do fundo (menor e desfocado), um bloco depois do outro (`stagger-*`); o passo novo entra
-	 * pelo lado para onde se andou; o brilho do painel escuro passeia devagar.
+	 * pelo lado para onde se andou.
 	 */
 	--animate-rise-in: rise-in 700ms var(--ease-glide) both;
 	--animate-step-next: step-next 520ms var(--ease-glide) both;
 	--animate-step-back: step-back 520ms var(--ease-glide) both;
-	--animate-drift: drift 16s ease-in-out infinite alternate;
 
 	@keyframes rise-in {
 		from {
@@ -202,12 +201,6 @@
 		from {
 			opacity: 0;
 			transform: translateX(-56px);
-		}
-	}
-
-	@keyframes drift {
-		to {
-			transform: translate(18%, -12%) scale(1.2);
 		}
 	}
 }

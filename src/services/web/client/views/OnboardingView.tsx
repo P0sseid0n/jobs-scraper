@@ -134,33 +134,15 @@ export function OnboardingView({ initial, step }: { initial: OnboardingData; ste
 
 	return (
 		<div className="flex min-h-dvh">
-			<aside className="inverted sticky top-0 flex h-dvh w-96 shrink-0 flex-col gap-10 overflow-hidden px-9 py-10 max-lg:w-80 max-md:hidden">
-				{/* O brilho lime que passeia ao fundo */}
-				<span
-					aria-hidden="true"
-					className="pointer-events-none absolute -top-32 -left-32 size-96 rounded-full bg-lime-glow blur-3xl animate-drift motion-reduce:animate-none"
-				/>
-				<span
-					aria-hidden="true"
-					className="pointer-events-none absolute -right-40 -bottom-40 size-80 rounded-full bg-lime-glow opacity-60 blur-3xl animate-drift stagger-20 motion-reduce:animate-none"
-				/>
-
-				<p className="relative inline-flex items-center gap-2 font-mono text-sm font-medium">
+			<aside className="sticky top-0 flex h-dvh w-72 shrink-0 flex-col gap-12 border-r border-line px-8 py-10 max-lg:w-64 max-md:hidden">
+				<p className="inline-flex items-center gap-2 font-mono text-sm font-medium">
 					<ProjectIcon />
-					jobs/scraper<span className="text-lime">_</span>
+					jobs/scraper<span className="text-lime-text">_</span>
 				</p>
-
-				<Rise className="relative">
-					<p className="text-2xl font-semibold tracking-tight text-balance">
-						Configure uma vez. <span className="font-mono font-normal text-lime">Receba vagas sempre.</span>
-					</p>
-				</Rise>
 
 				<Stepper current={step} setup={setup} onSelect={goTo} />
 
-				<p className="relative mt-auto text-sm text-muted">
-					Pode parar quando quiser: o que você salvou fica guardado, e a gente volta para o passo em que você parou.
-				</p>
+				<p className="mt-auto text-xs text-muted">Pode parar quando quiser: a gente volta para o passo em que você parou.</p>
 			</aside>
 
 			<div className="flex min-w-0 grow flex-col">
@@ -201,7 +183,7 @@ export function OnboardingView({ initial, step }: { initial: OnboardingData; ste
 	)
 }
 
-/** A lista dos passos no painel escuro: o atual em destaque, os feitos com o check; clicar leva ao passo. */
+/** A lista dos passos na lateral: o atual em destaque, os feitos com o check; clicar leva ao passo. */
 function Stepper({
 	current,
 	setup,
@@ -214,7 +196,7 @@ function Stepper({
 	const currentIndex = NUMBERED_STEPS.findIndex(item => item.step === current)
 
 	return (
-		<nav aria-label="Passos do onboarding" className="relative">
+		<nav aria-label="Passos do onboarding">
 			<ol className="m-0 flex list-none flex-col p-0">
 				{NUMBERED_STEPS.map((item, index) => {
 					const done = stepDone(item.step, setup)
@@ -231,7 +213,7 @@ function Stepper({
 								<span aria-hidden="true" className="absolute top-9 bottom-1 left-4 w-px bg-line">
 									<span
 										className={cx(
-											'block h-full origin-top bg-lime transition-transform duration-700 ease-glide motion-reduce:transition-none',
+											'block h-full origin-top bg-ink transition-transform duration-700 ease-glide motion-reduce:transition-none',
 											index < currentIndex ? 'scale-y-100' : 'scale-y-0',
 										)}
 									/>
@@ -247,9 +229,9 @@ function Stepper({
 									className={cx(
 										'grid size-8 shrink-0 place-items-center rounded-full border font-mono text-xs transition duration-500 ease-spring',
 										isCurrent
-											? 'scale-110 border-lime bg-lime text-lime-ink shadow-glow'
+											? 'border-ink bg-ink text-bg'
 											: done
-												? 'border-lime text-lime'
+												? 'border-line text-lime-text'
 												: 'border-line text-muted group-hover:border-ink group-hover:text-ink',
 									)}
 								>
