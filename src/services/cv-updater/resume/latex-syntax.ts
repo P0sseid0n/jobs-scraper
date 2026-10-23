@@ -91,6 +91,21 @@ const SECTION_ALIASES: Record<SectionKey, string[]> = {
 	languages: ['idiomas', 'línguas', 'languages'],
 }
 
+/** O argumento de um comando, aceitando dentro dele `{}` vazias (`\textquotedbl{}`) e chaves escapadas. */
+const BRACED_ARGUMENT = String.raw`\{((?:[^{}]|\{\}|\\[{}])*)\}`
+const HREF = new RegExp(String.raw`\\href\{[^}]*\}${BRACED_ARGUMENT}`, 'g')
+const TEXT_STYLE = new RegExp(String.raw`\\(?:textbf|textit|emph|underline|texttt|mbox)${BRACED_ARGUMENT}`, 'g')
+
+const LATEX_ESCAPES: Record<string, string> = {
+	'\\': '\\textbackslash{}',
+	'~': '\\textasciitilde{}',
+	'^': '\\textasciicircum{}',
+	// Com o babel em português, `"` é um atalho (`"a` vira "ª")
+	'"': '\\textquotedbl{}',
+}
+
+const LATEX_UNESCAPES = Object.fromEntries(Object.entries(LATEX_ESCAPES).map(([char, command]) => [command.slice(1, -2), char]))
+
 const normalizeTitle = (title: string) =>
 	latexToPlainText(title)
 		.normalize('NFD')
@@ -126,26 +141,30 @@ export const PROJECT_SKILLS_LABEL = /(Tecnologias|Ferramentas|Competências|Tech
 
 /** Remove os comandos LaTeX mais comuns, deixando só o texto. */
 export function latexToPlainText(latex: string) {
-	return latex
-		.replace(/(?<!\\)%.*$/gm, '')
-		.replace(/\\href\{[^}]*\}\{([^}]*)\}/g, '$1')
-		.replace(/\\(?:textbf|textit|emph|underline|texttt|mbox)\{([^}]*)\}/g, '$1')
-		.replace(/\\(?:vspace|hspace)\*?\{[^}]*\}/g, ' ')
-		.replace(/\\begin\{[^}]*\}(?:\[[^\]]*\])?|\\end\{[^}]*\}|\\item\b/g, ' ')
-		.replace(/\\(?:hfill|newline|noindent|centering|par)\b/g, ' ')
-		.replace(/\\\\/g, ' ')
-		.replace(/\\([&%$#_{}])/g, '$1')
-		.replace(/~/g, ' ')
-		.replace(/\s+/g, ' ')
-		.trim()
+	return (
+		latex
+			.replace(/(?<!\\)%.*$/gm, '')
+			.replace(HREF, '$1')
+			.replace(TEXT_STYLE, '$1')
+			.replace(/\\(?:vspace|hspace)\*?\{[^}]*\}/g, ' ')
+			.replace(/\\begin\{[^}]*\}(?:\[[^\]]*\])?|\\end\{[^}]*\}|\\item\b/g, ' ')
+			.replace(/\\(?:hfill|newline|noindent|centering|par)\b/g, ' ')
+			.replace(/\\\\/g, ' ')
+			.replace(/\\([&%$#_{}])/g, '$1')
+			.replace(/~/g, ' ')
+			// Depois do `~` acima, para o til escapado continuar til
+			.replace(/\\(textbackslash|textasciitilde|textasciicircum|textquotedbl)\{\}/g, (_, name: string) => LATEX_UNESCAPES[name]!)
+			.replace(/\s+/g, ' ')
+			.trim()
+	)
 }
 
+/**
+ * Escapa o texto para aparecer igual no PDF. Numa passada só: as chaves de `\textbackslash{}` não podem ser escapadas
+ * de novo.
+ */
 export function escapeLatex(text: string) {
-	return text
-		.replace(/\\/g, '\\textbackslash{}')
-		.replace(/([&%$#_{}])/g, '\\$1')
-		.replace(/~/g, '\\textasciitilde{}')
-		.replace(/\^/g, '\\textasciicircum{}')
+	return text.replace(/[\\~^"&%$#_{}]/g, char => LATEX_ESCAPES[char] ?? `\\${char}`)
 }
 
 /** Divide "a, b (c, d), e" nas vírgulas fora de parênteses e chaves. */
