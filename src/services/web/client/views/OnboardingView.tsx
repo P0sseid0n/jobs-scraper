@@ -4,13 +4,13 @@ import { useEffect, useRef, useState } from 'react'
 import type { SetupStatus, WebCredentials, WebCvBaseVersion } from '../../api-types'
 import { api } from '../api'
 import { Icon } from '../components/Icon'
+import { Logo } from '../components/Logo'
 import { ExtrasStep, LinkedinStep } from '../components/onboarding/AccountSteps'
 import { CvStep } from '../components/onboarding/CvStep'
 import { Rise, StepBar, useStepBar } from '../components/onboarding/parts'
 import { ProfileStep, type ProfileStepData } from '../components/onboarding/ProfileStep'
 import { ReviewStep } from '../components/onboarding/ReviewStep'
 import { NUMBERED_STEPS, ONBOARDING_STEPS, stepDone, type OnboardingStep } from '../components/onboarding/steps'
-import { ProjectIcon } from '../components/ProjectIcon'
 import { IconButton } from '../components/ui/IconButton'
 import { cx } from '../lib/cx'
 import { loadSetup } from '../stores/setup'
@@ -134,9 +134,10 @@ export function OnboardingView({ initial, step }: { initial: OnboardingData; ste
 	return (
 		<div className="relative flex min-h-dvh flex-col">
 			<header className="flex flex-col items-center gap-3 px-8 pt-6 lg:absolute lg:inset-x-0 lg:top-0 lg:z-10 max-lg:sticky max-lg:top-0 max-lg:z-10 max-lg:border-b max-lg:border-line max-lg:bg-bg/88 max-lg:px-4 max-lg:py-3 max-lg:backdrop-blur-md">
-				<p className="inline-flex min-h-9.5 items-center gap-2 font-mono text-sm font-medium">
-					<ProjectIcon />
-					jobs/scraper<span className="text-lime-text">_</span>
+				{/* No celular, o topo é uma barra presa: o logo menor */}
+				<p className="flex min-h-9.5 items-center">
+					<Logo size="lg" className="max-lg:hidden" />
+					<Logo size="md" className="lg:hidden" />
 				</p>
 				<IconButton
 					label="Alternar tema claro/escuro"

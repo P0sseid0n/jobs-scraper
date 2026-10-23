@@ -5,7 +5,7 @@ import { REQUIRED_SETUP_STEPS, type ScraperStatus, type SetupStatus } from '../.
 import { api } from '../api'
 import { CvTray } from '../components/CvTray'
 import { Icon, type IconName } from '../components/Icon'
-import { ProjectIcon } from '../components/ProjectIcon'
+import { Logo } from '../components/Logo'
 import { Badge, badge } from '../components/ui/Badge'
 import { ButtonLink } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
@@ -154,13 +154,8 @@ function RootLayout() {
 			</a>
 			<header className="sticky top-0 z-20 border-b border-line bg-bg/88 backdrop-blur-md">
 				<div className={pageFrame({ className: 'flex items-center gap-4 py-3' })}>
-					<Link
-						className="inline-flex items-center gap-2 font-mono text-sm font-medium whitespace-nowrap no-underline"
-						to="/"
-						search={lastFilters}
-					>
-						<ProjectIcon />
-						jobs/scraper<span className="text-lime-text">_</span>
+					<Link className="no-underline" to="/" search={lastFilters}>
+						<Logo />
 					</Link>
 					<nav ref={nav.container} className="relative flex flex-auto gap-1 max-md:hidden" aria-label="Principal">
 						{/* O fundo da tela atual, que desliza até a nova */}
