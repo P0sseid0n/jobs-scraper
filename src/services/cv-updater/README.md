@@ -29,6 +29,8 @@ Se o resultado passar de uma página, primeiro sai um projeto e depois volta a a
    - **Formação**, **Certificações/Cursos** e **Idiomas**: ficam como estão; a IA só as lê ao ajustar.
 
    Os títulos valem em português ou em inglês, sem diferenciar acentos nem maiúsculas (a lista está em `resume/latex-syntax.ts`). O `.tex` precisa ter pelo menos experiência ou formação; seções com outro título ficam como estão.
+
+   Os dois modelos também aparecem no site, em **Currículo base › modelos**, para baixar, ver o PDF ou usar no editor. Os PDFs (`assets/*.example.pdf`) ficam no repositório: ao mudar um modelo, gere de novo com `bun cv:examples` (precisa do Tectonic).
 2. Instale o [Tectonic](https://github.com/tectonic-typesetting/tectonic/releases) e aponte `TECTONIC_BIN` para o executável. No Docker, ele já vem na imagem. Na primeira compilação, ele baixa os pacotes LaTeX e guarda em cache.
 3. A fonte Nunito (do modelo) já vem em `assets/fonts/` (licença OFL). Se o seu `.tex` usar outra fonte com `\setmainfont{Fonte}`, coloque nessa pasta os arquivos `Fonte-Regular.otf`, `Fonte-Italic.otf` e `Fonte-Bold.otf` (ou `-ExtraBold.otf`).
 

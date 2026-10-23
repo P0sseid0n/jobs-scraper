@@ -6,3 +6,9 @@ declare module '*.tex' {
 	const text: string
 	export default text
 }
+
+/** Importações de `.pdf` com `with { type: 'file' }`: o endereço do arquivo no pacote. */
+declare module '*.pdf' {
+	const url: string
+	export default url
+}

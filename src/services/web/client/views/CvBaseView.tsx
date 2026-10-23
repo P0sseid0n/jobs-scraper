@@ -321,6 +321,9 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 									<Icon name="download" size={14} />
 									baixar
 								</Button>
+								<Button variant="ghost" size="sm" href={example.pdfUrl} external>
+									ver PDF
+								</Button>
 								<Button variant="ghost" size="sm" onClick={() => loadExample(example)}>
 									usar no editor
 								</Button>
