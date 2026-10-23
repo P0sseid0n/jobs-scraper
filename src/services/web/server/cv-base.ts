@@ -1,10 +1,18 @@
 import { z } from 'zod'
 
-import { CvBaseTexSchema, type CvBaseValidationRequest, type CvBaseValidationResult } from '@shared/contracts'
+import {
+	CV_BASE_TEX_MAX_BYTES,
+	CvBaseTexSchema,
+	CvFormSchema,
+	type CvBaseValidationRequest,
+	type CvBaseValidationResult,
+	type CvForm,
+} from '@shared/contracts'
 import { ACTIVE_CV_BASE, CvBaseVersion, type CvBaseVersionDocument } from '@shared/database'
 import type { Logger } from '@shared/logging'
 import { QUEUES, type QueueClient } from '@shared/messaging'
 
+import { formToLatex } from '../../cv-updater/resume/latex-from-form'
 import type { WebCvBase, WebCvBaseVersion, WebCvBaseVersionWithTex } from '../api-types'
 import { CV_TIMEOUT_MS } from './cv-request.model'
 import type { EventHub } from './event-hub'
@@ -13,19 +21,40 @@ import { HttpError, readJson } from './http'
 const LIST_LIMIT = 30
 /** Versões nunca ativadas somem do histórico depois desse tempo. */
 const UNUSED_DAYS = 7
-const SUMMARY = { tex: 0, pdf: 0 } as const
+const SUMMARY = { tex: 0, pdf: 0, form: 0 } as const
 
 export const CV_BASE_TIMEOUT_ERROR = 'O cv-updater não respondeu em 10 minutos. Confira se ele está rodando e envie de novo.'
 
-/** Corpo do `POST /api/cv-base/versions`. */
-const NewVersionSchema = z.object({
+/** Corpo do `POST /api/cv-base/versions` com o `.tex` enviado ou escrito no site. */
+const TexVersionSchema = z.object({
 	tex: CvBaseTexSchema,
 	fileName: z.string().trim().min(1).max(200).nullable().default(null),
 })
 
+/** Corpo do `POST /api/cv-base/versions` com os dados do formulário. */
+const FormVersionSchema = z.object({ form: CvFormSchema })
+
+/**
+ * O `.tex` da versão nova e de onde ele veio. Com `form`, o `.tex` é gerado dele (e os dados ficam na versão).
+ * Escolhe o schema pelo corpo, em vez de uma união, para os erros apontarem os campos (`form.contact.name`).
+ * @throws {ZodError} Corpo inválido. @throws {HttpError} `.tex` gerado grande demais.
+ */
+export function parseNewVersion(body: unknown): { tex: string; fileName: string | null; form: CvForm | null } {
+	if (typeof body === 'object' && body !== null && 'form' in body) {
+		const { form } = FormVersionSchema.parse(body)
+		const tex = formToLatex(form)
+		if (!CvBaseTexSchema.safeParse(tex).success) {
+			throw new HttpError(400, `O currículo gerado passa de ${CV_BASE_TEX_MAX_BYTES / 1024} KB; encurte os textos`)
+		}
+		return { tex, fileName: null, form }
+	}
+
+	return { ...TexVersionSchema.parse(body), form: null }
+}
+
 type Deps = { queue: QueueClient; events: EventHub; logger: Logger }
 
-type VersionSummary = Omit<CvBaseVersionDocument, 'tex' | 'pdf'>
+type VersionSummary = Omit<CvBaseVersionDocument, 'tex' | 'pdf' | 'form'>
 
 /** Converte o documento no formato da API; validações sem resposta há tempo demais aparecem como recusadas. */
 export function toWebCvBaseVersion(doc: VersionSummary, now = new Date()): WebCvBaseVersion {
@@ -34,6 +63,7 @@ export function toWebCvBaseVersion(doc: VersionSummary, now = new Date()): WebCv
 	return {
 		versionId: doc.versionId,
 		fileName: doc.fileName,
+		fromForm: doc.fromForm ?? false,
 		status: timedOut ? 'invalid' : doc.status,
 		errors: timedOut ? [CV_BASE_TIMEOUT_ERROR] : doc.problems,
 		pages: doc.pages,
@@ -63,7 +93,7 @@ export async function getCvBaseVersion(req: Request & { params: { versionId: str
 	const doc = await CvBaseVersion.findOne({ versionId: req.params.versionId }, { pdf: 0 }).lean<Omit<CvBaseVersionDocument, 'pdf'>>()
 	if (!doc) throw new HttpError(404, 'Versão do currículo base não encontrada')
 
-	return Response.json({ ...toWebCvBaseVersion(doc), tex: doc.tex } satisfies WebCvBaseVersionWithTex)
+	return Response.json({ ...toWebCvBaseVersion(doc), tex: doc.tex, form: doc.form ?? null } satisfies WebCvBaseVersionWithTex)
 }
 
 /** `GET /api/cv-base/versions/:versionId/pdf`: a pré-visualização compilada na validação. */
@@ -82,18 +112,20 @@ export async function getCvBasePdf(req: Request & { params: { versionId: string 
 }
 
 /**
- * `POST /api/cv-base/versions`: guarda o `.tex` como uma versão nova e pede a validação ao cv-updater; responde 202.
- * A versão só pode ser ativada depois de validada.
+ * `POST /api/cv-base/versions`: guarda o `.tex` (enviado ou gerado do formulário) como uma versão nova e pede a
+ * validação ao cv-updater; responde 202. A versão só pode ser ativada depois de validada.
  */
 export async function createCvBaseVersion(req: Request, { queue, events, logger }: Deps) {
-	const input = NewVersionSchema.parse(await readJson(req))
+	const source = parseNewVersion(await readJson(req))
 	const now = new Date()
 
 	const doc = await CvBaseVersion.create({
 		versionId: crypto.randomUUID(),
-		tex: input.tex,
-		size: Buffer.byteLength(input.tex),
-		fileName: input.fileName,
+		tex: source.tex,
+		size: Buffer.byteLength(source.tex),
+		fileName: source.fileName,
+		form: source.form,
+		fromForm: source.form !== null,
 		status: 'validating',
 		createdAt: now,
 		expiresAt: new Date(now.getTime() + UNUSED_DAYS * 24 * 60 * 60 * 1000),
@@ -109,7 +141,10 @@ export async function createCvBaseVersion(req: Request, { queue, events, logger 
 
 	const version = toWebCvBaseVersion(doc.toObject())
 	events.broadcast('cvBase', version)
-	logger.info({ versionId: doc.versionId, size: doc.size }, 'Validação de currículo base solicitada pelo site')
+	logger.info(
+		{ versionId: doc.versionId, size: doc.size, fromForm: doc.fromForm },
+		'Validação de currículo base solicitada pelo site',
+	)
 
 	return Response.json(version satisfies WebCvBaseVersion, { status: 202 })
 }

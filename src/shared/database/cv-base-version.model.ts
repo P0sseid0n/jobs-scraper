@@ -1,5 +1,7 @@
 import mongoose, { Schema } from 'mongoose'
 
+import type { CvForm } from '../contracts/cv-form'
+
 export const CV_BASE_STATUSES = ['validating', 'valid', 'invalid'] as const
 export type CvBaseStatus = (typeof CV_BASE_STATUSES)[number]
 
@@ -10,6 +12,10 @@ export type CvBaseVersionDocument = {
 	size: number
 	/** Nome do arquivo enviado; `null` quando o texto foi escrito ou editado no site. */
 	fileName: string | null
+	/** Dados do formulário de onde o `.tex` foi gerado, para reabrir e editar; `null` nas versões escritas em LaTeX. */
+	form: CvForm | null
+	/** Se veio do formulário, para a lista não precisar carregar o `form`; ausente nas versões de antes do campo. */
+	fromForm?: boolean
 	status: CvBaseStatus
 	/** Por que a versão foi recusada (seções que faltam, erros do LaTeX). */
 	problems: string[]
@@ -34,6 +40,8 @@ const cvBaseVersionSchema = new Schema<CvBaseVersionDocument>(
 		tex: { type: String, required: true },
 		size: { type: Number, required: true },
 		fileName: { type: String, default: null },
+		form: { type: Schema.Types.Mixed, default: null },
+		fromForm: { type: Boolean, default: false },
 		status: { type: String, enum: CV_BASE_STATUSES, required: true },
 		problems: { type: [String], default: [] },
 		pages: { type: Number, default: null },

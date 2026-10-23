@@ -1,4 +1,4 @@
-import type { JobCorrectionInput } from '@shared/contracts'
+import type { CvForm, JobCorrectionInput } from '@shared/contracts'
 
 import type {
 	ApiError,
@@ -97,6 +97,9 @@ export const api = {
 	/** Guarda o `.tex` como versão nova e pede a validação; o resultado chega pelo stream (`cvBase`). */
 	createCvBaseVersion: (tex: string, fileName: string | null) =>
 		request<WebCvBaseVersion>('/api/cv-base/versions', { method: 'POST', body: JSON.stringify({ tex, fileName }) }),
+	/** Gera o `.tex` a partir do formulário e segue como `createCvBaseVersion`. */
+	createCvBaseVersionFromForm: (form: CvForm) =>
+		request<WebCvBaseVersion>('/api/cv-base/versions', { method: 'POST', body: JSON.stringify({ form }) }),
 	/** Torna a versão (já validada) o currículo base; também serve para voltar a uma anterior. */
 	activateCvBaseVersion: (versionId: string) =>
 		request<WebCvBaseVersion>(`/api/cv-base/versions/${versionId}/activate`, { method: 'POST' }),

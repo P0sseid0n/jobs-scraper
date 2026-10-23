@@ -10,10 +10,10 @@ export const Route = createFileRoute('/curriculos_/base')({
 	loader: async (): Promise<CvBaseData> => {
 		const { versions } = await api.cvBase()
 		const active = activeVersion(versions)
-		// O editor começa com o .tex ativo, para mudar só o que precisa
-		const activeTex = active ? (await api.cvBaseVersion(active.versionId)).tex : ''
+		// O editor (ou o formulário, se a versão veio dele) começa com a versão ativa, para mudar só o que precisa
+		const current = active ? await api.cvBaseVersion(active.versionId) : null
 
-		return { versions, activeTex }
+		return { versions, activeTex: current?.tex ?? '', activeForm: current?.form ?? null }
 	},
 	pendingComponent: () => <RoutePending width="medium" />,
 	errorComponent: routeError('Não consegui carregar o currículo base', 'medium'),

@@ -6,6 +6,7 @@ import { activeVersion, formatKilobytes, texBytes, upsertVersion } from './cv-ba
 const version = (versionId: string, createdAt: string, activatedAt: string | null = null): WebCvBaseVersion => ({
 	versionId,
 	fileName: null,
+	fromForm: false,
 	status: 'valid',
 	errors: [],
 	pages: 1,

@@ -7,6 +7,7 @@ import type {
 	ContractType,
 	CredentialGroup,
 	CredentialsStatus,
+	CvForm,
 	PostProcessingSettings,
 	ProcessedJob,
 	ProfileSettings,
@@ -63,8 +64,10 @@ export type WebCvRequest = {
 /** Versão do currículo base (sem o `.tex` nem o PDF, buscados à parte). */
 export type WebCvBaseVersion = {
 	versionId: string
-	/** Nome do arquivo enviado; `null` quando o texto foi escrito ou editado no site. */
+	/** Nome do arquivo enviado; `null` quando o texto foi escrito ou editado no site, ou veio do formulário. */
 	fileName: string | null
+	/** Gerada pelo formulário do site (`form` em `WebCvBaseVersionWithTex`). */
+	fromForm: boolean
 	status: CvBaseStatus
 	/** Por que foi recusada; vazio enquanto valida e nas válidas. */
 	errors: string[]
@@ -79,8 +82,8 @@ export type WebCvBaseVersion = {
 	expiresAt: string | null
 }
 
-/** A versão com o `.tex`, para editar a partir dela. */
-export type WebCvBaseVersionWithTex = WebCvBaseVersion & { tex: string }
+/** A versão com o `.tex` (e os dados do formulário, quando veio dele), para editar a partir dela. */
+export type WebCvBaseVersionWithTex = WebCvBaseVersion & { tex: string; form: CvForm | null }
 
 /** Versões do currículo base, das mais novas às mais antigas (a ativa sempre vem, mesmo se for antiga). */
 export type WebCvBase = { versions: WebCvBaseVersion[] }
