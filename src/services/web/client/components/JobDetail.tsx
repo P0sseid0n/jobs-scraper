@@ -13,7 +13,7 @@ import { copyText, notify } from '../stores/toast'
 import { ContractTypeBadge } from './ContractTypeBadge'
 import { CorrectedBadge } from './CorrectedBadge'
 import { CvButton } from './CvButton'
-import { extractionCheckList, ExtractionChecksBadge } from './ExtractionChecksBadge'
+import { ExtractionChecksBadge, MissedChecks } from './ExtractionChecksBadge'
 import { Icon } from './Icon'
 import { ListingBadge } from './ListingBadge'
 import { ReportJobDialog } from './ReportJobDialog'
@@ -244,21 +244,17 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 			</section>
 
 			<footer className="flex flex-col gap-2 border-t border-line pt-3.5">
-				{job.extractionChecks.length > 0 && (
-					<Notice tone={job.needsReview ? 'danger' : 'warn'} icon="alert" className="text-sm">
+				{/* Só a partir do limite das configurações: com poucos checks, o selo do topo já basta */}
+				{job.needsReview && (
+					<Notice tone="danger" icon="alert" className="text-sm">
 						<p>
-							A IA citou o que não está escrito no post ({extractionCheckList(job).join(', ')}). Esses dados foram descartados,
-							mas o resto da vaga pode ter erros também.
+							Confira <MissedChecks job={job} /> no post original: a extração pode ter errado{' '}
+							{job.extractionChecks.length === 1 ? 'nesse campo' : 'nesses campos'} e no resto da vaga. Se houver erro,{' '}
+							<TextLink className="text-sm" aria-haspopup="dialog" onClick={() => setReporting(true)}>
+								reporte a vaga
+							</TextLink>
+							.
 						</p>
-						{job.needsReview && (
-							<p className="mt-1.5">
-								Confira o post original e{' '}
-								<TextLink className="text-sm" aria-haspopup="dialog" onClick={() => setReporting(true)}>
-									reporte a vaga
-								</TextLink>
-								.
-							</p>
-						)}
 					</Notice>
 				)}
 				{job.language && <span className="font-mono text-muted text-xs">idioma: {languageLabel(job.language)}</span>}

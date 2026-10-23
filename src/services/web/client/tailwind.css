@@ -205,6 +205,14 @@
 	--color-danger: #a3261b;
 	--color-danger-bg: #fde7e4;
 	--color-ok: #1d7a45;
+	/*
+	 * Pontas da escala dos checks da extração (do 1 check, amarelo, aos 6, vermelho forte). No claro, o amarelo é
+	 * escuro para ter contraste de pelo menos 3:1 com o fundo; `inv-*` são as da superfície escura, nos dois temas.
+	 */
+	--color-check-low: #a87b00;
+	--color-check-high: #b91c1c;
+	--color-inv-check-low: #facc15;
+	--color-inv-check-high: #ff4433;
 	/* Contorno de foco: o lime de texto, com contraste de pelo menos 3:1 com o fundo nos dois temas */
 	--color-focus: var(--color-lime-text);
 	--color-switch-knob: #ffffff;
@@ -235,6 +243,13 @@
 	--color-line-strong: color-mix(in srgb, var(--color-ink) 30%, var(--color-line));
 	/* Trilho e borda dos controles (Range, Switch desligado, Checkbox vazio): pelo menos 3:1 com bg, surface e surface-2 */
 	--color-control: color-mix(in srgb, var(--color-ink) 45%, var(--color-line));
+	/* Escala dos checks da extração: `text-check-1` (1 check) a `text-check-6` (todos), do amarelo ao vermelho */
+	--color-check-1: var(--color-check-low);
+	--color-check-2: color-mix(in oklch, var(--color-check-high) 20%, var(--color-check-low));
+	--color-check-3: color-mix(in oklch, var(--color-check-high) 40%, var(--color-check-low));
+	--color-check-4: color-mix(in oklch, var(--color-check-high) 60%, var(--color-check-low));
+	--color-check-5: color-mix(in oklch, var(--color-check-high) 80%, var(--color-check-low));
+	--color-check-6: var(--color-check-high);
 }
 
 /*
@@ -251,6 +266,8 @@
 	--color-muted: var(--color-inv-muted);
 	--color-line: var(--color-inv-line);
 	--color-ok-bg: var(--color-ok-bg-strong);
+	--color-check-low: var(--color-inv-check-low);
+	--color-check-high: var(--color-inv-check-high);
 	--placeholder-mix: 85%;
 	/* O lime escuro do tema claro sumiria no fundo escuro */
 	--color-focus: var(--color-lime);
@@ -286,6 +303,8 @@
 				--color-danger: #ff9c90;
 				--color-danger-bg: #3d1915;
 				--color-ok: #6ee39b;
+				--color-check-low: var(--color-inv-check-low);
+				--color-check-high: var(--color-inv-check-high);
 				--color-code-bg: rgb(0 0 0 / 0.35);
 				--elevation: 0 18px 40px rgb(0 0 0 / 0.5);
 				--placeholder-mix: 85%;
