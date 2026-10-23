@@ -185,6 +185,37 @@
 	--animate-mark-in: mark-in 600ms var(--ease-glide) both;
 	/* A faixa de leitura da IA, que desce pelo texto do post antes do marca-texto */
 	--animate-scan: scan 1100ms ease-in-out both;
+	/* O cursor que chega no botão da vaga, clica e some; o botão afunda no clique */
+	--animate-cursor-click: cursor-click 1600ms var(--ease-glide) both;
+	--animate-press-once: press-once 240ms ease-out both;
+
+	@keyframes cursor-click {
+		0% {
+			opacity: 0;
+			transform: translate(3rem, 2rem);
+		}
+		35% {
+			opacity: 1;
+			transform: translate(0, 0);
+		}
+		45% {
+			transform: scale(0.8);
+		}
+		55%,
+		85% {
+			opacity: 1;
+			transform: scale(1);
+		}
+		100% {
+			opacity: 0;
+		}
+	}
+
+	@keyframes press-once {
+		50% {
+			transform: scale(0.94);
+		}
+	}
 
 	@keyframes scan {
 		0% {

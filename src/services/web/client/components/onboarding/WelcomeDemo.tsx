@@ -8,8 +8,8 @@ import { StatusDot } from '../ui/StatusDot'
 
 const RISE = 'animate-rise-in motion-reduce:animate-none'
 
-/** Uma volta até começar a sumir: uns 5 s montando e uns 3,5 s parada no fim, com a vaga pronta. */
-const ROUND_MS = 8500
+/** Uma volta até começar a sumir: uns 8 s montando e uns 3 s parada no fim, com o e-mail enviado. */
+const ROUND_MS = 11000
 const FADE_MS = 500
 
 /**
@@ -36,6 +36,24 @@ function Swap({ working, done, outDelay, inDelay }: { working: ReactNode; done: 
 	)
 }
 
+/** A seta do mouse, que chega no botão, clica e some (sem movimento, não aparece). */
+function Cursor() {
+	return (
+		<svg
+			aria-hidden="true"
+			viewBox="0 0 24 24"
+			className="pointer-events-none absolute top-1/2 left-3/4 size-5 origin-top-left animate-cursor-click motion-reduce:hidden stagger-60"
+		>
+			<path
+				d="M5 3l14 8-6 1.5L10 19z"
+				className="fill-ink stroke-surface"
+				strokeWidth="1.5"
+				strokeLinejoin="round"
+			/>
+		</svg>
+	)
+}
+
 /** Um trecho do post que a IA lê: o marca-texto passa por cima, um trecho depois do outro. */
 function Mark({ delay, children }: { delay: string; children: ReactNode }) {
 	return (
@@ -52,8 +70,8 @@ function Mark({ delay, children }: { delay: string; children: ReactNode }) {
 
 /**
  * A demonstração da abertura, ao lado dos passos: um post do LinkedIn, a IA lendo e marcando os trechos que importam,
- * a vaga que sai dele e o currículo sendo ajustado. Toca em loop: parada no fim, com tudo na tela, ficaria texto demais ao lado dos passos.
- * A cada volta some devagar e monta de novo (a `key` nova reinicia as animações); com movimento reduzido, fica pronta.
+ * a vaga que sai dele, o currículo sendo ajustado e o clique em "enviar candidatura", com o e-mail saindo. Toca em
+ * loop: parada no fim, com tudo na tela, ficaria texto demais ao lado dos passos. A cada volta some devagar e monta de novo (a `key` nova reinicia as animações); com movimento reduzido, fica pronta.
  */
 export function WelcomeDemo() {
 	const [round, setRound] = useState(0)
@@ -166,6 +184,40 @@ export function WelcomeDemo() {
 							</>
 						}
 					/>
+				</span>
+				{/* O cursor chega, clica em "enviar candidatura" e o e-mail sai */}
+				<span className={cx('relative self-start', RISE, 'stagger-56')}>
+					<span className="inline-flex min-h-8 items-center rounded-pill bg-lime px-3 py-1.5 text-xs font-semibold text-lime-ink animate-press-once motion-reduce:animate-none stagger-68">
+						<Swap
+							outDelay="stagger-69"
+							inDelay="stagger-70"
+							working={
+								<>
+									<Icon name="mail" size={14} />
+									enviar candidatura
+								</>
+							}
+							done={
+								<Swap
+									outDelay="stagger-82"
+									inDelay="stagger-83"
+									working={
+										<>
+											<Icon name="spinner" size={14} />
+											enviando o e-mail
+										</>
+									}
+									done={
+										<>
+											<Icon name="check" size={14} />
+											e-mail enviado para Ana
+										</>
+									}
+								/>
+							}
+						/>
+					</span>
+					<Cursor />
 				</span>
 			</div>
 		</figure>
