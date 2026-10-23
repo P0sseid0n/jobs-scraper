@@ -133,44 +133,40 @@ export function OnboardingView({ initial, step }: { initial: OnboardingData; ste
 	}
 
 	return (
-		<div className="flex min-h-dvh">
-			<aside className="sticky top-0 flex h-dvh w-72 shrink-0 flex-col gap-12 border-r border-line px-8 py-10 max-lg:w-64 max-md:hidden">
-				<p className="inline-flex items-center gap-2 font-mono text-sm font-medium">
+		<div className="relative flex min-h-dvh flex-col">
+			<header className="flex flex-col items-center gap-3 px-8 pt-6 lg:absolute lg:inset-x-0 lg:top-0 lg:z-10 max-lg:sticky max-lg:top-0 max-lg:z-10 max-lg:border-b max-lg:border-line max-lg:bg-bg/88 max-lg:px-4 max-lg:py-3 max-lg:backdrop-blur-md">
+				<p className="inline-flex min-h-9.5 items-center gap-2 font-mono text-sm font-medium">
 					<ProjectIcon />
 					jobs/scraper<span className="text-lime-text">_</span>
 				</p>
-
-				<Stepper current={step} setup={setup} onSelect={goTo} />
-
-				<p className="mt-auto text-xs text-muted">Pode parar quando quiser: a gente volta para o passo em que você parou.</p>
-			</aside>
-
-			<div className="flex min-w-0 grow flex-col">
-				<header className="flex items-center gap-4 px-8 pt-6 max-md:sticky max-md:top-0 max-md:z-10 max-md:flex-wrap max-md:border-b max-md:border-line max-md:bg-bg/88 max-md:px-4 max-md:py-3 max-md:backdrop-blur-md">
-					<p className="inline-flex items-center gap-2 font-mono text-sm font-medium md:hidden">
-						<ProjectIcon />
-						jobs/scraper<span className="text-lime-text">_</span>
-					</p>
-					<IconButton label="Alternar tema claro/escuro" bordered className="ml-auto" onClick={toggleTheme}>
-						<Icon name="moon" className="dark:hidden" />
-						<Icon name="sun" className="hidden dark:block" />
-					</IconButton>
-					{numbered >= 0 && (
-						<div className="flex w-full flex-col gap-1.5 md:hidden">
-							<p className="font-mono text-xs text-muted">
-								{eyebrow} · {NUMBERED_STEPS[numbered]!.label}
-							</p>
-							<div className="h-1.5 overflow-hidden rounded-pill bg-surface-2">
-								<div
-									className="h-full origin-left rounded-pill bg-lime-accent transition-transform duration-700 ease-glide motion-reduce:transition-none"
-									style={{ transform: `scaleX(${(numbered + 1) / TOTAL})` }}
-								/>
-							</div>
+				<IconButton
+					label="Alternar tema claro/escuro"
+					bordered
+					className="absolute top-6 right-8 max-lg:top-3 max-lg:right-4"
+					onClick={toggleTheme}
+				>
+					<Icon name="moon" className="dark:hidden" />
+					<Icon name="sun" className="hidden dark:block" />
+				</IconButton>
+				{/* Sem espaço para as etapas ao lado do formulário: a barra de progresso no lugar delas */}
+				{numbered >= 0 && (
+					<div className="flex w-full max-w-160 flex-col gap-1.5 lg:hidden">
+						<p className="font-mono text-xs text-muted">
+							{eyebrow} · {NUMBERED_STEPS[numbered]!.label}
+						</p>
+						<div className="h-1.5 overflow-hidden rounded-pill bg-surface-2">
+							<div
+								className="h-full origin-left rounded-pill bg-lime-accent transition-transform duration-700 ease-glide motion-reduce:transition-none"
+								style={{ transform: `scaleX(${(numbered + 1) / TOTAL})` }}
+							/>
 						</div>
-					)}
-				</header>
+					</div>
+				)}
+			</header>
 
-				<main id="main" className="mx-auto w-full max-w-180 grow px-8 pt-12 pb-20 max-md:px-4 max-md:pt-6 max-md:pb-6">
+			{/* O formulário e as etapas, juntos no meio da tela, na horizontal e na vertical (o logo fica sobreposto, em cima) */}
+			<div className="flex grow items-center justify-center gap-16 px-8 py-24 max-lg:py-12 max-md:px-4 max-md:pt-6 max-md:pb-6">
+				<main id="main" className="w-full max-w-160 min-w-0">
 					<div
 						key={step}
 						className={cx(direction === 'next' ? 'animate-step-next' : 'animate-step-back', 'motion-reduce:animate-none')}
@@ -178,12 +174,17 @@ export function OnboardingView({ initial, step }: { initial: OnboardingData; ste
 						{renderStep()}
 					</div>
 				</main>
+
+				<aside className="flex w-48 shrink-0 flex-col gap-8 max-lg:hidden">
+					<Stepper current={step} setup={setup} onSelect={goTo} />
+					<p className="text-xs text-muted">Pode parar quando quiser: a gente volta para o passo em que você parou.</p>
+				</aside>
 			</div>
 		</div>
 	)
 }
 
-/** A lista dos passos na lateral: o atual em destaque, os feitos com o check; clicar leva ao passo. */
+/** A lista dos passos, à direita do formulário: o atual em destaque, os feitos com o check; clicar leva ao passo. */
 function Stepper({
 	current,
 	setup,
