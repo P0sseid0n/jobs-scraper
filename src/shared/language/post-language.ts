@@ -75,8 +75,10 @@ export function checkPostLanguage(text: string, allowedLanguages: string[]): Lan
 	const accepted = allowedLanguages.length === 0 || (language !== null && allowedLanguages.includes(language))
 	if (!language || accepted || unknownAllowed) return { language, rejection: null }
 
+	// Margem pequena em texto curto (espanhol e português sempre pontuam perto): fica sem idioma, e o
+	// post-processing pergunta ao modelo
 	const bestAllowed = Math.max(...allowedLanguages.map(allowed => scores.get(allowed) ?? 0))
-	if (letters < CONFIDENT_LETTERS && bestAllowed >= SHORT_TEXT_MARGIN) return { language, rejection: null }
+	if (letters < CONFIDENT_LETTERS && bestAllowed >= SHORT_TEXT_MARGIN) return { language: null, rejection: null }
 
 	return { language, rejection: languageRejection(language, allowedLanguages) }
 }
@@ -87,10 +89,27 @@ export function languageRejection(language: string | null, allowedLanguages: str
 	return `idioma ${language} fora dos aceitos (${allowedLanguages.join(', ')})`
 }
 
-/** Tira links, e-mails, hashtags e menções, que não dizem nada sobre o idioma. */
+/**
+ * Tira links, e-mails, hashtags e menções, que não dizem nada sobre o idioma, e os itens curtos de lista: cargos e
+ * tecnologias, quase sempre em inglês, que num post em vietnamita bastavam para o detector responder inglês.
+ */
 function stripNonProse(text: string) {
 	return text
 		.normalize('NFKC')
 		.replace(/https?:\/\/\S+|\S+@\S+|[#@]\S+/g, ' ')
+		.split('\n')
+		.filter(line => !isShortListItem(line))
+		.join(' ')
 		.replace(/\s+/g, ' ')
+}
+
+// "1.", "2)", "1️⃣" ou um marcador ("-", "•", "✅"…) no começo da linha
+const LIST_MARKER = /^\s*(?:\d{1,2}[.)]|\d️?⃣|[-–—•*▪▫◦●►▶➤→✓✔✅☑])️?\s*/u
+const MAX_LIST_ITEM_WORDS = 8
+
+function isShortListItem(line: string) {
+	const marker = LIST_MARKER.exec(line)
+	if (!marker) return false
+	const words = line.slice(marker[0].length).split(/\s+/).filter(word => /\p{L}/u.test(word))
+	return words.length <= MAX_LIST_ITEM_WORDS
 }

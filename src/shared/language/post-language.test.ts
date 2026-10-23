@@ -66,6 +66,27 @@ describe('checkPostLanguage', () => {
 
 		expect(checkPostLanguage(spanish, ['pt'])).toEqual({ language: null, rejection: null })
 	})
+
+	test('texto curto com o idioma aceito logo atrás fica sem idioma (o modelo decide), em vez de seguir como espanhol', () => {
+		const spanish = `¡ESTAMOS CONTRATANDO DESARROLLADORES DE SOFTWARE! Puestos disponibles:
+1️⃣ Desarrollador/a Frontend
+2️⃣ Desarrollador/a Backend
+Cómo postularte: https://acme.io/jobs. Salario según el desempeño en la entrevista.
+¡Candidatos que puedan incorporarse de inmediato son bienvenidos! ¿Te interesa? Comenta INTERESADO`
+
+		expect(checkPostLanguage(spanish, ['pt'])).toEqual({ language: null, rejection: null })
+	})
+
+	test('itens curtos de lista (cargos em inglês) não decidem o idioma', () => {
+		const vietnamese = `Công ty bạn mình ở Sydney đang tuyển các vị trí này, được hỗ trợ visa và chuyển nhà. Anh chị em nào quan tâm thì nhắn tin cho mình nha, mình gửi mô tả công việc.
+Các vị trí đang cần gấp:
+1. DevSecOps Engineer
+2. Platform Engineer: Senior or Staff
+3. Senior Infra: build AI infra from scratch
+4. Backend Engineer - Search Engine`
+
+		expect(checkPostLanguage(vietnamese, ['pt'])).toEqual({ language: 'vi', rejection: 'idioma vi fora dos aceitos (pt)' })
+	})
 })
 
 describe('languageRejection', () => {
