@@ -14,6 +14,7 @@ export interface NoticeProps {
 		| 'moon'
 		| 'sun'
 		| 'back'
+		| 'first'
 		| 'alert'
 		| 'refresh'
 		| 'briefcase'

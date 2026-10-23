@@ -8,6 +8,7 @@ import type {
 	JobsPage,
 	JobsViewedChange,
 	RunsPage,
+	RunsPageSize,
 	ScraperStatus,
 	SettingsKey,
 	WebCredentials,
@@ -101,7 +102,7 @@ export const api = {
 		request<WebCvBaseVersion>(`/api/cv-base/versions/${versionId}/activate`, { method: 'POST' }),
 
 	scraperStatus: () => request<ScraperStatus>('/api/scraper/status'),
-	runs: (cursor?: string | null) => request<RunsPage>(`/api/scraper/runs${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`),
+	runs: (page = 1, limit: RunsPageSize = 20) => request<RunsPage>(`/api/scraper/runs?page=${page}&limit=${limit}`),
 	runNow: () => request<{ requested: true }>('/api/scraper/run', { method: 'POST' }),
 
 	settings: <K extends SettingsKey>(key: K) => request<WebSettings[K]>(`/api/settings/${key}`),

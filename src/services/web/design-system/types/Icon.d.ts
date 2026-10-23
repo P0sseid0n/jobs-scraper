@@ -12,6 +12,7 @@ export interface IconProps {
 		| 'moon'
 		| 'sun'
 		| 'back'
+		| 'first'
 		| 'alert'
 		| 'refresh'
 		| 'briefcase'

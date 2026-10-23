@@ -147,7 +147,12 @@ export type SetupStatus = {
 	activeSearchTerms: number
 }
 
-export type RunsPage = { runs: WebScraperRun[]; nextCursor: string | null }
+/** Tamanhos de página que o histórico de coletas aceita. */
+export const RUNS_PAGE_SIZES = [10, 20, 50, 100] as const
+export type RunsPageSize = (typeof RUNS_PAGE_SIZES)[number]
+
+/** Uma página do histórico de coletas; `total` é de todas as páginas. */
+export type RunsPage = { runs: WebScraperRun[]; total: number }
 
 export type WebSettings = { scraper: ScraperSettings; 'post-processing': PostProcessingSettings; profile: ProfileSettings }
 export type { SettingsKey }

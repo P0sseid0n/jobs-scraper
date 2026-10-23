@@ -12,6 +12,9 @@ export const iconButton = tv({
 		// Pequeno, afunda mais que o Button
 		PRESS,
 		'not-disabled:active:scale-85',
+		// `aria-disabled`: desativado, mas ainda focável (o foco não se perde quando o botão desativa ao ser clicado); sem
+		// o mouse, não afunda nem acende o hover
+		'aria-disabled:pointer-events-none aria-disabled:opacity-40',
 		// No toque, a área de clique tem 44px em qualquer tamanho: um quadrado invisível centralizado por cima do botão
 		'pointer-coarse:after:absolute pointer-coarse:after:top-1/2 pointer-coarse:after:left-1/2 pointer-coarse:after:size-11 pointer-coarse:after:-translate-1/2',
 	],

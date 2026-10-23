@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 
-import type { RunsPage, ScraperStatus, WebScraperRun, WebScraperRunTerm } from '../../api-types'
+import type { RunsPage, RunsPageSize, ScraperStatus, WebScraperRun, WebScraperRunTerm } from '../../api-types'
 import { api, type RequestError } from '../api'
 import { Icon } from '../components/Icon'
 import { Badge, badge, BadgeList, type BadgeTone } from '../components/ui/Badge'
@@ -8,8 +8,10 @@ import { Button } from '../components/ui/Button'
 import { card } from '../components/ui/Card'
 import { CodeBlock } from '../components/ui/CodeBlock'
 import { EmptyState } from '../components/ui/EmptyState'
+import { iconButton, IconButton } from '../components/ui/IconButton'
 import { Notice } from '../components/ui/Notice'
 import { Hero, Page } from '../components/ui/Page'
+import { SelectMenu } from '../components/ui/SelectMenu'
 import { Skeleton } from '../components/ui/Skeleton'
 import { StatusDot, type StatusDotTone } from '../components/ui/StatusDot'
 import { SwitchField } from '../components/ui/Switch'
@@ -17,6 +19,9 @@ import { LABEL, SECTION_TITLE } from '../components/ui/text'
 import { RouteLink, TextLink } from '../components/ui/TextLink'
 import { cx } from '../lib/cx'
 import { formatDateTime, formatDuration, formatInterval, isLoginFailure } from '../lib/format'
+import { pageItems } from '../lib/pagination'
+import { useStore } from '../lib/store'
+import { RUNS_PAGE_SIZE_OPTIONS, runsPageSize } from '../stores/runs-page-size'
 import { copyText, notify } from '../stores/toast'
 
 const TRIGGERS: Record<WebScraperRun['trigger'], string> = { schedule: 'Agendada', manual: 'Manual', once: 'Execução única' }
@@ -63,6 +68,8 @@ const TD = 'px-4 py-3.5 align-top whitespace-nowrap'
 
 const POLL_RUNNING_MS = 5_000
 const POLL_IDLE_MS = 30_000
+/** Quanto o "coletar agora" fica travado esperando a coleta pedida começar (o scraper pode estar desligado). */
+const START_TIMEOUT_MS = 30_000
 
 function FailureAlert({ status }: { status: ScraperStatus | null }) {
 	const last = status?.last
@@ -251,15 +258,144 @@ function RunRows({ run, open, onToggle }: { run: WebScraperRun; open: boolean; o
 	)
 }
 
+const PAGE_SIZE_OPTIONS = RUNS_PAGE_SIZE_OPTIONS.map(size => ({ value: String(size), label: String(size) }))
+
+/** Rodapé do histórico: quantas coletas por página, quais estão na tela e as setas de página. */
+function RunsPagination({
+	page,
+	pageSize,
+	total,
+	onPage,
+	onPageSize,
+}: {
+	page: number
+	pageSize: RunsPageSize
+	total: number
+	onPage: (page: number) => void
+	onPageSize: (size: RunsPageSize) => void
+}) {
+	const sizeId = useId()
+	const pages = Math.max(1, Math.ceil(total / pageSize))
+	const first = (page - 1) * pageSize + 1
+	const last = Math.min(page * pageSize, total)
+
+	return (
+		<nav
+			aria-label="páginas do histórico"
+			className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-3"
+		>
+			<div className="flex items-center gap-2">
+				<label htmlFor={sizeId} className="font-mono text-muted text-xs">
+					por página
+				</label>
+				<SelectMenu
+					id={sizeId}
+					size="sm"
+					className="w-20"
+					value={String(pageSize)}
+					options={PAGE_SIZE_OPTIONS}
+					onChange={value => onPageSize(Number(value) as RunsPageSize)}
+				/>
+			</div>
+			<div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+				<span className="font-mono text-muted text-xs" aria-live="polite">
+					<span aria-hidden="true">
+						{first}–{last} de {total}
+					</span>
+					<span className="sr-only">
+						coletas {first} a {last} de {total}
+						{pages > 1 && `, página ${page} de ${pages}`}
+					</span>
+				</span>
+				{/* Tudo numa página só: sem botões */}
+				{pages > 1 && (
+					<div className="flex items-center gap-1">
+						<PageArrow label="primeira página" icon="first" target={1} current={page} onPage={onPage} />
+						<PageArrow label="página anterior" icon="back" target={page - 1} current={page} onPage={onPage} />
+						{pageItems(page, pages).map(item =>
+							typeof item === 'number' ? (
+								<button
+									key={item}
+									type="button"
+									aria-label={`página ${item}`}
+									aria-current={item === page ? 'page' : undefined}
+									className={iconButton({
+										size: 'sm',
+										bordered: true,
+										className: cx(
+											'font-mono text-xs',
+											// A atual não reage ao mouse: o hover dos botões com borda trocava o fundo escuro pelo claro, e o
+											// número sumia. No celular só cabe ela, entre as setas
+											item === page ? 'pointer-events-none border-ink bg-ink text-bg' : 'max-md:hidden',
+										),
+									})}
+									onClick={() => item !== page && onPage(item)}
+								>
+									{item}
+								</button>
+							) : (
+								<span key={item} aria-hidden="true" className="w-6 text-center font-mono text-muted text-xs max-md:hidden">
+									…
+								</span>
+							),
+						)}
+						<PageArrow label="próxima página" icon="back" flip target={page + 1} current={page} pages={pages} onPage={onPage} />
+						<PageArrow label="última página" icon="first" flip target={pages} current={page} pages={pages} onPage={onPage} />
+					</div>
+				)}
+			</div>
+		</nav>
+	)
+}
+
+/**
+ * Seta da paginação. Sem destino (já na primeira ou na última), fica `aria-disabled` em vez de `disabled`: continua
+ * focável, e o foco não some quando a página chega ao fim pelo teclado.
+ */
+function PageArrow({
+	label,
+	icon,
+	flip = false,
+	target,
+	current,
+	pages = Number.POSITIVE_INFINITY,
+	onPage,
+}: {
+	label: string
+	icon: 'back' | 'first'
+	flip?: boolean
+	target: number
+	current: number
+	pages?: number
+	onPage: (page: number) => void
+}) {
+	const unavailable = target === current || target < 1 || target > pages
+	return (
+		<IconButton
+			label={label}
+			size="sm"
+			bordered
+			aria-disabled={unavailable || undefined}
+			onClick={() => !unavailable && onPage(target)}
+		>
+			<Icon name={icon} className={cx(flip && 'rotate-180')} />
+		</IconButton>
+	)
+}
+
 /** Acompanhamento do scraper: coleta em andamento, próxima agendada, "coletar agora" e histórico. */
 /** O status e a primeira página do histórico vêm do loader da rota (`routes/coletas.tsx`); daqui em diante a tela consulta sozinha. */
 export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: RunsPage } }) {
 	const [status, setStatus] = useState(initial.status)
 	const [runs, setRuns] = useState<WebScraperRun[]>(initial.runs.runs)
-	const [runsCursor, setRunsCursor] = useState(initial.runs.nextCursor)
+	const [runsTotal, setRunsTotal] = useState(initial.runs.total)
+	const [page, setPage] = useState(1)
+	const pageSize = useStore(runsPageSize)
 	const [runsState, setRunsState] = useState<'loading' | 'ready' | 'error'>('ready')
 	const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set())
 	const [requesting, setRequesting] = useState(false)
+	// Coleta pedida que ainda não apareceu no status: o botão continua travado (senão dava para pedir de novo)
+	const [starting, setStarting] = useState(false)
 	const [savingPause, setSavingPause] = useState(false)
 	const [now, setNow] = useState(Date.now())
 
@@ -267,6 +403,12 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 	const statusRef = useRef(initial.status)
 	const pollTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
 	const mounted = useRef(false)
+	/** Até quando esperar a coleta pedida começar; 0 sem pedido pendente. */
+	const startingUntil = useRef(0)
+	// A página que o histórico mostra, para a consulta do status recarregar a mesma; e a última página pedida, para
+	// descartar a resposta de uma anterior que chegue depois
+	const pageRef = useRef(1)
+	const runsRequest = useRef(0)
 
 	async function refreshStatus() {
 		clearTimeout(pollTimer.current)
@@ -278,6 +420,11 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 
 			statusRef.current = next
 			setStatus(next)
+			// A coleta pedida começou (ou cansou de esperar): o botão volta a seguir só o status
+			if (startingUntil.current && (next.current || Date.now() >= startingUntil.current)) {
+				startingUntil.current = 0
+				setStarting(false)
+			}
 			// A coleta terminou (ou começou) desde a última consulta: atualiza o histórico
 			if (wasRunning !== !!next.current) void loadRuns()
 		} catch {
@@ -290,28 +437,45 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 	}
 
 	function schedulePoll() {
-		pollTimer.current = setTimeout(refreshStatus, statusRef.current.current ? POLL_RUNNING_MS : POLL_IDLE_MS)
+		const fast = statusRef.current.current || startingUntil.current
+		pollTimer.current = setTimeout(refreshStatus, fast ? POLL_RUNNING_MS : POLL_IDLE_MS)
 	}
 
-	async function loadRuns(more = false) {
-		if (!more) setRunsState('loading')
+	async function loadRuns(target = pageRef.current, size = runsPageSize.get()) {
+		const request = ++runsRequest.current
+		setRunsState('loading')
 
 		try {
-			const page = await api.runs(more ? runsCursor : null)
-			if (!mounted.current) return
+			const result = await api.runs(target, size)
+			if (!mounted.current || request !== runsRequest.current) return
 
-			setRuns(current => (more ? [...current, ...page.runs] : page.runs))
-			setRunsCursor(page.nextCursor)
+			// A página passou do fim (coletas antigas saíram do histórico): mostra a última
+			const last = Math.max(1, Math.ceil(result.total / size))
+			if (target > last) return void loadRuns(last, size)
+
+			pageRef.current = target
+			setPage(target)
+			setRuns(result.runs)
+			setRunsTotal(result.total)
 			setRunsState('ready')
 		} catch {
-			if (mounted.current) setRunsState('error')
+			if (mounted.current && request === runsRequest.current) setRunsState('error')
 		}
+	}
+
+	// Outro tamanho: abre na página que tem a primeira coleta que estava na tela
+	function changePageSize(size: RunsPageSize) {
+		const first = (pageRef.current - 1) * runsPageSize.get()
+		runsPageSize.set(size)
+		void loadRuns(Math.floor(first / size) + 1, size)
 	}
 
 	async function runNow() {
 		setRequesting(true)
 		try {
 			await api.runNow()
+			startingUntil.current = Date.now() + START_TIMEOUT_MS
+			setStarting(true)
 			notify('Coleta solicitada. Ela começa em instantes (se o scraper estiver rodando).')
 			setTimeout(() => mounted.current && refreshStatus(), 2_000)
 		} catch (error) {
@@ -344,8 +508,12 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 
 		statusRef.current = initial.status
 		setStatus(initial.status)
+		// O loader traz a primeira página
+		runsRequest.current++
+		pageRef.current = 1
+		setPage(1)
 		setRuns(initial.runs.runs)
-		setRunsCursor(initial.runs.nextCursor)
+		setRunsTotal(initial.runs.total)
 		setRunsState('ready')
 		clearTimeout(pollTimer.current)
 		schedulePoll()
@@ -434,11 +602,11 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 							size="lg"
 							// No card escuro, o lime apagado sumia: desativado, o botão fica na cor da borda
 							className="disabled:bg-line disabled:text-muted disabled:opacity-100"
-							disabled={!!running || requesting || waiting}
+							disabled={!!running || requesting || starting || waiting}
 							onClick={runNow}
 						>
-							<Icon name={running ? 'spinner' : 'refresh'} />
-							{running ? 'coletando…' : requesting ? 'pedindo…' : 'coletar agora'}
+							<Icon name={running || starting ? 'spinner' : 'refresh'} />
+							{running ? 'coletando…' : requesting ? 'pedindo…' : starting ? 'iniciando…' : 'coletar agora'}
 						</Button>
 					</div>
 				</section>
@@ -504,56 +672,65 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 						}
 					/>
 				)}
-				{runsState === 'loading' && <Skeleton className={card({ className: 'min-h-60' })} aria-busy="true" />}
+				{runsState === 'loading' && runs.length === 0 && <Skeleton className={card({ className: 'min-h-60' })} aria-busy="true" />}
 				{runsState === 'ready' && runs.length === 0 && (
 					<EmptyState
 						title="Nenhuma coleta nos últimos 90 dias"
 						description="Use “coletar agora” ou rode o scraper com SCRAPER_INTERVAL_MINUTES maior que 0."
 					/>
 				)}
-				{runsState === 'ready' && runs.length > 0 && (
-					<div className={card({ className: 'overflow-x-auto' })}>
-						<table className="w-full min-w-205 border-collapse">
-							<thead className="text-xs">
-								<tr className="border-b border-line">
-									<th scope="col" className={TH}>
-										status
-									</th>
-									<th scope="col" className={TH}>
-										gatilho
-									</th>
-									<th scope="col" className={TH}>
-										início
-									</th>
-									<th scope="col" className={TH}>
-										duração
-									</th>
-									<th scope="col" className={TH}>
-										posts novos
-									</th>
-									<th scope="col" className={TH}>
-										vagas novas
-									</th>
-									<th scope="col" className={TH}>
-										termos
-									</th>
-									<th scope="col" className={TH}>
-										<span className="sr-only">detalhes</span>
-									</th>
-								</tr>
-							</thead>
-							<tbody className="text-sm">
-								{runs.map(run => (
-									<RunRows key={run.id} run={run} open={expanded.has(run.id)} onToggle={() => toggle(run.id)} />
-								))}
-							</tbody>
-						</table>
+				{runsState !== 'error' && runs.length > 0 && (
+					<div className={card()}>
+						{/* Trocando de página, a tabela continua na tela, apagada, até a nova chegar (sem pular a altura); só ela
+						    rola de lado no celular, a paginação fica fixa embaixo */}
+						<div
+							className={cx('overflow-x-auto transition-opacity', runsState === 'loading' && 'opacity-60')}
+							aria-busy={runsState === 'loading'}
+						>
+							<table className="w-full min-w-205 border-collapse">
+								<thead className="text-xs">
+									<tr className="border-b border-line">
+										<th scope="col" className={TH}>
+											status
+										</th>
+										<th scope="col" className={TH}>
+											gatilho
+										</th>
+										<th scope="col" className={TH}>
+											início
+										</th>
+										<th scope="col" className={TH}>
+											duração
+										</th>
+										<th scope="col" className={TH}>
+											posts novos
+										</th>
+										<th scope="col" className={TH}>
+											vagas novas
+										</th>
+										<th scope="col" className={TH}>
+											termos
+										</th>
+										<th scope="col" className={TH}>
+											<span className="sr-only">detalhes</span>
+										</th>
+									</tr>
+								</thead>
+								<tbody className="text-sm">
+									{runs.map(run => (
+										<RunRows key={run.id} run={run} open={expanded.has(run.id)} onToggle={() => toggle(run.id)} />
+									))}
+								</tbody>
+							</table>
+						</div>
+						<RunsPagination
+							page={page}
+							pageSize={pageSize}
+							total={runsTotal}
+							onPage={target => void loadRuns(target)}
+							onPageSize={changePageSize}
+						/>
 					</div>
-				)}
-				{runsCursor && (
-					<Button variant="ghost" className="self-center" onClick={() => loadRuns(true)}>
-						carregar coletas anteriores
-					</Button>
 				)}
 			</section>
 		</Page>

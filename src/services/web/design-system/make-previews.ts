@@ -76,7 +76,7 @@ const PREVIEWS: Record<string, Preview> = {
 		group: 'Display',
 		height: 120,
 		subtitle: 'os 20 ícones, na cor do texto',
-		body: `h('div', { className: 'grid grid-cols-10 gap-4 text-ink' }, ['search', 'mail', 'external', 'file', 'copy', 'check', 'close', 'download', 'moon', 'sun', 'back', 'alert', 'refresh', 'briefcase', 'settings', 'filter', 'trash', 'plus', 'flag', 'spinner'].map(name => h('div', { key: name, className: 'flex flex-col items-center gap-1.5' }, h(U.Icon, { name: name, size: 20 }), h('span', { className: 'font-mono text-xs text-muted' }, name))))`,
+		body: `h('div', { className: 'grid grid-cols-10 gap-4 text-ink' }, ['search', 'mail', 'external', 'file', 'copy', 'check', 'close', 'download', 'moon', 'sun', 'back', 'first', 'alert', 'refresh', 'briefcase', 'settings', 'filter', 'trash', 'plus', 'flag', 'spinner'].map(name => h('div', { key: name, className: 'flex flex-col items-center gap-1.5' }, h(U.Icon, { name: name, size: 20 }), h('span', { className: 'font-mono text-xs text-muted' }, name))))`,
 	},
 	PdfIcon: {
 		group: 'Display',

@@ -15,13 +15,15 @@ import { QUEUES, type QueueClient } from '@shared/messaging'
 import { loadCredentials, readSettings } from '@shared/settings'
 
 import { nextRunAt, waitingReason } from '../../scraper/schedule'
-import type { RunsPage, ScraperStatus, WebScraperRun } from '../api-types'
-import { decodeCursor, encodeCursor, HttpError, queryParams } from './http'
-import { afterCursor } from './jobs-query'
+import { RUNS_PAGE_SIZES, type RunsPage, type RunsPageSize, type ScraperStatus, type WebScraperRun } from '../api-types'
+import { HttpError, queryParams } from './http'
 
 const RunsQuerySchema = z.object({
-	cursor: z.string().max(200).optional(),
-	limit: z.coerce.number().int().min(1).max(100).default(20),
+	page: z.coerce.number().int().min(1).default(1),
+	limit: z.coerce
+		.number()
+		.refine((value): value is RunsPageSize => (RUNS_PAGE_SIZES as readonly number[]).includes(value))
+		.default(20),
 })
 
 type OptionalTermField = 'skipped' | 'otherLanguage' | 'postIds' | 'errorKind' | 'searchUrl'
@@ -69,18 +71,18 @@ export async function scraperStatus() {
 /** `GET /api/scraper/runs`: histórico das coletas (últimos 90 dias), mais recentes primeiro. */
 export async function listRuns(req: Request) {
 	const query = RunsQuerySchema.parse(queryParams(req))
-	const filter = query.cursor ? afterCursor(decodeCursor(query.cursor), 'startedAt') : {}
 
-	const docs = await ScraperRun.find(filter)
-		.sort({ startedAt: -1, _id: -1 })
-		.limit(query.limit + 1)
-		.lean()
+	// Por número de página: o histórico é curto (90 dias), então o `skip` não pesa
+	const [docs, total] = await Promise.all([
+		ScraperRun.find()
+			.sort({ startedAt: -1, _id: -1 })
+			.skip((query.page - 1) * query.limit)
+			.limit(query.limit)
+			.lean(),
+		ScraperRun.countDocuments(),
+	])
 
-	const page = docs.slice(0, query.limit)
-	const last = page.at(-1)
-	const nextCursor = docs.length > query.limit && last ? encodeCursor({ at: last.startedAt, id: String(last._id) }) : null
-
-	return Response.json({ runs: await Promise.all(page.map(toWebRun)), nextCursor } satisfies RunsPage)
+	return Response.json({ runs: await Promise.all(docs.map(toWebRun)), total } satisfies RunsPage)
 }
 
 /** `POST /api/scraper/run`: "coletar agora" (funciona mesmo com as coletas pausadas, mas não sem termos nem sem conta). */

@@ -13,6 +13,8 @@ const PATHS = {
 	moon: 'M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z',
 	sun: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M12 2v2 M12 20v2 M4.9 4.9l1.4 1.4 M17.7 17.7l1.4 1.4 M2 12h2 M20 12h2 M4.9 19.1l1.4-1.4 M17.7 6.3l1.4-1.4',
 	back: 'M15 18l-6-6 6-6',
+	/** Para a primeira página (girado, a última). */
+	first: 'M12 18l-6-6 6-6 M18 18l-6-6 6-6',
 	chevron: 'M6 9l6 6 6-6',
 	alert: 'M12 3L2 20h20L12 3z M12 10v4 M12 17h.01',
 	refresh: 'M3 12a9 9 0 0 1 15-6.7L21 8 M21 3v5h-5 M21 12a9 9 0 0 1-15 6.7L3 16 M3 21v-5h5',
