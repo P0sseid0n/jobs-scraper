@@ -7,8 +7,8 @@ import { Icon } from '../components/Icon'
 import { Logo } from '../components/Logo'
 import { ExtrasStep, LinkedinStep } from '../components/onboarding/AccountSteps'
 import { CvStep } from '../components/onboarding/CvStep'
-import { Rise, StepBar, useStepBar } from '../components/onboarding/parts'
-import { ProfileStep, type ProfileStepData } from '../components/onboarding/ProfileStep'
+import { Rise, StepBar, useCurrentSubSteps, useStepBar, type SubStepsState } from '../components/onboarding/parts'
+import { defaultProfilePart, ProfileStep, type ProfilePart, type ProfileStepData } from '../components/onboarding/ProfileStep'
 import { ReviewStep } from '../components/onboarding/ReviewStep'
 import { NUMBERED_STEPS, ONBOARDING_STEPS, stepDone, type OnboardingStep } from '../components/onboarding/steps'
 import { IconButton } from '../components/ui/IconButton'
@@ -31,7 +31,16 @@ const TOTAL = NUMBERED_STEPS.length
  * passos (área, LinkedIn, currículo, extras e revisão). Cada passo salva ao continuar, então dá para sair e voltar; o
  * passo atual fica na URL (`?passo=`), e "voltar" do navegador também volta um passo.
  */
-export function OnboardingView({ initial, step }: { initial: OnboardingData; step: OnboardingStep }) {
+export function OnboardingView({
+	initial,
+	step,
+	part,
+}: {
+	initial: OnboardingData
+	step: OnboardingStep
+	/** A parte do passo 1 na URL (`?parte=`); sem ela, a que faz sentido pelo perfil salvo. */
+	part?: ProfilePart
+}) {
 	const navigate = useNavigate()
 	const [setup, setSetup] = useState(initial.setup)
 	const [settings, setSettings] = useState(initial.settings)
@@ -80,7 +89,17 @@ export function OnboardingView({ initial, step }: { initial: OnboardingData; ste
 			case 'inicio':
 				return <Welcome onStart={go(1)} />
 			case 'area':
-				return <ProfileStep eyebrow={eyebrow} initial={settings} onBack={go(-1)} onDone={afterSave(1)} />
+				return (
+					<ProfileStep
+						eyebrow={eyebrow}
+						initial={settings}
+						part={part ?? defaultProfilePart(settings.profile)}
+						searchDone={setup.steps.profile}
+						onPart={next => void navigate({ to: '/boas-vindas', search: { passo: 'area', parte: next } })}
+						onBack={go(-1)}
+						onDone={afterSave(1)}
+					/>
+				)
 			case 'linkedin':
 				return (
 					<LinkedinStep
@@ -197,6 +216,7 @@ function Stepper({
 	onSelect: (step: OnboardingStep) => void
 }) {
 	const currentIndex = NUMBERED_STEPS.findIndex(item => item.step === current)
+	const subSteps = useCurrentSubSteps()
 
 	return (
 		<nav aria-label="Passos do onboarding">
@@ -209,7 +229,7 @@ function Stepper({
 					return (
 						<li
 							key={item.step}
-							className={cx('relative flex gap-4 animate-step-back motion-reduce:animate-none', STEPPER_STAGGER[index])}
+							className={cx('relative flex flex-col animate-step-back motion-reduce:animate-none', STEPPER_STAGGER[index])}
 						>
 							{/* A linha até o próximo passo, que acende ao passar dele */}
 							{!last && (
@@ -253,6 +273,7 @@ function Stepper({
 									{item.label}
 								</span>
 							</button>
+							{isCurrent && subSteps && <SubStepList {...subSteps} />}
 						</li>
 					)
 				})}
@@ -262,6 +283,49 @@ function Stepper({
 }
 
 const STEPPER_STAGGER = ['stagger-2', 'stagger-3', 'stagger-4', 'stagger-5', 'stagger-6']
+
+/** As sub-etapas do passo atual, recuadas embaixo dele: a da tela em destaque, as feitas com o check. */
+function SubStepList({ items, current }: SubStepsState) {
+	return (
+		<ol className="m-0 mb-1 flex list-none flex-col p-0 pl-12">
+			{items.map((item, index) => {
+				const isCurrent = index === current
+				const content = (
+					<>
+						<span className="grid size-3.5 shrink-0 place-items-center">
+							{item.done && !isCurrent ? (
+								<Icon name="check" size={12} className="text-lime-text" />
+							) : (
+								<span className={cx('size-1.5 rounded-full transition', isCurrent ? 'bg-ink' : 'bg-line-strong')} />
+							)}
+						</span>
+						{item.label}
+					</>
+				)
+				const classes = cx(
+					'flex items-center gap-2 py-1 text-left text-sm transition',
+					isCurrent ? 'font-medium text-ink' : 'text-muted',
+				)
+
+				return (
+					<li key={item.label} className={cx('animate-step-next motion-reduce:animate-none', SUB_STAGGER[index])}>
+						{item.onSelect && !isCurrent ? (
+							<button type="button" className={cx(classes, 'hover:text-ink')} onClick={item.onSelect}>
+								{content}
+							</button>
+						) : (
+							<span className={classes} aria-current={isCurrent ? 'step' : undefined}>
+								{content}
+							</span>
+						)}
+					</li>
+				)
+			})}
+		</ol>
+	)
+}
+
+const SUB_STAGGER = ['stagger-0', 'stagger-1', 'stagger-2']
 
 const WELCOME_ITEMS = [
 	{ title: 'Conte a sua área', text: 'A gente sugere o que buscar no LinkedIn.' },

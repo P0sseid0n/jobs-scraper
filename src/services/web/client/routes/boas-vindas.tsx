@@ -2,13 +2,20 @@ import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
 
 import { api } from '../api'
+import { PROFILE_PARTS } from '../components/onboarding/ProfileStep'
 import { ONBOARDING_STEPS, resumeStep } from '../components/onboarding/steps'
 import { routeError, RoutePending } from '../components/RouteStatus'
 import { loadSetup } from '../stores/setup'
 import { OnboardingView, type OnboardingData } from '../views/OnboardingView'
 
-/** O passo na URL; sem ele (ou inválido), o onboarding retoma de onde a pessoa parou. */
-const onboardingSearch = z.object({ passo: z.enum(ONBOARDING_STEPS).optional().catch(undefined) })
+/**
+ * O passo na URL; sem ele (ou inválido), o onboarding retoma de onde a pessoa parou. `parte` é a do passo 1 ("sobre" ou
+ * "busca").
+ */
+const onboardingSearch = z.object({
+	passo: z.enum(ONBOARDING_STEPS).optional().catch(undefined),
+	parte: z.enum(PROFILE_PARTS).optional().catch(undefined),
+})
 
 export const Route = createFileRoute('/boas-vindas')({
 	staticData: { title: 'Boas-vindas' },
@@ -30,7 +37,7 @@ export const Route = createFileRoute('/boas-vindas')({
 	errorComponent: routeError('Não consegui abrir as boas-vindas', 'narrow'),
 	component: () => {
 		const initial = Route.useLoaderData()
-		const { passo } = Route.useSearch()
-		return <OnboardingView initial={initial} step={passo ?? resumeStep(initial.setup)} />
+		const { passo, parte } = Route.useSearch()
+		return <OnboardingView initial={initial} step={passo ?? resumeStep(initial.setup)} part={parte} />
 	},
 })

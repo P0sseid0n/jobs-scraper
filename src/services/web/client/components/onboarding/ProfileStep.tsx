@@ -17,7 +17,7 @@ import { Notice } from '../ui/Notice'
 import { Pill, pill, PillGroup } from '../ui/Pill'
 import { Skeleton } from '../ui/Skeleton'
 import { FIELDSET } from '../ui/text'
-import { Rise, StepHeading, useStepBar } from './parts'
+import { Rise, StepHeading, useStepBar, useSubSteps } from './parts'
 
 const SENIORITY_NAMES: Record<SeniorityLevel, string> = {
 	intern: 'Estágio',
@@ -32,48 +32,81 @@ type SearchDraft = { searchTerms: string[]; requiredKeywords: string[]; excluded
 
 export type ProfileStepData = Pick<WebSettings, 'profile' | 'scraper' | 'post-processing'>
 
+/** As duas partes do passo 1, como aparecem na URL (`/boas-vindas?passo=area&parte=busca`). */
+export const PROFILE_PARTS = ['sobre', 'busca'] as const
+export type ProfilePart = (typeof PROFILE_PARTS)[number]
+
+/** Sem a parte na URL: a busca, se o perfil já foi salvo (pelo .env ou numa visita anterior); senão, o começo. */
+export function defaultProfilePart(profile: WebSettings['profile']): ProfilePart {
+	return profile.area && profile.targetRole ? 'busca' : 'sobre'
+}
+
 /**
  * Passo 1, em duas partes: sobre a pessoa (área, cargo-alvo, senioridade, idiomas) e o que procurar (os termos de busca
- * e as palavras-chave, sugeridos pela IA a partir do perfil, para revisar). Cada parte é salva ao continuar.
+ * e as palavras-chave, sugeridos pela IA a partir do perfil, para revisar). Cada parte é salva ao continuar. A parte
+ * atual vem da URL (`part`), para o "voltar" do navegador e a lista de etapas levarem a ela.
  */
 export function ProfileStep({
 	eyebrow,
 	initial,
+	part,
+	searchDone,
+	onPart,
 	onBack,
 	onDone,
 }: {
 	eyebrow: string
 	initial: ProfileStepData
+	part: ProfilePart
+	/** Se a busca já está salva (`setup.steps.profile`), para o check da sub-etapa. */
+	searchDone: boolean
+	onPart: (part: ProfilePart) => void
 	onBack?: () => void
 	onDone: () => void
 }) {
-	// Perfil já salvo (pelo .env ou numa visita anterior): começa pela revisão da busca
-	const [phase, setPhase] = useState<'about' | 'search'>(initial.profile.area && initial.profile.targetRole ? 'search' : 'about')
 	const [profile, setProfile] = useState<ProfileDraft>(() => profileDraftOf(initial.profile))
 	const [scraper, setScraper] = useState(initial.scraper)
+	const [aboutSaved, setAboutSaved] = useState(defaultProfilePart(initial.profile) === 'busca')
+	// A busca pela URL sem o perfil salvo: as sugestões não teriam de onde sair
+	const shown = part === 'busca' && !aboutSaved ? 'sobre' : part
 
-	return phase === 'about' ? (
-		<AboutYou
-			key="about"
-			eyebrow={eyebrow}
-			profile={profile}
-			onChange={setProfile}
-			onBack={onBack}
-			onSaved={() => setPhase('search')}
-		/>
-	) : (
-		<WhatToSearch
-			key="search"
-			eyebrow={eyebrow}
-			targetRole={profile.targetRole}
-			scraper={scraper}
-			processing={initial['post-processing']}
-			onBack={() => setPhase('about')}
-			onSaved={saved => {
-				setScraper(saved)
-				onDone()
-			}}
-		/>
+	useSubSteps({
+		items: [
+			{ label: 'Sobre você', done: aboutSaved, onSelect: () => onPart('sobre') },
+			// Só dá para ir à busca com o perfil salvo: as sugestões saem dele
+			{ label: 'O que buscar', done: searchDone, onSelect: aboutSaved ? () => onPart('busca') : undefined },
+		],
+		current: PROFILE_PARTS.indexOf(shown),
+	})
+
+	return (
+		// A parte nova entra pelo lado, como um passo
+		<div key={shown} className={cx(shown === 'busca' ? 'animate-step-next' : 'animate-step-back', 'motion-reduce:animate-none')}>
+			{shown === 'sobre' ? (
+				<AboutYou
+					eyebrow={eyebrow}
+					profile={profile}
+					onChange={setProfile}
+					onBack={onBack}
+					onSaved={() => {
+						setAboutSaved(true)
+						onPart('busca')
+					}}
+				/>
+			) : (
+				<WhatToSearch
+					eyebrow={eyebrow}
+					targetRole={profile.targetRole}
+					scraper={scraper}
+					processing={initial['post-processing']}
+					onBack={() => onPart('sobre')}
+					onSaved={saved => {
+						setScraper(saved)
+						onDone()
+					}}
+				/>
+			)}
+		</div>
 	)
 }
 

@@ -8,7 +8,7 @@ import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import { card } from '../ui/Card'
 import { FieldHelp } from '../ui/Field'
-import { Rise, StepHeading, useStepBar } from './parts'
+import { Rise, StepHeading, useStepBar, useSubSteps } from './parts'
 
 type AccountStepProps = {
 	eyebrow: string
@@ -85,6 +85,21 @@ export function ExtrasStep({ eyebrow, credentials, onCredentials, onBack, onNext
 	const [open, setOpen] = useState<CredentialGroup | null>(null)
 	const anySaved = EXTRAS.some(extra => credentials[extra.group].source !== null)
 
+	/** Abre a conta e leva até ela (pela lista de etapas). */
+	function show(group: CredentialGroup) {
+		setOpen(group)
+		document.getElementById(`extra-${group}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+	}
+
+	useSubSteps({
+		items: EXTRAS.map(extra => ({
+			label: extra.group === 'discord' ? 'Discord' : 'GitHub',
+			done: credentials[extra.group].source !== null,
+			onSelect: () => show(extra.group),
+		})),
+		current: EXTRAS.findIndex(extra => extra.group === open),
+	})
+
 	useStepBar({
 		onBack,
 		primary: { label: anySaved ? 'continuar' : 'pular por agora', variant: anySaved ? 'lime' : 'ghost', onClick: onNext },
@@ -108,7 +123,12 @@ export function ExtrasStep({ eyebrow, credentials, onCredentials, onBack, onNext
 					const expanded = open === extra.group
 
 					return (
-						<Rise key={extra.group} order={3 + index} className={card({ size: 'md', className: 'flex flex-col gap-4' })}>
+						<Rise
+							key={extra.group}
+							id={`extra-${extra.group}`}
+							order={3 + index}
+							className={card({ size: 'md', className: 'flex flex-col gap-4' })}
+						>
 							<div className="flex flex-wrap items-start justify-between gap-3">
 								<div className="flex max-w-120 flex-col gap-1">
 									<h2 className="flex items-center gap-2 text-base font-semibold">

@@ -9,8 +9,22 @@ import { Button } from '../ui/Button'
  * Um bloco que sobe do fundo ao aparecer; `order` atrasa a chegada em degraus (`stagger-*`), para os blocos de uma tela
  * chegarem um depois do outro. Sem animação para quem pede menos movimento.
  */
-export function Rise({ order = 0, className, children }: { order?: number; className?: string; children: ReactNode }) {
-	return <div className={cx('animate-rise-in motion-reduce:animate-none', STAGGER[order], className)}>{children}</div>
+export function Rise({
+	order = 0,
+	id,
+	className,
+	children,
+}: {
+	order?: number
+	id?: string
+	className?: string
+	children: ReactNode
+}) {
+	return (
+		<div id={id} className={cx('animate-rise-in motion-reduce:animate-none', STAGGER[order], className)}>
+			{children}
+		</div>
+	)
 }
 
 // As classes inteiras, para o Tailwind encontrar no código
@@ -67,6 +81,25 @@ const stepBar = createStore<StepBarState | null>(null)
 export function useStepBar(state: StepBarState) {
 	// A cada render, sem dependências: os textos e o "desabilitado" mudam com o passo. Só a barra renderiza de novo.
 	useLayoutEffect(() => stepBar.set(state))
+}
+
+/** Uma sub-etapa do passo atual, na lista de etapas; com `onSelect`, dá para ir até ela. */
+export type SubStep = { label: string; done?: boolean; onSelect?: () => void }
+
+/** As sub-etapas do passo atual e qual está na tela (`-1`: nenhuma em especial). */
+export type SubStepsState = { items: SubStep[]; current: number }
+
+const subSteps = createStore<SubStepsState | null>(null)
+
+/** Mostra as sub-etapas embaixo do passo atual na lista de etapas, enquanto o passo está na tela. */
+export function useSubSteps(state: SubStepsState) {
+	useLayoutEffect(() => subSteps.set(state))
+	// Ao sair do passo, a lista volta a não ter sub-etapas (os passos sem elas não chamam este hook)
+	useLayoutEffect(() => () => subSteps.set(null), [])
+}
+
+export function useCurrentSubSteps() {
+	return useStore(subSteps)
 }
 
 /**

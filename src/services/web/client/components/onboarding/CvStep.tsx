@@ -14,7 +14,7 @@ import { Button } from '../ui/Button'
 import { card } from '../ui/Card'
 import { FieldHelp } from '../ui/Field'
 import { Notice } from '../ui/Notice'
-import { ChoiceCard, Rise, StepHeading, useStepBar } from './parts'
+import { ChoiceCard, Rise, StepHeading, useStepBar, useSubSteps } from './parts'
 
 // Sem o stream (conexão caiu), consulta as versões enquanto a nova é validada
 const POLL_MS = 4_000
@@ -222,6 +222,16 @@ export function CvStep({
 
 	const editCandidate = () => (candidate?.fromForm ? openForm() : fileInput.current?.click())
 	const reviewing = candidate?.status === 'valid' && candidate.versionId !== active?.versionId
+
+	// Onde está o envio: escolher como, o PDF sendo gerado, conferir e usar. Com um currículo já salvo, tudo feito
+	const stage = !candidate ? 0 : candidate.status === 'validating' ? 1 : 2
+	useSubSteps({
+		items: ['Escolher como', 'Gerar o PDF', 'Conferir e usar'].map((label, index) => ({
+			label,
+			done: index < stage || (ready && !candidate),
+		})),
+		current: ready && !candidate ? -1 : stage,
+	})
 
 	useStepBar({
 		onBack,
