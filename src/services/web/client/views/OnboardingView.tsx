@@ -287,7 +287,7 @@ const STEPPER_STAGGER = ['stagger-2', 'stagger-3', 'stagger-4', 'stagger-5', 'st
 /** As sub-etapas do passo atual, recuadas embaixo dele: a da tela em destaque, as feitas com o check. */
 function SubStepList({ items, current }: SubStepsState) {
 	return (
-		<ol className="m-0 mb-1 flex list-none flex-col p-0 pl-12">
+		<ol className="m-0 mb-1 flex list-none flex-col p-0 pl-8">
 			{items.map((item, index) => {
 				const isCurrent = index === current
 				const content = (
