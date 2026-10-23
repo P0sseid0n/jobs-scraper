@@ -62,7 +62,7 @@ const optionalList = <T extends z.ZodType<string>>(item: T, max: number) =>
 
 /**
  * Corpo do `PATCH /api/jobs/:postId`: só os campos enviados mudam. Ou corrige campos, ou marca que o post não é
- * vaga (`notAJob`), nunca os dois.
+ * vaga (`notAJob`), ou que está fora dos idiomas aceitos (`wrongLanguage`): uma coisa só por vez.
  */
 export const JobCorrectionSchema = z
 	.strictObject({
@@ -90,13 +90,16 @@ export const JobCorrectionSchema = z
 			.nullable()
 			.optional(),
 		notAJob: z.literal(true).optional(),
+		wrongLanguage: z.literal(true).optional(),
 	})
 	.superRefine((value, ctx) => {
 		const fields = CORRECTABLE_FIELDS.filter(field => value[field] !== undefined)
 
-		if (value.notAJob && fields.length > 0) {
-			ctx.addIssue({ code: 'custom', path: ['notAJob'], message: '"Não é vaga" não vai junto com a correção de campos' })
-		} else if (!value.notAJob && fields.length === 0) {
+		if (value.notAJob && (fields.length > 0 || value.wrongLanguage)) {
+			ctx.addIssue({ code: 'custom', path: ['notAJob'], message: '"Não é vaga" vai sozinho, sem outra correção' })
+		} else if (value.wrongLanguage && fields.length > 0) {
+			ctx.addIssue({ code: 'custom', path: ['wrongLanguage'], message: '"Outro idioma" vai sozinho, sem outra correção' })
+		} else if (!value.notAJob && !value.wrongLanguage && fields.length === 0) {
 			ctx.addIssue({ code: 'custom', path: [], message: 'Envie ao menos um campo para corrigir' })
 		}
 	})

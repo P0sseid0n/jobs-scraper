@@ -13,6 +13,8 @@ export type JobCorrectionState = {
 	correctedAt: Date | null
 	/** Marcada pelo site como "não é vaga": sai da lista, mas o documento fica. */
 	notAJob: boolean
+	/** Marcada pelo site como fora dos idiomas aceitos (o filtro de idioma deixou passar): sai da lista, mas o documento fica. */
+	wrongLanguage: boolean
 }
 
 /** Quando a vaga foi aberta no site (`null`: ainda não vista). O sistema tem um único usuário: o campo fica na vaga. */
@@ -47,6 +49,7 @@ const jobSchema = new Schema<JobDocument>(
 		aiExtraction: { type: Schema.Types.Mixed, default: null },
 		correctedAt: { type: Date, default: null },
 		notAJob: { type: Boolean, default: false },
+		wrongLanguage: { type: Boolean, default: false },
 		viewedAt: { type: Date, default: null },
 		// Quando o evento `job-published` foi publicado (com pelo menos uma fila ligada); não confirma a entrega
 		notifiedAt: { type: Date, default: null },

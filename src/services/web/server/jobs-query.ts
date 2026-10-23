@@ -51,12 +51,13 @@ export type JobsQuery = z.output<typeof JobsQuerySchema>
 
 /**
  * Vagas que a interface mostra: com `postId` (documentos antigos não têm) e cargo, e que não foram marcadas pelo
- * site como "não é vaga".
+ * site como "não é vaga" nem como "outro idioma".
  */
 export const LISTABLE_JOBS = {
 	postId: { $type: 'string' as const },
 	title: { $type: 'string' as const },
 	notAJob: { $ne: true },
+	wrongLanguage: { $ne: true },
 }
 
 /** Vagas já abertas no site. */

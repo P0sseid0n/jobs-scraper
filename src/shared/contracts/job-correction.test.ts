@@ -65,6 +65,12 @@ describe('JobCorrectionSchema (PATCH /api/jobs/:postId)', () => {
 		expect(errorsOf({ notAJob: false })).toHaveProperty('notAJob')
 	})
 
+	test('"outro idioma" sozinho; junto com campos ou com "não é vaga", é inválido', () => {
+		expect(JobCorrectionSchema.parse({ wrongLanguage: true })).toEqual({ wrongLanguage: true })
+		expect(errorsOf({ wrongLanguage: true, company: 'Acme' })).toHaveProperty('wrongLanguage')
+		expect(errorsOf({ wrongLanguage: true, notAJob: true })).toHaveProperty('notAJob')
+	})
+
 	test('rejeita campos que não são corrigíveis', () => {
 		expect(errorsOf({ extractionChecks: [] })).not.toBeNull()
 		expect(errorsOf({ title: 'Dev', rawContent: 'outro texto' })).not.toBeNull()

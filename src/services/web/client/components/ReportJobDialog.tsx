@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 
-import type { CorrectableField } from '@shared/contracts'
+import type { CorrectableField, JobCorrectionInput } from '@shared/contracts'
 
 import type { WebJob } from '../../api-types'
 import { api, RequestError } from '../api'
@@ -33,10 +33,26 @@ export const REPORTABLE_FIELDS = {
 
 export type ReportableField = keyof typeof REPORTABLE_FIELDS
 
-/** O que o usuário apontou: campos errados ou que o post nem é vaga (as duas coisas nunca juntas). */
-export type JobReport = { kind: 'fields'; fields: ReportableField[] } | { kind: 'not-a-job' }
+/** O que o usuário apontou: campos errados, que o post nem é vaga ou que está em outro idioma (um de cada vez). */
+export type JobReport = { kind: 'fields'; fields: ReportableField[] } | { kind: 'not-a-job' } | { kind: 'wrong-language' }
 
-/** Liga ou desliga um campo; escolher um campo desfaz o "não é vaga". */
+/** Relatos que tiram a vaga da lista, sem formulário. */
+const REMOVAL_REPORTS = {
+	'not-a-job': {
+		label: 'não é vaga',
+		body: { notAJob: true },
+		toast: 'Vaga tirada da lista. Obrigado: a correção ajuda a avaliar a IA.',
+	},
+	'wrong-language': {
+		label: 'outro idioma',
+		body: { wrongLanguage: true },
+		toast: 'Vaga tirada da lista. Obrigado: o relato ajuda a ajustar o filtro de idioma.',
+	},
+} as const satisfies Record<string, { label: string; body: JobCorrectionInput; toast: string }>
+
+type RemovalReport = keyof typeof REMOVAL_REPORTS
+
+/** Liga ou desliga um campo; escolher um campo desfaz o "não é vaga" ou o "outro idioma". */
 export function toggleReportField(report: JobReport | null, field: ReportableField): JobReport | null {
 	const fields = report?.kind === 'fields' ? report.fields : []
 	const next = fields.includes(field) ? fields.filter(item => item !== field) : [...fields, field]
@@ -93,9 +109,9 @@ export function ReportJobDialog({
 		setSaving(true)
 		setErrors({})
 		try {
-			if (report.kind === 'not-a-job') {
-				await api.correctJob(job.postId, { notAJob: true })
-				notify('Vaga tirada da lista. Obrigado: a correção ajuda a avaliar a IA.')
+			if (report.kind !== 'fields') {
+				await api.correctJob(job.postId, REMOVAL_REPORTS[report.kind].body)
+				notify(REMOVAL_REPORTS[report.kind].toast)
 				onRemoved()
 			} else {
 				onCorrected(await api.correctJob(job.postId, correctionBody(draft, report.fields)))
@@ -272,21 +288,26 @@ export function ReportJobDialog({
 
 						<div className={cx('text-center', LABEL)}>ou</div>
 
-						<Pill
-							shape="row"
-							pressed={report?.kind === 'not-a-job'}
-							onClick={() => setReport(report?.kind === 'not-a-job' ? null : { kind: 'not-a-job' })}
-						>
-							<span className="grow">não é vaga</span>
-							<span className="text-xs">sai da lista, sem apagar</span>
-						</Pill>
+						<div className="flex flex-col gap-2">
+							{(Object.keys(REMOVAL_REPORTS) as RemovalReport[]).map(kind => (
+								<Pill
+									key={kind}
+									shape="row"
+									pressed={report?.kind === kind}
+									onClick={() => setReport(report?.kind === kind ? null : { kind })}
+								>
+									<span className="grow">{REMOVAL_REPORTS[kind].label}</span>
+									<span className="text-xs">sai da lista, sem apagar</span>
+								</Pill>
+							))}
+						</div>
 
 						<div className={DIALOG_ACTIONS}>
 							<Button variant="ghost" onClick={close}>
 								cancelar
 							</Button>
 							<Button variant="lime" disabled={!report || saving} onClick={next}>
-								{report?.kind === 'not-a-job' ? (saving ? 'salvando…' : 'tirar da lista') : 'continuar'}
+								{report && report.kind !== 'fields' ? (saving ? 'salvando…' : 'tirar da lista') : 'continuar'}
 							</Button>
 						</div>
 					</>

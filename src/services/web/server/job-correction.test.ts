@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test'
 import { JobCorrectionSchema, jobFields } from '@shared/contracts'
 
 import { HttpError } from './http'
-import { planCorrection } from './job-correction'
+import { planCorrection, planLanguageReport } from './job-correction'
 import type { JobDocument } from './jobs-query'
 
 const NOW = new Date('2026-10-12T12:00:00.000Z')
@@ -95,5 +95,24 @@ describe('planCorrection', () => {
 
 		expect(feedback.model).toBeNull()
 		expect(feedback.promptVersion).toBeNull()
+	})
+})
+
+describe('planLanguageReport', () => {
+	test('marca a vaga sem mexer na extração e registra o idioma detectado e os aceitos', () => {
+		const { set, feedback } = planLanguageReport({ ...doc, language: 'es' }, ['pt'], NOW)
+
+		expect(set).toEqual({ wrongLanguage: true, correctedAt: NOW })
+		expect(feedback).toEqual({
+			postId: doc.postId,
+			text: doc.rawContent,
+			detectedLanguage: 'es',
+			allowedLanguages: ['pt'],
+			createdAt: NOW,
+		})
+	})
+
+	test('texto curto demais para detectar: registra o idioma como null', () => {
+		expect(planLanguageReport({ ...doc, language: null }, ['pt'], NOW).feedback.detectedLanguage).toBeNull()
 	})
 })

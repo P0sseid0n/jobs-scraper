@@ -1,5 +1,11 @@
 import { CORRECTABLE_FIELDS, JobCorrectionSchema, jobFields, type JobCorrection, type JobFields } from '@shared/contracts'
-import { ExtractionFeedback, Job, type ExtractionFeedbackRecord } from '@shared/database'
+import {
+	ExtractionFeedback,
+	Job,
+	LanguageFeedback,
+	type ExtractionFeedbackRecord,
+	type LanguageFeedbackRecord,
+} from '@shared/database'
 import type { Logger } from '@shared/logging'
 import { readSettings } from '@shared/settings'
 
@@ -52,8 +58,24 @@ export function planCorrection(doc: JobDocument, correction: JobCorrection, now 
 }
 
 /**
- * `PATCH /api/jobs/:postId`: corrige campos da vaga ou a marca como "não é vaga" (sai da lista, sem apagar).
- * Responde a vaga atualizada; campos inválidos → 400 com o erro de cada um.
+ * Monta a marcação "outro idioma": o `$set` da vaga e o registro de feedback do filtro de idioma, com o idioma que
+ * o post-processing detectou. A extração da IA fica como está: o erro não é dela.
+ */
+export function planLanguageReport(doc: JobDocument, allowedLanguages: string[], now = new Date()) {
+	const feedback: LanguageFeedbackRecord = {
+		postId: doc.postId,
+		text: doc.rawContent,
+		detectedLanguage: doc.language ?? null,
+		allowedLanguages,
+		createdAt: now,
+	}
+
+	return { set: { wrongLanguage: true, correctedAt: now }, feedback }
+}
+
+/**
+ * `PATCH /api/jobs/:postId`: corrige campos da vaga ou a marca como "não é vaga" ou "outro idioma" (as duas tiram
+ * da lista, sem apagar). Responde a vaga atualizada; campos inválidos → 400 com o erro de cada um.
  */
 export async function correctJob(req: Request & { params: { postId: string } }, { logger }: { logger: Logger }) {
 	const { postId } = req.params
@@ -62,6 +84,18 @@ export async function correctJob(req: Request & { params: { postId: string } }, 
 	const doc = await Job.findOne({ ...LISTABLE_JOBS, postId }).lean<JobDocument>()
 	if (!doc) throw new HttpError(404, 'Vaga não encontrada')
 
+	const { reviewChecksPercent, allowedLanguages } = await readSettings('post-processing')
+
+	if (correction.wrongLanguage) {
+		const { set, feedback } = planLanguageReport(doc, allowedLanguages)
+		const updated = await Job.findOneAndUpdate({ postId }, { $set: set }, { returnDocument: 'after', lean: true })
+		if (!updated) throw new HttpError(404, 'Vaga não encontrada')
+
+		await LanguageFeedback.create(feedback)
+		logger.info({ postId, detectedLanguage: feedback.detectedLanguage }, 'Vaga marcada pelo site como outro idioma')
+		return Response.json(toWebJob(updated as JobDocument, reviewChecksPercent) satisfies WebJob)
+	}
+
 	const { set, feedback } = planCorrection(doc, correction)
 	const updated = await Job.findOneAndUpdate({ postId }, { $set: set }, { returnDocument: 'after', lean: true })
 	if (!updated) throw new HttpError(404, 'Vaga não encontrada')
@@ -69,6 +103,5 @@ export async function correctJob(req: Request & { params: { postId: string } }, 
 	await ExtractionFeedback.create(feedback)
 	logger.info({ postId, kind: feedback.kind, fields: feedback.correctedFields }, 'Vaga corrigida pelo site')
 
-	const { reviewChecksPercent } = await readSettings('post-processing')
 	return Response.json(toWebJob(updated as JobDocument, reviewChecksPercent) satisfies WebJob)
 }

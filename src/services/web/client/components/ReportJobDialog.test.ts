@@ -12,6 +12,7 @@ test('liga e desliga campos, e sem nenhum volta a não ter relato', () => {
 	expect(toggleReportField(toggleReportField(two, 'company'), 'workMode')).toBeNull()
 })
 
-test('escolher um campo desfaz o "não é vaga"', () => {
+test('escolher um campo desfaz o "não é vaga" e o "outro idioma"', () => {
 	expect(toggleReportField({ kind: 'not-a-job' }, 'title')).toEqual({ kind: 'fields', fields: ['title'] })
+	expect(toggleReportField({ kind: 'wrong-language' }, 'title')).toEqual({ kind: 'fields', fields: ['title'] })
 })
