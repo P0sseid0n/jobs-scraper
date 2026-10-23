@@ -17,7 +17,7 @@ import { startService } from '@shared/service'
 import { loadCredentials } from '@shared/settings'
 
 import { requestApplicationMessage } from './application-message'
-import { checkBaseResume, loadBaseResume, validateBaseTex } from './base-resume'
+import { checkBaseResume, loadBaseResume, MissingBaseResumeError, validateBaseTex, type BaseResume } from './base-resume'
 import { cvUpdaterEnv } from './config'
 import { compileLatex, LatexCompileError } from './latex-compiler'
 import { chooseProjects } from './projects/choose-projects'
@@ -61,9 +61,20 @@ async function generateCv(request: CvRequest) {
 		return
 	}
 
+	let loaded: BaseResume
+	try {
+		loaded = await loadBaseResume(config.CV_TEX_FILE)
+	} catch (error) {
+		if (!(error instanceof MissingBaseResumeError)) throw error
+
+		log.warn('Currículo pedido sem currículo base configurado')
+		await reply({ jobTitle: job.title, file: null, error: error.message, message: null })
+		return
+	}
+
 	log.info({ title: job.title }, 'Gerando currículo ajustado')
 
-	const { resume: base, versionId } = await loadBaseResume(config.CV_TEX_FILE)
+	const { resume: base, versionId } = loaded
 	const suggestions = await requestTailoringSuggestions({ ollama, model: config.OLLAMA_MODEL }, base.model, job, log)
 
 	const { cv, report } = tailorResumeToJob(base.model, job, suggestions)

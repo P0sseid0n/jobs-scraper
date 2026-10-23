@@ -69,6 +69,8 @@ function useScraperPill() {
 	if (status.current) return { tone: 'running' as const, text: 'coletando agora' }
 	if (status.last?.status === 'failed') return { tone: 'failed' as const, text: 'última coleta falhou' }
 	if (status.paused) return { tone: 'paused' as const, text: 'coletas pausadas' }
+	if (status.activeSearchTerms === 0) return { tone: 'paused' as const, text: 'sem termos de busca' }
+	if (!status.linkedinAccount) return { tone: 'paused' as const, text: 'conecte o LinkedIn' }
 
 	const next = status.nextRunAt ? new Date(status.nextRunAt).getTime() - now : 0
 	return {

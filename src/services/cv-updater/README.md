@@ -29,7 +29,7 @@ Outras variáveis: `CV_TEX_FILE`, `CV_FONTS_DIR`, `CV_OUTPUT_DIR`, `CV_CACHE_DIR
 
 ## Currículo base pelo site
 
-O site guarda as versões do currículo base na coleção `cv_base_versions`. A ativa é a de `activatedAt` mais recente, e o `loadBaseResume` a relê a cada pedido: trocar de versão vale a partir do próximo currículo, sem reiniciar. Sem nenhuma versão ativada, vale o arquivo `CV_TEX_FILE` (`data/cv/cv.tex`).
+O site guarda as versões do currículo base na coleção `cv_base_versions`. A ativa é a de `activatedAt` mais recente, e o `loadBaseResume` a relê a cada pedido: trocar de versão vale a partir do próximo currículo, sem reiniciar. Sem nenhuma versão ativada, vale o arquivo `CV_TEX_FILE` (`data/cv/cv.tex`). Sem nenhum dos dois, o serviço sobe mesmo assim e responde a cada pedido com o erro "Currículo não configurado", que o site e o Discord mostram.
 
 Uma versão nova passa antes pela validação, uma mensagem `CvBaseValidationRequest` na fila `cv-updater-base`. O serviço interpreta o `.tex`, confere as seções esperadas (`EXPECTED_SECTIONS` em `base-resume.ts`) e compila com o Tectonic. A resposta, na fila `web-cv-base`, traz os erros e a pré-visualização em PDF. Só uma versão sem erros pode ser ativada. A fila é separada da `cv-updater` e consumida em paralelo: a validação, que só compila, não espera um currículo em geração (com a IA, ele leva um minuto ou mais).
 

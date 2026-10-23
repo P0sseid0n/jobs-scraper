@@ -12,9 +12,9 @@ import {
 	type SeenPostOutcome,
 } from '@shared/database'
 import { QUEUES, type QueueClient } from '@shared/messaging'
-import { readSettings } from '@shared/settings'
+import { loadCredentials, readSettings } from '@shared/settings'
 
-import { nextRunAt } from '../../scraper/schedule'
+import { nextRunAt, waitingReason } from '../../scraper/schedule'
 import type { RunsPage, ScraperStatus, WebScraperRun } from '../api-types'
 import { decodeCursor, encodeCursor, HttpError, queryParams } from './http'
 import { afterCursor } from './jobs-query'
@@ -40,18 +40,20 @@ type RunDocument = {
 
 /** `GET /api/scraper/status`: coleta em andamento, última coleta e próxima agendada. */
 export async function scraperStatus() {
-	const [current, last, settings] = await Promise.all([
+	const [current, last, settings, linkedinAccount] = await Promise.all([
 		ScraperRun.findOne({ status: 'running' }).sort({ startedAt: -1 }).lean(),
 		ScraperRun.findOne({ status: { $ne: 'running' } })
 			.sort({ startedAt: -1 })
 			.lean(),
 		readSettings('scraper'),
+		hasLinkedinAccount(),
 	])
 
 	// Mesma conta do scraper: intervalo a partir do início da última coleta (em andamento ou não)
 	const lastStartedAt = current?.startedAt ?? last?.startedAt ?? null
 	const terms = activeSearchTerms(settings).length
-	const next = settings.paused || terms === 0 ? null : nextRunAt(lastStartedAt, settings.intervalMinutes)
+	const waiting = waitingReason({ paused: settings.paused, activeSearchTerms: terms, hasAccount: linkedinAccount })
+	const next = waiting ? null : nextRunAt(lastStartedAt, settings.intervalMinutes)
 
 	return Response.json({
 		current: current ? await toWebRun(current) : null,
@@ -60,6 +62,7 @@ export async function scraperStatus() {
 		paused: settings.paused,
 		intervalMinutes: settings.intervalMinutes,
 		activeSearchTerms: terms,
+		linkedinAccount,
 	} satisfies ScraperStatus)
 }
 
@@ -80,16 +83,29 @@ export async function listRuns(req: Request) {
 	return Response.json({ runs: await Promise.all(page.map(toWebRun)), nextCursor } satisfies RunsPage)
 }
 
-/** `POST /api/scraper/run`: "coletar agora" (funciona mesmo com as coletas pausadas, mas não sem termos de busca). */
+/** `POST /api/scraper/run`: "coletar agora" (funciona mesmo com as coletas pausadas, mas não sem termos nem sem conta). */
 export async function requestRun(queue: QueueClient) {
-	const [running, settings] = await Promise.all([ScraperRun.exists({ status: 'running' }), readSettings('scraper')])
+	const [running, settings, linkedinAccount] = await Promise.all([
+		ScraperRun.exists({ status: 'running' }),
+		readSettings('scraper'),
+		hasLinkedinAccount(),
+	])
 	if (running) throw new HttpError(409, 'Já há uma coleta em andamento')
 	if (activeSearchTerms(settings).length === 0) throw new HttpError(409, 'Configure os termos de busca antes de coletar')
+	if (!linkedinAccount) throw new HttpError(409, 'Conecte sua conta do LinkedIn (Configurações › Contas) antes de coletar')
 
 	const command: ScraperCommand = { command: 'run-now', requestedBy: 'web', requestedAt: new Date().toISOString() }
 	await queue.publish(QUEUES.scraper, command)
 
 	return Response.json({ requested: true }, { status: 202 })
+}
+
+/**
+ * Se o scraper tem uma conta do LinkedIn para coletar (site ou `.env`). Uma conta inválida no banco conta como
+ * nenhuma: o scraper não consegue usá-la até ela ser salva de novo.
+ */
+function hasLinkedinAccount() {
+	return loadCredentials('linkedin').then(Boolean, () => false)
 }
 
 /** A coleta para o site, com as vagas que saíram dela (as de posts com várias vagas apontam o post em `sourcePostId`). */

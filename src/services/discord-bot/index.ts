@@ -30,10 +30,16 @@ onShutdown(() => discord.close())
 await queue.assertQueue(QUEUES.cvUpdater)
 await discord.start()
 
-// Os consumidores esperam o bot estar conectado: sem credenciais (ou trocando de conta), as mensagens ficam na fila
+// Os consumidores esperam o bot conectar (ou trocar de conta). Sem bot configurado, descartam as mensagens: senão
+// todas as vagas se acumulariam na fila e seriam publicadas de uma vez quando alguém configurasse o Discord
 await queue.consume(QUEUES.discordCv, CvResultSchema, async result => {
-	const { client } = await discord.ready()
-	await deliverCv(client, result, logger)
+	const link = await discord.ready()
+	if (!link) {
+		logger.warn({ postId: result.postId }, 'Currículo descartado: nenhum bot do Discord configurado para entregá-lo')
+		return
+	}
+
+	await deliverCv(link.client, result, logger)
 })
 
 // A fila `discord` assina o evento `job-published`: recebe todas as vagas, independente de outros canais
@@ -41,10 +47,14 @@ await queue.consume(
 	QUEUES.discord,
 	JobPublishedSchema,
 	async job => {
-		const { channel } = await discord.ready()
+		const link = await discord.ready()
+		if (!link) {
+			logger.info({ postId: job.postId }, 'Vaga não publicada no Discord: nenhum bot configurado (ela fica no site)')
+			return
+		}
 
 		try {
-			await publishJob(channel, job)
+			await publishJob(link.channel, job)
 		} catch (error) {
 			throw toQueueError(error)
 		}

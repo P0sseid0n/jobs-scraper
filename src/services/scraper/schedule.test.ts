@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { nextRunAt, postsPerTerm } from './schedule'
+import { nextRunAt, postsPerTerm, waitingReason } from './schedule'
 
 describe('postsPerTerm', () => {
 	test('divide o limite exato entre os termos, com o resto nos primeiros', () => {
@@ -23,5 +23,25 @@ describe('nextRunAt', () => {
 		const last = new Date('2026-10-07T10:00:00Z')
 
 		expect(nextRunAt(last, 90).toISOString()).toBe('2026-10-07T11:30:00.000Z')
+	})
+})
+
+describe('waitingReason', () => {
+	const ready = { paused: false, activeSearchTerms: 2, hasAccount: true }
+
+	test('com termos e conta, as coletas seguem o intervalo', () => {
+		expect(waitingReason(ready)).toBeNull()
+	})
+
+	test('sem conta do LinkedIn, espera a configuração', () => {
+		expect(waitingReason({ ...ready, hasAccount: false })).toBe('no-account')
+	})
+
+	test('sem termos, espera os termos antes da conta', () => {
+		expect(waitingReason({ ...ready, activeSearchTerms: 0, hasAccount: false })).toBe('no-terms')
+	})
+
+	test('pausa vale antes de tudo', () => {
+		expect(waitingReason({ paused: true, activeSearchTerms: 0, hasAccount: false })).toBe('paused')
 	})
 })

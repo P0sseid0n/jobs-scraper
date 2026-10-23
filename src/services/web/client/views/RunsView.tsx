@@ -97,6 +97,21 @@ function NoSearchTermsAlert({ status }: { status: ScraperStatus }) {
 	)
 }
 
+/** Sem conta do LinkedIn (no site ou no `.env`), o scraper não coleta: a tela diz onde conectar. */
+function NoLinkedinAccountAlert({ status }: { status: ScraperStatus }) {
+	if (status.linkedinAccount || status.current) return null
+
+	return (
+		<Notice tone="warn" size="lg" icon="alert">
+			<p className="font-semibold">Conecte sua conta do LinkedIn</p>
+			<p className="text-sm">
+				Sem o e-mail e a senha do LinkedIn, o scraper fica em espera e não coleta. A coleta começa sozinha depois de salvar.{' '}
+				<RouteLink to="/configuracoes">conectar em configurações › contas</RouteLink>
+			</p>
+		</Notice>
+	)
+}
+
 /** "3 posts novos · 1 vaga nova", ou o aviso de que a busca só trouxe posts já processados ou em outro idioma. */
 function lastRunSummary(run: WebScraperRun) {
 	if (run.sent === 0) {
@@ -354,14 +369,16 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 		const running = status.current
 		const next = status.nextRunAt ? new Date(status.nextRunAt).getTime() - now : null
 		const noTerms = status.activeSearchTerms === 0
+		const noAccount = !status.linkedinAccount
+		const waiting = noTerms || noAccount
 
 		return (
 			<div className="flex flex-wrap gap-4">
 				<section className="inverted flex grow-2 basis-130 flex-col gap-5 rounded-xl p-6" aria-live="polite">
 					<div className="flex items-center justify-between gap-3 flex-wrap">
 						<div className="flex items-center gap-2.5">
-							<Badge tone={running ? 'lime' : status.paused || noTerms ? 'muted' : 'ok'}>
-								{running ? 'em andamento' : status.paused ? 'pausada' : noTerms ? 'em espera' : 'ociosa'}
+							<Badge tone={running ? 'lime' : status.paused || waiting ? 'muted' : 'ok'}>
+								{running ? 'em andamento' : status.paused ? 'pausada' : waiting ? 'em espera' : 'ociosa'}
 							</Badge>
 							{running && (
 								<span className="font-mono text-xs text-muted">
@@ -387,9 +404,11 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 									? 'coletas pausadas'
 									: noTerms
 										? 'sem termos de busca'
-										: next !== null && next > 0
-											? `em ${formatDuration(next)}`
-											: 'a qualquer momento'}
+										: noAccount
+											? 'sem conta do LinkedIn'
+											: next !== null && next > 0
+												? `em ${formatDuration(next)}`
+												: 'a qualquer momento'}
 							</p>
 						</div>
 					)}
@@ -398,16 +417,18 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 						<span className="font-mono text-xs text-muted">
 							{noTerms
 								? 'adicione um termo para coletar'
-								: status.paused
-									? '“coletar agora” continua funcionando'
-									: formatInterval(status.intervalMinutes)}
+								: noAccount
+									? 'conecte sua conta do LinkedIn'
+									: status.paused
+										? '“coletar agora” continua funcionando'
+										: formatInterval(status.intervalMinutes)}
 						</span>
 						<Button
 							variant="lime"
 							size="lg"
 							// No card escuro, o lime apagado sumia: desativado, o botão fica na cor da borda
 							className="disabled:bg-line disabled:text-muted disabled:opacity-100"
-							disabled={!!running || requesting || noTerms}
+							disabled={!!running || requesting || waiting}
 							onClick={runNow}
 						>
 							<Icon name={running ? 'spinner' : 'refresh'} />
@@ -453,6 +474,7 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 
 			<FailureAlert status={status} />
 			<NoSearchTermsAlert status={status} />
+			<NoLinkedinAccountAlert status={status} />
 			{renderCurrent()}
 
 			<section className="flex flex-col gap-2.5">

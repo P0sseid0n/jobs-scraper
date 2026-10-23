@@ -84,7 +84,7 @@ bun dev                   # todos os serviços, com hot reload
 - **Primeira subida:** o `ollama-init` baixa o modelo de `OLLAMA_MODEL` (padrão `gemma3:4b`). Acompanhe com `docker compose logs -f ollama-init`.
 - **Currículo:** para gerar currículos, envie o seu `.tex` pelo site (Meus currículos › currículo base) ou coloque-o em `data/cv/cv.tex`, e configure o Tectonic, como no [README do cv-updater](src/services/cv-updater/README.md#configuração).
 - **Configurações:** termos de busca, filtros e intervalo são editados pelo site; o `.env` só preenche os valores iniciais (veja [shared](src/shared/README.md#configurações-em-tempo-de-execução)).
-- **Contas:** as credenciais do LinkedIn, do Discord e do GitHub podem ser informadas em Configurações › Contas, sem editar o `.env`; o que for salvo lá vale no lugar do `.env` (veja [shared](src/shared/README.md#credenciais)).
+- **Contas:** as credenciais do LinkedIn, do Discord e do GitHub podem ser informadas em Configurações › Contas, sem editar o `.env`; o que for salvo lá vale no lugar do `.env` (veja [shared](src/shared/README.md#credenciais)). Sem elas, os serviços sobem mesmo assim e esperam: o scraper não coleta, as vagas não vão para o Discord e o site diz o que falta.
 - **Tudo em containers:** `docker compose --profile app up -d --build`.
 - **Coleta única ou periódica:** por padrão o scraper coleta uma vez e encerra. Com `SCRAPER_INTERVAL_MINUTES` (ex.: `180`), ele fica rodando e coleta periodicamente.
 

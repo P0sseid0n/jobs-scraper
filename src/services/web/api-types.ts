@@ -128,12 +128,14 @@ export type ScraperStatus = {
 	current: WebScraperRun | null
 	/** Última coleta terminada (sucesso ou falha). */
 	last: WebScraperRun | null
-	/** Próxima coleta automática; `null` com as coletas pausadas ou sem termos de busca ativos. */
+	/** Próxima coleta automática; `null` com as coletas pausadas, sem termos de busca ativos ou sem conta do LinkedIn. */
 	nextRunAt: string | null
 	paused: boolean
 	intervalMinutes: number
 	/** Quantos termos de busca estão ativos; com 0, o scraper fica em espera até a pessoa configurar. */
 	activeSearchTerms: number
+	/** Se há conta do LinkedIn (site ou `.env`); sem ela, o scraper fica em espera até a pessoa conectar. */
+	linkedinAccount: boolean
 }
 
 /** `GET /api/setup`: se o onboarding deve abrir e o que já está configurado (pelo `.env` ou pelo site). */

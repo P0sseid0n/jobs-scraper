@@ -12,6 +12,7 @@ import { ConfirmDialog } from './ui/Dialog'
 import { FieldError, FieldHelp, FieldLabel } from './ui/Field'
 import { IconButton } from './ui/IconButton'
 import { Input } from './ui/Input'
+import { Notice } from './ui/Notice'
 import { TabPanel, Tabs } from './ui/Tabs'
 import { SECTION_TITLE } from './ui/text'
 
@@ -28,10 +29,20 @@ type FieldDef = {
 	inputMode?: 'numeric'
 }
 
-const GROUPS: Record<CredentialGroup, { title: string; note: string; testable: boolean; fields: FieldDef[] }> = {
+type GroupDef = {
+	title: string
+	note: string
+	/** O que fica parado enquanto a conta não está configurada; sem ele, a conta é opcional. */
+	missing?: string
+	testable: boolean
+	fields: FieldDef[]
+}
+
+const GROUPS: Record<CredentialGroup, GroupDef> = {
 	linkedin: {
 		title: 'LinkedIn',
 		note: 'Usada pelo scraper a partir da próxima coleta. Não tem teste: cada login a mais aumenta o risco de bloqueio da conta.',
+		missing: 'Sem ela, o scraper fica em espera e não coleta posts. A coleta começa sozinha depois de salvar.',
 		testable: false,
 		fields: [
 			{ name: 'email', label: 'e-mail', type: 'email', placeholder: 'voce@exemplo.com' },
@@ -48,6 +59,7 @@ const GROUPS: Record<CredentialGroup, { title: string; note: string; testable: b
 	discord: {
 		title: 'Discord',
 		note: 'O bot reconecta sozinho em até 30 s depois de salvar.',
+		missing: 'Sem ele, as vagas ficam só no site: não são publicadas no Discord, nem depois de configurar.',
 		testable: true,
 		fields: [
 			{ name: 'token', label: 'token do bot', secret: true },
@@ -213,6 +225,12 @@ function AccountGroup({
 				<FieldHelp>{config.note}</FieldHelp>
 				<Badge tone={badge.tone}>{badge.label}</Badge>
 			</div>
+
+			{current.source === null && config.missing && (
+				<Notice tone="warn" icon="alert">
+					<p className="text-sm">{config.missing}</p>
+				</Notice>
+			)}
 
 			<div className="grid grid-cols-2 gap-5 max-md:grid-cols-1">
 				{config.fields.map(field => {

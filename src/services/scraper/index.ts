@@ -3,11 +3,12 @@ import type { ScraperRunTrigger } from '@shared/database'
 import { onShutdown, shutdown } from '@shared/lifecycle'
 import { QUEUES } from '@shared/messaging'
 import { startService } from '@shared/service'
-import { loadSettings } from '@shared/settings'
+import { loadCredentials, loadSettings } from '@shared/settings'
 
 import { BrowserLock } from './browser-lock'
 import { scraperEnv } from './config'
 import { JobLookupWorker } from './job-lookup'
+import { NO_LINKEDIN_ACCOUNT } from './login'
 import { markInterruptedRuns, recordRun } from './run-history'
 import { NO_SEARCH_TERMS } from './schedule'
 import { runOnSchedule } from './scheduler'
@@ -43,21 +44,32 @@ try {
 		await shutdown(logger, failed ? 1 : 0)
 	}
 
-	await runOnSchedule({ queue, logger, loadSettings: loadScraperSettings, collect: trigger => collect(trigger).then(() => {}) })
+	await runOnSchedule({
+		queue,
+		logger,
+		loadSettings: loadScraperSettings,
+		hasAccount: hasLinkedinAccount,
+		collect: trigger => collect(trigger).then(() => {}),
+	})
 } catch (error) {
 	logger.fatal({ err: error }, 'Erro no scraper')
 	await shutdown(logger, 1)
 }
 
 /**
- * Faz uma coleta com as configurações atuais do banco e a registra no histórico. Sem termos de busca ativos, só
- * registra o motivo no log (não é falha nem entra no histórico).
+ * Faz uma coleta com as configurações atuais do banco e a registra no histórico. Sem termos de busca ativos ou sem
+ * conta do LinkedIn, só registra o motivo no log (não é falha nem entra no histórico): o site mostra o que falta.
  */
 async function collect(trigger: ScraperRunTrigger) {
 	const settings = await loadScraperSettings()
 
 	if (activeSearchTerms(settings).length === 0) {
 		logger.warn({ trigger }, NO_SEARCH_TERMS)
+		return { failed: false }
+	}
+
+	if (!(await hasLinkedinAccount())) {
+		logger.warn({ trigger }, NO_LINKEDIN_ACCOUNT)
 		return { failed: false }
 	}
 
@@ -69,4 +81,9 @@ async function collect(trigger: ScraperRunTrigger) {
 
 function loadScraperSettings() {
 	return loadSettings('scraper')
+}
+
+/** Lida a cada coleta (e pela agenda): a conta salva pelo site vale sem reiniciar o serviço. */
+async function hasLinkedinAccount() {
+	return (await loadCredentials('linkedin')) !== null
 }

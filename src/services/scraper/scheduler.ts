@@ -3,13 +3,16 @@ import type { ScraperRunTrigger } from '@shared/database'
 import type { Logger } from '@shared/logging'
 import { QUEUES, type QueueClient } from '@shared/messaging'
 
+import { NO_LINKEDIN_ACCOUNT } from './login'
 import { lastRunStartedAt } from './run-history'
-import { nextRunAt, NO_SEARCH_TERMS } from './schedule'
+import { nextRunAt, NO_SEARCH_TERMS, waitingReason } from './schedule'
 
 type SchedulerOptions = {
 	queue: QueueClient
 	logger: Logger
 	loadSettings: () => Promise<ScraperSettings>
+	/** Se há conta do LinkedIn (site ou `.env`), relida a cada volta como as configurações. */
+	hasAccount: () => Promise<boolean>
 	collect: (trigger: ScraperRunTrigger) => Promise<void>
 }
 
@@ -18,10 +21,10 @@ const POLL_MS = 30_000
 
 /**
  * Mantém o scraper rodando: coleta quando o intervalo vence (sem pausa) ou quando chega um "coletar agora".
- * Relê as configurações a cada volta e ignora pedidos durante uma coleta. Sem termos de busca ativos, espera a
- * configuração sem coletar. Nunca retorna.
+ * Relê as configurações e a conta a cada volta e ignora pedidos durante uma coleta. Sem termos de busca ativos ou sem
+ * conta do LinkedIn, espera a configuração sem coletar. Nunca retorna.
  */
-export async function runOnSchedule({ queue, logger, loadSettings, collect }: SchedulerOptions): Promise<never> {
+export async function runOnSchedule({ queue, logger, loadSettings, hasAccount, collect }: SchedulerOptions): Promise<never> {
 	const wakeUp = createWakeUp()
 	let running = false
 	let manualRequested = false
@@ -41,9 +44,13 @@ export async function runOnSchedule({ queue, logger, loadSettings, collect }: Sc
 	while (true) {
 		try {
 			const settings = await loadSettings()
-			const waiting = settings.paused || activeSearchTerms(settings).length === 0
+			const waiting = waitingReason({
+				paused: settings.paused,
+				activeSearchTerms: activeSearchTerms(settings).length,
+				hasAccount: await hasAccount(),
+			})
 			const next = nextRunAt(await lastRunStartedAt(), settings.intervalMinutes)
-			// O pedido manual vai para a coleta mesmo sem termos: ela registra o motivo de não buscar nada
+			// O pedido manual vai para a coleta mesmo sem termos ou conta: ela registra o motivo de não buscar nada
 			const trigger = manualRequested ? 'manual' : !waiting && Date.now() >= next.getTime() ? 'schedule' : null
 
 			if (trigger) {
@@ -55,11 +62,12 @@ export async function runOnSchedule({ queue, logger, loadSettings, collect }: Sc
 				continue
 			}
 
-			const announcement = settings.paused ? 'paused' : waiting ? 'no-terms' : next.toISOString()
+			const announcement = waiting ?? next.toISOString()
 			if (announcement !== lastAnnouncement) {
 				lastAnnouncement = announcement
-				if (settings.paused) logger.info('⏸️ Coletas automáticas pausadas')
-				else if (waiting) logger.warn(NO_SEARCH_TERMS)
+				if (waiting === 'paused') logger.info('⏸️ Coletas automáticas pausadas')
+				else if (waiting === 'no-terms') logger.warn(NO_SEARCH_TERMS)
+				else if (waiting === 'no-account') logger.warn(NO_LINKEDIN_ACCOUNT)
 				else logger.info({ at: next.toLocaleString('pt-BR') }, '⏰ Próxima coleta agendada')
 			}
 

@@ -1,7 +1,7 @@
 import path from 'node:path'
 import { describe, expect, test } from 'bun:test'
 
-import { missingSections, validateBaseTex } from './base-resume'
+import { loadBaseResume, MissingBaseResumeError, missingSections, validateBaseTex } from './base-resume'
 import { LatexCompileError, type CompileResult } from './latex-compiler'
 import { readResumeTex } from './resume/latex-reader'
 
@@ -52,5 +52,22 @@ describe('validateBaseTex', () => {
 		}
 
 		expect(validateBaseTex(example, diskFull)).rejects.toThrow('ENOSPC')
+	})
+})
+
+describe('loadBaseResume', () => {
+	const noActiveVersion = async () => null
+
+	test('sem versão no banco nem arquivo, avisa que o currículo não está configurado', async () => {
+		const missing = path.join(import.meta.dir, 'não-existe.tex')
+
+		await expect(loadBaseResume(missing, noActiveVersion)).rejects.toBeInstanceOf(MissingBaseResumeError)
+		await expect(loadBaseResume(missing, noActiveVersion)).rejects.toThrow('Currículo não configurado')
+	})
+
+	test('sem versão no banco, usa o arquivo', async () => {
+		const base = await loadBaseResume(path.join(import.meta.dir, './assets/cv.example.tex'), noActiveVersion)
+
+		expect(base.versionId).toBeNull()
 	})
 })

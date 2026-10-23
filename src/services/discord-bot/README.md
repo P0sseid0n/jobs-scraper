@@ -19,7 +19,7 @@ O pedido guarda no contexto o token da interação do Discord, e o resultado vol
 
 ## Variáveis
 
-`DISCORD_TOKEN` e `DISCORD_CHANNEL_ID`, documentadas no `.env.example`. Também dá para informar pelo site (Configurações › Contas), e o salvo lá vale no lugar do `.env` ([ordem de leitura](../../shared/README.md#credenciais)). O bot relê as credenciais a cada 30 s e reconecta quando mudam. Sem credenciais, ou com um token ou canal recusado, ele fica no ar esperando outras, e as vagas esperam na fila. Por isso o bot usa o MongoDB.
+`DISCORD_TOKEN` e `DISCORD_CHANNEL_ID`, documentadas no `.env.example`. Também dá para informar pelo site (Configurações › Contas), e o salvo lá vale no lugar do `.env` ([ordem de leitura](../../shared/README.md#credenciais)). O bot relê as credenciais a cada 30 s e reconecta quando mudam. Sem credenciais, ele fica no ar em espera e descarta as mensagens com um log: as vagas ficam só no site e não se acumulam na fila para sair todas de uma vez quando alguém configurar. Com um token ou canal recusado, ele espera outras credenciais, e as vagas esperam na fila. Por isso o bot usa o MongoDB.
 
 ## Arquivos
 
