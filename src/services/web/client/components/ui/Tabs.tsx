@@ -77,7 +77,7 @@ export function Tabs<K extends string>({ id, label, items, selected, onSelect, c
 					aria-hidden="true"
 					className={cx(
 						'pointer-events-none absolute -bottom-px left-0 h-0 border-b-2 border-ink dark:border-lime',
-						box.slide && 'transition-all duration-500 ease-spring motion-reduce:transition-none',
+						box.slide && 'transition-all duration-500 ease-glide motion-reduce:transition-none',
 					)}
 					style={{ translate: `${box.left}px 0`, width: box.width }}
 				/>

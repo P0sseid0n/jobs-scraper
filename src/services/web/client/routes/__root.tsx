@@ -134,7 +134,7 @@ function RootLayout() {
 								aria-hidden="true"
 								className={cx(
 									'pointer-events-none absolute inset-y-0 left-0 rounded-pill bg-surface-2',
-									nav.box.slide && 'transition-all duration-500 ease-spring motion-reduce:transition-none',
+									nav.box.slide && 'transition-all duration-500 ease-glide motion-reduce:transition-none',
 								)}
 								style={{ translate: `${nav.box.left}px 0`, width: nav.box.width }}
 							/>

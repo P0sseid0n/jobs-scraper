@@ -90,6 +90,8 @@
 
 	/* Mola que passa um pouco do ponto e volta: o botão soltando depois do clique, o texto novo chegando */
 	--ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+	/* Arranca rápido e freia sem passar do ponto: o marcador que desliza (aba escolhida, tela atual), em que a mola parece erro */
+	--ease-glide: cubic-bezier(0.22, 1, 0.36, 1);
 
 	/* Troca de texto dos botões (`useButtonMotion`): o novo sobe de baixo, o antigo sai por cima */
 	--animate-text-in: text-in 380ms var(--ease-spring) both;
