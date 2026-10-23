@@ -8,7 +8,7 @@ import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import { card } from '../ui/Card'
 import { FieldHelp } from '../ui/Field'
-import { Rise, StepActions, StepHeading } from './parts'
+import { Rise, StepHeading, useStepBar } from './parts'
 
 type AccountStepProps = {
 	eyebrow: string
@@ -25,6 +25,8 @@ type AccountStepProps = {
 export function LinkedinStep({ eyebrow, credentials, onCredentials, onBack, onNext }: AccountStepProps) {
 	const login = useLinkedinLogin()
 	const saved = credentials.linkedin.source !== null
+
+	useStepBar({ onBack, primary: { label: 'continuar', disabled: !saved, onClick: onNext } })
 
 	return (
 		<div className="flex flex-col gap-9">
@@ -60,12 +62,6 @@ export function LinkedinStep({ eyebrow, credentials, onCredentials, onBack, onNe
 				</div>
 				<LinkedinLoginStatus login={login} />
 			</Rise>
-
-			<StepActions onBack={onBack}>
-				<Button variant="lime" size="lg" disabled={!saved} onClick={onNext}>
-					continuar
-				</Button>
-			</StepActions>
 		</div>
 	)
 }
@@ -88,6 +84,11 @@ const EXTRAS: { group: Exclude<CredentialGroup, 'linkedin'>; title: string; desc
 export function ExtrasStep({ eyebrow, credentials, onCredentials, onBack, onNext }: AccountStepProps) {
 	const [open, setOpen] = useState<CredentialGroup | null>(null)
 	const anySaved = EXTRAS.some(extra => credentials[extra.group].source !== null)
+
+	useStepBar({
+		onBack,
+		primary: { label: anySaved ? 'continuar' : 'pular por agora', variant: anySaved ? 'lime' : 'ghost', onClick: onNext },
+	})
 
 	return (
 		<div className="flex flex-col gap-9">
@@ -143,12 +144,6 @@ export function ExtrasStep({ eyebrow, credentials, onCredentials, onBack, onNext
 					)
 				})}
 			</div>
-
-			<StepActions onBack={onBack}>
-				<Button variant={anySaved ? 'lime' : 'ghost'} size="lg" onClick={onNext}>
-					{anySaved ? 'continuar' : 'pular por agora'}
-				</Button>
-			</StepActions>
 		</div>
 	)
 }

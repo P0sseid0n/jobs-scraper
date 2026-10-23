@@ -9,7 +9,6 @@ import { LANGUAGE_NAMES, languageLabel } from '../../lib/format'
 import { LIMITS, profileDraftOf, validateProfile, type ProfileDraft } from '../../lib/settings-form'
 import { notify } from '../../stores/toast'
 import { Icon } from '../Icon'
-import { Button } from '../ui/Button'
 import { Combobox } from '../ui/Combobox'
 import { FieldError, FieldHelp, FieldLabel } from '../ui/Field'
 import { Checkbox } from '../ui/Input'
@@ -18,7 +17,7 @@ import { Notice } from '../ui/Notice'
 import { Pill, pill, PillGroup } from '../ui/Pill'
 import { Skeleton } from '../ui/Skeleton'
 import { FIELDSET } from '../ui/text'
-import { Rise, StepActions, StepHeading } from './parts'
+import { Rise, StepHeading, useStepBar } from './parts'
 
 const SENIORITY_NAMES: Record<SeniorityLevel, string> = {
 	intern: 'Estágio',
@@ -125,6 +124,8 @@ function AboutYou({
 		}
 	}
 
+	useStepBar({ onBack, primary: { label: saving ? 'salvando…' : 'continuar', disabled: saving, onClick: save } })
+
 	return (
 		<div className="flex flex-col gap-9">
 			<StepHeading
@@ -208,12 +209,6 @@ function AboutYou({
 					{errors.languages && <FieldError>{errors.languages}</FieldError>}
 				</fieldset>
 			</Rise>
-
-			<StepActions onBack={onBack} order={6}>
-				<Button variant="lime" size="lg" disabled={saving} onClick={save}>
-					{saving ? 'salvando…' : 'continuar'}
-				</Button>
-			</StepActions>
 		</div>
 	)
 }
@@ -293,6 +288,12 @@ function WhatToSearch({
 	}
 
 	const edit = (patch: Partial<SearchDraft>) => setDraft(current => current && { ...current, ...patch })
+
+	useStepBar({
+		onBack,
+		secondary: [{ label: 'sugerir de novo', icon: 'refresh', disabled: suggesting || saving, onClick: suggest }],
+		primary: { label: saving ? 'salvando…' : 'continuar', disabled: suggesting || saving || !draft, onClick: save },
+	})
 
 	return (
 		<div className="flex flex-col gap-9">
@@ -391,16 +392,6 @@ function WhatToSearch({
 					</Rise>
 				</>
 			)}
-
-			<StepActions onBack={onBack} order={5}>
-				<Button variant="ghost" disabled={suggesting || saving} onClick={suggest}>
-					<Icon name="refresh" />
-					sugerir de novo
-				</Button>
-				<Button variant="lime" size="lg" disabled={suggesting || saving || !draft} onClick={save}>
-					{saving ? 'salvando…' : 'continuar'}
-				</Button>
-			</StepActions>
 		</div>
 	)
 }

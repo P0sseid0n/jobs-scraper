@@ -6,12 +6,11 @@ import { api } from '../api'
 import { Icon } from '../components/Icon'
 import { ExtrasStep, LinkedinStep } from '../components/onboarding/AccountSteps'
 import { CvStep } from '../components/onboarding/CvStep'
-import { Rise } from '../components/onboarding/parts'
+import { Rise, StepBar, useStepBar } from '../components/onboarding/parts'
 import { ProfileStep, type ProfileStepData } from '../components/onboarding/ProfileStep'
 import { ReviewStep } from '../components/onboarding/ReviewStep'
 import { NUMBERED_STEPS, ONBOARDING_STEPS, stepDone, type OnboardingStep } from '../components/onboarding/steps'
 import { ProjectIcon } from '../components/ProjectIcon'
-import { Button } from '../components/ui/Button'
 import { IconButton } from '../components/ui/IconButton'
 import { cx } from '../lib/cx'
 import { loadSetup } from '../stores/setup'
@@ -173,6 +172,8 @@ export function OnboardingView({ initial, step }: { initial: OnboardingData; ste
 					>
 						{renderStep()}
 					</div>
+					{/* Fora do passo que entra animado: os botões ficam no lugar e só o texto troca */}
+					<StepBar />
 				</main>
 
 				<aside className="flex w-48 shrink-0 flex-col gap-8 max-lg:hidden">
@@ -269,6 +270,8 @@ const WELCOME_ITEMS = [
 
 /** A abertura: o que o onboarding vai pedir, em três linhas que chegam pelo lado, e o "começar". */
 function Welcome({ onStart }: { onStart: () => void }) {
+	useStepBar({ hint: 'leva uns 5 minutos', primary: { label: 'começar', trailingIcon: 'back', onClick: onStart } })
+
 	return (
 		<div className="flex flex-col gap-10 md:pt-8">
 			<div className="flex flex-col gap-4">
@@ -306,14 +309,6 @@ function Welcome({ onStart }: { onStart: () => void }) {
 					</li>
 				))}
 			</ol>
-
-			<Rise order={7} className="flex flex-wrap items-center gap-4">
-				<Button variant="lime" size="lg" onClick={onStart}>
-					começar
-					<Icon name="back" className="rotate-180" />
-				</Button>
-				<span className="text-sm text-muted">leva uns 5 minutos</span>
-			</Rise>
 		</div>
 	)
 }

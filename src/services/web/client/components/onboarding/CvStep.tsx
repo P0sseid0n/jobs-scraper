@@ -14,7 +14,7 @@ import { Button } from '../ui/Button'
 import { card } from '../ui/Card'
 import { FieldHelp } from '../ui/Field'
 import { Notice } from '../ui/Notice'
-import { ChoiceCard, Rise, StepActions, StepHeading } from './parts'
+import { ChoiceCard, Rise, StepHeading, useStepBar } from './parts'
 
 // Sem o stream (conexão caiu), consulta as versões enquanto a nova é validada
 const POLL_MS = 4_000
@@ -220,6 +220,26 @@ export function CvStep({
 		</div>
 	)
 
+	const editCandidate = () => (candidate?.fromForm ? openForm() : fileInput.current?.click())
+	const reviewing = candidate?.status === 'valid' && candidate.versionId !== active?.versionId
+
+	useStepBar({
+		onBack,
+		secondary:
+			candidate?.status === 'invalid'
+				? [{ label: candidate.fromForm ? 'corrigir no formulário' : 'enviar outro arquivo', onClick: editCandidate }]
+				: reviewing
+					? [{ label: 'mudar algo', onClick: editCandidate }]
+					: [],
+		primary: reviewing
+			? {
+					label: activating ? 'salvando…' : 'usar este currículo',
+					disabled: activating,
+					onClick: () => candidate && activate(candidate),
+				}
+			: { label: 'continuar', disabled: !ready || validating || submitting, onClick: onNext },
+	})
+
 	return (
 		<div className="flex flex-col gap-9">
 			<StepHeading
@@ -256,28 +276,6 @@ export function CvStep({
 					onClose={() => setFormOpen(false)}
 				/>
 			)}
-
-			<StepActions onBack={onBack}>
-				{candidate?.status === 'invalid' && (
-					<Button variant="ghost" onClick={() => (candidate.fromForm ? openForm() : fileInput.current?.click())}>
-						{candidate.fromForm ? 'corrigir no formulário' : 'enviar outro arquivo'}
-					</Button>
-				)}
-				{candidate?.status === 'valid' && candidate.versionId !== active?.versionId ? (
-					<>
-						<Button variant="ghost" onClick={() => (candidate.fromForm ? openForm() : fileInput.current?.click())}>
-							mudar algo
-						</Button>
-						<Button variant="lime" size="lg" disabled={activating} onClick={() => activate(candidate)}>
-							{activating ? 'salvando…' : 'usar este currículo'}
-						</Button>
-					</>
-				) : (
-					<Button variant="lime" size="lg" disabled={!ready || validating || submitting} onClick={onNext}>
-						continuar
-					</Button>
-				)}
-			</StepActions>
 		</div>
 	)
 }

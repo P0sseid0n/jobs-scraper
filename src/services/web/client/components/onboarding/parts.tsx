@@ -1,7 +1,8 @@
-import type { ReactNode } from 'react'
+import { useLayoutEffect, type ReactNode } from 'react'
 
 import { cx } from '../../lib/cx'
-import { Icon } from '../Icon'
+import { createStore, useStore } from '../../lib/store'
+import { Icon, type IconName } from '../Icon'
 import { Button } from '../ui/Button'
 
 /**
@@ -36,23 +37,77 @@ export function StepHeading({ eyebrow, title, lead }: { eyebrow?: string; title:
 	)
 }
 
+/** Um botão da barra do passo. */
+export type StepButton = {
+	label: string
+	onClick: () => void
+	disabled?: boolean
+	/** Ícone antes do texto; `trailingIcon`, depois (ex.: a seta do "começar"). */
+	icon?: IconName
+	trailingIcon?: IconName
+	/** Só a ação principal: `ghost` quando ela é secundária de fato (ex.: "pular por agora"). */
+	variant?: 'lime' | 'ghost'
+}
+
+/** O que a barra de baixo mostra no passo atual: "voltar", os botões extras e a ação principal. */
+export type StepBarState = {
+	onBack?: () => void
+	/** Texto ao lado, quando não há "voltar" (ex.: "leva uns 5 minutos"). */
+	hint?: string
+	secondary?: StepButton[]
+	primary: StepButton
+}
+
+const stepBar = createStore<StepBarState | null>(null)
+
 /**
- * Os botões do fim do passo: "voltar" à esquerda e a ação principal à direita. No celular, ficam presos embaixo da
- * tela, para o "continuar" estar sempre à mão.
+ * Diz à barra de baixo o que mostrar enquanto o passo está na tela. A barra fica fora do passo (que entra animado a cada
+ * troca): os botões não somem e voltam, só o texto muda, com a troca animada do `Button`.
  */
-export function StepActions({ onBack, children, order = 5 }: { onBack?: () => void; children: ReactNode; order?: number }) {
+export function useStepBar(state: StepBarState) {
+	// A cada render, sem dependências: os textos e o "desabilitado" mudam com o passo. Só a barra renderiza de novo.
+	useLayoutEffect(() => stepBar.set(state))
+}
+
+/**
+ * A barra com os botões do passo atual, embaixo do formulário: "voltar" à esquerda e a ação principal à direita. Presa
+ * no rodapé da tela enquanto o passo rola, para o "continuar" estar sempre à mão.
+ */
+export function StepBar() {
+	const state = useStore(stepBar)
+	if (!state) return null
+
 	return (
 		<Rise
-			order={order}
-			className="flex flex-wrap items-center gap-3 border-t border-line pt-6 max-md:sticky max-md:bottom-0 max-md:-mx-4 max-md:bg-bg max-md:px-4 max-md:pt-3 max-md:pb-safe-3"
+			order={5}
+			className="sticky bottom-0 z-10 mt-9 flex flex-wrap items-center gap-3 border-t border-line bg-bg pt-6 pb-6 max-md:-mx-4 max-md:px-4 max-md:pt-3 max-md:pb-safe-3"
 		>
-			{onBack && (
-				<Button variant="ghost" onClick={onBack}>
+			{state.onBack ? (
+				<Button variant="ghost" onClick={state.onBack}>
 					<Icon name="back" />
 					voltar
 				</Button>
+			) : (
+				state.hint && <span className="text-sm text-muted">{state.hint}</span>
 			)}
-			<div className="ml-auto flex flex-wrap items-center justify-end gap-3">{children}</div>
+			<div className="ml-auto flex flex-wrap items-center justify-end gap-3">
+				{state.secondary?.map((button, index) => (
+					<Button key={index} variant="ghost" disabled={button.disabled} onClick={button.onClick}>
+						{button.icon && <Icon name={button.icon} />}
+						{button.label}
+					</Button>
+				))}
+				<Button
+					variant={state.primary.variant ?? 'lime'}
+					size="lg"
+					disabled={state.primary.disabled}
+					onClick={state.primary.onClick}
+				>
+					{state.primary.icon && <Icon name={state.primary.icon} />}
+					{state.primary.label}
+					{state.primary.trailingIcon && <Icon name={state.primary.trailingIcon} className="rotate-180" />}
+				</Button>
+			</div>
 		</Rise>
 	)
 }

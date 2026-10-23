@@ -10,7 +10,7 @@ import { Icon } from '../Icon'
 import { Button } from '../ui/Button'
 import { card } from '../ui/Card'
 import { FieldHelp } from '../ui/Field'
-import { Rise, StepActions, StepHeading } from './parts'
+import { Rise, StepHeading, useStepBar } from './parts'
 import type { OnboardingStep } from './steps'
 
 type Row = { step: OnboardingStep; title: string; detail: string; done: boolean; optional?: boolean }
@@ -86,6 +86,11 @@ export function ReviewStep({
 		}
 	}
 
+	useStepBar({
+		onBack,
+		primary: { label: starting ? 'começando…' : 'fazer a primeira coleta', disabled: !setup.ready || starting, onClick: firstRun },
+	})
+
 	return (
 		<div className="flex flex-col gap-9">
 			<StepHeading
@@ -136,12 +141,6 @@ export function ReviewStep({
 					))}
 				</ul>
 			</Rise>
-
-			<StepActions onBack={onBack}>
-				<Button variant="lime" size="lg" disabled={!setup.ready || starting} onClick={firstRun}>
-					{starting ? 'começando…' : 'fazer a primeira coleta'}
-				</Button>
-			</StepActions>
 		</div>
 	)
 }
