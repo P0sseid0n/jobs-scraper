@@ -14,7 +14,15 @@ import type {
 	ScraperSettings,
 	SettingsKey,
 } from '@shared/contracts'
-import type { CvBaseStatus, ScraperRunStatus, ScraperRunTrigger, ScraperTermErrorKind, SeenPostOutcome } from '@shared/database'
+import type {
+	CvBaseStatus,
+	LinkedinChallenge,
+	LinkedinLoginStatus,
+	ScraperRunStatus,
+	ScraperRunTrigger,
+	ScraperTermErrorKind,
+	SeenPostOutcome,
+} from '@shared/database'
 
 /** Vaga preparada para ser exibida pelo site. */
 export type WebJob = Omit<ProcessedJob, 'title'> & {
@@ -141,13 +149,40 @@ export type ScraperStatus = {
 	linkedinAccount: boolean
 }
 
+/** Os passos do onboarding que têm o que configurar (a revisão, no fim, não tem). */
+export const SETUP_STEPS = ['profile', 'linkedin', 'cv', 'discord', 'github'] as const
+export type SetupStep = (typeof SETUP_STEPS)[number]
+
+/** O mínimo para começar: sem um deles, o site abre o onboarding. Discord e GitHub são opcionais. */
+export const REQUIRED_SETUP_STEPS = ['profile', 'linkedin', 'cv'] as const satisfies readonly SetupStep[]
+
 /** `GET /api/setup`: se o onboarding deve abrir e o que já está configurado (pelo `.env` ou pelo site). */
 export type SetupStatus = {
-	/** `SKIP_ONBOARDING` do `.env`: com `true`, o site não abre o onboarding. */
+	/** `SKIP_ONBOARDING` do `.env`: com `true`, o site não abre o onboarding (só avisa o que falta). */
 	skipOnboarding: boolean
-	/** Área e cargo-alvo preenchidos (`isProfileComplete`). */
-	profileComplete: boolean
-	activeSearchTerms: number
+	/**
+	 * O que já está configurado: `profile` é área e cargo-alvo com pelo menos um termo de busca ativo; `cv`, uma versão
+	 * ativa do currículo base ou o arquivo `CV_TEX_FILE`; as contas, salvas no site ou no `.env`.
+	 */
+	steps: Record<SetupStep, boolean>
+	/** Todos os `REQUIRED_SETUP_STEPS` configurados. */
+	ready: boolean
+}
+
+/** `POST /api/setup/suggestions`: termos e palavras-chave sugeridos para revisar; `fromAi: false` se a IA falhou. */
+export type SearchSuggestions = { searchTerms: string[]; requiredKeywords: string[]; excludedKeywords: string[]; fromAi: boolean }
+
+/** `GET /api/linkedin/login`: o login do LinkedIn em andamento ou o último (`null` se nunca houve um). */
+export type LinkedinLoginState = {
+	status: LinkedinLoginStatus
+	/** A verificação pedida pelo LinkedIn, com `status: 'verification'`. */
+	challenge: LinkedinChallenge | null
+	/** O QR code da verificação, já em SVG. */
+	qrSvg: string | null
+	message: string | null
+	/** Quando o site pediu o teste; `null` nos logins das coletas. */
+	requestedAt: string | null
+	updatedAt: string
 }
 
 /** Tamanhos de página que o histórico de coletas aceita. */

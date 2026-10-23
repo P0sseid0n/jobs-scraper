@@ -21,3 +21,8 @@ export const VerificationCodeSchema = z.object({
 })
 
 export type VerificationCode = z.infer<typeof VerificationCodeSchema>
+
+/** Mensagem da fila `scraper-login-test`: o site pediu para testar o login do LinkedIn com a conta salva. */
+export const LoginTestRequestSchema = z.object({ requestedAt: z.iso.datetime() })
+
+export type LoginTestRequest = z.infer<typeof LoginTestRequestSchema>

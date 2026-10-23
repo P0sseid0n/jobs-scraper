@@ -4,17 +4,13 @@ import { z } from 'zod'
 import { MAX_SEARCH_TERMS, type ProfileSettings, type SeniorityLevel } from '@shared/contracts'
 import type { Logger } from '@shared/logging'
 
+import type { SearchSuggestions } from '../api-types'
+
 /** Perfil com o mínimo para sugerir (ver `isProfileComplete`). */
 export type SuggestionProfile = Pick<ProfileSettings, 'seniority' | 'languages'> & { area: string; targetRole: string }
 
-/** Termos de busca e palavras-chave para a pessoa revisar (no onboarding) antes de salvar nas configurações. */
-export type SearchSuggestions = {
-	searchTerms: string[]
-	requiredKeywords: string[]
-	excludedKeywords: string[]
-	/** `false` quando a IA falhou e só o cargo-alvo (e as palavras dele) foi sugerido. */
-	fromAi: boolean
-}
+// Termos de busca e palavras-chave para a pessoa revisar (no onboarding) antes de salvar nas configurações
+export type { SearchSuggestions }
 
 // Poucos de cada, para a revisão ser rápida e o filtro de palavras obrigatórias não ficar estreito demais
 const MAX_SUGGESTED_TERMS = Math.min(5, MAX_SEARCH_TERMS)

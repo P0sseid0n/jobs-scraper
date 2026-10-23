@@ -1,6 +1,8 @@
 import { z } from 'zod'
 
-import { booleanFromEnv } from '@shared/config'
+import { booleanFromEnv, ollamaEnv } from '@shared/config'
+
+import { cvUpdaterEnv } from '../cv-updater/config'
 
 export const webEnv = {
 	/** No Docker, use 0.0.0.0 (a porta é publicada só em 127.0.0.1 pelo docker-compose). */
@@ -11,4 +13,8 @@ export const webEnv = {
 	 * campos já preenchidos pelo `.env` e editáveis.
 	 */
 	SKIP_ONBOARDING: booleanFromEnv.default(false),
+	/** O mesmo do cv-updater: com esse arquivo, o currículo conta como configurado no onboarding. */
+	CV_TEX_FILE: cvUpdaterEnv.CV_TEX_FILE,
+	// O Ollama sugere os termos de busca e as palavras-chave no onboarding
+	...ollamaEnv,
 }

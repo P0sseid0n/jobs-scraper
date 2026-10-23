@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VagasRouteImport } from './routes/_vagas'
+import { Route as BoasVindasRouteImport } from './routes/boas-vindas'
 import { Route as ColetasRouteImport } from './routes/coletas'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as CurriculosRouteImport } from './routes/curriculos'
@@ -19,6 +20,11 @@ import { Route as VagasVagasIdRouteImport } from './routes/_vagas/vagas.$id'
 
 const VagasRoute = VagasRouteImport.update({
   id: '/_vagas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BoasVindasRoute = BoasVindasRouteImport.update({
+  id: '/boas-vindas',
+  path: '/boas-vindas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ColetasRoute = ColetasRouteImport.update({
@@ -54,6 +60,7 @@ const VagasVagasIdRoute = VagasVagasIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof VagasIndexRoute
+  '/boas-vindas': typeof BoasVindasRoute
   '/coletas': typeof ColetasRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/curriculos': typeof CurriculosRoute
@@ -61,6 +68,7 @@ export interface FileRoutesByFullPath {
   '/vagas/$id': typeof VagasVagasIdRoute
 }
 export interface FileRoutesByTo {
+  '/boas-vindas': typeof BoasVindasRoute
   '/coletas': typeof ColetasRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/curriculos': typeof CurriculosRoute
@@ -71,6 +79,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_vagas': typeof VagasRouteWithChildren
+  '/boas-vindas': typeof BoasVindasRoute
   '/coletas': typeof ColetasRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/curriculos': typeof CurriculosRoute
@@ -82,6 +91,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/boas-vindas'
     | '/coletas'
     | '/configuracoes'
     | '/curriculos'
@@ -89,6 +99,7 @@ export interface FileRouteTypes {
     | '/vagas/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/boas-vindas'
     | '/coletas'
     | '/configuracoes'
     | '/curriculos'
@@ -98,6 +109,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/_vagas'
+    | '/boas-vindas'
     | '/coletas'
     | '/configuracoes'
     | '/curriculos'
@@ -108,6 +120,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   VagasRoute: typeof VagasRouteWithChildren
+  BoasVindasRoute: typeof BoasVindasRoute
   ColetasRoute: typeof ColetasRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
   CurriculosRoute: typeof CurriculosRoute
@@ -121,6 +134,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof VagasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/boas-vindas': {
+      id: '/boas-vindas'
+      path: '/boas-vindas'
+      fullPath: '/boas-vindas'
+      preLoaderRoute: typeof BoasVindasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/coletas': {
@@ -182,6 +202,7 @@ const VagasRouteWithChildren = VagasRoute._addFileChildren(VagasRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   VagasRoute: VagasRouteWithChildren,
+  BoasVindasRoute: BoasVindasRoute,
   ColetasRoute: ColetasRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
   CurriculosRoute: CurriculosRoute,

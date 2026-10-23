@@ -1,3 +1,4 @@
+import { Ollama } from 'ollama'
 import { z } from 'zod'
 
 import { CvBaseValidationResultSchema, CvResultSchema, ProcessedJobSchema } from '@shared/contracts'
@@ -26,10 +27,13 @@ import { correctJob } from './server/job-correction'
 import { setJobsViewed, setJobViewed } from './server/job-viewed'
 import { getJob, getRawJob, jobFacets, listJobs } from './server/jobs'
 import { toWebJob, type JobDocument } from './server/jobs-query'
+import { getLinkedinLogin, requestLinkedinLogin, sendVerificationCode } from './server/linkedin-login'
 import { listRuns, requestRun, scraperStatus } from './server/scraper'
-import { getSettings, putSettings, setupStatus } from './server/settings'
+import { getSettings, putSettings } from './server/settings'
+import { searchSuggestions, setupStatus } from './server/setup'
 
 const { config, logger, queue } = await startService({ name: 'web', env: webEnv, database: true })
+const ai = { ollama: new Ollama({ host: config.OLLAMA_HOST }), model: config.OLLAMA_MODEL }
 
 // Os erros de validação vão para a interface: mensagens do zod em português
 z.config(z.locales.pt())
@@ -93,7 +97,10 @@ const server = Bun.serve({
 		'/api/credentials': { GET: api(getCredentials) },
 		'/api/credentials/:group': { PUT: api(putCredentials), DELETE: api(removeCredentials) },
 		'/api/credentials/:group/test': { POST: api(testCredentials) },
-		'/api/setup': { GET: api(() => setupStatus({ skipOnboarding: config.SKIP_ONBOARDING })) },
+		'/api/linkedin/login': { GET: api(getLinkedinLogin), POST: api(() => requestLinkedinLogin(queue)) },
+		'/api/linkedin/verification-code': { POST: api(req => sendVerificationCode(req, queue)) },
+		'/api/setup': { GET: api(() => setupStatus({ skipOnboarding: config.SKIP_ONBOARDING, cvTexFile: config.CV_TEX_FILE })) },
+		'/api/setup/suggestions': { POST: api(() => searchSuggestions(ai, logger)) },
 		'/api/*': Response.json({ error: 'Rota da API não encontrada' } satisfies ApiError, { status: 404 }),
 		// O resto é a aplicação (as rotas do navegador são resolvidas no cliente)
 		'/*': app,

@@ -10,7 +10,7 @@ Busca posts de vagas no LinkedIn com o Puppeteer e envia cada um para a fila `po
 - **Sem termos:** o `.env.example` e as configurações nascem sem termos de busca (o `.env` ou o onboarding do site preenchem). Sem nenhum termo ativo, o scraper não coleta: fica em espera, registra o motivo no log e volta a coletar quando um termo for ativado. A tela de Coletas mostra o que falta.
 - **Sem conta do LinkedIn:** o scraper sobe mesmo assim e fica em espera do mesmo jeito: sem conta no site nem no `.env`, não coleta, registra o motivo no log, e a tela de Coletas pede para conectar a conta. Ela é relida antes de cada coleta, então salvar a conta pelo site já inicia as coletas, sem reiniciar.
 - **O que conta no limite:** só os posts enviados para a IA. Posts já processados em coletas anteriores e posts em um idioma fora dos aceitos (`allowedLanguages` do post-processing) são pulados, e a busca continua rolando até completar o limite. Ela só para antes no fim dos resultados ou depois de 15 rolagens seguidas sem nenhum post enviado, para não rolar sem fim (cada rolagem espera os posts carregarem, então um termo assim leva alguns minutos).
-- **Coleta única ou periódica:** com `SCRAPER_INTERVAL_MINUTES=0` (padrão), o scraper coleta uma vez e encerra. Com um intervalo (ex.: `180`), ele fica rodando, coleta na agenda e relê as configurações a cada 30 segundos, sem reiniciar.
+- **Coleta única ou periódica:** com `SCRAPER_INTERVAL_MINUTES=0` (padrão), o scraper coleta uma vez e encerra (sem termos de busca ativos ou sem conta do LinkedIn, antes espera a configuração ser salva pelo site, relendo a cada 30 segundos). Com um intervalo (ex.: `180`), ele fica rodando, coleta na agenda e relê as configurações a cada 30 segundos, sem reiniciar.
 - **Coletar agora:** `bun scraper:run`, ou o botão no site, publica uma mensagem `ScraperCommand` na fila `scraper`. Funciona mesmo com as coletas pausadas.
 - **Histórico:** cada coleta fica em `scraper_runs` por 90 dias, com o status e os posts enviados por termo.
 
@@ -20,10 +20,10 @@ O post-processing divide os posts de agregadores ("📄 Cargo" + "🔗 Candidate
 
 ## Login e verificação
 
-A sessão fica salva em `data/scraper/linkedin-cookies.json` (no Docker, no volume `scraper_data`), então o login só é refeito quando ela expira. Com `HEADLESS=auto` (padrão), o navegador roda sem janela. Se o LinkedIn pedir uma verificação:
+A sessão fica salva em `data/scraper/linkedin-cookies.json` (no Docker, no volume `scraper_data`), então o login só é refeito quando ela expira. O site também pede um teste do login (onboarding e Configurações › Contas) pela fila `scraper-login-test`: o scraper abre o feed e faz o login se precisar. Com `HEADLESS=auto` (padrão), o navegador roda sem janela. Se o LinkedIn pedir uma verificação, ela também aparece no site (cada passo do login fica na coleção `linkedin_login`):
 
-- **QR code:** aparece no terminal (ou em `docker compose logs -f scraper`) para escanear com o app do LinkedIn.
-- **Código** (e-mail, SMS ou app autenticador): envie de outro terminal com `bun scraper:verify 123456`. Se estiver errado, envie outro.
+- **QR code:** aparece no site e no terminal (ou em `docker compose logs -f scraper`) para escanear com o app do LinkedIn.
+- **Código** (e-mail, SMS ou app autenticador): digite no site ou envie de outro terminal com `bun scraper:verify 123456`. Se estiver errado, envie outro.
 - **Aprovação no app:** aprove no celular; o scraper espera até 3 minutos.
 - **Captcha ou verificação desconhecida:** onde há tela, o scraper abre a janela do navegador, refaz o login para você resolver e volta a rodar sem janela. Sem tela (Docker), salva um print em `data/scraper/login-verification.png` e a coleta falha.
 

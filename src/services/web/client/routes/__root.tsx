@@ -1,7 +1,7 @@
-import { createRootRoute, Link, Outlet, useMatches, useRouterState } from '@tanstack/react-router'
+import { createRootRoute, Link, Outlet, redirect, useMatches, useRouterState } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 
-import type { ScraperStatus } from '../../api-types'
+import { REQUIRED_SETUP_STEPS, type ScraperStatus, type SetupStatus } from '../../api-types'
 import { api } from '../api'
 import { CvTray } from '../components/CvTray'
 import { Icon, type IconName } from '../components/Icon'
@@ -18,11 +18,36 @@ import { formatDuration } from '../lib/format'
 import { useTrayRequests } from '../stores/cv'
 import { jobsStore } from '../stores/jobs'
 import { useConnected } from '../stores/live'
+import { loadSetup, needsOnboarding, useSetup } from '../stores/setup'
 import { toggleTheme } from '../stores/theme'
 import { dismissToast, useToasts } from '../stores/toast'
 
-/** A moldura de todas as telas: cabeçalho, navegação, bandeja de currículos e avisos. */
-export const Route = createRootRoute({ component: RootLayout, notFoundComponent: NotFound })
+/**
+ * A moldura de todas as telas: cabeçalho, navegação, bandeja de currículos e avisos. Enquanto falta o mínimo (perfil,
+ * LinkedIn e currículo), qualquer tela leva ao onboarding (`/boas-vindas`), que tem uma tela só dele, sem o cabeçalho.
+ */
+export const Route = createRootRoute({
+	beforeLoad: async ({ location }) => {
+		if (isOnboarding(location.pathname)) return
+		if (needsOnboarding(await loadSetup())) throw redirect({ to: '/boas-vindas' })
+	},
+	component: RootLayout,
+	notFoundComponent: NotFound,
+})
+
+const isOnboarding = (path: string) => path === '/boas-vindas' || path.startsWith('/boas-vindas/')
+
+const SETUP_NAMES: Record<(typeof REQUIRED_SETUP_STEPS)[number], string> = {
+	profile: 'sua área e o que buscar',
+	linkedin: 'a conta do LinkedIn',
+	cv: 'o currículo',
+}
+
+/** O que falta do mínimo, em texto ("a conta do LinkedIn e o currículo"); vazio se nada falta. */
+function missingSetup(setup: SetupStatus | null) {
+	const names = setup ? REQUIRED_SETUP_STEPS.filter(step => !setup.steps[step]).map(step => SETUP_NAMES[step]) : []
+	return names.length > 1 ? `${names.slice(0, -1).join(', ')} e ${names.at(-1)}` : (names[0] ?? '')
+}
 
 const NAV = [
 	{ path: '/', label: 'vagas', icon: 'briefcase' },
@@ -104,6 +129,7 @@ function RootLayout() {
 	const toasts = useToasts()
 	const pendingCvs = useTrayRequests().filter(request => request.status === 'pending').length
 	const nav = useSlidingIndicator<HTMLElement>('[aria-current="page"]', path)
+	const missing = missingSetup(useSetup())
 
 	// "vagas" também fica marcado com uma vaga aberta (`/vagas/$id`)
 	const isActive = (item: string) => (item === '/' ? path === '/' || path.startsWith('/vagas/') : path.startsWith(item))
@@ -111,6 +137,15 @@ function RootLayout() {
 	useEffect(() => {
 		document.title = `${title ?? 'Jobs Scraper'} · jobs/scraper`
 	}, [title])
+
+	if (isOnboarding(path)) {
+		return (
+			<>
+				<Outlet />
+				<Toasts toasts={toasts} />
+			</>
+		)
+	}
 
 	return (
 		<div className="flex min-h-dvh flex-col">
@@ -189,6 +224,19 @@ function RootLayout() {
 				</div>
 			</header>
 
+			{/* Com SKIP_ONBOARDING, ou se algo deixou de estar configurado depois: o aviso no lugar do onboarding */}
+			{missing && (
+				<div className="border-b border-line bg-warn-bg text-warn">
+					<div className={pageFrame({ className: 'flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5 text-sm' })}>
+						<Icon name="alert" />
+						<p className="grow">Falta configurar {missing}: sem isso, o site não encontra vagas para você.</p>
+						<Link className="font-semibold text-warn underline underline-offset-2" to="/boas-vindas">
+							configurar agora
+						</Link>
+					</div>
+				</div>
+			)}
+
 			<main id="main" className="flex-1 outline-none" tabIndex={-1}>
 				<Outlet />
 			</main>
@@ -222,26 +270,33 @@ function RootLayout() {
 
 			<CvTray />
 
-			<div
-				className="pointer-events-none fixed inset-x-4 bottom-6 z-40 mx-auto flex max-w-115 flex-col gap-2 max-md:bottom-safe-21"
-				aria-live="polite"
-			>
-				{toasts.map(toast => (
-					<div
-						key={toast.id}
-						className={cx(
-							'pointer-events-auto flex items-center gap-2.5 rounded-md bg-ink py-2 pr-2 pl-3.5 text-sm text-bg shadow-float animate-toast-in motion-reduce:animate-none',
-							toast.tone === 'error' && 'border border-danger bg-danger-bg text-danger',
-						)}
-						role={toast.tone === 'error' ? 'alert' : 'status'}
-					>
-						<span className="grow">{toast.message}</span>
-						<IconButton label="Fechar aviso" size="sm" onClick={() => dismissToast(toast.id)}>
-							<Icon name="close" size={14} />
-						</IconButton>
-					</div>
-				))}
-			</div>
+			<Toasts toasts={toasts} />
+		</div>
+	)
+}
+
+/** Os avisos que chegam embaixo da tela. */
+function Toasts({ toasts }: { toasts: ReturnType<typeof useToasts> }) {
+	return (
+		<div
+			className="pointer-events-none fixed inset-x-4 bottom-6 z-40 mx-auto flex max-w-115 flex-col gap-2 max-md:bottom-safe-21"
+			aria-live="polite"
+		>
+			{toasts.map(toast => (
+				<div
+					key={toast.id}
+					className={cx(
+						'pointer-events-auto flex items-center gap-2.5 rounded-md bg-ink py-2 pr-2 pl-3.5 text-sm text-bg shadow-float animate-toast-in motion-reduce:animate-none',
+						toast.tone === 'error' && 'border border-danger bg-danger-bg text-danger',
+					)}
+					role={toast.tone === 'error' ? 'alert' : 'status'}
+				>
+					<span className="grow">{toast.message}</span>
+					<IconButton label="Fechar aviso" size="sm" onClick={() => dismissToast(toast.id)}>
+						<Icon name="close" size={14} />
+					</IconButton>
+				</div>
+			))}
 		</div>
 	)
 }

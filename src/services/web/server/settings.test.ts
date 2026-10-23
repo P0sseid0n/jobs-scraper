@@ -22,7 +22,7 @@ mock.module('../../../shared/database/settings.model', () => ({
 	},
 }))
 
-const { getSettings, putSettings, setupStatus } = await import('./settings')
+const { getSettings, putSettings } = await import('./settings')
 
 const logger = createLogger('test')
 logger.level = 'silent'
@@ -132,23 +132,5 @@ describe('valores do .env', () => {
 
 		await expect(seedFrom({ SCRAPER_MAX_POSTS: '500' })).rejects.toThrow('Valores do .env inválidos para as configurações "scraper"')
 		expect(stored.size).toBe(0)
-	})
-})
-
-describe('/api/setup', () => {
-	afterEach(() => stored.clear())
-
-	test('diz se o onboarding deve abrir e o que já está configurado', async () => {
-		const empty = await (await setupStatus({ skipOnboarding: false })).json()
-		expect(empty).toEqual({ skipOnboarding: false, profileComplete: false, activeSearchTerms: 0 })
-
-		await put(request('profile', { area: 'Enfermagem', targetRole: 'Enfermeiro' }))
-		await put(request('scraper', { searchTerms: [{ term: 'Enfermeiro' }, { term: 'Enfermeira', enabled: false }] }))
-
-		expect(await (await setupStatus({ skipOnboarding: true })).json()).toEqual({
-			skipOnboarding: true,
-			profileComplete: true,
-			activeSearchTerms: 1,
-		})
 	})
 })

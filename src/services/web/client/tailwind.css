@@ -173,6 +173,48 @@
 			transform: scale(1);
 		}
 	}
+
+	/*
+	 * Onboarding: o texto sobe do fundo (menor e desfocado), um bloco depois do outro (`stagger-*`); o passo novo entra
+	 * pelo lado para onde se andou; o brilho do painel escuro passeia devagar.
+	 */
+	--animate-rise-in: rise-in 700ms var(--ease-glide) both;
+	--animate-step-next: step-next 520ms var(--ease-glide) both;
+	--animate-step-back: step-back 520ms var(--ease-glide) both;
+	--animate-drift: drift 16s ease-in-out infinite alternate;
+
+	@keyframes rise-in {
+		from {
+			opacity: 0;
+			transform: translateY(28px) scale(0.97);
+			filter: blur(6px);
+		}
+	}
+
+	@keyframes step-next {
+		from {
+			opacity: 0;
+			transform: translateX(56px);
+		}
+	}
+
+	@keyframes step-back {
+		from {
+			opacity: 0;
+			transform: translateX(-56px);
+		}
+	}
+
+	@keyframes drift {
+		to {
+			transform: translate(18%, -12%) scale(1.2);
+		}
+	}
+}
+
+/* Atraso da animação em degraus de 90 ms, para os blocos chegarem um depois do outro: `stagger-2` espera 180 ms */
+@utility stagger-* {
+	animation-delay: calc(--value(integer) * 90ms);
 }
 
 /* Repete o `gap` do pai: o conteúdo do botão, embrulhado para animar, fica com o mesmo espaço entre ícone e texto */

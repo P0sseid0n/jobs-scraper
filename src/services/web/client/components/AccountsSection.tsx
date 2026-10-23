@@ -5,6 +5,7 @@ import { api, RequestError } from '../api'
 import { cx } from '../lib/cx'
 import { notify } from '../stores/toast'
 import { Icon } from './Icon'
+import { LinkedinLoginStatus, useLinkedinLogin } from './LinkedinLogin'
 import { Badge } from './ui/Badge'
 import { Button } from './ui/Button'
 import { card } from './ui/Card'
@@ -34,6 +35,7 @@ type GroupDef = {
 	note: string
 	/** O que fica parado enquanto a conta não está configurada; sem ele, a conta é opcional. */
 	missing?: string
+	/** Testada pela API das credenciais (o LinkedIn tem o teste próprio, `LinkedinLogin`). */
 	testable: boolean
 	fields: FieldDef[]
 }
@@ -41,7 +43,7 @@ type GroupDef = {
 const GROUPS: Record<CredentialGroup, GroupDef> = {
 	linkedin: {
 		title: 'LinkedIn',
-		note: 'Usada pelo scraper a partir da próxima coleta. Não tem teste: cada login a mais aumenta o risco de bloqueio da conta.',
+		note: 'Usada pelo scraper a partir da próxima coleta. O teste faz o login de verdade e guarda a sessão para as coletas.',
 		missing: 'Sem ela, o scraper fica em espera e não coleta posts. A coleta começa sozinha depois de salvar.',
 		testable: false,
 		fields: [
@@ -124,6 +126,7 @@ export function AccountsSection({ initial }: { initial: WebCredentials }) {
 				{GROUP_KEYS.map(group => (
 					<TabPanel key={group} tabsId="accounts" value={group} selected={group === selected} className="flex flex-col gap-4">
 						<AccountGroup group={group} status={status} onSaved={setStatus} />
+						{group === 'linkedin' && <LinkedinLoginTest configured={status.linkedin.source !== null} />}
 					</TabPanel>
 				))}
 			</div>
@@ -137,14 +140,37 @@ function draftOf(group: CredentialGroup, status: WebCredentials) {
 	return Object.fromEntries(GROUPS[group].fields.map(field => [field.name, field.secret ? '' : (values[field.name] ?? '')]))
 }
 
-function AccountGroup({
+/** O teste do login do LinkedIn, com a conta salva. */
+function LinkedinLoginTest({ configured }: { configured: boolean }) {
+	const login = useLinkedinLogin()
+
+	return (
+		<div className="flex flex-col gap-3 border-t border-line pt-4">
+			<div className="flex flex-wrap items-center gap-3">
+				<Button variant="ghost" disabled={!configured || login.active} onClick={login.start}>
+					{login.active ? 'testando…' : 'testar login'}
+				</Button>
+				<FieldHelp>Se o LinkedIn pedir uma verificação, ela aparece aqui.</FieldHelp>
+			</div>
+			<LinkedinLoginStatus login={login} />
+		</div>
+	)
+}
+
+/**
+ * Os campos de uma conta, com salvar, testar e apagar. Com `compact` (no onboarding), sem a nota, o selo de origem e o
+ * aviso do que fica parado: a tela em volta já explica.
+ */
+export function AccountGroup({
 	group,
 	status,
 	onSaved,
+	compact = false,
 }: {
 	group: CredentialGroup
 	status: WebCredentials
 	onSaved: (status: WebCredentials) => void
+	compact?: boolean
 }) {
 	const config = GROUPS[group]
 	const current = status[group]
@@ -221,12 +247,14 @@ function AccountGroup({
 				/>
 			)}
 
-			<div className="flex flex-wrap items-center justify-between gap-3">
-				<FieldHelp>{config.note}</FieldHelp>
-				<Badge tone={badge.tone}>{badge.label}</Badge>
-			</div>
+			{!compact && (
+				<div className="flex flex-wrap items-center justify-between gap-3">
+					<FieldHelp>{config.note}</FieldHelp>
+					<Badge tone={badge.tone}>{badge.label}</Badge>
+				</div>
+			)}
 
-			{current.source === null && config.missing && (
+			{!compact && current.source === null && config.missing && (
 				<Notice tone="warn" icon="alert">
 					<p className="text-sm">{config.missing}</p>
 				</Notice>

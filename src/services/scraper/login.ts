@@ -2,6 +2,7 @@ import path from 'node:path'
 import type { ElementHandle, Page } from 'puppeteer'
 
 import type { CredentialsOf } from '@shared/contracts'
+import { reportLinkedinLogin, type LinkedinLoginUpdate } from '@shared/database'
 import type { Logger } from '@shared/logging'
 
 import type { BrowserSession } from './browser-session'
@@ -82,19 +83,13 @@ export async function ensureLoggedIn(session: BrowserSession, options: LoginOpti
 	if (!isAuthPage(page.url()) && !hasLoginForm) return false
 
 	logger.info({ url: page.url() }, '⚠️ Login necessário')
+	await report({ status: 'running' }, logger)
 
 	try {
-		await logIn(session, options)
+		await logInOrOpenWindow(session, options)
 	} catch (error) {
-		if (!(error instanceof NeedsWindowError)) throw error
-
-		// Não dá para mostrar a janela do navegador headless: abre outro, com janela, e refaz o login nele
-		logger.warn(
-			{ challenge: error.message, url: error.url, screenshot: options.screenshotFile },
-			'🪟 Verificação só pode ser resolvida na janela: abrindo o navegador',
-		)
-		await session.relaunch({ headless: false, withCookies: false })
-		await logIn(session, options)
+		await report({ status: 'failed', message: error instanceof Error ? error.message : String(error) }, logger)
+		throw error
 	}
 
 	// Espera os redirecionamentos pós-login terminarem para a próxima navegação não ser abortada
@@ -102,6 +97,7 @@ export async function ensureLoggedIn(session: BrowserSession, options: LoginOpti
 	await session.saveCookies()
 
 	logger.info({ url: session.page.url() }, '✅ Login realizado')
+	await report({ status: 'success', message: 'Login feito no LinkedIn.' }, logger)
 
 	// A janela só foi aberta para a verificação: com a sessão salva, o resto da coleta volta a ser sem janela
 	if (options.headlessMode === 'auto' && !session.headless) {
@@ -109,6 +105,41 @@ export async function ensureLoggedIn(session: BrowserSession, options: LoginOpti
 	}
 
 	return true
+}
+
+async function logInOrOpenWindow(session: BrowserSession, options: LoginOptions) {
+	try {
+		await logIn(session, options)
+	} catch (error) {
+		if (!(error instanceof NeedsWindowError)) throw error
+
+		// Não dá para mostrar a janela do navegador headless: abre outro, com janela, e refaz o login nele
+		options.logger.warn(
+			{ challenge: error.message, url: error.url, screenshot: options.screenshotFile },
+			'🪟 Verificação só pode ser resolvida na janela: abrindo o navegador',
+		)
+		await report(
+			{
+				status: 'running',
+				message: 'O LinkedIn pediu uma verificação que só dá para resolver na janela do navegador, que foi aberta.',
+			},
+			options.logger,
+		)
+		await session.relaunch({ headless: false, withCookies: false })
+		await logIn(session, options)
+	}
+}
+
+/**
+ * Grava o passo do login para o site mostrar (ex.: o QR code da verificação). Uma falha ao gravar não interrompe o
+ * login: o terminal continua mostrando tudo.
+ */
+export async function report(update: LinkedinLoginUpdate, logger: Logger) {
+	try {
+		await reportLinkedinLogin(update)
+	} catch (error) {
+		logger.warn({ err: error }, 'Não consegui gravar o andamento do login para o site')
+	}
 }
 
 async function logIn(session: BrowserSession, options: LoginOptions) {
@@ -205,6 +236,7 @@ async function handleChallenge(session: BrowserSession, state: VerificationState
 
 			logger.warn('📱 O LinkedIn pediu verificação por QR code: escaneie o código abaixo com o app do LinkedIn')
 			process.stdout.write(`\n${await renderQrForTerminal(challenge.content)}\n`)
+			await report({ status: 'verification', challenge: 'qr', qr: challenge.content }, logger)
 			return
 		}
 
@@ -212,8 +244,9 @@ async function handleChallenge(session: BrowserSession, state: VerificationState
 			if (!state.codeRequested) {
 				state.codeRequested = true
 				logger.warn(
-					'🔢 O LinkedIn pediu o código de verificação (e-mail, SMS ou app autenticador). Envie com: bun scraper:verify <código>',
+					'🔢 O LinkedIn pediu o código de verificação (e-mail, SMS ou app autenticador). Envie pelo site ou com: bun scraper:verify <código>',
 				)
+				await report({ status: 'verification', challenge: 'code' }, logger)
 			}
 
 			const code = takeVerificationCode()
@@ -223,6 +256,10 @@ async function handleChallenge(session: BrowserSession, state: VerificationState
 			await challenge.input.type(code, { delay: 80 })
 			await challenge.input.press('Enter')
 			logger.info('Código de verificação enviado; se o LinkedIn recusar, envie outro')
+			await report(
+				{ status: 'verification', challenge: 'code', message: 'Código enviado ao LinkedIn. Se ele recusar, mande outro.' },
+				logger,
+			)
 			return
 		}
 
@@ -231,6 +268,7 @@ async function handleChallenge(session: BrowserSession, state: VerificationState
 			state.appApprovalRequested = true
 
 			logger.warn('📱 O LinkedIn enviou um pedido de acesso para o app do LinkedIn: aprove no celular')
+			await report({ status: 'verification', challenge: 'app-approval' }, logger)
 			return
 		}
 

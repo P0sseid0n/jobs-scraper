@@ -1,4 +1,4 @@
-import { activeSearchTerms, JobLookupSchema, VerificationCodeSchema } from '@shared/contracts'
+import { activeSearchTerms, JobLookupSchema, LoginTestRequestSchema, VerificationCodeSchema } from '@shared/contracts'
 import type { ScraperRunTrigger } from '@shared/database'
 import { onShutdown, shutdown } from '@shared/lifecycle'
 import { QUEUES } from '@shared/messaging'
@@ -9,13 +9,17 @@ import { BrowserLock } from './browser-lock'
 import { scraperEnv } from './config'
 import { JobLookupWorker } from './job-lookup'
 import { NO_LINKEDIN_ACCOUNT } from './login'
+import { testLinkedinLogin } from './login-test'
 import { markInterruptedRuns, recordRun } from './run-history'
-import { NO_SEARCH_TERMS } from './schedule'
+import { NO_SEARCH_TERMS, waitingReason } from './schedule'
 import { runOnSchedule } from './scheduler'
 import { closeActiveBrowser, scrapeOnce } from './scrape-run'
 import { submitVerificationCode } from './verification-inbox'
 
 const { config, logger, queue } = await startService({ name: 'scraper', env: scraperEnv, database: true })
+
+// Na coleta única sem configuração, de quanto em quanto tempo relê os termos e a conta (como a agenda)
+const CONFIGURATION_POLL_MS = 30_000
 
 // A coleta e as vagas de posts com várias usam o LinkedIn uma de cada vez
 const browserLock = new BrowserLock()
@@ -32,6 +36,14 @@ await queue.consume(QUEUES.scraperVerification, VerificationCodeSchema, async ({
 	else logger.warn('Código de verificação ignorado: nenhum login está esperando um código')
 })
 
+// Teste do login pedido pelo site (onboarding e Configurações › Contas): usa o navegador na vez dele, como a coleta
+await queue.consume(QUEUES.scraperLoginTest, LoginTestRequestSchema, () =>
+	browserLock.run(async () => {
+		await lookups.close()
+		await testLinkedinLogin({ config, logger })
+	}),
+)
+
 // Vagas de posts com várias (enviadas pelo post-processing): cada uma é aberta no navegador, com pausa entre elas
 await queue.consume(QUEUES.scraperLookup, JobLookupSchema, lookup => lookups.handle(lookup))
 
@@ -40,6 +52,7 @@ try {
 
 	// Intervalo 0 no .env: uma coleta e termina. Senão, fica rodando (agenda + "coletar agora").
 	if (config.SCRAPER_INTERVAL_MINUTES === 0) {
+		await waitForConfiguration()
 		const { failed } = await collect('once')
 		await shutdown(logger, failed ? 1 : 0)
 	}
@@ -77,6 +90,31 @@ async function collect(trigger: ScraperRunTrigger) {
 		await lookups.close()
 		return recordRun(trigger, () => scrapeOnce({ config, settings, queue, logger }))
 	})
+}
+
+/**
+ * Na coleta única, espera ter termos de busca e conta do LinkedIn em vez de encerrar sem coletar: quem configura pelo
+ * onboarding do site vê a primeira coleta rodar ao terminar, e o teste do login continua atendido enquanto isso.
+ */
+async function waitForConfiguration() {
+	let announced = false
+
+	while (true) {
+		const settings = await loadScraperSettings()
+		const waiting = waitingReason({
+			paused: false,
+			activeSearchTerms: activeSearchTerms(settings).length,
+			hasAccount: await hasLinkedinAccount(),
+		})
+		if (!waiting) return
+
+		if (!announced) {
+			announced = true
+			logger.warn(waiting === 'no-terms' ? NO_SEARCH_TERMS : NO_LINKEDIN_ACCOUNT)
+			logger.info('A coleta única começa assim que a configuração for salva pelo site')
+		}
+		await Bun.sleep(CONFIGURATION_POLL_MS)
+	}
 }
 
 function loadScraperSettings() {

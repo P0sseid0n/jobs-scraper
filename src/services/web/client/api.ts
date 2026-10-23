@@ -7,10 +7,13 @@ import type {
 	JobFacets,
 	JobsPage,
 	JobsViewedChange,
+	LinkedinLoginState,
 	RunsPage,
 	RunsPageSize,
 	ScraperStatus,
+	SearchSuggestions,
 	SettingsKey,
+	SetupStatus,
 	WebCredentials,
 	WebCvBase,
 	WebCvBaseVersion,
@@ -122,6 +125,19 @@ export const api = {
 	/** Testa a conta com os campos enviados sobre os salvos, sem salvar. */
 	testCredentials: (group: CredentialGroup, patch: Record<string, string>) =>
 		request<CredentialCheck>(`/api/credentials/${group}/test`, { method: 'POST', body: JSON.stringify(patch) }),
+
+	/** O login do LinkedIn em andamento ou o último (`null` se nunca houve um). */
+	linkedinLogin: () => request<LinkedinLoginState | null>('/api/linkedin/login'),
+	/** Pede ao scraper para testar o login com a conta salva; o andamento vem de `linkedinLogin`. */
+	testLinkedinLogin: () => request<LinkedinLoginState>('/api/linkedin/login', { method: 'POST' }),
+	/** Entrega ao login em andamento o código de verificação que o LinkedIn mandou. */
+	sendVerificationCode: (code: string) =>
+		request<{ sent: true }>('/api/linkedin/verification-code', { method: 'POST', body: JSON.stringify({ code }) }),
+
+	/** O que já está configurado em cada passo do onboarding. */
+	setup: () => request<SetupStatus>('/api/setup'),
+	/** Termos de busca e palavras-chave sugeridos pela IA para o perfil salvo (nada é salvo). */
+	searchSuggestions: () => request<SearchSuggestions>('/api/setup/suggestions', { method: 'POST' }),
 }
 
 export function cvPdfUrl(requestId: string, download = false) {
