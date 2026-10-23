@@ -63,6 +63,9 @@ await queue.consume(QUEUES.webCvBase, CvBaseValidationResultSchema, result => sa
 
 const api = <R extends Request>(fn: (req: R) => Promise<Response> | Response) => handler(logger, fn)
 
+const SUGGESTIONS_TIMEOUT_SECONDS = 240
+const suggestSearchTerms = api(() => searchSuggestions(ai, logger))
+
 const server = Bun.serve({
 	hostname: config.WEB_HOST,
 	port: config.WEB_PORT,
@@ -100,7 +103,14 @@ const server = Bun.serve({
 		'/api/linkedin/login': { GET: api(getLinkedinLogin), POST: api(() => requestLinkedinLogin(queue)) },
 		'/api/linkedin/verification-code': { POST: api(req => sendVerificationCode(req, queue)) },
 		'/api/setup': { GET: api(() => setupStatus({ skipOnboarding: config.SKIP_ONBOARDING, cvTexFile: config.CV_TEX_FILE })) },
-		'/api/setup/suggestions': { POST: api(() => searchSuggestions(ai, logger)) },
+		'/api/setup/suggestions': {
+			POST: (req, srv) => {
+				// A primeira chamada depois de subir carrega o modelo no Ollama, o que passa dos 10 s em que o Bun fecha
+				// uma conexão sem resposta (na CPU, bem mais): espera até 4 min
+				srv.timeout(req, SUGGESTIONS_TIMEOUT_SECONDS)
+				return suggestSearchTerms(req)
+			},
+		},
 		'/api/*': Response.json({ error: 'Rota da API não encontrada' } satisfies ApiError, { status: 404 }),
 		// O resto é a aplicação (as rotas do navegador são resolvidas no cliente)
 		'/*': app,
