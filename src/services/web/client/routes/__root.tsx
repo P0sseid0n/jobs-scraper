@@ -10,7 +10,7 @@ import { Badge, badge } from '../components/ui/Badge'
 import { ButtonLink } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
 import { IconButton } from '../components/ui/IconButton'
-import { Page } from '../components/ui/Page'
+import { Page, pageFrame } from '../components/ui/Page'
 import { StatusDot, type StatusDotTone } from '../components/ui/StatusDot'
 import { cx } from '../lib/cx'
 import { formatDuration } from '../lib/format'
@@ -116,7 +116,7 @@ function RootLayout() {
 				pular para o conteúdo
 			</a>
 			<header className="sticky top-0 z-20 border-b border-line bg-bg/88 backdrop-blur-md">
-				<div className="mx-auto flex max-w-360 items-center gap-4 px-6 py-3 max-md:px-4">
+				<div className={pageFrame({ className: 'flex items-center gap-4 py-3' })}>
 					<Link
 						className="inline-flex items-center gap-2 font-mono text-sm font-medium whitespace-nowrap no-underline"
 						to="/"

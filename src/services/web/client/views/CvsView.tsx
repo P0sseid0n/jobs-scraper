@@ -107,7 +107,7 @@ export function CvsView({ baseVersions }: { baseVersions: WebCvBaseVersion[] | n
 	const done = requests.filter(request => request.status !== 'pending')
 
 	return (
-		<Page>
+		<Page width="medium">
 			<Hero
 				title={
 					<>

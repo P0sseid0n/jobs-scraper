@@ -3,13 +3,22 @@ import type { VariantProps } from 'tailwind-variants'
 
 import { tv } from '../../lib/cx'
 
-const page = tv({
-	base: 'mx-auto flex w-full max-w-360 flex-col gap-7 px-6 pt-11 pb-30 max-md:gap-5 max-md:px-4 max-md:pt-6 max-md:pb-35',
+/**
+ * A largura e as margens laterais das telas. Além do `Page`, usam o cabeçalho e as barras fixas (a de salvar das
+ * configurações), para ficarem alinhados com o conteúdo.
+ */
+export const pageFrame = tv({
+	base: 'mx-auto w-full max-w-360 px-6 max-md:px-4',
 	variants: {
-		/** `wide`: as listas (vagas, coletas e currículos). `medium`: os formulários. `narrow`: uma coisa só (a vaga, o 404). */
+		/** `wide`: as listas (vagas e coletas). `medium`: currículos e formulários. `narrow`: uma coisa só (a vaga, o 404). */
 		width: { wide: '', medium: 'max-w-270', narrow: 'max-w-190' },
 	},
 	defaultVariants: { width: 'wide' },
+})
+
+const page = tv({
+	extend: pageFrame,
+	base: 'flex flex-col gap-7 pt-11 pb-30 max-md:gap-5 max-md:pt-6 max-md:pb-35',
 })
 
 /** Conteúdo de uma tela, centralizado e com o espaçamento das margens. */

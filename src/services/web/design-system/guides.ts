@@ -127,7 +127,7 @@ export const GUIDES: Record<string, string> = {
 - \`onConfirm\` e \`onCancel\` são obrigatórios.`,
 	Page: `Conteúdo de uma tela, centralizado e com o espaçamento das margens.
 
-- Envolve tudo abaixo do cabeçalho. \`width\`: \`wide\` (padrão: as listas de vagas, coletas e currículos), \`medium\` (os formulários), \`narrow\` (uma coisa só: a vaga, o 404).
+- Envolve tudo abaixo do cabeçalho. \`width\`: \`wide\` (padrão: as listas de vagas e coletas), \`medium\` (currículos e formulários), \`narrow\` (uma coisa só: a vaga, o 404).
 - Os blocos dentro dele já ficam com \`gap-7\` (\`gap-5\` no celular). A tela costuma abrir com um \`Hero\`.`,
 	Hero: `Abertura da tela: título numa linha (a parte em mono vem em \`<Hero.Mono>\`), texto de apoio opcional e, à direita, \`aside\`.
 

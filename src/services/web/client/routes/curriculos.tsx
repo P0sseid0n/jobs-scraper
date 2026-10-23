@@ -12,7 +12,7 @@ export const Route = createFileRoute('/curriculos')({
 		const [cvBase] = await Promise.all([api.cvBase().catch(() => null), loadCvRequestsOrThrow()])
 		return { baseVersions: cvBase?.versions ?? null }
 	},
-	pendingComponent: () => <RoutePending />,
-	errorComponent: routeError('Não consegui carregar os currículos'),
+	pendingComponent: () => <RoutePending width="medium" />,
+	errorComponent: routeError('Não consegui carregar os currículos', 'medium'),
 	component: () => <CvsView baseVersions={Route.useLoaderData().baseVersions} />,
 })

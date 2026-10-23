@@ -25,7 +25,7 @@ import { IconButton } from '../components/ui/IconButton'
 import { Checkbox, Input, Range, Select } from '../components/ui/Input'
 import { KeywordInput } from '../components/ui/KeywordInput'
 import { Notice } from '../components/ui/Notice'
-import { Hero, Page } from '../components/ui/Page'
+import { Hero, Page, pageFrame } from '../components/ui/Page'
 import { pill, PillGroup } from '../components/ui/Pill'
 import { Switch, SwitchField } from '../components/ui/Switch'
 import { SECTION_TITLE } from '../components/ui/text'
@@ -605,7 +605,7 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 
 			{draft && (
 				<div data-save-bar className="fixed inset-x-0 bottom-0 z-25 border-t border-line bg-bg max-md:bottom-safe-16">
-					<div className="mx-auto flex max-w-270 flex-wrap items-center gap-3 px-6 py-3 max-md:px-4">
+					<div className={pageFrame({ width: 'medium', className: 'flex flex-wrap items-center gap-3 py-3' })}>
 						<div
 							role="status"
 							className={cx(
