@@ -8,8 +8,8 @@ import { StatusDot } from '../ui/StatusDot'
 
 const RISE = 'animate-rise-in motion-reduce:animate-none'
 
-/** Uma volta até começar a sumir: uns 8 s montando e uns 7 s parada no fim, com o e-mail enviado. */
-const ROUND_MS = 15000
+/** Uma volta até começar a sumir: uns 8 s montando e uns 12 s parada no fim, com o e-mail enviado. */
+const ROUND_MS = 20000
 const FADE_MS = 500
 
 /**
