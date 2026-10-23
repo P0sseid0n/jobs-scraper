@@ -11,6 +11,7 @@ import { Button, ButtonLink } from '../components/ui/Button'
 import { card } from '../components/ui/Card'
 import { ConfirmDialog } from '../components/ui/Dialog'
 import { FieldError, FieldHelp, FieldLabel } from '../components/ui/Field'
+import { iconButton } from '../components/ui/IconButton'
 import { field } from '../components/ui/Input'
 import { Notice } from '../components/ui/Notice'
 import { Hero, Page } from '../components/ui/Page'
@@ -308,28 +309,39 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 						Competências, Experiência...), em português ou em inglês.
 					</p>
 				</div>
-				<ul className="m-0 grid list-none gap-2.5 p-0 md:grid-cols-2">
-					{CV_EXAMPLES.map(example => (
-						<li key={example.fileName} className={card({ size: 'sm', className: 'flex flex-col gap-3' })}>
-							<div className="flex flex-col gap-0.5">
-								<span className="font-semibold">{example.title}</span>
-								<span className="font-mono text-xs text-muted">{example.fileName}</span>
-								<span className="mt-1 text-sm text-muted">{example.description}</span>
-							</div>
-							<div className="mt-auto flex flex-wrap gap-2">
-								<Button variant="ghost" size="sm" href={exampleDownloadUrl(example)} download={example.fileName}>
-									<Icon name="download" size={14} />
-									baixar
-								</Button>
-								<Button variant="ghost" size="sm" href={example.pdfUrl} external>
-									ver PDF
-								</Button>
-								<Button variant="ghost" size="sm" onClick={() => loadExample(example)}>
-									usar no editor
-								</Button>
-							</div>
-						</li>
-					))}
+				<ul className="m-0 flex list-none flex-col gap-2.5 p-0">
+					{CV_EXAMPLES.map(example => {
+						const download = `baixar ${example.fileName}`
+
+						return (
+							<li key={example.fileName} className={card({ size: 'sm', className: 'flex flex-wrap items-center gap-3.5' })}>
+								<div className="flex min-w-0 grow basis-60 flex-col gap-0.5">
+									<span className="flex items-center gap-1.5">
+										<span className="font-semibold">{example.title}</span>
+										<a
+											href={exampleDownloadUrl(example)}
+											download={example.fileName}
+											aria-label={download}
+											title={download}
+											className={iconButton({ size: 'xs', className: 'text-muted hover:text-ink' })}
+										>
+											<Icon name="download" size={14} />
+										</a>
+									</span>
+									<span className="font-mono text-xs text-muted">{example.fileName}</span>
+									<span className="mt-1 text-sm text-muted">{example.description}</span>
+								</div>
+								<div className="flex flex-wrap gap-2">
+									<Button variant="lime" size="sm" onClick={() => loadExample(example)}>
+										usar no editor
+									</Button>
+									<Button variant="ghost" size="sm" href={example.pdfUrl} external>
+										ver PDF
+									</Button>
+								</div>
+							</li>
+						)
+					})}
 				</ul>
 			</section>
 		)
