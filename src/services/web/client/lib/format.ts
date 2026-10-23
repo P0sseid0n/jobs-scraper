@@ -125,11 +125,6 @@ export function safeLink(link: string | null) {
 	return link && /^https?:\/\//i.test(link) ? link : null
 }
 
-/** Falhas de login do LinkedIn pedem ação manual (captcha/2FA): a interface mostra como alerta. */
-export function isLoginFailure(error: string | null) {
-	return !!error && /login|captcha|2fa|verifica/i.test(error)
-}
-
 /**
  * O texto da página de uma vaga de post com várias, sem o cabeçalho "Vaga: …" / "Link: …" que o scraper põe para a
  * IA (o cargo e o link já aparecem no detalhe).

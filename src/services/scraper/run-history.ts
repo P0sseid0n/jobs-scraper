@@ -1,5 +1,7 @@
 import { ScraperRun, type ScraperRunTerm, type ScraperRunTrigger } from '@shared/database'
 
+import { LoginError } from './login'
+
 /**
  * Executa a coleta registrando-a em `scraper_runs` (em andamento → sucesso ou falha).
  * @returns O resultado por termo, o total enviado e se todas as buscas falharam.
@@ -28,7 +30,12 @@ export async function recordRun(trigger: ScraperRunTrigger, collect: () => Promi
 	} catch (error) {
 		await ScraperRun.updateOne(
 			{ _id: run._id },
-			{ status: 'failed', finishedAt: new Date(), error: error instanceof Error ? error.message : String(error) },
+			{
+				status: 'failed',
+				finishedAt: new Date(),
+				error: error instanceof Error ? error.message : String(error),
+				loginFailure: error instanceof LoginError ? error.kind : null,
+			},
 		)
 
 		throw error

@@ -98,6 +98,7 @@ function useScraperPill() {
 	if (status.paused) return { tone: 'paused' as const, text: 'coletas pausadas' }
 	if (status.activeSearchTerms === 0) return { tone: 'paused' as const, text: 'sem termos de busca' }
 	if (!status.linkedinAccount) return { tone: 'paused' as const, text: 'conecte o LinkedIn' }
+	if (status.awaitingFirstRun) return { tone: 'paused' as const, text: 'faça a primeira coleta' }
 
 	const next = status.nextRunAt ? new Date(status.nextRunAt).getTime() - now : 0
 	return {

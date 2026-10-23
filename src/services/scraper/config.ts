@@ -22,6 +22,12 @@ export const scraperEnv = {
 	// A busca e os limites ficam nas configurações (`settingsEnv`); o intervalo também decide o modo de execução
 	SCRAPER_INTERVAL_MINUTES: settingsEnv.SCRAPER_INTERVAL_MINUTES,
 
+	/**
+	 * O mesmo do site: com `true` (configuração pelo `.env`, sem onboarding), a primeira coleta começa sozinha. Senão,
+	 * numa instalação nova, ela espera o fim do onboarding.
+	 */
+	SKIP_ONBOARDING: booleanFromEnv.default(false),
+
 	/** Tempo máximo esperando novos posts aparecerem depois de rolar a página. */
 	SCRAPER_SCROLL_DELAY_MS: z.coerce.number().int().min(1_000).default(10_000),
 

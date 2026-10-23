@@ -1,5 +1,5 @@
 import { activeSearchTerms, JobLookupSchema, LoginTestRequestSchema, VerificationCodeSchema } from '@shared/contracts'
-import type { ScraperRunTrigger } from '@shared/database'
+import { neverCollected, type ScraperRunTrigger } from '@shared/database'
 import { onShutdown, shutdown } from '@shared/lifecycle'
 import { QUEUES } from '@shared/messaging'
 import { startService } from '@shared/service'
@@ -62,6 +62,7 @@ try {
 		logger,
 		loadSettings: loadScraperSettings,
 		hasAccount: hasLinkedinAccount,
+		awaitingFirstRun: async () => !config.SKIP_ONBOARDING && (await neverCollected()),
 		collect: trigger => collect(trigger).then(() => {}),
 	})
 } catch (error) {

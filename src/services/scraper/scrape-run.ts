@@ -53,7 +53,7 @@ export async function scrapeOnce(options: ScrapeOptions): Promise<ScraperRunTerm
 
 	// A conta é relida a cada coleta: a salva pelo site vale sem reiniciar o serviço
 	const account = (await loadCredentials('linkedin'))?.value
-	if (!account) throw new LoginError(NO_LINKEDIN_ACCOUNT)
+	if (!account) throw new LoginError(NO_LINKEDIN_ACCOUNT, 'no-account')
 	const runOptions: RunOptions = { ...options, account }
 
 	// O filtro de idioma do post-processing, aplicado já aqui para que esses posts não gastem o limite da coleta

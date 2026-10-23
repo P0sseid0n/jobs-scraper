@@ -18,7 +18,7 @@ import { SwitchField } from '../components/ui/Switch'
 import { LABEL, SECTION_TITLE } from '../components/ui/text'
 import { RouteLink, TextLink } from '../components/ui/TextLink'
 import { cx } from '../lib/cx'
-import { formatDateTime, formatDuration, formatInterval, isLoginFailure } from '../lib/format'
+import { formatDateTime, formatDuration, formatInterval } from '../lib/format'
 import { pageItems } from '../lib/pagination'
 import { useStore } from '../lib/store'
 import { RUNS_PAGE_SIZE_OPTIONS, runsPageSize } from '../stores/runs-page-size'
@@ -71,20 +71,77 @@ const POLL_IDLE_MS = 30_000
 /** Quanto o "coletar agora" fica travado esperando a coleta pedida começar (o scraper pode estar desligado). */
 const START_TIMEOUT_MS = 30_000
 
+/** A coleta que parou no login, explicada sem os detalhes técnicos (que ficam no "detalhes" do aviso). */
+const LOGIN_FAILURES: Record<NonNullable<WebScraperRun['loginFailure']>, { title: string; hint: string; test: boolean }> = {
+	verification: {
+		title: 'O LinkedIn pediu uma confirmação, e ela não foi feita a tempo',
+		hint: 'Teste o login: a confirmação abre numa janela aqui no site, para aprovar no app do celular ou digitar o código.',
+		test: true,
+	},
+	captcha: {
+		title: 'O LinkedIn pediu um captcha',
+		hint: 'O captcha só aparece numa janela do navegador, que o scraper no Docker não abre. Espere algumas horas e teste o login de novo, ou informe em Configurações › Contas o cookie li_at de uma sessão aberta no seu navegador.',
+		test: true,
+	},
+	credentials: {
+		title: 'O LinkedIn não aceitou o e-mail ou a senha',
+		hint: 'Confira a conta em Configurações › Contas e teste o login.',
+		test: false,
+	},
+	'no-account': {
+		title: 'Falta a conta do LinkedIn',
+		hint: 'Informe o e-mail e a senha em Configurações › Contas.',
+		test: false,
+	},
+	other: {
+		title: 'Não deu para entrar no LinkedIn',
+		hint: 'Teste o login para ver o que o LinkedIn está pedindo.',
+		test: true,
+	},
+}
+
 function FailureAlert({ status }: { status: ScraperStatus | null }) {
+	const [testing, setTesting] = useState(false)
 	const last = status?.last
 	if (last?.status !== 'failed' || status?.current) return null
 
-	const login = isLoginFailure(last.error)
+	const login = last.loginFailure ? LOGIN_FAILURES[last.loginFailure] : null
+
+	async function testLogin() {
+		setTesting(true)
+		try {
+			await api.testLinkedinLogin()
+			notify('Testando o login do LinkedIn. Se ele pedir uma confirmação, ela abre aqui.')
+		} catch (error) {
+			notify(`Não consegui pedir o teste: ${(error as Error).message}`, 'error')
+		} finally {
+			setTesting(false)
+		}
+	}
 
 	return (
 		<Notice tone="danger" size="lg" icon="alert">
-			<p className="font-semibold">{login ? 'Ação necessária: o LinkedIn pediu verificação' : 'A última coleta falhou'}</p>
+			<p className="font-semibold">{login?.title ?? 'A última coleta falhou'}</p>
 			<p className="text-sm">
-				{formatDateTime(last.startedAt)} · {last.error ?? 'sem detalhes'}
-				{login &&
-					' Resolva o captcha/2FA na sessão do scraper (rode com HEADLESS=false ou renove o cookie li_at em Configurações › Contas); as próximas coletas vão falhar até lá.'}
+				{formatDateTime(last.startedAt)} ·{' '}
+				{login ? `${login.hint} Até lá, as coletas não entram no LinkedIn.` : (last.error ?? 'sem detalhes')}
 			</p>
+			{login && (
+				<div className="flex flex-wrap items-center gap-3 pt-1">
+					{login.test && (
+						<Button variant="lime" size="sm" onClick={testLogin} disabled={testing}>
+							{testing ? 'pedindo…' : 'testar o login'}
+						</Button>
+					)}
+					<RouteLink to="/configuracoes">abrir configurações › contas</RouteLink>
+				</div>
+			)}
+			{login && last.error && (
+				<details className="text-xs">
+					<summary className="cursor-pointer text-muted">detalhes técnicos</summary>
+					<p className="mt-1 font-mono break-all">{last.error}</p>
+				</details>
+			)}
 		</Notice>
 	)
 }
@@ -209,7 +266,9 @@ function RunRows({ run, open, onToggle }: { run: WebScraperRun; open: boolean; o
 				</td>
 				<td className={cx(TD, 'max-w-85 whitespace-normal', (run.error || failedTerms > 0) && 'text-danger')}>
 					{run.error && run.status === 'failed'
-						? run.error
+						? run.loginFailure
+							? LOGIN_FAILURES[run.loginFailure].title
+							: run.error
 						: run.terms.length > 0
 							? [
 									`${run.terms.length - failedTerms} de ${run.terms.length}`,
@@ -544,15 +603,17 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 		const next = status.nextRunAt ? new Date(status.nextRunAt).getTime() - now : null
 		const noTerms = status.activeSearchTerms === 0
 		const noAccount = !status.linkedinAccount
+		// Sem termos ou sem conta não dá para coletar; esperando a primeira coleta, o "coletar agora" é o caminho
 		const waiting = noTerms || noAccount
+		const firstRun = status.awaitingFirstRun
 
 		return (
 			<div className="flex flex-wrap gap-4">
 				<section className="inverted flex grow-2 basis-130 flex-col gap-5 rounded-xl p-7 max-md:p-4.5" aria-live="polite">
 					<div className="flex items-center justify-between gap-3 flex-wrap">
 						<div className="flex items-center gap-2.5">
-							<Badge tone={running ? 'lime' : status.paused || waiting ? 'muted' : 'ok'}>
-								{running ? 'em andamento' : status.paused ? 'pausada' : waiting ? 'em espera' : 'ociosa'}
+							<Badge tone={running ? 'lime' : status.paused || waiting || firstRun ? 'muted' : 'ok'}>
+								{running ? 'em andamento' : status.paused ? 'pausada' : waiting || firstRun ? 'em espera' : 'ociosa'}
 							</Badge>
 							{running && (
 								<span className="font-mono text-xs text-muted">
@@ -580,9 +641,11 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 										? 'sem termos de busca'
 										: noAccount
 											? 'sem conta do LinkedIn'
-											: next !== null && next > 0
-												? `em ${formatDuration(next)}`
-												: 'a qualquer momento'}
+											: firstRun
+												? 'depois da primeira'
+												: next !== null && next > 0
+													? `em ${formatDuration(next)}`
+													: 'a qualquer momento'}
 							</p>
 						</div>
 					)}
@@ -593,9 +656,11 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 								? 'adicione um termo para coletar'
 								: noAccount
 									? 'conecte sua conta do LinkedIn'
-									: status.paused
-										? '“coletar agora” continua funcionando'
-										: formatInterval(status.intervalMinutes)}
+									: firstRun
+										? 'a primeira coleta começa quando você pedir'
+										: status.paused
+											? '“coletar agora” continua funcionando'
+											: formatInterval(status.intervalMinutes)}
 						</span>
 						<Button
 							variant="lime"
@@ -676,7 +741,7 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 				{runsState === 'ready' && runs.length === 0 && (
 					<EmptyState
 						title="Nenhuma coleta nos últimos 90 dias"
-						description="Use “coletar agora” ou rode o scraper com SCRAPER_INTERVAL_MINUTES maior que 0."
+						description="Use “coletar agora” para fazer a primeira; depois, elas seguem o intervalo."
 					/>
 				)}
 				{runsState !== 'error' && runs.length > 0 && (

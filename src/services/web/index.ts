@@ -93,7 +93,7 @@ const server = Bun.serve({
 		'/api/cv-base/versions/:versionId': { GET: api(getCvBaseVersion) },
 		'/api/cv-base/versions/:versionId/pdf': { GET: api(getCvBasePdf) },
 		'/api/cv-base/versions/:versionId/activate': { POST: api(req => activateCvBaseVersion(req, { events, logger })) },
-		'/api/scraper/status': { GET: api(scraperStatus) },
+		'/api/scraper/status': { GET: api(() => scraperStatus({ skipOnboarding: config.SKIP_ONBOARDING })) },
 		'/api/scraper/runs': { GET: api(listRuns) },
 		'/api/scraper/run': { POST: api(() => requestRun(queue)) },
 		'/api/settings/:key': { GET: api(getSettings), PUT: api(putSettings) },

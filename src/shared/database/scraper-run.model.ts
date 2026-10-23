@@ -1,5 +1,7 @@
 import mongoose, { Schema } from 'mongoose'
 
+import { Job } from './job.model'
+
 /** `schedule`: coleta automática; `manual`: pedido pela fila `scraper`; `once`: execução única (intervalo 0 no .env). */
 export const SCRAPER_RUN_TRIGGERS = ['schedule', 'manual', 'once'] as const
 export const SCRAPER_RUN_STATUSES = ['running', 'success', 'failed'] as const
@@ -12,6 +14,13 @@ export const SCRAPER_RUN_STATUSES = ['running', 'success', 'failed'] as const
 export const SCRAPER_TERM_ERROR_KINDS = ['empty', 'no-posts', 'timeout', 'unknown'] as const
 
 export type ScraperTermErrorKind = (typeof SCRAPER_TERM_ERROR_KINDS)[number]
+
+/**
+ * Por que o login do LinkedIn parou a coleta: a verificação não foi resolvida a tempo, um captcha (só dá para resolver
+ * numa janela), o e-mail ou a senha recusados, sem conta, ou outro motivo.
+ */
+export const SCRAPER_LOGIN_FAILURES = ['verification', 'captcha', 'credentials', 'no-account', 'other'] as const
+export type ScraperLoginFailure = (typeof SCRAPER_LOGIN_FAILURES)[number]
 export type ScraperRunTrigger = (typeof SCRAPER_RUN_TRIGGERS)[number]
 export type ScraperRunStatus = (typeof SCRAPER_RUN_STATUSES)[number]
 
@@ -47,6 +56,8 @@ type ScraperRunDocument = {
 	terms: ScraperRunTerm[]
 	sent: number
 	error: string | null
+	/** O motivo, quando a coleta parou no login; `null` nas outras falhas e nas coletas antigas. */
+	loginFailure: ScraperLoginFailure | null
 }
 
 const HISTORY_DAYS = 90
@@ -76,6 +87,7 @@ const scraperRunSchema = new Schema<ScraperRunDocument>(
 		},
 		sent: { type: Number, default: 0 },
 		error: { type: String, default: null },
+		loginFailure: { type: String, enum: [...SCRAPER_LOGIN_FAILURES, null], default: null },
 	},
 	{ versionKey: false },
 )
@@ -84,3 +96,12 @@ const scraperRunSchema = new Schema<ScraperRunDocument>(
 scraperRunSchema.index({ startedAt: -1 }, { expireAfterSeconds: HISTORY_DAYS * 24 * 60 * 60 })
 
 export const ScraperRun = mongoose.model('ScraperRun', scraperRunSchema, 'scraper_runs')
+
+/**
+ * Se a instalação ainda não coletou nada (nenhuma coleta no histórico nem vaga salva). Numa instalação nova, a primeira
+ * coleta espera o fim do onboarding ("fazer a primeira coleta") em vez de começar assim que há termos e conta.
+ */
+export async function neverCollected() {
+	const [run, job] = await Promise.all([ScraperRun.exists({}), Job.exists({})])
+	return !run && !job
+}

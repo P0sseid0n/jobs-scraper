@@ -2,17 +2,28 @@
 export const NO_SEARCH_TERMS =
 	'Nenhum termo de busca ativo: as coletas ficam em espera até você configurar os termos no site (Configurações)'
 
+/** Por que o scraper espera a primeira coleta numa instalação nova (registrado no log). */
+export const AWAITING_FIRST_RUN =
+	'Instalação nova: a primeira coleta espera o fim do onboarding ("fazer a primeira coleta" no site) ou o "coletar agora"'
+
 /** Por que as coletas automáticas estão em espera; `null` quando elas seguem o intervalo. */
-export type WaitingReason = 'paused' | 'no-terms' | 'no-account'
+export type WaitingReason = 'paused' | 'no-terms' | 'no-account' | 'first-run'
 
 /**
- * O motivo de as coletas automáticas não rodarem: pausadas, sem termos de busca ativos ou sem conta do LinkedIn.
- * Sem termos ou sem conta, a coleta não teria o que fazer; o scraper espera a configuração em vez de falhar.
+ * O motivo de as coletas automáticas não rodarem: pausadas, sem termos de busca ativos, sem conta do LinkedIn ou, numa
+ * instalação que nunca coletou (`awaitingFirstRun`), esperando a primeira ser pedida pelo site. Sem termos ou sem
+ * conta, a coleta não teria o que fazer; o scraper espera a configuração em vez de falhar.
  */
-export function waitingReason(options: { paused: boolean; activeSearchTerms: number; hasAccount: boolean }): WaitingReason | null {
+export function waitingReason(options: {
+	paused: boolean
+	activeSearchTerms: number
+	hasAccount: boolean
+	awaitingFirstRun?: boolean
+}): WaitingReason | null {
 	if (options.paused) return 'paused'
 	if (options.activeSearchTerms === 0) return 'no-terms'
 	if (!options.hasAccount) return 'no-account'
+	if (options.awaitingFirstRun) return 'first-run'
 	return null
 }
 

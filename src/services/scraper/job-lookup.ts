@@ -68,7 +68,7 @@ export class JobLookupWorker {
 		try {
 			// Relida a cada vaga, como na coleta: a conta salva pelo site vale sem reiniciar o serviço
 			const account = (await loadCredentials('linkedin'))?.value
-			if (!account) throw new LoginError(NO_LINKEDIN_ACCOUNT)
+			if (!account) throw new LoginError(NO_LINKEDIN_ACCOUNT, 'no-account')
 
 			const session = await this.openSession(account.liAt)
 			await session.goto(lookup.link)

@@ -5,7 +5,7 @@ import { QUEUES, type QueueClient } from '@shared/messaging'
 
 import { NO_LINKEDIN_ACCOUNT } from './login'
 import { lastRunStartedAt } from './run-history'
-import { nextRunAt, NO_SEARCH_TERMS, waitingReason } from './schedule'
+import { AWAITING_FIRST_RUN, nextRunAt, NO_SEARCH_TERMS, waitingReason } from './schedule'
 
 type SchedulerOptions = {
 	queue: QueueClient
@@ -13,6 +13,8 @@ type SchedulerOptions = {
 	loadSettings: () => Promise<ScraperSettings>
 	/** Se há conta do LinkedIn (site ou `.env`), relida a cada volta como as configurações. */
 	hasAccount: () => Promise<boolean>
+	/** Se a instalação nunca coletou e a primeira coleta espera o pedido do site (fim do onboarding). */
+	awaitingFirstRun: () => Promise<boolean>
 	collect: (trigger: ScraperRunTrigger) => Promise<void>
 }
 
@@ -22,9 +24,17 @@ const POLL_MS = 30_000
 /**
  * Mantém o scraper rodando: coleta quando o intervalo vence (sem pausa) ou quando chega um "coletar agora".
  * Relê as configurações e a conta a cada volta e ignora pedidos durante uma coleta. Sem termos de busca ativos ou sem
- * conta do LinkedIn, espera a configuração sem coletar. Nunca retorna.
+ * conta do LinkedIn, espera a configuração sem coletar; numa instalação nova, a primeira coleta espera o pedido do
+ * site. Nunca retorna.
  */
-export async function runOnSchedule({ queue, logger, loadSettings, hasAccount, collect }: SchedulerOptions): Promise<never> {
+export async function runOnSchedule({
+	queue,
+	logger,
+	loadSettings,
+	hasAccount,
+	awaitingFirstRun,
+	collect,
+}: SchedulerOptions): Promise<never> {
 	const wakeUp = createWakeUp()
 	let running = false
 	let manualRequested = false
@@ -48,6 +58,7 @@ export async function runOnSchedule({ queue, logger, loadSettings, hasAccount, c
 				paused: settings.paused,
 				activeSearchTerms: activeSearchTerms(settings).length,
 				hasAccount: await hasAccount(),
+				awaitingFirstRun: await awaitingFirstRun(),
 			})
 			const next = nextRunAt(await lastRunStartedAt(), settings.intervalMinutes)
 			// O pedido manual vai para a coleta mesmo sem termos ou conta: ela registra o motivo de não buscar nada
@@ -68,6 +79,7 @@ export async function runOnSchedule({ queue, logger, loadSettings, hasAccount, c
 				if (waiting === 'paused') logger.info('⏸️ Coletas automáticas pausadas')
 				else if (waiting === 'no-terms') logger.warn(NO_SEARCH_TERMS)
 				else if (waiting === 'no-account') logger.warn(NO_LINKEDIN_ACCOUNT)
+				else if (waiting === 'first-run') logger.info(AWAITING_FIRST_RUN)
 				else logger.info({ at: next.toLocaleString('pt-BR') }, '⏰ Próxima coleta agendada')
 			}
 

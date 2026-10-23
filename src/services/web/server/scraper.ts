@@ -3,8 +3,10 @@ import { z } from 'zod'
 import { activeSearchTerms, type ScraperCommand } from '@shared/contracts'
 import {
 	Job,
+	neverCollected,
 	ScraperRun,
 	SeenPost,
+	type ScraperLoginFailure,
 	type ScraperRunStatus,
 	type ScraperRunTerm,
 	type ScraperRunTrigger,
@@ -38,23 +40,30 @@ type RunDocument = {
 	// Coletas antigas não têm alguns dos campos de cada termo
 	terms: (Omit<ScraperRunTerm, OptionalTermField> & Partial<Pick<ScraperRunTerm, OptionalTermField>>)[]
 	error: string | null
+	loginFailure?: ScraperLoginFailure | null
 }
 
 /** `GET /api/scraper/status`: coleta em andamento, última coleta e próxima agendada. */
-export async function scraperStatus() {
-	const [current, last, settings, linkedinAccount] = await Promise.all([
+export async function scraperStatus({ skipOnboarding }: { skipOnboarding: boolean }) {
+	const [current, last, settings, linkedinAccount, firstRun] = await Promise.all([
 		ScraperRun.findOne({ status: 'running' }).sort({ startedAt: -1 }).lean(),
 		ScraperRun.findOne({ status: { $ne: 'running' } })
 			.sort({ startedAt: -1 })
 			.lean(),
 		readSettings('scraper'),
 		hasLinkedinAccount(),
+		skipOnboarding ? false : neverCollected(),
 	])
 
 	// Mesma conta do scraper: intervalo a partir do início da última coleta (em andamento ou não)
 	const lastStartedAt = current?.startedAt ?? last?.startedAt ?? null
 	const terms = activeSearchTerms(settings).length
-	const waiting = waitingReason({ paused: settings.paused, activeSearchTerms: terms, hasAccount: linkedinAccount })
+	const waiting = waitingReason({
+		paused: settings.paused,
+		activeSearchTerms: terms,
+		hasAccount: linkedinAccount,
+		awaitingFirstRun: firstRun && !current,
+	})
 	const next = waiting ? null : nextRunAt(lastStartedAt, settings.intervalMinutes)
 
 	return Response.json({
@@ -65,6 +74,7 @@ export async function scraperStatus() {
 		intervalMinutes: settings.intervalMinutes,
 		activeSearchTerms: terms,
 		linkedinAccount,
+		awaitingFirstRun: waiting === 'first-run',
 	} satisfies ScraperStatus)
 }
 
@@ -139,7 +149,13 @@ async function toWebRun(doc: RunDocument): Promise<WebScraperRun> {
 			searchUrl: term.searchUrl ?? null,
 		})),
 		error: doc.error ?? null,
+		loginFailure: doc.loginFailure ?? (doc.status === 'failed' && isLegacyLoginFailure(doc.error) ? 'other' : null),
 	}
+}
+
+/** As coletas anteriores ao `loginFailure` que pararam no login, pela mensagem. */
+export function isLegacyLoginFailure(error: string | null | undefined) {
+	return !!error && /login|captcha|2fa|verifica/i.test(error)
 }
 
 /** O tipo do erro das coletas anteriores ao `errorKind`, pela mensagem. */

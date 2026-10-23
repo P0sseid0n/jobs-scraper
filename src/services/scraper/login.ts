@@ -2,7 +2,7 @@ import path from 'node:path'
 import type { ElementHandle, Page } from 'puppeteer'
 
 import type { CredentialsOf } from '@shared/contracts'
-import { reportLinkedinLogin, type LinkedinLoginUpdate } from '@shared/database'
+import { reportLinkedinLogin, type LinkedinLoginUpdate, type ScraperLoginFailure } from '@shared/database'
 import type { Logger } from '@shared/logging'
 
 import type { BrowserSession } from './browser-session'
@@ -55,8 +55,18 @@ const UNKNOWN_CHALLENGE_GRACE_MS = 6_000
  */
 const UNKNOWN_CHALLENGE_WINDOW_DELAY_MS = 60_000
 
-/** O login não foi concluído: a coleta inteira para, porque tentar de novo a cada termo aumentaria o risco de bloqueio. */
-export class LoginError extends Error {}
+/**
+ * O login não foi concluído: a coleta inteira para, porque tentar de novo a cada termo aumentaria o risco de bloqueio.
+ * O `kind` vai para o histórico, e o site explica a falha sem os detalhes técnicos da mensagem.
+ */
+export class LoginError extends Error {
+	constructor(
+		message: string,
+		readonly kind: ScraperLoginFailure = 'other',
+	) {
+		super(message)
+	}
+}
 
 /** A verificação pedida só pode ser resolvida na janela do navegador (ex.: captcha). */
 class NeedsWindowError extends Error {
@@ -287,6 +297,7 @@ async function handleChallenge(session: BrowserSession, state: VerificationState
 
 			throw new LoginError(
 				`O LinkedIn pediu um captcha, que só dá para resolver na janela do navegador: rode com HEADLESS=auto numa máquina com tela (fora do Docker) ou atualize o cookie li_at (Configurações › Contas ou LINKEDIN_LI_AT no .env). Screenshot: ${screenshotFile}`,
+				'captcha',
 			)
 		}
 
@@ -328,17 +339,19 @@ async function loginTimeoutError(session: BrowserSession, verification: Verifica
 	if (!verification && !isCheckpointPage(url)) {
 		return new LoginError(
 			`Login não concluído (página atual: ${url}). Verifique o e-mail e a senha do LinkedIn (Configurações › Contas ou o .env).`,
+			'credentials',
 		)
 	}
 
 	if (!session.headless) {
-		return new LoginError(`A verificação do LinkedIn não foi concluída na janela a tempo (página atual: ${url}).`)
+		return new LoginError(`A verificação do LinkedIn não foi concluída na janela a tempo (página atual: ${url}).`, 'verification')
 	}
 
 	if (verification && !verification.screenshotSaved) await saveScreenshot(session, verification, options)
 
 	return new LoginError(
 		`A verificação do LinkedIn não foi concluída a tempo (página atual: ${url}). Veja o screenshot em ${options.screenshotFile}, rode com HEADLESS=auto numa máquina com tela ou atualize o cookie li_at (Configurações › Contas ou LINKEDIN_LI_AT no .env).`,
+		'verification',
 	)
 }
 

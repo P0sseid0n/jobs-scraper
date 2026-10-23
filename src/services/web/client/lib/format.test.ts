@@ -4,7 +4,6 @@ import {
 	contractTypesLabel,
 	formatDuration,
 	formatInterval,
-	isLoginFailure,
 	jobSubtitle,
 	languageLabel,
 	listingPageText,
@@ -68,12 +67,6 @@ test('só links http(s) viram botão', () => {
 	expect(safeLink('https://www.linkedin.com/feed/update/1')).toBe('https://www.linkedin.com/feed/update/1')
 	expect(safeLink('javascript:alert(1)')).toBeNull()
 	expect(safeLink(null)).toBeNull()
-})
-
-test('falha de login do LinkedIn pede ação', () => {
-	expect(isLoginFailure('Login não concluído (checkpoint). O LinkedIn pediu verificação (captcha/2FA)')).toBe(true)
-	expect(isLoginFailure('Todas as buscas falharam')).toBe(false)
-	expect(isLoginFailure(null)).toBe(false)
 })
 
 describe('listingPageText', () => {

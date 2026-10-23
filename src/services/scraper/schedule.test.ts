@@ -41,6 +41,14 @@ describe('waitingReason', () => {
 		expect(waitingReason({ ...ready, activeSearchTerms: 0, hasAccount: false })).toBe('no-terms')
 	})
 
+	test('numa instalação nova, espera a primeira coleta ser pedida', () => {
+		expect(waitingReason({ ...ready, awaitingFirstRun: true })).toBe('first-run')
+	})
+
+	test('a configuração que falta vale antes da primeira coleta', () => {
+		expect(waitingReason({ ...ready, hasAccount: false, awaitingFirstRun: true })).toBe('no-account')
+	})
+
 	test('pausa vale antes de tudo', () => {
 		expect(waitingReason({ paused: true, activeSearchTerms: 0, hasAccount: false })).toBe('paused')
 	})

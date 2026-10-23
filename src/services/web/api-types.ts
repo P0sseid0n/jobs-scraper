@@ -18,6 +18,7 @@ import type {
 	CvBaseStatus,
 	LinkedinChallenge,
 	LinkedinLoginStatus,
+	ScraperLoginFailure,
 	ScraperRunStatus,
 	ScraperRunTrigger,
 	ScraperTermErrorKind,
@@ -120,6 +121,8 @@ export type WebScraperRun = {
 	outcomes: { counts: Partial<Record<SeenPostOutcome | 'unknown', number>>; pending: number } | null
 	terms: WebScraperRunTerm[]
 	error: string | null
+	/** Por que o login parou a coleta; `null` nas outras falhas. Nas coletas antigas, `other` se o erro fala de login. */
+	loginFailure: ScraperLoginFailure | null
 }
 
 export type WebScraperRunTerm = {
@@ -139,7 +142,10 @@ export type ScraperStatus = {
 	current: WebScraperRun | null
 	/** Última coleta terminada (sucesso ou falha). */
 	last: WebScraperRun | null
-	/** Próxima coleta automática; `null` com as coletas pausadas, sem termos de busca ativos ou sem conta do LinkedIn. */
+	/**
+	 * Próxima coleta automática; `null` com as coletas pausadas, sem termos de busca ativos, sem conta do LinkedIn ou
+	 * esperando a primeira coleta.
+	 */
 	nextRunAt: string | null
 	paused: boolean
 	intervalMinutes: number
@@ -147,6 +153,8 @@ export type ScraperStatus = {
 	activeSearchTerms: number
 	/** Se há conta do LinkedIn (site ou `.env`); sem ela, o scraper fica em espera até a pessoa conectar. */
 	linkedinAccount: boolean
+	/** Instalação nova, configurada: a primeira coleta espera ser pedida ("fazer a primeira coleta" ou "coletar agora"). */
+	awaitingFirstRun: boolean
 }
 
 /** Os passos do onboarding que têm o que configurar (a revisão, no fim, não tem). */
