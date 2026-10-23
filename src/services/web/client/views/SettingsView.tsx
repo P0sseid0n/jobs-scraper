@@ -22,7 +22,7 @@ import { Combobox } from '../components/ui/Combobox'
 import { ConfirmDialog } from '../components/ui/Dialog'
 import { FieldError, FieldHelp, FieldLabel } from '../components/ui/Field'
 import { IconButton } from '../components/ui/IconButton'
-import { Checkbox, Input, Range, Select } from '../components/ui/Input'
+import { Checkbox, Input, Range } from '../components/ui/Input'
 import { KeywordInput } from '../components/ui/KeywordInput'
 import { Notice } from '../components/ui/Notice'
 import { Hero, Page, pageFrame } from '../components/ui/Page'
@@ -41,6 +41,11 @@ const DATE_POSTED_LABELS: Record<DatePostedFilter, string> = {
 	'past-month': 'Último mês',
 	any: 'Qualquer data',
 }
+
+const DATE_POSTED_OPTIONS: SelectMenuOption<DatePostedFilter>[] = DATE_POSTED_FILTERS.map(value => ({
+	value,
+	label: DATE_POSTED_LABELS[value],
+}))
 
 const SENIORITY_LABELS: Record<SeniorityLevel, string> = {
 	intern: 'Estágio',
@@ -402,22 +407,16 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 				<div className="grid grid-cols-3 gap-5 max-md:grid-cols-1">
 					<div className="flex flex-col gap-1.5">
 						<FieldLabel htmlFor="datePosted">publicadas em</FieldLabel>
-						<Select
+						<SelectMenu
 							id="datePosted"
 							value={d.scraper.datePosted}
-							onChange={event => {
-								const value = event.target.value as DatePostedFilter
+							options={DATE_POSTED_OPTIONS}
+							onChange={value =>
 								edit(next => {
 									next.scraper.datePosted = value
 								})
-							}}
-						>
-							{DATE_POSTED_FILTERS.map(value => (
-								<option key={value} value={value}>
-									{DATE_POSTED_LABELS[value]}
-								</option>
-							))}
-						</Select>
+							}
+						/>
 					</div>
 					<div className="flex flex-col gap-1.5">
 						<FieldLabel htmlFor="maxPostsPerRun">máx. de posts por coleta</FieldLabel>

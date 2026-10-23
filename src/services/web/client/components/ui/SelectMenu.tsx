@@ -3,7 +3,7 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
 import { cx } from '../../lib/cx'
 import { Icon } from '../Icon'
 import { LISTBOX, listOption } from './Combobox'
-import { field } from './Input'
+import { field, type FieldLook } from './Input'
 
 export type SelectMenuOption<V extends string> = { value: V; label: string }
 
@@ -16,15 +16,15 @@ export function SelectMenu<V extends string>({
 	id,
 	value,
 	options,
+	size,
 	invalid = false,
 	describedBy,
 	className,
 	onChange,
-}: {
+}: FieldLook & {
 	id: string
 	value: V
 	options: readonly SelectMenuOption<V>[]
-	invalid?: boolean
 	describedBy?: string
 	className?: string
 	onChange: (value: V) => void
@@ -84,7 +84,7 @@ export function SelectMenu<V extends string>({
 				aria-activedescendant={open && active >= 0 ? `${listId}-${active}` : undefined}
 				aria-describedby={describedBy}
 				aria-invalid={invalid || undefined}
-				className={field({ invalid, className: 'flex w-full cursor-pointer items-center justify-between gap-2 text-left' })}
+				className={field({ size, invalid, className: 'flex w-full cursor-pointer items-center justify-between gap-2 text-left' })}
 				onClick={() => (open ? setOpen(false) : show())}
 				onBlur={() => setOpen(false)}
 				onKeyDown={onKeyDown}
@@ -92,7 +92,8 @@ export function SelectMenu<V extends string>({
 				<span className="truncate">{options[selectedIndex]?.label}</span>
 				<Icon name="chevron" className={cx('text-muted transition-transform', open && 'rotate-180')} />
 			</button>
-			<div ref={listRef} id={listId} role="listbox" hidden={!open} className={LISTBOX}>
+			{/* No mínimo da largura do botão, crescendo para a esquerda se as opções forem maiores (ex.: o filtro de idioma) */}
+			<div ref={listRef} id={listId} role="listbox" hidden={!open} className={cx(LISTBOX, 'left-auto w-max min-w-full')}>
 				{options.map((option, index) => (
 					// biome-ignore lint/a11y/useKeyWithClickEvents: pelo teclado, as setas e o Enter no botão escolhem a opção
 					<div
@@ -102,7 +103,7 @@ export function SelectMenu<V extends string>({
 						// O foco fica no botão (aria-activedescendant); a opção só precisa ser focável
 						tabIndex={-1}
 						aria-selected={index === selectedIndex}
-						className={listOption(index === active, index === selectedIndex)}
+						className={cx(listOption(index === active, index === selectedIndex), 'whitespace-nowrap')}
 						// Sem tirar o foco do botão (o blur fecharia a lista antes do clique)
 						onMouseDown={event => event.preventDefault()}
 						onMouseEnter={() => setActive(index)}

@@ -13,9 +13,10 @@ import { Button } from './ui/Button'
 import { DIALOG } from './ui/Dialog'
 import { FieldError, FieldLabel } from './ui/Field'
 import { IconButton } from './ui/IconButton'
-import { Input, Select } from './ui/Input'
+import { Input } from './ui/Input'
 import { KeywordInput } from './ui/KeywordInput'
 import { Pill, PillGroup } from './ui/Pill'
+import { SelectMenu, type SelectMenuOption } from './ui/SelectMenu'
 import { FIELDSET, LABEL } from './ui/text'
 
 /** Campos da vaga que podem ter vindo errados da extração da IA. */
@@ -45,7 +46,13 @@ export function toggleReportField(report: JobReport | null, field: ReportableFie
 const DIALOG_ACTIONS = 'flex justify-end gap-2 pt-2'
 
 const CONTRACT_OPTIONS = (Object.keys(CONTRACT_TYPES) as (keyof typeof CONTRACT_TYPES)[]).filter(type => type !== 'none')
-const WORK_MODE_OPTIONS = (Object.keys(WORK_MODES) as (keyof typeof WORK_MODES)[]).filter(mode => mode !== 'none')
+/** `''` é "não informada" (`workMode: null`). */
+const WORK_MODE_OPTIONS: SelectMenuOption<NonNullable<CorrectionDraft['workMode']> | ''>[] = [
+	{ value: '', label: 'não informada' },
+	...(Object.keys(WORK_MODES) as (keyof typeof WORK_MODES)[])
+		.filter(mode => mode !== 'none')
+		.map(mode => ({ value: mode, label: WORK_MODES[mode].label })),
+]
 const MAX_SKILLS = 30
 
 /**
@@ -160,20 +167,14 @@ export function ReportJobDialog({
 		location: () => textInput('location'),
 		workMode: () =>
 			field('workMode', ({ id, invalid, describedBy }) => (
-				<Select
+				<SelectMenu
 					id={id}
 					invalid={invalid}
 					value={draft.workMode ?? ''}
-					aria-describedby={describedBy}
-					onChange={event => edit({ workMode: (event.target.value || null) as CorrectionDraft['workMode'] })}
-				>
-					<option value="">não informada</option>
-					{WORK_MODE_OPTIONS.map(mode => (
-						<option key={mode} value={mode}>
-							{WORK_MODES[mode].label}
-						</option>
-					))}
-				</Select>
+					options={WORK_MODE_OPTIONS}
+					describedBy={describedBy}
+					onChange={workMode => edit({ workMode: workMode || null })}
+				/>
 			)),
 		contractTypes: () =>
 			field(

@@ -1,10 +1,10 @@
-import type { CSSProperties, InputHTMLAttributes, SelectHTMLAttributes } from 'react'
+import type { CSSProperties, InputHTMLAttributes } from 'react'
 import type { VariantProps } from 'tailwind-variants'
 
 import { cx, tv } from '../../lib/cx'
 import { Icon } from '../Icon'
 
-/** A caixa dos campos de texto e seleção; use `field()` em um contêiner que se comporta como campo (ex.: o de palavras-chave). */
+/** A caixa dos campos de texto e seleção (o botão do `SelectMenu`); use `field()` em um contêiner que se comporta como campo (ex.: o de palavras-chave). */
 export const field = tv({
 	// Desativado, o campo fica com o fundo e o texto apagados para não parecer editável
 	base: 'min-w-0 rounded-sm border border-line bg-surface text-ink disabled:cursor-not-allowed disabled:bg-surface-2 disabled:text-muted',
@@ -19,16 +19,10 @@ export const field = tv({
 /** Contorno de foco de um contêiner com um campo sem borda dentro (o mesmo do `:focus-visible` dos campos). */
 export const FOCUS_WITHIN = 'focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus'
 
-type FieldLook = Omit<VariantProps<typeof field>, 'invalid'> & { invalid?: boolean }
+export type FieldLook = Omit<VariantProps<typeof field>, 'invalid'> & { invalid?: boolean }
 
 export function Input({ size, invalid, className, ...props }: Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> & FieldLook) {
 	return <input aria-invalid={invalid || undefined} {...props} className={field({ size, invalid, className })} />
-}
-
-export function Select({ size, invalid, className, ...props }: Omit<SelectHTMLAttributes<HTMLSelectElement>, 'size'> & FieldLook) {
-	return (
-		<select aria-invalid={invalid || undefined} {...props} className={field({ size, invalid, className: cx('pr-2', className) })} />
-	)
 }
 
 /** Busca com a lupa dentro do campo; `label` é o nome para o leitor de tela. */

@@ -10,9 +10,10 @@ import { Button, ButtonLink } from '../components/ui/Button'
 import { card } from '../components/ui/Card'
 import { EmptyState } from '../components/ui/EmptyState'
 import { IconButton } from '../components/ui/IconButton'
-import { Checkbox, SearchInput, Select } from '../components/ui/Input'
+import { Checkbox, SearchInput } from '../components/ui/Input'
 import { Hero, Page } from '../components/ui/Page'
 import { Pill, PILL_COUNT, PillGroup } from '../components/ui/Pill'
+import { SelectMenu } from '../components/ui/SelectMenu'
 import { StatusDot } from '../components/ui/StatusDot'
 import { FIELDSET, LABEL } from '../components/ui/text'
 import { TextLink } from '../components/ui/TextLink'
@@ -34,6 +35,12 @@ const PERIODS = [
 ] as const
 
 const VISIBLE_SKILL_FILTERS = 12
+
+/** `''` é "todos" (sem filtro de idioma). */
+const LANGUAGE_OPTIONS = [
+	{ value: '', label: 'todos' },
+	...Object.entries(LANGUAGE_NAMES).map(([code, name]) => ({ value: code, label: `${name} (${code})` })),
+]
 
 /**
  * Painel do detalhe da vaga ao lado da lista (desktop): acompanha a rolagem e rola por dentro. Com os filtros fechados,
@@ -313,17 +320,18 @@ function Filters({ open }: { open: boolean }) {
 						tem e-mail de contato
 						<Checkbox checked={filters.hasEmail} onChange={event => setFilters({ hasEmail: event.target.checked })} />
 					</label>
-					<label className="flex items-center justify-between gap-3">
-						idioma
-						<Select size="sm" value={filters.language} onChange={event => setFilters({ language: event.target.value })}>
-							<option value="">todos</option>
-							{Object.entries(LANGUAGE_NAMES).map(([code, name]) => (
-								<option value={code} key={code}>
-									{name} ({code})
-								</option>
-							))}
-						</Select>
-					</label>
+					{/* Fora de um <label>: o clique numa opção da lista contaria como clique no rótulo e reabriria a lista */}
+					<div className="flex items-center justify-between gap-3">
+						<label htmlFor="language-filter">idioma</label>
+						<SelectMenu
+							id="language-filter"
+							size="sm"
+							className="w-40"
+							value={filters.language}
+							options={LANGUAGE_OPTIONS}
+							onChange={language => setFilters({ language })}
+						/>
+					</div>
 				</div>
 
 				{hasActiveFilters(filters) && (
