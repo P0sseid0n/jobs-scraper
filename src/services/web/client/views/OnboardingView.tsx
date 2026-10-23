@@ -150,7 +150,7 @@ export function OnboardingView({ initial, step }: { initial: OnboardingData; ste
 				</IconButton>
 				{/* Sem espaço para as etapas ao lado do formulário: a barra de progresso no lugar delas */}
 				{numbered >= 0 && (
-					<div className="flex w-full max-w-160 flex-col gap-1.5 lg:hidden">
+					<div className="flex w-full max-w-240 flex-col gap-1.5 lg:hidden">
 						<p className="font-mono text-xs text-muted">
 							{eyebrow} · {NUMBERED_STEPS[numbered]!.label}
 						</p>
@@ -166,7 +166,7 @@ export function OnboardingView({ initial, step }: { initial: OnboardingData; ste
 
 			{/* O formulário e as etapas, juntos no meio da tela, na horizontal e na vertical (o logo fica sobreposto, em cima) */}
 			<div className="flex grow items-center justify-center gap-16 px-8 py-24 max-lg:py-12 max-md:px-4 max-md:pt-6 max-md:pb-6">
-				<main id="main" className="w-full max-w-160 min-w-0">
+				<main id="main" className="w-full max-w-240 min-w-0">
 					<div
 						key={step}
 						className={cx(direction === 'next' ? 'animate-step-next' : 'animate-step-back', 'motion-reduce:animate-none')}

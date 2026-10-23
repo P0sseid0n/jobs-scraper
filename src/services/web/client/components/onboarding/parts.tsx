@@ -29,7 +29,7 @@ export function StepHeading({ eyebrow, title, lead }: { eyebrow?: string; title:
 			</Rise>
 			{lead && (
 				<Rise order={2}>
-					<p className="max-w-140 text-base text-pretty text-muted">{lead}</p>
+					<p className="max-w-160 text-base text-pretty text-muted">{lead}</p>
 				</Rise>
 			)}
 		</header>
