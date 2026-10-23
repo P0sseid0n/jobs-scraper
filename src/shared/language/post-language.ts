@@ -40,6 +40,11 @@ const SHORT_TEXT_MARGIN = 0.9
 // O alfabeto (árabe, chinês, devanágari…) se reconhece com bem menos letras que o idioma
 const MIN_SCRIPT_LETTERS = 10
 
+// ơ, ư e as vogais com ponto embaixo ou gancho (ạ, ả, ộ, ữ…); o "đ" fica de fora, porque o croata também usa.
+// Um nome vietnamita num post em português ("Nguyễn") tem uma ou duas
+const VIETNAMESE_LETTERS = /[ƠơƯưẠ-ỹ]/gu
+const MIN_VIETNAMESE_LETTERS = 5
+
 export type LanguageCheck = {
 	/** Idioma mais provável (ISO 639-1), ou `null` se o texto for curto demais para detectar. */
 	language: string | null
@@ -65,6 +70,12 @@ export function checkPostLanguage(text: string, allowedLanguages: string[]): Lan
 		const code = franc(clean, { minLength: 1 })
 		const language = code === 'und' ? null : (OTHER_SCRIPT_CODES[code] ?? code)
 		return { language, rejection: unknownAllowed ? null : languageRejection(language, allowedLanguages) }
+	}
+
+	// Letras que só o vietnamita usa: decidem como um alfabeto, mesmo com termos em inglês no meio (que no franc
+	// pontuavam inglês acima de vietnamita)
+	if ((clean.match(VIETNAMESE_LETTERS)?.length ?? 0) >= MIN_VIETNAMESE_LETTERS) {
+		return { language: 'vi', rejection: unknownAllowed ? null : languageRejection('vi', allowedLanguages) }
 	}
 
 	if (letters < MIN_LETTERS) return { language: null, rejection: null }

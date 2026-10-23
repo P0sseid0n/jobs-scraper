@@ -87,6 +87,17 @@ Các vị trí đang cần gấp:
 
 		expect(checkPostLanguage(vietnamese, ['pt'])).toEqual({ language: 'vi', rejection: 'idioma vi fora dos aceitos (pt)' })
 	})
+
+	test('as letras do vietnamita decidem, mesmo com termos em inglês no meio', () => {
+		const vietnamese = `Công ty bạn mình ở Sydney đang tuyển các vị trí level Senior trở lên, được hỗ trợ visa + relocation package.
+Anh chị em nào quan tâm inbox mình gửi JD nha. Các vị trí urgent: DevSecOps, Platform Engineer, Backend Engineer.`
+
+		expect(checkPostLanguage(vietnamese, ['pt'])).toEqual({ language: 'vi', rejection: 'idioma vi fora dos aceitos (pt)' })
+	})
+
+	test('um nome vietnamita num post em português não muda o idioma', () => {
+		expect(checkPostLanguage(`${PORTUGUESE} Falar com Nguyễn Văn Đức.`, ['pt'])).toEqual({ language: 'pt', rejection: null })
+	})
 })
 
 describe('languageRejection', () => {
