@@ -2,17 +2,88 @@
 
 Coleta posts de vagas no LinkedIn, estrutura cada um com IA local (Ollama) e publica as vagas num canal do Discord e num site próprio. Em qualquer vaga, gera um currículo em PDF ajustado para ela.
 
+Serve para qualquer área: enfermagem, marketing, direito, vendas, engenharia, tecnologia... Você informa a sua área e o cargo que procura, e o site sugere os termos de busca e monta o currículo base com você.
+
 ![Lista de vagas do site, com filtros, cards e o detalhe da vaga ao lado](docs/screenshot.png)
 
 ## 📑 Sumário
 
+- [🙋 Para quem não é dev](#para-quem-nao-e-dev)
 - [🗺️ Como funciona](#como-funciona)
 - [🧩 Serviços](#servicos)
 - [🛠️ Tecnologias](#tecnologias)
-- [🏃‍♂️ Como rodar](#como-rodar)
+- [🏃‍♂️ Como rodar (para devs)](#como-rodar)
 - [🧰 Scripts](#scripts)
 - [⚠️ Observações](#observacoes)
 - [🤝 Contribuindo](#contribuindo)
+
+<a id="para-quem-nao-e-dev"></a>
+
+## 🙋 Para quem não é dev
+
+Tudo roda no seu computador, dentro do **Docker**: o banco, a IA, o site e o robô que lê o LinkedIn. Você instala um programa, baixa o projeto, roda um comando e faz o resto pelo site.
+
+Você vai precisar de:
+
+- um computador com Windows 10/11, macOS ou Linux, com pelo menos **8 GB de RAM** (16 GB é mais confortável) e **25 GB livres** no disco (a instalação ocupa uns 17 GB, quase tudo da IA);
+- uma conta no LinkedIn. De preferência, uma criada só para isso: veja as [observações](#observacoes).
+
+### 1. Instale o Docker Desktop
+
+- **Windows:** [Docker Desktop para Windows](https://docs.docker.com/desktop/setup/install/windows-install/). Durante a instalação, deixe marcado "Use WSL 2", e reinicie o computador se ele pedir.
+- **macOS:** [Docker Desktop para Mac](https://docs.docker.com/desktop/setup/install/mac-install/). Escolha a versão do seu processador (Apple Silicon, nos Macs M1 em diante, ou Intel).
+- **Linux:** [Docker Desktop para Linux](https://docs.docker.com/desktop/setup/install/linux/) ou, se preferir, o [Docker Engine](https://docs.docker.com/engine/install/).
+
+Abra o Docker Desktop e espere ele dizer que está rodando ("Engine running"). Ele precisa estar aberto sempre que você for usar o projeto.
+
+### 2. Baixe o projeto
+
+[Baixe o ZIP](https://github.com/P0sseid0n/jobs-scraper/archive/refs/heads/main.zip) e extraia numa pasta fácil de achar, como a Área de Trabalho. A pasta extraída se chama `jobs-scraper-main`.
+
+Se você tem o [Git](https://git-scm.com/downloads), pode clonar em vez de baixar o ZIP, o que facilita atualizar depois: `git clone https://github.com/P0sseid0n/jobs-scraper.git`.
+
+### 3. Abra um terminal na pasta do projeto
+
+- **Windows:** abra a pasta `jobs-scraper-main` no Explorador de Arquivos, clique com o botão direito num espaço vazio e escolha **Abrir no Terminal**.
+- **macOS:** abra o app **Terminal**, digite `cd ` (com o espaço), arraste a pasta para a janela e aperte Enter.
+- **Linux:** clique com o botão direito dentro da pasta e escolha **Abrir no terminal**.
+
+### 4. Crie o arquivo de configuração
+
+Copie o `.env.example` para `.env`. Não precisa abrir nem editar: o resto é feito pelo site.
+
+- **Windows:** `Copy-Item .env.example .env`
+- **macOS e Linux:** `cp .env.example .env`
+
+### 5. Suba tudo
+
+```bash
+docker compose --profile app up -d --build
+```
+
+Na primeira vez, o Docker baixa as imagens e o modelo de IA (uns 10 GB no total) e leva de 10 a 30 minutos, conforme a internet. Nas próximas, sobe em segundos. Espere o comando terminar antes de abrir o site: ele só termina depois que o modelo de IA foi baixado, e sem ele o site não consegue sugerir os termos de busca.
+
+### 6. Abra o site e siga o passo a passo
+
+Abra **http://localhost:3000** no navegador. Na primeira vez, o site abre o passo a passo de configuração:
+
+1. **Área:** a sua área, o cargo que você procura e a senioridade. A IA sugere os termos de busca e as palavras-chave, e você revisa.
+2. **LinkedIn:** o e-mail e a senha da conta. Ao salvar, o site testa o login. Se o LinkedIn pedir uma confirmação (aprovar no app do celular, um código ou um QR code), abre uma janela no site, em qualquer tela, para você resolver em até 3 minutos.
+3. **Currículo:** preencha o formulário (contato, experiência, formação, habilidades...) e veja a prévia do PDF. Quem já tem um currículo em LaTeX pode enviar o `.tex`.
+4. **Discord e GitHub:** opcionais, pode pular.
+5. **Revisão:** confira e clique em **fazer a primeira coleta**.
+
+As primeiras vagas aparecem no site em alguns minutos. Em qualquer vaga, **gerar currículo** cria um PDF ajustado para ela. Tudo o que você configurou fica editável em **Configurações**.
+
+### No dia a dia
+
+Rode os comandos no terminal, dentro da pasta do projeto, com o Docker Desktop aberto.
+
+- **Coletas:** enquanto o projeto está ligado, ele coleta sozinho a cada 4 horas (o intervalo muda em Configurações). Para coletar na hora, use **coletar agora**, na tela Coletas.
+- **Desligar:** `docker compose --profile app stop`. As vagas, os currículos e as configurações ficam guardados.
+- **Ligar de novo:** `docker compose --profile app up -d`.
+- **Atualizar:** baixe o ZIP de novo e extraia na mesma pasta, por cima (ou `git pull`, se clonou), e rode `docker compose --profile app up -d --build`.
+- **Algo deu errado:** `docker compose --profile app ps` mostra o que está rodando, e `docker compose --profile app logs -f web` (ou `scraper`, `cv-updater`...) mostra as mensagens de um serviço.
 
 <a id="como-funciona"></a>
 
@@ -67,7 +138,7 @@ Cada serviço tem um README com os detalhes.
 
 <a id="como-rodar"></a>
 
-## 🏃‍♂️ Como rodar
+## 🏃‍♂️ Como rodar (para devs)
 
 Pré-requisitos: [Bun](https://bun.sh) 1.4+ e Docker.
 
@@ -86,7 +157,7 @@ bun dev                   # todos os serviços, com hot reload
 - **Configurações:** termos de busca, filtros e intervalo são editados pelo site; o `.env` só preenche os valores iniciais (veja [shared](src/shared/README.md#configurações-em-tempo-de-execução)).
 - **Contas:** as credenciais do LinkedIn, do Discord e do GitHub podem ser informadas em Configurações › Contas, sem editar o `.env`; o que for salvo lá vale no lugar do `.env` (veja [shared](src/shared/README.md#credenciais)). Sem elas, os serviços sobem mesmo assim e esperam: o scraper não coleta, as vagas não vão para o Discord e o site diz o que falta.
 - **Tudo em containers:** `docker compose --profile app up -d --build`.
-- **Coleta única ou periódica:** por padrão o scraper coleta uma vez e encerra. Com `SCRAPER_INTERVAL_MINUTES` (ex.: `180`), ele fica rodando e coleta periodicamente.
+- **Coleta periódica ou única:** com o `.env.example`, o scraper fica rodando e coleta a cada `SCRAPER_INTERVAL_MINUTES` (240; depois, vale o intervalo editado pelo site). Com `SCRAPER_INTERVAL_MINUTES=0`, ele coleta uma vez e encerra.
 
 Painéis, todos só em `127.0.0.1`:
 
