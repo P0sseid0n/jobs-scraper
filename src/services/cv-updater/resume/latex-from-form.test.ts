@@ -193,6 +193,29 @@ describe('currículo gerado do formulário', () => {
 		expect(raw.projectSkillsLabel).toBe('Tecnologias')
 	})
 
+	test('separa as formações com um respiro, sem sobrar no fim', () => {
+		const tex = latex({
+			contact,
+			sections: [
+				{
+					kind: 'education',
+					entries: [
+						{ course: 'ADS', institution: 'Unicesumar', period: '2023 - 2025' },
+						{ course: '', institution: '', period: '' },
+						{ course: 'Leitura técnica e escrita', institution: 'Inglês Intermediário', period: '' },
+					],
+				},
+			],
+		})
+
+		expect(tex).toContain(
+			'\\textbf{Unicesumar} - ADS \\hfill 2023 - 2025\n\n\\vspace{6pt}\n\n\\textbf{Inglês Intermediário} - Leitura técnica e escrita\n\n\\end{document}',
+		)
+		expect(readResumeTex(tex).model.otherSections[0]!.text).toBe(
+			'Unicesumar - ADS 2023 - 2025 Inglês Intermediário - Leitura técnica e escrita',
+		)
+	})
+
 	test('o título próprio precisa ser um sinônimo da mesma seção', () => {
 		expect(isSectionTitle('skills', 'Habilidades Técnicas')).toBe(true)
 		expect(isSectionTitle('education', 'Formação Acadêmica')).toBe(true)

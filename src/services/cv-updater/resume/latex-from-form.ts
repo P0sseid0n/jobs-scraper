@@ -53,10 +53,13 @@ function renderSection(section: CvFormSection): string {
 		case 'experience':
 			return renderExperience(section)
 		case 'education':
-			return section.entries
-				.map(({ course, institution, period }) => withPeriod(titled(institution, course, ' - '), period))
-				.filter(Boolean)
-				.join('\n\n')
+			return (
+				section.entries
+					.map(({ course, institution, period }) => withPeriod(titled(institution, course, ' - '), period))
+					.filter(Boolean)
+					// Um respiro entre as formações, como entre os projetos
+					.join('\n\n\\vspace{6pt}\n\n')
+			)
 		case 'certifications':
 			return itemize(
 				section.entries.map(({ name, issuer, year }) => [name, issuer, year].filter(Boolean).map(escapeText).join(' - ')),
