@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 
 import { cx } from '../../lib/cx'
 import { Icon } from '../Icon'
@@ -6,6 +6,10 @@ import { badge, BadgeList } from '../ui/Badge'
 import { card } from '../ui/Card'
 
 const RISE = 'animate-rise-in motion-reduce:animate-none'
+
+/** Uma volta até começar a sumir: uns 3 s montando e uns 3 s parada no fim, com a vaga pronta. */
+const ROUND_MS = 6000
+const FADE_MS = 500
 
 /** Um trecho do post que a IA lê: o marca-texto passa por cima, um trecho depois do outro. */
 function Mark({ delay, children }: { delay: string; children: ReactNode }) {
@@ -23,11 +27,32 @@ function Mark({ delay, children }: { delay: string; children: ReactNode }) {
 
 /**
  * A demonstração da abertura, ao lado dos passos: um post do LinkedIn, os trechos que a IA lê e a vaga que sai dele,
- * já com o currículo ajustado. Toca uma vez e para no fim; com movimento reduzido, aparece pronta.
+ * já com o currículo ajustado. Toca em loop: parada no fim, com tudo na tela, ficaria texto demais ao lado dos passos.
+ * A cada volta some devagar e monta de novo (a `key` nova reinicia as animações); com movimento reduzido, fica pronta.
  */
 export function WelcomeDemo() {
+	const [round, setRound] = useState(0)
+	const [leaving, setLeaving] = useState(false)
+
+	useEffect(() => {
+		if (matchMedia('(prefers-reduced-motion: reduce)').matches) return
+		const fade = setTimeout(() => setLeaving(true), ROUND_MS)
+		const next = setTimeout(() => {
+			setLeaving(false)
+			setRound(value => value + 1)
+		}, ROUND_MS + FADE_MS)
+		return () => {
+			clearTimeout(fade)
+			clearTimeout(next)
+		}
+	}, [round])
+
 	return (
-		<figure aria-label="Exemplo: um post do LinkedIn que vira uma vaga" className="m-0 flex flex-col gap-3">
+		<figure
+			key={round}
+			aria-label="Exemplo: um post do LinkedIn que vira uma vaga"
+			className={cx('m-0 flex flex-col gap-3 transition-opacity duration-500', leaving && 'opacity-0')}
+		>
 			<div className={cx(card({ size: 'sm' }), 'flex flex-col gap-3', RISE, 'stagger-4')}>
 				<div className="flex items-center gap-2.5">
 					<span
