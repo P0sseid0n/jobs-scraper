@@ -181,6 +181,17 @@
 	--animate-rise-in: rise-in 700ms var(--ease-glide) both;
 	--animate-step-next: step-next 520ms var(--ease-glide) both;
 	--animate-step-back: step-back 520ms var(--ease-glide) both;
+	/* O marca-texto da demonstração da abertura: o fundo cresce da esquerda para a direita */
+	--animate-mark-in: mark-in 600ms var(--ease-glide) both;
+
+	@keyframes mark-in {
+		from {
+			background-size: 0% 100%;
+		}
+		to {
+			background-size: 100% 100%;
+		}
+	}
 
 	@keyframes rise-in {
 		from {

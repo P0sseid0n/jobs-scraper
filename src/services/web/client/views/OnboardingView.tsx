@@ -10,6 +10,7 @@ import { CvStep } from '../components/onboarding/CvStep'
 import { Rise, StepBar, useCurrentSubSteps, useStepBar, type SubStepsState } from '../components/onboarding/parts'
 import { defaultProfilePart, ProfileStep, type ProfilePart, type ProfileStepData } from '../components/onboarding/ProfileStep'
 import { ReviewStep } from '../components/onboarding/ReviewStep'
+import { WelcomeDemo } from '../components/onboarding/WelcomeDemo'
 import { NUMBERED_STEPS, ONBOARDING_STEPS, stepDone, type OnboardingStep } from '../components/onboarding/steps'
 import { IconButton } from '../components/ui/IconButton'
 import { cx } from '../lib/cx'
@@ -336,12 +337,16 @@ const WELCOME_ITEMS = [
 	{ title: 'Monte o seu currículo', text: 'Ele vira um currículo ajustado para cada vaga.' },
 ]
 
-/** A abertura: o que o onboarding vai pedir, em três linhas que chegam pelo lado, e o "começar". */
+/**
+ * A abertura: o que o onboarding vai pedir, em três linhas que chegam pelo lado, e o "começar". Ao lado (só no desktop),
+ * a demonstração do que a pessoa ganha: um post que vira vaga.
+ */
 function Welcome({ onStart }: { onStart: () => void }) {
 	useStepBar({ hint: 'leva uns 5 minutos, e dá para parar e continuar depois', primary: { label: 'começar', trailingIcon: 'back', onClick: onStart } })
 
 	return (
-		<div className="flex flex-col gap-10 md:pt-8">
+		<div className="flex items-center gap-12 md:pt-8">
+		<div className="flex min-w-0 flex-1 flex-col gap-10">
 			<div className="flex flex-col gap-4">
 				<Rise>
 					<p className="font-mono text-sm text-lime-text">oi! que bom ter você aqui_</p>
@@ -377,6 +382,13 @@ function Welcome({ onStart }: { onStart: () => void }) {
 					</li>
 				))}
 			</ol>
+			<p className="-mt-4 animate-rise-in text-sm text-muted motion-reduce:animate-none stagger-6">
+				Dá para mudar tudo depois, nas configurações.
+			</p>
+		</div>
+		<div className="w-80 shrink-0 max-lg:hidden">
+			<WelcomeDemo />
+		</div>
 		</div>
 	)
 }
