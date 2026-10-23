@@ -16,6 +16,7 @@ import { Notice } from '../components/ui/Notice'
 import { Hero, Page } from '../components/ui/Page'
 import { LABEL, SECTION_TITLE } from '../components/ui/text'
 import { activeVersion, formatKilobytes, texBytes, upsertVersion } from '../lib/cv-base'
+import { CV_EXAMPLES, exampleDownloadUrl, type CvExample } from '../lib/cv-examples'
 import { cx } from '../lib/cx'
 import { formatDateTime } from '../lib/format'
 import { connected, onLive } from '../stores/live'
@@ -28,6 +29,9 @@ export type CvBaseData = { versions: WebCvBaseVersion[]; activeTex: string }
 
 /** O texto no editor e o arquivo de onde veio (o nome vai junto só se o texto não foi mexido depois). */
 type Source = { text: string; fileName: string | null }
+
+/** O que vai substituir o texto do editor, à espera da confirmação: o `.tex` de uma versão ou um modelo. */
+type Replacement = { version: WebCvBaseVersion } | { example: CvExample }
 
 const origin = (version: WebCvBaseVersion) => version.fileName ?? 'editado no site'
 const pagesLabel = (pages: number | null) => (pages === null ? null : `${pages} ${pages === 1 ? 'página' : 'páginas'}`)
@@ -73,7 +77,7 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 	const [candidateId, setCandidateId] = useState<string | null>(null)
 	const [submitting, setSubmitting] = useState(false)
 	const [activating, setActivating] = useState<string | null>(null)
-	const [replaceWith, setReplaceWith] = useState<WebCvBaseVersion | null>(null)
+	const [replaceWith, setReplaceWith] = useState<Replacement | null>(null)
 	const fileInput = useRef<HTMLInputElement>(null)
 	const editor = useRef<HTMLTextAreaElement>(null)
 
@@ -163,7 +167,7 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 	/** Carrega o `.tex` de uma versão no editor (pede confirmação antes se o editor tem mudanças). */
 	async function edit(version: WebCvBaseVersion, confirmed = false) {
 		if (dirty && !confirmed) {
-			setReplaceWith(version)
+			setReplaceWith({ version })
 			return
 		}
 		setReplaceWith(null)
@@ -174,11 +178,29 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 			setSource({ text: tex, fileName: version.fileName })
 			setSavedText(tex)
 			setCandidateId(null)
-			editor.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-			editor.current?.focus({ preventScroll: true })
+			focusEditor()
 		} catch (error) {
 			notify(`Não consegui carregar a versão: ${(error as Error).message}`, 'error')
 		}
+	}
+
+	/** Põe um modelo no editor (pede confirmação antes se o editor tem mudanças); ele ainda precisa ser validado. */
+	function loadExample(example: CvExample, confirmed = false) {
+		if (dirty && !confirmed) {
+			setReplaceWith({ example })
+			return
+		}
+		setReplaceWith(null)
+
+		setText(example.tex)
+		setSource({ text: example.tex, fileName: example.fileName })
+		setCandidateId(null)
+		focusEditor()
+	}
+
+	function focusEditor() {
+		editor.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+		editor.current?.focus({ preventScroll: true })
 	}
 
 	const activateButton = (version: WebCvBaseVersion, size: 'sm' | 'md' = 'md') => (
@@ -274,6 +296,42 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 		)
 	}
 
+	function renderExamples() {
+		return (
+			<section className={SECTION_CARD} aria-labelledby="cv-base-examples">
+				<div className="flex flex-col gap-1.5">
+					<h2 id="cv-base-examples" className={SECTION_TITLE}>
+						modelos
+					</h2>
+					<p className="text-sm text-muted">
+						Comece por um modelo: troque os dados pelos seus e valide. Os títulos das seções aceitam sinônimos (Resumo, Sobre,
+						Competências, Experiência...), em português ou em inglês.
+					</p>
+				</div>
+				<ul className="m-0 grid list-none gap-2.5 p-0 md:grid-cols-2">
+					{CV_EXAMPLES.map(example => (
+						<li key={example.fileName} className={card({ size: 'sm', className: 'flex flex-col gap-3' })}>
+							<div className="flex flex-col gap-0.5">
+								<span className="font-semibold">{example.title}</span>
+								<span className="font-mono text-xs text-muted">{example.fileName}</span>
+								<span className="mt-1 text-sm text-muted">{example.description}</span>
+							</div>
+							<div className="mt-auto flex flex-wrap gap-2">
+								<Button variant="ghost" size="sm" href={exampleDownloadUrl(example)} download={example.fileName}>
+									<Icon name="download" size={14} />
+									baixar
+								</Button>
+								<Button variant="ghost" size="sm" onClick={() => loadExample(example)}>
+									usar no editor
+								</Button>
+							</div>
+						</li>
+					))}
+				</ul>
+			</section>
+		)
+	}
+
 	function renderEditor() {
 		return (
 			<section className={SECTION_CARD} aria-labelledby="cv-base-new">
@@ -311,9 +369,8 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 						<FieldError id="cv-base-tex-error">O .tex passa do limite de {MAX_SIZE}.</FieldError>
 					) : (
 						<FieldHelp id="cv-base-tex-help">
-							Precisa de pelo menos uma seção de experiência ou de formação, como no{' '}
-							<code className="font-mono">cv.neutral.example.tex</code>. Resumo, competências e projetos são opcionais. O
-							cv-updater compila antes de você poder ativar.
+							Precisa de pelo menos uma seção de experiência ou de formação, como nos modelos. Resumo, competências e projetos
+							são opcionais. O cv-updater compila antes de você poder ativar.
 						</FieldHelp>
 					)}
 				</div>
@@ -423,15 +480,16 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 			{replaceWith && (
 				<ConfirmDialog
 					title="Trocar o texto do editor?"
-					description="O texto do editor ainda não foi enviado e vai ser trocado pelo da versão escolhida."
+					description={`O texto do editor ainda não foi enviado e vai ser trocado pelo ${'version' in replaceWith ? 'da versão escolhida' : 'do modelo'}.`}
 					confirmLabel="trocar o texto"
 					cancelLabel="continuar editando"
-					onConfirm={() => edit(replaceWith, true)}
+					onConfirm={() => ('version' in replaceWith ? edit(replaceWith.version, true) : loadExample(replaceWith.example, true))}
 					onCancel={() => setReplaceWith(null)}
 				/>
 			)}
 
 			{renderActive()}
+			{renderExamples()}
 			{renderEditor()}
 			{versions.length > 0 && renderHistory()}
 		</Page>
