@@ -37,7 +37,7 @@ function Preview({ version }: { version: WebCvBaseVersion }) {
 
 /**
  * Passo 3: o currículo base, pelo formulário (o mesmo de Currículos › Currículo base) ou por um `.tex`. A versão nova é
- * validada pelo cv-updater, que gera a prévia; "usar este currículo" a ativa.
+ * validada pelo cv-updater, que gera a prévia; "usar este currículo e continuar" a ativa e já segue para o próximo passo.
  */
 export function CvStep({
 	eyebrow,
@@ -149,7 +149,7 @@ export function CvStep({
 			const updated = await api.activateCvBaseVersion(version.versionId)
 			setVersions(current => upsertVersion(current, updated))
 			setCandidateId(null)
-			notify('Currículo salvo: os próximos currículos saem dele.')
+			onNext()
 		} catch (error) {
 			notify(`Não consegui usar este currículo: ${(error as Error).message}`, 'error')
 		} finally {
@@ -243,7 +243,7 @@ export function CvStep({
 					: [],
 		primary: reviewing
 			? {
-					label: activating ? 'salvando…' : 'usar este currículo',
+					label: activating ? 'salvando…' : 'usar este currículo e continuar',
 					disabled: activating,
 					onClick: () => candidate && activate(candidate),
 				}
