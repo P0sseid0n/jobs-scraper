@@ -186,7 +186,8 @@ export function OnboardingView({
 
 			{/* O formulário e as etapas, juntos no meio da tela, na horizontal e na vertical (o logo fica sobreposto, em cima) */}
 			<div className="flex grow items-center justify-center gap-16 px-8 py-24 max-lg:py-12 max-md:px-4 max-md:pt-6 max-md:pb-6">
-				<main id="main" className="w-full max-w-240 min-w-0">
+				{/* Na abertura, mais larga: a demonstração ao lado não aperta o título */}
+				<main id="main" className={cx('w-full min-w-0', numbered >= 0 ? 'max-w-240' : 'max-w-280')}>
 					<div
 						key={step}
 						className={cx(direction === 'next' ? 'animate-step-next' : 'animate-step-back', 'motion-reduce:animate-none')}
@@ -345,7 +346,7 @@ function Welcome({ onStart }: { onStart: () => void }) {
 	useStepBar({ hint: 'leva uns 5 minutos, e dá para parar e continuar depois', primary: { label: 'começar', trailingIcon: 'back', onClick: onStart } })
 
 	return (
-		<div className="flex items-center gap-12 md:pt-8">
+		<div className="flex items-center gap-30 md:pt-8">
 		<div className="flex min-w-0 flex-1 flex-col gap-10">
 			<div className="flex flex-col gap-4">
 				<Rise>

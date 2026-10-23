@@ -183,6 +183,23 @@
 	--animate-step-back: step-back 520ms var(--ease-glide) both;
 	/* O marca-texto da demonstração da abertura: o fundo cresce da esquerda para a direita */
 	--animate-mark-in: mark-in 600ms var(--ease-glide) both;
+	/* A faixa de leitura da IA, que desce pelo texto do post antes do marca-texto */
+	--animate-scan: scan 1100ms ease-in-out both;
+
+	@keyframes scan {
+		0% {
+			top: -1.5rem;
+			opacity: 0;
+		}
+		15%,
+		85% {
+			opacity: 1;
+		}
+		100% {
+			top: 100%;
+			opacity: 0;
+		}
+	}
 
 	@keyframes mark-in {
 		from {
