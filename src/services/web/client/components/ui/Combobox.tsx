@@ -12,6 +12,19 @@ function comparable(text: string) {
 		.trim()
 }
 
+/** A lista aberta embaixo do campo (também a do `SelectMenu`). */
+export const LISTBOX =
+	'absolute inset-x-0 top-full z-20 mt-1 max-h-60 overflow-y-auto rounded-md border border-line bg-surface p-1 shadow-float'
+
+/** Uma opção da lista: `active` é a das setas; `selected`, a do valor atual. */
+export function listOption(active: boolean, selected: boolean) {
+	return cx(
+		'cursor-pointer rounded-sm px-3 py-2 text-sm',
+		active ? 'bg-surface-2' : 'hover:bg-surface-2',
+		selected && 'font-semibold',
+	)
+}
+
 /** As opções que contêm o texto digitado; sem texto, todas. */
 export function filterOptions(options: readonly string[], query: string) {
 	const key = comparable(query)
@@ -115,7 +128,7 @@ export function Combobox({
 				id={listId}
 				role="listbox"
 				hidden={!expanded}
-				className="absolute inset-x-0 top-full z-20 mt-1 max-h-60 overflow-y-auto rounded-md border border-line bg-surface p-1 shadow-float"
+				className={LISTBOX}
 			>
 				{visible.map((option, index) => (
 					// biome-ignore lint/a11y/useKeyWithClickEvents: pelo teclado, as setas e o Enter no campo escolhem a opção
@@ -126,11 +139,7 @@ export function Combobox({
 						// O foco fica no campo (aria-activedescendant); a opção só precisa ser focável
 						tabIndex={-1}
 						aria-selected={index === active}
-						className={cx(
-							'cursor-pointer rounded-sm px-3 py-2 text-sm',
-							index === active ? 'bg-surface-2' : 'hover:bg-surface-2',
-							option === value && 'font-semibold',
-						)}
+						className={listOption(index === active, option === value)}
 						// Sem tirar o foco do campo (o blur fecharia a lista antes do clique)
 						onMouseDown={event => event.preventDefault()}
 						onClick={() => choose(option)}

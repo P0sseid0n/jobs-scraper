@@ -27,6 +27,7 @@ import { KeywordInput } from '../components/ui/KeywordInput'
 import { Notice } from '../components/ui/Notice'
 import { Hero, Page, pageFrame } from '../components/ui/Page'
 import { pill, PillGroup } from '../components/ui/Pill'
+import { SelectMenu, type SelectMenuOption } from '../components/ui/SelectMenu'
 import { Switch, SwitchField } from '../components/ui/Switch'
 import { SECTION_TITLE } from '../components/ui/text'
 import { cx } from '../lib/cx'
@@ -48,6 +49,12 @@ const SENIORITY_LABELS: Record<SeniorityLevel, string> = {
 	senior: 'Sênior',
 	lead: 'Liderança',
 }
+
+/** `''` é "Não informar" (`seniority: null`). */
+const SENIORITY_OPTIONS: SelectMenuOption<SeniorityLevel | ''>[] = [
+	{ value: '', label: 'Não informar' },
+	...SENIORITY_LEVELS.map(value => ({ value, label: SENIORITY_LABELS[value] })),
+]
 
 const SETTINGS_CARD = card({ size: 'lg', className: 'flex flex-col gap-6.5' })
 
@@ -267,24 +274,17 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 
 				<div className="flex flex-col gap-1.5">
 					<FieldLabel htmlFor="seniority">senioridade</FieldLabel>
-					<Select
+					<SelectMenu
 						id="seniority"
 						className="max-w-80 max-md:max-w-none"
 						value={profile.seniority ?? ''}
-						onChange={event => {
-							const value = (event.target.value || null) as SeniorityLevel | null
+						options={SENIORITY_OPTIONS}
+						onChange={value =>
 							edit(next => {
-								next.profile.seniority = value
+								next.profile.seniority = value || null
 							})
-						}}
-					>
-						<option value="">Não informar</option>
-						{SENIORITY_LEVELS.map(value => (
-							<option key={value} value={value}>
-								{SENIORITY_LABELS[value]}
-							</option>
-						))}
-					</Select>
+						}
+					/>
 				</div>
 
 				<fieldset className="flex flex-col gap-2.5">
