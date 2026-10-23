@@ -49,7 +49,7 @@ const SENIORITY_LABELS: Record<SeniorityLevel, string> = {
 	lead: 'Liderança',
 }
 
-const SETTINGS_CARD = card({ className: 'flex flex-col gap-6.5 p-7 max-md:p-4.5' })
+const SETTINGS_CARD = card({ size: 'lg', className: 'flex flex-col gap-6.5' })
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
@@ -584,7 +584,7 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 			)}
 
 			{loaded && (
-				<div className={card({ className: cx('flex flex-wrap items-center gap-4 px-5 py-4.5', paused && 'bg-lime-soft') })}>
+				<div className={card({ size: 'md', className: cx('flex flex-wrap items-center gap-4', paused && 'bg-lime-soft') })}>
 					<div className="grow">
 						<p className="font-semibold">
 							{paused

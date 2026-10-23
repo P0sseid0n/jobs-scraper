@@ -116,7 +116,7 @@ function RootLayout() {
 				pular para o conteúdo
 			</a>
 			<header className="sticky top-0 z-20 border-b border-line bg-bg/88 backdrop-blur-md">
-				<div className="mx-auto flex max-w-340 items-center gap-4 px-6 py-3 max-md:px-4">
+				<div className="mx-auto flex max-w-360 items-center gap-4 px-6 py-3 max-md:px-4">
 					<Link
 						className="inline-flex items-center gap-2 font-mono text-sm font-medium whitespace-nowrap no-underline"
 						to="/"

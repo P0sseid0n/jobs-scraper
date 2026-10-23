@@ -128,7 +128,7 @@ function lastRunSummary(run: WebScraperRun) {
 function TermCard({ term }: { term: WebScraperRunTerm }) {
 	if (!term.error) {
 		return (
-			<li className={card({ className: 'flex flex-col gap-1.5 p-3' })}>
+			<li className={card({ size: 'sm', className: 'flex flex-col gap-1.5' })}>
 				<span className="font-mono text-muted text-xs">{term.term}</span>
 				<span className="font-mono text-lg">
 					{term.sent} novos{term.skipped > 0 && <span className="text-muted"> · {term.skipped} já vistos</span>}
@@ -143,7 +143,13 @@ function TermCard({ term }: { term: WebScraperRunTerm }) {
 	const { title, hint } = TERM_ERRORS[term.errorKind ?? 'unknown']
 
 	return (
-		<li className={card({ failed: !empty, className: cx('flex flex-col gap-1.5 p-3', empty ? 'bg-warn-bg' : 'bg-danger-bg') })}>
+		<li
+			className={card({
+				size: 'sm',
+				failed: !empty,
+				className: cx('flex flex-col gap-1.5', empty ? 'bg-warn-bg' : 'bg-danger-bg'),
+			})}
+		>
 			<span className="flex items-center gap-1.5 font-mono text-muted text-xs">
 				<Icon name="alert" size={12} className={empty ? 'text-warn' : 'text-danger'} />
 				{term.term}
@@ -374,7 +380,7 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 
 		return (
 			<div className="flex flex-wrap gap-4">
-				<section className="inverted flex grow-2 basis-130 flex-col gap-5 rounded-xl p-6" aria-live="polite">
+				<section className="inverted flex grow-2 basis-130 flex-col gap-5 rounded-xl p-7 max-md:p-4.5" aria-live="polite">
 					<div className="flex items-center justify-between gap-3 flex-wrap">
 						<div className="flex items-center gap-2.5">
 							<Badge tone={running ? 'lime' : status.paused || waiting ? 'muted' : 'ok'}>
@@ -437,7 +443,7 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 					</div>
 				</section>
 
-				<section className={card({ className: 'flex flex-1 basis-70 flex-col gap-2.5 p-5.5' })}>
+				<section className={card({ size: 'lg', className: 'flex flex-1 basis-70 flex-col gap-2.5' })}>
 					<h2 className={LABEL}>agenda_</h2>
 					<SwitchField
 						id="runs-paused"

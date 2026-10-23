@@ -46,8 +46,9 @@ export function DetailPanel({ children }: { children: ReactNode }) {
 	return (
 		<aside
 			className={card({
+				size: 'lg',
 				className: cx(
-					'sticky top-19 max-h-below-topbar grow-999 overflow-y-auto p-6 transition-all duration-300 ease-out motion-reduce:transition-none',
+					'sticky top-19 max-h-below-topbar grow-999 overflow-y-auto transition-all duration-300 ease-out motion-reduce:transition-none',
 					wider ? 'max-w-190 basis-130' : 'max-w-115 basis-100',
 				),
 			})}

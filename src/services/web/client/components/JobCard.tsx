@@ -19,7 +19,7 @@ import { WorkModeBadge } from './WorkModeBadge'
 
 const VISIBLE_SKILLS = 4
 
-const JOB_CARD = card({ className: 'flex flex-col gap-3 px-4.5 py-4 transition-colors max-md:p-3.5' })
+const JOB_CARD = card({ size: 'md', className: 'flex flex-col gap-3 transition-colors' })
 /** A margem esquerda maior é a coluna da bolinha de não vista (todo o conteúdo do card fica alinhado depois dela). */
 const DOT_GUTTER = 'pl-8 max-md:pl-7'
 
@@ -134,7 +134,7 @@ function ViewedDot({ job, viewed }: { job: WebJob; viewed: boolean }) {
 			aria-label={`${action}: ${job.title}`}
 			title={action}
 			className={cx(
-				'group/dot absolute top-4 left-0 z-10 grid h-5.5 w-8 place-items-center border-0 bg-transparent p-0 max-md:top-3.5 max-md:w-7',
+				'group/dot absolute top-4.5 left-0 z-10 grid h-5.5 w-8 place-items-center border-0 bg-transparent p-0 max-md:top-4 max-md:w-7',
 				'after:absolute after:top-1/2 after:left-1/2 after:size-11 after:-translate-1/2',
 			)}
 			onClick={() => void setViewed(job, !viewed)}

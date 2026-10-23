@@ -107,7 +107,7 @@ export function AccountsSection({ initial }: { initial: WebCredentials }) {
 	const [selected, setSelected] = useState<CredentialGroup>('linkedin')
 
 	return (
-		<section className={card({ className: 'flex flex-col gap-6.5 p-7 max-md:p-4.5' })} aria-labelledby="accounts-title">
+		<section className={card({ size: 'lg', className: 'flex flex-col gap-6.5' })} aria-labelledby="accounts-title">
 			<div className="flex flex-col gap-1.5">
 				<h2 id="accounts-title" className={SECTION_TITLE}>
 					contas <span className="font-mono text-xs font-normal text-muted">credenciais</span>

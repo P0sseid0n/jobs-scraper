@@ -21,7 +21,7 @@ import { formatDateTime } from '../lib/format'
 import { connected, onLive } from '../stores/live'
 import { notify } from '../stores/toast'
 
-const SECTION_CARD = card({ className: 'flex flex-col gap-5 p-7 max-md:p-4.5' })
+const SECTION_CARD = card({ size: 'lg', className: 'flex flex-col gap-5' })
 const MAX_SIZE = formatKilobytes(CV_BASE_TEX_MAX_BYTES)
 
 export type CvBaseData = { versions: WebCvBaseVersion[]; activeTex: string }
@@ -344,7 +344,8 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 								key={version.versionId}
 								className={card({
 									failed: version.status === 'invalid',
-									className: 'flex flex-wrap items-center gap-3.5 px-4 py-3.5',
+									size: 'sm',
+									className: 'flex flex-wrap items-center gap-3.5',
 								})}
 							>
 								<div className="flex min-w-0 grow basis-60 flex-col gap-0.5">

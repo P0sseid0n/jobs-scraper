@@ -26,7 +26,7 @@ O site do jobs-scraper: vagas de front-end coletadas do LinkedIn, lidas por uma 
 
 ## Espaço, raios e sombra
 
-- Escala padrão do Tailwind, de 4px em 4px (`spacing`): `gap-1.5` entre pills e badges, `gap-2.5` dentro de um campo, `gap-4` a `gap-7` entre blocos. O `Page` já dá as margens e o `gap-7` entre os blocos da tela.
+- Escala padrão do Tailwind, de 4px em 4px (`spacing`): `gap-1.5` entre pills e badges, `gap-2.5` dentro de um campo, `gap-4` a `gap-7` entre blocos. O `Page` já dá as margens e o `gap-7` entre os blocos da tela. O padding de um card vem de `card({ size })`: `lg` (`p-7`) nas seções com formulário e na vaga aberta, `md` (`px-5 py-4.5`) nas faixas de destaque e nos cards de vaga, `sm` (`px-4 py-3.5`) nos itens de lista.
 - Raios: `radius-pill` em botões, pills e badges; `radius-sm` nos campos; `radius-md` nos avisos; `radius-lg` em cards e modais.
 - Bordas finas (`color-line`) em vez de sombras. Só o que flutua (modal, toast, bandeja) tem sombra: `elevation`.
 - Desktop-first: no celular (até 860px, `max-md:`) as colunas viram uma, a lista e o detalhe viram páginas separadas e os filtros ficam recolhidos num card, abertos pelo botão "filtros".

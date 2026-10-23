@@ -28,7 +28,7 @@ function CvItem({ request }: { request: WebCvRequest }) {
 	const meta = [request.company, formatDateTime(request.finishedAt ?? request.requestedAt)].filter(Boolean).join(' · ')
 
 	return (
-		<li className={card({ failed: request.status === 'failed', className: 'flex items-center gap-3.5 px-4 py-3.5' })}>
+		<li className={card({ size: 'sm', failed: request.status === 'failed', className: 'flex items-center gap-3.5' })}>
 			<PdfIcon dashed={request.status === 'pending'}>
 				{request.status === 'pending' ? <Icon name="spinner" size={14} /> : request.status === 'failed' ? 'erro' : 'PDF'}
 			</PdfIcon>
@@ -77,7 +77,7 @@ function CvBaseCard({ versions }: { versions: WebCvBaseVersion[] | null }) {
 			: 'usando o arquivo data/cv/cv.tex'
 
 	return (
-		<section className={card({ className: 'flex flex-wrap items-center gap-3.5 px-5 py-4.5' })} aria-labelledby="cv-base-title">
+		<section className={card({ size: 'md', className: 'flex flex-wrap items-center gap-3.5' })} aria-labelledby="cv-base-title">
 			<div className="flex min-w-0 grow flex-col gap-0.5">
 				<span className="flex flex-wrap items-center gap-2">
 					<h2 id="cv-base-title" className="font-semibold">
@@ -107,7 +107,7 @@ export function CvsView({ baseVersions }: { baseVersions: WebCvBaseVersion[] | n
 	const done = requests.filter(request => request.status !== 'pending')
 
 	return (
-		<Page width="medium">
+		<Page>
 			<Hero
 				title={
 					<>

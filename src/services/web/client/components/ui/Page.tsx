@@ -4,9 +4,9 @@ import type { VariantProps } from 'tailwind-variants'
 import { tv } from '../../lib/cx'
 
 const page = tv({
-	base: 'mx-auto flex w-full max-w-340 flex-col gap-7 px-6 pt-11 pb-30 max-md:gap-5 max-md:px-4 max-md:pt-6 max-md:pb-35',
+	base: 'mx-auto flex w-full max-w-360 flex-col gap-7 px-6 pt-11 pb-30 max-md:gap-5 max-md:px-4 max-md:pt-6 max-md:pb-35',
 	variants: {
-		/** `wide`: a lista de vagas e as coletas. `medium`: formulários e listas. `narrow`: uma coisa só (a vaga, o 404). */
+		/** `wide`: as listas (vagas, coletas e currículos). `medium`: os formulários. `narrow`: uma coisa só (a vaga, o 404). */
 		width: { wide: '', medium: 'max-w-270', narrow: 'max-w-190' },
 	},
 	defaultVariants: { width: 'wide' },

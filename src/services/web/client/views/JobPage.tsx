@@ -19,7 +19,7 @@ export function JobPage({ job, error }: { job?: WebJob; error?: string }) {
 	let content: ReactNode
 	if (job) {
 		content = (
-			<article className={card({ className: 'p-6 max-md:p-4.5' })}>
+			<article className={card({ size: 'lg' })}>
 				<JobDetail job={job} />
 			</article>
 		)
