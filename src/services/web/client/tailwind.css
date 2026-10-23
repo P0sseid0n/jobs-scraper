@@ -113,6 +113,54 @@
 		}
 	}
 
+	/* Listas que abrem (SelectMenu, Combobox), modal e o fundo dela, avisos que chegam, aba que aparece, ícone que acende */
+	--animate-pop-in: pop-in 240ms var(--ease-spring) both;
+	--animate-dialog-in: dialog-in 360ms var(--ease-spring) both;
+	--animate-fade-in: fade-in 200ms ease-out both;
+	--animate-toast-in: toast-in 450ms var(--ease-spring) both;
+	--animate-panel-in: panel-in 280ms ease-out both;
+	--animate-pop: pop 450ms var(--ease-spring);
+
+	@keyframes pop-in {
+		from {
+			opacity: 0;
+			transform: translateY(-6px) scale(0.96);
+		}
+	}
+
+	@keyframes dialog-in {
+		from {
+			opacity: 0;
+			transform: translateY(12px) scale(0.94);
+		}
+	}
+
+	@keyframes fade-in {
+		from {
+			opacity: 0;
+		}
+	}
+
+	@keyframes toast-in {
+		from {
+			opacity: 0;
+			transform: translateY(24px) scale(0.9);
+		}
+	}
+
+	@keyframes panel-in {
+		from {
+			opacity: 0;
+			transform: translateY(6px);
+		}
+	}
+
+	@keyframes pop {
+		40% {
+			transform: scale(1.25);
+		}
+	}
+
 	@keyframes ripple {
 		from {
 			opacity: 1;

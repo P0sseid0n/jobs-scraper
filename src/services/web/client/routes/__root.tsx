@@ -11,6 +11,7 @@ import { ButtonLink } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
 import { IconButton } from '../components/ui/IconButton'
 import { Page, pageFrame } from '../components/ui/Page'
+import { useSlidingIndicator } from '../components/ui/sliding-indicator'
 import { StatusDot, type StatusDotTone } from '../components/ui/StatusDot'
 import { cx } from '../lib/cx'
 import { formatDuration } from '../lib/format'
@@ -102,6 +103,7 @@ function RootLayout() {
 	const connected = useConnected()
 	const toasts = useToasts()
 	const pendingCvs = useTrayRequests().filter(request => request.status === 'pending').length
+	const nav = useSlidingIndicator<HTMLElement>('[aria-current="page"]', path)
 
 	// "vagas" também fica marcado com uma vaga aberta (`/vagas/$id`)
 	const isActive = (item: string) => (item === '/' ? path === '/' || path.startsWith('/vagas/') : path.startsWith(item))
@@ -125,13 +127,24 @@ function RootLayout() {
 						<ProjectIcon />
 						jobs/scraper<span className="text-lime-text">_</span>
 					</Link>
-					<nav className="flex flex-auto gap-1 max-md:hidden" aria-label="Principal">
+					<nav ref={nav.container} className="relative flex flex-auto gap-1 max-md:hidden" aria-label="Principal">
+						{/* O fundo da tela atual, que desliza até a nova */}
+						{nav.box && (
+							<span
+								aria-hidden="true"
+								className={cx(
+									'pointer-events-none absolute inset-y-0 left-0 rounded-pill bg-surface-2',
+									nav.box.slide && 'transition-all duration-500 ease-spring motion-reduce:transition-none',
+								)}
+								style={{ translate: `${nav.box.left}px 0`, width: nav.box.width }}
+							/>
+						)}
 						{NAV.map(item => (
 							<Link
 								key={item.path}
 								className={cx(
-									'rounded-pill px-3 py-2 text-sm text-muted no-underline hover:text-ink',
-									isActive(item.path) && 'bg-surface-2 text-ink',
+									'relative rounded-pill px-3 py-2 text-sm text-muted no-underline transition duration-300 ease-spring hover:text-ink active:scale-95 active:duration-75',
+									isActive(item.path) && 'text-ink',
 								)}
 								to={item.path}
 								search={item.path === '/' ? lastFilters : undefined}
@@ -162,8 +175,15 @@ function RootLayout() {
 							</Badge>
 						)}
 						<IconButton label="Alternar tema claro/escuro" bordered onClick={toggleTheme}>
-							<Icon name="moon" className="dark:hidden" />
-							<Icon name="sun" className="hidden dark:inline" />
+							{/* Os dois ícones no mesmo lugar: um gira e encolhe enquanto o outro cresce */}
+							<Icon
+								name="moon"
+								className="col-start-1 row-start-1 transition duration-500 ease-spring dark:scale-0 dark:rotate-90 dark:opacity-0"
+							/>
+							<Icon
+								name="sun"
+								className="col-start-1 row-start-1 scale-0 -rotate-90 opacity-0 transition duration-500 ease-spring dark:scale-100 dark:rotate-0 dark:opacity-100"
+							/>
 						</IconButton>
 					</div>
 				</div>
@@ -188,7 +208,8 @@ function RootLayout() {
 						search={item.path === '/' ? lastFilters : undefined}
 						aria-current={isActive(item.path) ? 'page' : undefined}
 					>
-						<Icon name={item.icon} size={20} />
+						{/* O ícone da tela que acabou de abrir dá um pulo */}
+						<Icon name={item.icon} size={20} className={cx(isActive(item.path) && 'animate-pop motion-reduce:animate-none')} />
 						{item.label}
 						{item.path === '/curriculos' && pendingCvs > 0 && (
 							<Badge tone="lime" size="xs" className="absolute top-1 left-1/2 ml-1.5">
@@ -209,7 +230,7 @@ function RootLayout() {
 					<div
 						key={toast.id}
 						className={cx(
-							'pointer-events-auto flex items-center gap-2.5 rounded-md bg-ink py-2 pr-2 pl-3.5 text-sm text-bg shadow-float',
+							'pointer-events-auto flex items-center gap-2.5 rounded-md bg-ink py-2 pr-2 pl-3.5 text-sm text-bg shadow-float animate-toast-in motion-reduce:animate-none',
 							toast.tone === 'error' && 'border border-danger bg-danger-bg text-danger',
 						)}
 						role={toast.tone === 'error' ? 'alert' : 'status'}

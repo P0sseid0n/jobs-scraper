@@ -45,7 +45,7 @@ export function Checkbox({ className, ...props }: Omit<InputHTMLAttributes<HTMLI
 				{...props}
 				className={cx(
 					'peer m-0 size-4.5 cursor-pointer appearance-none rounded-xs border border-control bg-surface transition',
-					'not-disabled:hover:border-ink not-disabled:active:scale-90',
+					'duration-300 ease-spring not-disabled:hover:border-ink not-disabled:active:scale-90 not-disabled:active:duration-75',
 					'checked:border-ink checked:bg-ink dark:checked:border-lime dark:checked:bg-lime',
 					'disabled:cursor-not-allowed disabled:opacity-50',
 					className,
@@ -55,7 +55,8 @@ export function Checkbox({ className, ...props }: Omit<InputHTMLAttributes<HTMLI
 			<Icon
 				name="check"
 				size={14}
-				className="pointer-events-none absolute hidden stroke-3 text-lime peer-checked:block dark:text-lime-ink"
+				// Marcado, o "check" cresce com mola em vez de só aparecer
+				className="pointer-events-none absolute scale-0 -rotate-45 stroke-3 text-lime opacity-0 transition duration-300 ease-spring peer-checked:scale-100 peer-checked:rotate-0 peer-checked:opacity-100 dark:text-lime-ink"
 			/>
 		</span>
 	)
@@ -65,7 +66,7 @@ const RANGE = [
 	'm-0 h-5 w-full not-disabled:cursor-grab not-disabled:active:cursor-grabbing appearance-none bg-transparent focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50',
 	'range-track:h-1.5 range-track:rounded-pill range-track:bg-range-fill',
 	// A bolinha (20px) sobe metade da diferença para o trilho (6px): 7px
-	'range-thumb:box-border range-thumb:size-5 webkit-range-thumb:-mt-1.75 range-thumb:appearance-none range-thumb:rounded-full range-thumb:border-2 range-thumb:border-ink dark:range-thumb:border-lime range-thumb:bg-surface range-thumb:shadow-sm range-thumb:transition',
+	'range-thumb:box-border range-thumb:size-5 webkit-range-thumb:-mt-1.75 range-thumb:appearance-none range-thumb:rounded-full range-thumb:border-2 range-thumb:border-ink dark:range-thumb:border-lime range-thumb:bg-surface range-thumb:shadow-sm range-thumb:transition range-thumb:duration-300 range-thumb:ease-spring',
 	// A mão de arrastar (fechada ao segurar) também na bolinha, não só no trilho
 	'not-disabled:range-thumb:cursor-grab not-disabled:active:range-thumb:cursor-grabbing disabled:range-thumb:cursor-not-allowed',
 	'not-disabled:hover:range-thumb:scale-110 not-disabled:active:range-thumb:scale-115 not-disabled:active:range-thumb:bg-lime',

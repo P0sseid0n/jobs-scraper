@@ -12,9 +12,9 @@ function comparable(text: string) {
 		.trim()
 }
 
-/** A lista aberta embaixo do campo (também a do `SelectMenu`). */
+/** A lista aberta embaixo do campo (também a do `SelectMenu`), que abre descendo com mola. */
 export const LISTBOX =
-	'absolute inset-x-0 top-full z-20 mt-1 max-h-60 overflow-y-auto rounded-md border border-line bg-surface p-1 shadow-float'
+	'absolute inset-x-0 top-full z-20 mt-1 max-h-60 overflow-y-auto rounded-md border border-line bg-surface p-1 shadow-float origin-top animate-pop-in motion-reduce:animate-none'
 
 /** Uma opção da lista: `active` é a das setas; `selected`, a do valor atual. */
 export function listOption(active: boolean, selected: boolean) {
@@ -123,13 +123,7 @@ export function Combobox({
 					setActive(-1)
 				}}
 			/>
-			<div
-				ref={listRef}
-				id={listId}
-				role="listbox"
-				hidden={!expanded}
-				className={LISTBOX}
-			>
+			<div ref={listRef} id={listId} role="listbox" hidden={!expanded} className={LISTBOX}>
 				{visible.map((option, index) => (
 					// biome-ignore lint/a11y/useKeyWithClickEvents: pelo teclado, as setas e o Enter no campo escolhem a opção
 					<div

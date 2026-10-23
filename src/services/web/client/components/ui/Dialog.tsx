@@ -2,8 +2,12 @@ import { useEffect, useId, useRef, type ReactNode } from 'react'
 
 import { Button } from './Button'
 
-/** A caixa das modais (`<dialog>` nativo: foco preso, Esc fecha; o `m-auto` a centraliza, que o preflight zera). */
-export const DIALOG = 'm-auto w-120 rounded-lg border border-line bg-surface p-0 text-ink shadow-float backdrop:bg-backdrop'
+/**
+ * A caixa das modais (`<dialog>` nativo: foco preso, Esc fecha; o `m-auto` a centraliza, que o preflight zera). Ao
+ * abrir, sobe crescendo com mola e o fundo escurece aos poucos.
+ */
+export const DIALOG =
+	'm-auto w-120 rounded-lg border border-line bg-surface p-0 text-ink shadow-float backdrop:bg-backdrop animate-dialog-in backdrop:animate-fade-in motion-reduce:animate-none motion-reduce:backdrop:animate-none'
 
 /** Pergunta de sim ou não numa modal; fechar (Esc, clique fora ou o botão de cancelar) conta como cancelar. */
 export function ConfirmDialog({

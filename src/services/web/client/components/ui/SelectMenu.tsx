@@ -90,7 +90,7 @@ export function SelectMenu<V extends string>({
 				onKeyDown={onKeyDown}
 			>
 				<span className="truncate">{options[selectedIndex]?.label}</span>
-				<Icon name="chevron" className={cx('text-muted transition-transform', open && 'rotate-180')} />
+				<Icon name="chevron" className={cx('text-muted transition-transform duration-400 ease-spring', open && 'rotate-180')} />
 			</button>
 			{/* No mínimo da largura do botão, crescendo para a esquerda se as opções forem maiores (ex.: o filtro de idioma) */}
 			<div ref={listRef} id={listId} role="listbox" hidden={!open} className={cx(LISTBOX, 'left-auto w-max min-w-full')}>

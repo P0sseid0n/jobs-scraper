@@ -1,11 +1,14 @@
 import { useRef, type HTMLAttributes, type KeyboardEvent, type ReactNode } from 'react'
 
 import { cx } from '../../lib/cx'
+import { PRESS } from './press'
+import { useSlidingIndicator } from './sliding-indicator'
 
-const TAB = [
-	'-mb-px inline-flex items-center gap-2 whitespace-nowrap border-b-2 border-transparent bg-transparent px-3 py-2.5 text-sm font-medium text-muted transition',
-	'not-aria-selected:hover:text-ink aria-selected:border-ink aria-selected:text-ink dark:aria-selected:border-lime',
-].join(' ')
+const TAB = cx(
+	'-mb-px inline-flex items-center gap-2 whitespace-nowrap border-b-2 border-transparent bg-transparent px-3 py-2.5 text-sm font-medium text-muted',
+	PRESS,
+	'not-disabled:active:scale-95 not-aria-selected:hover:text-ink aria-selected:text-ink',
+)
 
 type TabsProps<K extends string> = {
 	/** Prefixo dos ids das abas e dos painéis; o mesmo do `TabPanel`. */
@@ -24,6 +27,7 @@ type TabsProps<K extends string> = {
  */
 export function Tabs<K extends string>({ id, label, items, selected, onSelect, className }: TabsProps<K>) {
 	const tabs = useRef<Partial<Record<K, HTMLButtonElement | null>>>({})
+	const { container, box } = useSlidingIndicator<HTMLDivElement>('[aria-selected="true"]', selected)
 
 	function onKeyDown(event: KeyboardEvent) {
 		const index = items.findIndex(item => item.value === selected)
@@ -42,7 +46,13 @@ export function Tabs<K extends string>({ id, label, items, selected, onSelect, c
 	}
 
 	return (
-		<div role="tablist" aria-label={label} className={cx('flex border-b border-line', className)} onKeyDown={onKeyDown}>
+		<div
+			ref={container}
+			role="tablist"
+			aria-label={label}
+			className={cx('relative flex border-b border-line', className)}
+			onKeyDown={onKeyDown}
+		>
 			{items.map(item => (
 				<button
 					key={item.value}
@@ -61,6 +71,17 @@ export function Tabs<K extends string>({ id, label, items, selected, onSelect, c
 					{item.label}
 				</button>
 			))}
+			{/* O sublinhado da aba escolhida, que desliza até a nova (borda: continua visível no alto contraste do Windows) */}
+			{box && (
+				<span
+					aria-hidden="true"
+					className={cx(
+						'pointer-events-none absolute -bottom-px left-0 h-0 border-b-2 border-ink dark:border-lime',
+						box.slide && 'transition-all duration-500 ease-spring motion-reduce:transition-none',
+					)}
+					style={{ translate: `${box.left}px 0`, width: box.width }}
+				/>
+			)}
 		</div>
 	)
 }
@@ -72,9 +93,20 @@ type TabPanelProps = HTMLAttributes<HTMLDivElement> & {
 	selected: boolean
 }
 
-/** O conteúdo de uma aba. Fora da aba escolhida fica só escondido (não desmonta), e o que foi digitado nele continua. */
-export function TabPanel({ tabsId, value, selected, ...props }: TabPanelProps) {
+/**
+ * O conteúdo de uma aba, que entra subindo de leve. Fora da aba escolhida fica só escondido (não desmonta), e o que foi
+ * digitado nele continua.
+ */
+export function TabPanel({ tabsId, value, selected, className, ...props }: TabPanelProps) {
 	return (
-		<div role="tabpanel" id={`${tabsId}-panel-${value}`} aria-labelledby={`${tabsId}-tab-${value}`} hidden={!selected} {...props} />
+		<div
+			role="tabpanel"
+			id={`${tabsId}-panel-${value}`}
+			aria-labelledby={`${tabsId}-tab-${value}`}
+			hidden={!selected}
+			{...props}
+			// A animação roda de novo cada vez que o painel deixa de estar escondido
+			className={cx('animate-panel-in motion-reduce:animate-none', className)}
+		/>
 	)
 }

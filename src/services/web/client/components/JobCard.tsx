@@ -142,10 +142,14 @@ function ViewedDot({ job, viewed }: { job: WebJob; viewed: boolean }) {
 			{viewed ? (
 				<span
 					aria-hidden="true"
-					className="size-2.5 rounded-full border border-current text-muted transition group-hover/dot:scale-125 group-hover/dot:text-ink"
+					className="size-2.5 rounded-full border border-current text-muted transition duration-300 ease-spring group-hover/dot:scale-125 group-hover/dot:text-ink group-active/dot:scale-90 group-active/dot:duration-75"
 				/>
 			) : (
-				<StatusDot tone="lime" glow className="size-2.5 transition group-hover/dot:scale-125" />
+				<StatusDot
+					tone="lime"
+					glow
+					className="size-2.5 transition duration-300 ease-spring group-hover/dot:scale-125 group-active/dot:scale-90 group-active/dot:duration-75"
+				/>
 			)}
 		</button>
 	)
