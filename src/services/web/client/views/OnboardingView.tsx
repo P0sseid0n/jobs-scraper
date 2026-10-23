@@ -196,10 +196,13 @@ export function OnboardingView({
 					<StepBar />
 				</main>
 
-				<aside className="flex w-48 shrink-0 flex-col gap-8 max-lg:hidden">
-					<Stepper current={step} setup={setup} onSelect={goTo} />
-					<p className="text-xs text-muted">Pode parar quando quiser: a gente volta para o passo em que você parou.</p>
-				</aside>
+				{/* Na abertura, os passos já estão nos cartões dela: a lista só aparece depois de começar */}
+				{numbered >= 0 && (
+					<aside className="flex w-48 shrink-0 flex-col gap-8 max-lg:hidden">
+						<Stepper current={step} setup={setup} onSelect={goTo} />
+						<p className="text-xs text-muted">Pode parar quando quiser: a gente volta para o passo em que você parou.</p>
+					</aside>
+				)}
 			</div>
 		</div>
 	)
@@ -335,7 +338,7 @@ const WELCOME_ITEMS = [
 
 /** A abertura: o que o onboarding vai pedir, em três linhas que chegam pelo lado, e o "começar". */
 function Welcome({ onStart }: { onStart: () => void }) {
-	useStepBar({ hint: 'leva uns 5 minutos', primary: { label: 'começar', trailingIcon: 'back', onClick: onStart } })
+	useStepBar({ hint: 'leva uns 5 minutos, e dá para parar e continuar depois', primary: { label: 'começar', trailingIcon: 'back', onClick: onStart } })
 
 	return (
 		<div className="flex flex-col gap-10 md:pt-8">
