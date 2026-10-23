@@ -18,6 +18,7 @@ export async function getLinkedinLogin() {
 		challenge: login.challenge,
 		qrSvg: login.qr ? await QRCode.toString(login.qr, { type: 'svg', margin: 1 }) : null,
 		message: login.message,
+		expiresAt: login.expiresAt?.toISOString() ?? null,
 		requestedAt: login.requestedAt?.toISOString() ?? null,
 		updatedAt: login.updatedAt.toISOString(),
 	} satisfies LinkedinLoginState)

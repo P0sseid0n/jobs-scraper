@@ -1,13 +1,13 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState } from 'react'
 
 import type { LinkedinLoginState } from '../../api-types'
 import { api } from '../api'
 import { cx } from '../lib/cx'
+import { reopenLinkedinVerification } from '../stores/linkedin-verification'
 import { notify } from '../stores/toast'
 import { Icon } from './Icon'
 import { Button } from './ui/Button'
-import { FieldHelp, FieldLabel } from './ui/Field'
-import { Input } from './ui/Input'
+import { FieldHelp } from './ui/Field'
 import { Notice } from './ui/Notice'
 
 const POLL_MS = 2_000
@@ -20,7 +20,7 @@ const ACTIVE = new Set<LinkedinLoginState['status']>(['pending', 'running', 'ver
 
 /**
  * O teste do login do LinkedIn: pede ao scraper, acompanha o andamento a cada 2 s e entrega o código de verificação.
- * Também mostra uma verificação pedida no login de uma coleta, para ser resolvida pelo site.
+ * A verificação pedida pelo LinkedIn (num teste ou numa coleta) abre na modal `LinkedinVerificationDialog`.
  */
 export function useLinkedinLogin() {
 	const [state, setState] = useState<LinkedinLoginState | null>(null)
@@ -92,7 +92,7 @@ export function LinkedinLoginStatus({ login }: { login: ReturnType<typeof useLin
 		)
 	}
 
-	if (state.status === 'verification') return <Verification state={state} />
+	if (state.status === 'verification') return <Verification />
 
 	return (
 		<p
@@ -113,69 +113,19 @@ export function LinkedinLoginStatus({ login }: { login: ReturnType<typeof useLin
 	)
 }
 
-/** A verificação pedida pelo LinkedIn, para resolver aqui mesmo. */
-function Verification({ state }: { state: LinkedinLoginState }) {
-	const [code, setCode] = useState('')
-	const [sending, setSending] = useState(false)
-
-	async function send(event: FormEvent) {
-		event.preventDefault()
-		setSending(true)
-		try {
-			await api.sendVerificationCode(code.trim())
-			setCode('')
-		} catch (error) {
-			notify(`Não consegui enviar o código: ${(error as Error).message}`, 'error')
-		} finally {
-			setSending(false)
-		}
-	}
-
+/** A verificação em andamento fica na modal (`LinkedinVerificationDialog`); aqui, só o aviso e o botão para reabri-la. */
+function Verification() {
 	return (
-		<div className="flex flex-col gap-3 rounded-md bg-lime-soft p-4 animate-pop-in motion-reduce:animate-none" role="status">
-			<p className="font-semibold">O LinkedIn quer confirmar que é você</p>
-
-			{state.challenge === 'qr' && state.qrSvg && (
-				<div className="flex flex-wrap items-center gap-4">
-					{/* O SVG vem do servidor, desenhado pela biblioteca `qrcode` a partir do QR da página */}
-					<div
-						className="size-44 shrink-0 rounded-sm bg-white p-2 *:size-full"
-						role="img"
-						aria-label="QR code da verificação do LinkedIn"
-						dangerouslySetInnerHTML={{ __html: state.qrSvg }}
-					/>
-					<FieldHelp className="max-w-70 text-ink">
-						Abra o app do LinkedIn no celular, toque na lupa ou no ícone de QR code e aponte a câmera para este código.
-					</FieldHelp>
-				</div>
-			)}
-
-			{state.challenge === 'code' && (
-				<form className="flex flex-col gap-1.5" onSubmit={send}>
-					<FieldLabel htmlFor="linkedin-code">código que chegou no seu e-mail ou celular</FieldLabel>
-					<div className="flex flex-wrap items-center gap-2.5">
-						<Input
-							id="linkedin-code"
-							className="max-w-48 font-mono tracking-widest"
-							inputMode="numeric"
-							autoComplete="one-time-code"
-							maxLength={10}
-							value={code}
-							onChange={event => setCode(event.target.value.replace(/\D/g, ''))}
-						/>
-						<Button variant="lime" type="submit" disabled={code.length < 4 || sending}>
-							{sending ? 'enviando…' : 'enviar código'}
-						</Button>
-					</div>
-					{state.message && <FieldHelp>{state.message}</FieldHelp>}
-				</form>
-			)}
-
-			{state.challenge === 'app-approval' && (
-				<FieldHelp className="text-ink">
-					Chegou um aviso no app do LinkedIn no seu celular. Abra e toque em “Sim, sou eu”. A gente continua sozinho depois.
-				</FieldHelp>
-			)}
+		<div
+			className="flex flex-wrap items-center gap-3 rounded-md bg-lime-soft p-4 animate-pop-in motion-reduce:animate-none"
+			role="status"
+		>
+			<p className="grow text-sm">
+				<span className="font-semibold">O LinkedIn quer confirmar que é você.</span> Resolva na janela da verificação.
+			</p>
+			<Button variant="lime" size="sm" onClick={reopenLinkedinVerification}>
+				abrir a verificação
+			</Button>
 		</div>
 	)
 }

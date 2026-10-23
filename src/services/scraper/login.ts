@@ -165,6 +165,8 @@ async function submitLoginForm(page: Page, options: LoginOptions) {
 
 /** O que já foi feito na verificação em andamento, para não repetir avisos nem screenshots. */
 type VerificationState = {
+	/** Até quando a verificação é esperada, para o site mostrar quanto tempo falta. */
+	expiresAt: Date
 	lastQr: string | null
 	codeRequested: boolean
 	appApprovalRequested: boolean
@@ -187,7 +189,10 @@ async function waitForSession(session: BrowserSession, options: LoginOptions) {
 		while (!(await session.hasSession()) || isAuthPage(session.page.url())) {
 			if (session.headless && isCheckpointPage(session.page.url())) {
 				if (!verification) {
+					// Resolver a verificação depende de alguém agir (escanear, digitar o código): mais tempo
+					deadline = Date.now() + VERIFICATION_TIMEOUT_MS
 					verification = {
+						expiresAt: new Date(deadline),
 						lastQr: null,
 						codeRequested: false,
 						appApprovalRequested: false,
@@ -195,8 +200,6 @@ async function waitForSession(session: BrowserSession, options: LoginOptions) {
 						unknownAnnounced: false,
 						screenshotSaved: false,
 					}
-					// Resolver a verificação depende de alguém agir (escanear, digitar o código): mais tempo
-					deadline = Date.now() + VERIFICATION_TIMEOUT_MS
 				}
 
 				try {
@@ -236,7 +239,7 @@ async function handleChallenge(session: BrowserSession, state: VerificationState
 
 			logger.warn('📱 O LinkedIn pediu verificação por QR code: escaneie o código abaixo com o app do LinkedIn')
 			process.stdout.write(`\n${await renderQrForTerminal(challenge.content)}\n`)
-			await report({ status: 'verification', challenge: 'qr', qr: challenge.content }, logger)
+			await report({ status: 'verification', challenge: 'qr', qr: challenge.content, expiresAt: state.expiresAt }, logger)
 			return
 		}
 
@@ -246,7 +249,7 @@ async function handleChallenge(session: BrowserSession, state: VerificationState
 				logger.warn(
 					'🔢 O LinkedIn pediu o código de verificação (e-mail, SMS ou app autenticador). Envie pelo site ou com: bun scraper:verify <código>',
 				)
-				await report({ status: 'verification', challenge: 'code' }, logger)
+				await report({ status: 'verification', challenge: 'code', expiresAt: state.expiresAt }, logger)
 			}
 
 			const code = takeVerificationCode()
@@ -257,7 +260,12 @@ async function handleChallenge(session: BrowserSession, state: VerificationState
 			await challenge.input.press('Enter')
 			logger.info('Código de verificação enviado; se o LinkedIn recusar, envie outro')
 			await report(
-				{ status: 'verification', challenge: 'code', message: 'Código enviado ao LinkedIn. Se ele recusar, mande outro.' },
+				{
+					status: 'verification',
+					challenge: 'code',
+					message: 'Código enviado ao LinkedIn. Se ele recusar, mande outro.',
+					expiresAt: state.expiresAt,
+				},
 				logger,
 			)
 			return
@@ -268,7 +276,7 @@ async function handleChallenge(session: BrowserSession, state: VerificationState
 			state.appApprovalRequested = true
 
 			logger.warn('📱 O LinkedIn enviou um pedido de acesso para o app do LinkedIn: aprove no celular')
-			await report({ status: 'verification', challenge: 'app-approval' }, logger)
+			await report({ status: 'verification', challenge: 'app-approval', expiresAt: state.expiresAt }, logger)
 			return
 		}
 

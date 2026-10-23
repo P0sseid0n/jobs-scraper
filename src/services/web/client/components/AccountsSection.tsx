@@ -150,7 +150,7 @@ function LinkedinLoginTest({ configured }: { configured: boolean }) {
 				<Button variant="ghost" disabled={!configured || login.active} onClick={login.start}>
 					{login.active ? 'testando…' : 'testar login'}
 				</Button>
-				<FieldHelp>Se o LinkedIn pedir uma verificação, ela aparece aqui.</FieldHelp>
+				<FieldHelp>Se o LinkedIn pedir uma verificação, ela abre numa janela.</FieldHelp>
 			</div>
 			<LinkedinLoginStatus login={login} />
 		</div>

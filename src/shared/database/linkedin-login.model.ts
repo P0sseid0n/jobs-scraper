@@ -19,6 +19,8 @@ export type LinkedinLoginDocument = {
 	qr: string | null
 	/** O resultado (sucesso ou o motivo da falha), para mostrar no site. */
 	message: string | null
+	/** Até quando o scraper espera a verificação ser resolvida; `null` fora dela. */
+	expiresAt: Date | null
 	/** Quando o site pediu o teste de login; `null` nos logins das coletas. */
 	requestedAt: Date | null
 	updatedAt: Date
@@ -35,6 +37,7 @@ const linkedinLoginSchema = new Schema<LinkedinLoginDocument>(
 		challenge: { type: String, enum: [...LINKEDIN_CHALLENGES, null], default: null },
 		qr: { type: String, default: null },
 		message: { type: String, default: null },
+		expiresAt: { type: Date, default: null },
 		requestedAt: { type: Date, default: null },
 		updatedAt: { type: Date, required: true },
 	},
@@ -45,9 +48,12 @@ export const LinkedinLogin = mongoose.model('LinkedinLogin', linkedinLoginSchema
 
 export type LinkedinLoginUpdate = Partial<Omit<LinkedinLoginDocument, '_id' | 'updatedAt'>> & { status: LinkedinLoginStatus }
 
-/** Grava o passo do login; os campos não enviados ficam como estão (o `challenge` e o `qr` saem fora da verificação). */
+/**
+ * Grava o passo do login; os campos não enviados ficam como estão (o `challenge`, o `qr` e o `expiresAt` saem fora da
+ * verificação).
+ */
 export async function reportLinkedinLogin(update: LinkedinLoginUpdate) {
-	const cleared = update.status === 'verification' ? {} : { challenge: null, qr: null }
+	const cleared = update.status === 'verification' ? {} : { challenge: null, qr: null, expiresAt: null }
 
 	await LinkedinLogin.updateOne(
 		{ _id: 'linkedin' },

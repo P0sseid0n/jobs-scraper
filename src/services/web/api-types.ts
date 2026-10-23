@@ -180,6 +180,8 @@ export type LinkedinLoginState = {
 	/** O QR code da verificação, já em SVG. */
 	qrSvg: string | null
 	message: string | null
+	/** Até quando o scraper espera a verificação ser resolvida; `null` fora dela. */
+	expiresAt: string | null
 	/** Quando o site pediu o teste; `null` nos logins das coletas. */
 	requestedAt: string | null
 	updatedAt: string

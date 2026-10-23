@@ -56,7 +56,7 @@ export function LinkedinStep({ eyebrow, credentials, onCredentials, onBack, onNe
 					</Button>
 					<FieldHelp>
 						{saved
-							? 'Ao salvar, a gente já testa. Se o LinkedIn pedir uma confirmação, ela aparece aqui embaixo.'
+							? 'Ao salvar, a gente já testa. Se o LinkedIn pedir uma confirmação, ela abre numa janela.'
 							: 'Depois de salvar, a gente entra no LinkedIn para conferir.'}
 					</FieldHelp>
 				</div>

@@ -5,6 +5,7 @@ import { REQUIRED_SETUP_STEPS, type ScraperStatus, type SetupStatus } from '../.
 import { api } from '../api'
 import { CvTray } from '../components/CvTray'
 import { Icon, type IconName } from '../components/Icon'
+import { LinkedinVerificationDialog } from '../components/LinkedinVerificationDialog'
 import { Logo } from '../components/Logo'
 import { Badge, badge } from '../components/ui/Badge'
 import { ButtonLink } from '../components/ui/Button'
@@ -142,6 +143,7 @@ function RootLayout() {
 		return (
 			<>
 				<Outlet />
+				<LinkedinVerificationDialog />
 				<Toasts toasts={toasts} />
 			</>
 		)
@@ -264,6 +266,8 @@ function RootLayout() {
 			</nav>
 
 			<CvTray />
+
+			<LinkedinVerificationDialog />
 
 			<Toasts toasts={toasts} />
 		</div>
