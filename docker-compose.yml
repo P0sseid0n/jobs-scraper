@@ -95,7 +95,7 @@ services:
     build:
       context: .
       target: scraper
-    env_file: .env
+    env_file: ${ENV_FILE:-.env}
     environment:
       <<: *app-env
       # Sem tela no container: QR code nos logs, código via `bun scraper:verify`; captcha salva um screenshot no volume
@@ -120,7 +120,7 @@ services:
       context: .
       target: app
     command: ['bun', 'src/services/post-processing/index.ts']
-    env_file: .env
+    env_file: ${ENV_FILE:-.env}
     environment: *app-env
     depends_on:
       rabbitmq:
@@ -138,7 +138,7 @@ services:
       context: .
       target: app
     command: ['bun', 'src/services/discord-bot/index.ts']
-    env_file: .env
+    env_file: ${ENV_FILE:-.env}
     environment: *app-env
     depends_on:
       rabbitmq:
@@ -154,13 +154,13 @@ services:
     build:
       context: .
       target: cv-updater
-    env_file: .env
+    env_file: ${ENV_FILE:-.env}
     environment:
       <<: *app-env
       TECTONIC_BIN: tectonic
     volumes:
-      - ./data/cv/cv.tex:/app/data/cv/cv.tex:ro
-      - ./data/cv/generated:/app/data/cv/generated
+      - ${DATA_DIR:-./data}/cv/cv.tex:/app/data/cv/cv.tex:ro
+      - ${DATA_DIR:-./data}/cv/generated:/app/data/cv/generated
       # Cache dos repositórios do GitHub
       - cv_cache:/app/data/cache
       # Cache dos pacotes LaTeX baixados pelo Tectonic na primeira compilação
@@ -182,14 +182,14 @@ services:
       context: .
       target: app
     command: ['bun', 'src/services/web/index.ts']
-    env_file: .env
+    env_file: ${ENV_FILE:-.env}
     environment:
       <<: *app-env
       WEB_HOST: 0.0.0.0
       WEB_PORT: '3000'
     volumes:
       # Só para o onboarding saber se já há currículo base no arquivo (o cv-updater é quem lê)
-      - ./data/cv/cv.tex:/app/data/cv/cv.tex:ro
+      - ${DATA_DIR:-./data}/cv/cv.tex:/app/data/cv/cv.tex:ro
     ports:
       - '127.0.0.1:${WEB_PORT:-3000}:3000'
     depends_on:

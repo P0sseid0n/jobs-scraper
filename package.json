@@ -22,6 +22,7 @@
 		"cv:examples": "bun src/services/cv-updater/build-example-pdfs.ts",
 		"db:migrate-jobs": "bun src/services/post-processing/migrate-job-fields.ts",
 		"routes": "bun src/services/web/generate-routes.ts",
+		"instance": "bun src/scripts/instance.ts",
 		"design-system": "bun src/services/web/design-system/make-previews.ts && bun src/services/web/design-system/build.ts && bun src/services/web/design-system/assemble.ts",
 		"eval:extraction": "bun src/services/post-processing/eval-extraction.ts",
 		"eval:export-fixtures": "bun src/services/post-processing/export-feedback-fixtures.ts",

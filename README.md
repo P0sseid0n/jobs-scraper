@@ -157,6 +157,7 @@ bun dev                   # todos os serviços, com hot reload
 - **Configurações:** termos de busca, filtros e intervalo são editados pelo site; o `.env` só preenche os valores iniciais (veja [shared](src/shared/README.md#configurações-em-tempo-de-execução)).
 - **Contas:** as credenciais do LinkedIn, do Discord e do GitHub podem ser informadas em Configurações › Contas, sem editar o `.env`; o que for salvo lá vale no lugar do `.env` (veja [shared](src/shared/README.md#credenciais)). Sem elas, os serviços sobem mesmo assim e esperam: o scraper não coleta, as vagas não vão para o Discord e o site diz o que falta.
 - **Tudo em containers:** `docker compose --profile app up -d --build`.
+- **Instâncias isoladas:** `bun instance <nome>` sobe a aplicação inteira no Docker num projeto separado, do zero (banco, filas, sessão do LinkedIn, IA e currículo próprios, em `data/instancias/<nome>/`), para testar o onboarding sem mexer na sua instalação. Com o nome de uma que já existe, liga ela de novo com o que foi configurado. `--importar-env` usa uma cópia do seu `.env`; `--parar`, `--apagar` e `bun instance --listar` completam. Roda uma por vez: subir uma desliga as outras e a principal, que volta com `docker compose up -d`.
 - **Coleta periódica ou única:** com o `.env.example`, o scraper fica rodando e coleta a cada `SCRAPER_INTERVAL_MINUTES` (240; depois, vale o intervalo editado pelo site). Com `SCRAPER_INTERVAL_MINUTES=0`, ele coleta uma vez e encerra.
 
 Painéis, todos só em `127.0.0.1`:
@@ -177,6 +178,7 @@ Painéis, todos só em `127.0.0.1`:
 | `bun scraper:verify <código>`                 | Envia o código de verificação do login                             |
 | `bun db:migrate-jobs`                         | Atualiza as vagas salvas para o formato atual                      |
 | `bun routes`                                  | Gera a árvore de rotas do site (`routeTree.gen.ts`)                |
+| `bun instance <nome>`                         | Cria ou liga uma instância isolada no Docker (veja acima)          |
 | `bun eval:extraction`                         | Mede o acerto da IA por campo nas vagas corrigidas pelo site       |
 | `bun eval:export-fixtures`                    | Exporta as correções, sem dados pessoais, como casos versionados   |
 | `bun run typecheck` / `lint` / `format:check` | Tipos, Biome e Prettier                                            |
