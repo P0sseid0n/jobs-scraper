@@ -1,18 +1,25 @@
 import { createLink } from '@tanstack/react-router'
-import type { AnchorHTMLAttributes, ButtonHTMLAttributes, Ref } from 'react'
+import type { AnchorHTMLAttributes, ButtonHTMLAttributes, PointerEvent, Ref } from 'react'
 import type { VariantProps } from 'tailwind-variants'
 
 import { tv } from '../../lib/cx'
 import { Icon } from '../Icon'
+import { useButtonMotion } from './button-motion'
 import { NEW_TAB } from './link'
 import { OUTLINED } from './outlined'
+import { PRESS } from './press'
 
 const button = tv({
-	base: 'inline-flex items-center justify-center gap-2 min-h-9.5 px-3.5 py-2 rounded-pill border border-transparent bg-transparent text-sm font-medium no-underline whitespace-nowrap transition not-disabled:active:translate-y-px disabled:opacity-60',
+	base: [
+		'relative overflow-clip inline-flex items-center justify-center gap-2 min-h-9.5 px-3.5 py-2 rounded-pill border border-transparent bg-transparent text-sm font-medium no-underline whitespace-nowrap disabled:opacity-60',
+		// Sobe um pouco no hover e afunda no clique
+		PRESS,
+		'not-disabled:hover:-translate-y-px not-disabled:active:translate-y-0',
+	],
 	variants: {
 		/** `lime`: ação principal da tela. `ghost`: borda, sem preenchimento (numa superfície `inverted`, já sai clara). */
 		variant: {
-			lime: 'bg-lime text-lime-ink font-semibold not-disabled:hover:bg-lime-hover',
+			lime: 'bg-lime text-lime-ink font-semibold not-disabled:hover:bg-lime-hover not-disabled:hover:shadow-glow',
 			ghost: ['border-line text-ink', OUTLINED],
 		},
 		size: {
@@ -39,21 +46,39 @@ type LinkProps = {
 
 type ButtonProps = ButtonLook & (LinkProps | ({ href?: never; external?: never } & ButtonHTMLAttributes<HTMLButtonElement>))
 
-/** Botão com texto; com `href`, vira um link com a mesma cara. */
+/** Botão com texto; com `href`, vira um link com a mesma cara. Quando o texto muda, a troca é animada. */
 export function Button({ variant, size, className, external, children, ...props }: ButtonProps) {
 	const classes = button({ variant, size, className })
+	const motion = useButtonMotion<HTMLElement>(
+		<>
+			{external && <Icon name="external" size={size === 'lg' ? 16 : 14} />}
+			{children}
+		</>,
+		props.onPointerDown as ((event: PointerEvent<HTMLElement>) => void) | undefined,
+	)
 
 	if (props.href !== undefined) {
 		return (
-			<a {...(external ? NEW_TAB : {})} {...(props as LinkProps)} className={classes}>
-				{external && <Icon name="external" size={size === 'lg' ? 16 : 14} />}
-				{children}
+			<a
+				{...(external ? NEW_TAB : {})}
+				{...(props as LinkProps)}
+				ref={motion.ref}
+				onPointerDown={motion.onPointerDown}
+				className={classes}
+			>
+				{motion.content}
 			</a>
 		)
 	}
 	return (
-		<button type="button" {...(props as ButtonHTMLAttributes<HTMLButtonElement>)} className={classes}>
-			{children}
+		<button
+			type="button"
+			{...(props as ButtonHTMLAttributes<HTMLButtonElement>)}
+			ref={motion.ref}
+			onPointerDown={motion.onPointerDown}
+			className={classes}
+		>
+			{motion.content}
 		</button>
 	)
 }
@@ -62,9 +87,16 @@ function ButtonAnchor({
 	variant,
 	size,
 	className,
+	children,
+	ref,
 	...props
 }: ButtonLook & AnchorHTMLAttributes<HTMLAnchorElement> & { ref?: Ref<HTMLAnchorElement> }) {
-	return <a {...props} className={button({ variant, size, className })} />
+	const motion = useButtonMotion(children, props.onPointerDown, ref)
+	return (
+		<a {...props} ref={motion.ref} onPointerDown={motion.onPointerDown} className={button({ variant, size, className })}>
+			{motion.content}
+		</a>
+	)
 }
 
 /** Botão que leva a uma tela do site, com a rota tipada (`<ButtonLink variant="lime" to="/coletas">`). */

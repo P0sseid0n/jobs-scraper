@@ -3,11 +3,15 @@ import type { VariantProps } from 'tailwind-variants'
 
 import { tv } from '../../lib/cx'
 import { OUTLINED } from './outlined'
+import { PRESS } from './press'
 
 /** O estilo do botão, para um link com a mesma cara (ex.: `<a download className={iconButton({ size: "sm" })}>`). */
 export const iconButton = tv({
 	base: [
-		'relative inline-grid place-items-center p-0 border-0 rounded-full bg-transparent transition not-disabled:active:translate-y-px',
+		'relative inline-grid place-items-center p-0 border-0 rounded-full bg-transparent',
+		// Pequeno, afunda mais que o Button
+		PRESS,
+		'not-disabled:active:scale-85',
 		// No toque, a área de clique tem 44px em qualquer tamanho: um quadrado invisível centralizado por cima do botão
 		'pointer-coarse:after:absolute pointer-coarse:after:top-1/2 pointer-coarse:after:left-1/2 pointer-coarse:after:size-11 pointer-coarse:after:-translate-1/2',
 	],

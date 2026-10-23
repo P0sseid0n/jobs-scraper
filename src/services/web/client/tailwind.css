@@ -85,6 +85,49 @@
 
 	/* Sombra dos elementos flutuantes (toast, bandeja, modal); `--elevation` troca com o tema */
 	--shadow-float: var(--elevation);
+	/* Brilho do botão lime no hover */
+	--shadow-glow: 0 6px 18px -6px var(--color-lime-accent);
+
+	/* Mola que passa um pouco do ponto e volta: o botão soltando depois do clique, o texto novo chegando */
+	--ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+	/* Troca de texto dos botões (`useButtonMotion`): o novo sobe de baixo, o antigo sai por cima */
+	--animate-text-in: text-in 380ms var(--ease-spring) both;
+	--animate-text-out: text-out 180ms ease-in both;
+	/* Onda que se espalha do ponto clicado */
+	--animate-ripple: ripple 550ms ease-out forwards;
+
+	@keyframes text-in {
+		from {
+			opacity: 0;
+			transform: translateY(85%) scale(0.9);
+			filter: blur(3px);
+		}
+	}
+
+	@keyframes text-out {
+		to {
+			opacity: 0;
+			transform: translateY(-85%) scale(0.9);
+			filter: blur(3px);
+		}
+	}
+
+	@keyframes ripple {
+		from {
+			opacity: 1;
+			transform: scale(0);
+		}
+		to {
+			opacity: 0;
+			transform: scale(1);
+		}
+	}
+}
+
+/* Repete o `gap` do pai: o conteúdo do botão, embrulhado para animar, fica com o mesmo espaço entre ícone e texto */
+@utility gap-inherit {
+	gap: inherit;
 }
 
 /* Os tokens (tema claro). `static` gera todas as variáveis, também as usadas só aqui (ex.: no `inverted`) */

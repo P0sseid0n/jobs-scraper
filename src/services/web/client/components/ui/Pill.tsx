@@ -3,17 +3,19 @@ import type { VariantProps } from 'tailwind-variants'
 
 import { cx, tv } from '../../lib/cx'
 import { OUTLINED } from './outlined'
+import { PRESS } from './press'
 
 /** Use `pill()` direto no `className` quando a opção não for um botão (ex.: um `<label>` com checkbox). */
 export const pill = tv({
 	base: [
 		'inline-flex min-h-8.5 items-center gap-1.5 rounded-pill border border-line bg-surface px-3 py-1.5 text-sm text-ink',
-		'aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-bg not-disabled:active:translate-y-px',
+		'aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-bg',
 		// Como `<label>` com checkbox, fica ligada do mesmo jeito quando ele está marcado
 		'has-checked:border-ink has-checked:bg-ink has-checked:text-bg',
 		// O foco do checkbox de dentro vai na pill inteira: o contorno dele sumiria sobre a pill ligada
 		'has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-focus **:focus-visible:outline-none',
 		OUTLINED,
+		PRESS,
 	],
 	variants: {
 		/** `row`: ocupa a linha, com o texto à esquerda. `dashed`: borda tracejada, para ações. */

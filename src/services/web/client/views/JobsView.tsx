@@ -13,6 +13,7 @@ import { IconButton } from '../components/ui/IconButton'
 import { Checkbox, SearchInput } from '../components/ui/Input'
 import { Hero, Page } from '../components/ui/Page'
 import { Pill, PILL_COUNT, PillGroup } from '../components/ui/Pill'
+import { PRESS } from '../components/ui/press'
 import { SelectMenu } from '../components/ui/SelectMenu'
 import { StatusDot } from '../components/ui/StatusDot'
 import { FIELDSET, LABEL } from '../components/ui/text'
@@ -457,7 +458,10 @@ export function JobsView({ selectedRouteId, detail }: { selectedRouteId: string 
 			{incoming.length > 0 && (
 				<button
 					type="button"
-					className="sticky top-19 z-10 inline-flex min-h-10 items-center gap-2.5 self-center rounded-pill border border-line bg-lime-soft py-1.5 pr-4 pl-2 text-sm text-ink shadow-float max-md:top-17.5"
+					className={cx(
+						'sticky top-19 z-10 inline-flex min-h-10 items-center gap-2.5 self-center rounded-pill border border-line bg-lime-soft py-1.5 pr-4 pl-2 text-sm text-ink shadow-float max-md:top-17.5',
+						PRESS,
+					)}
 					onClick={showIncoming}
 				>
 					<Badge tone="lime" size="sm">
