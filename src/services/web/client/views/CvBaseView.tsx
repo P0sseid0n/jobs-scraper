@@ -314,30 +314,35 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 						const download = `baixar ${example.fileName}`
 
 						return (
-							<li key={example.fileName} className={card({ size: 'sm', className: 'flex flex-wrap items-center gap-3.5' })}>
-								<div className="flex min-w-0 grow basis-60 flex-col gap-0.5">
-									<span className="flex items-center gap-1.5">
-										<span className="font-semibold">{example.title}</span>
-										<a
-											href={exampleDownloadUrl(example)}
-											download={example.fileName}
-											aria-label={download}
-											title={download}
-											className={iconButton({ size: 'xs', className: 'text-muted hover:text-ink' })}
-										>
-											<Icon name="download" size={14} />
-										</a>
+							<li key={example.fileName} className={card({ size: 'sm', className: 'flex flex-col gap-1.5' })}>
+								<div className="flex items-center justify-between gap-3">
+									<span className="flex min-w-0 items-baseline gap-2">
+										<span className="shrink-0 font-semibold">{example.title}</span>
+										<span aria-hidden className="text-muted">
+											·
+										</span>
+										<span className="truncate font-mono text-xs text-muted">{example.fileName}</span>
 									</span>
-									<span className="font-mono text-xs text-muted">{example.fileName}</span>
-									<span className="mt-1 text-sm text-muted">{example.description}</span>
+									<a
+										href={exampleDownloadUrl(example)}
+										download={example.fileName}
+										aria-label={download}
+										title={download}
+										className={iconButton({ size: 'xs', className: 'shrink-0 text-muted hover:text-ink' })}
+									>
+										<Icon name="download" size={14} />
+									</a>
 								</div>
-								<div className="flex flex-wrap gap-2">
-									<Button variant="lime" size="sm" onClick={() => loadExample(example)}>
-										usar no editor
-									</Button>
-									<Button variant="ghost" size="sm" href={example.pdfUrl} external>
-										ver PDF
-									</Button>
+								<div className="flex flex-wrap items-center gap-3.5">
+									<p className="min-w-0 grow basis-60 text-sm text-muted">{example.description}</p>
+									<div className="flex flex-wrap gap-2">
+										<Button variant="lime" size="sm" onClick={() => loadExample(example)}>
+											usar no editor
+										</Button>
+										<Button variant="ghost" size="sm" href={example.pdfUrl} external>
+											ver PDF
+										</Button>
+									</div>
 								</div>
 							</li>
 						)
