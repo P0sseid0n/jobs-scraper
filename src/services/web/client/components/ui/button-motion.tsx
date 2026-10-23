@@ -42,7 +42,7 @@ function ripple(event: PointerEvent<HTMLElement>) {
 
 /**
  * Movimento do `Button`: a onda do clique e, quando o texto (ou o ícone) muda, o novo sobe de baixo enquanto o antigo
- * sai por cima, e a largura do botão acompanha com mola. O botão precisa de `relative overflow-clip`.
+ * sai por cima, e a largura do botão cresce com mola (nunca encolhe). O botão precisa de `relative overflow-clip`.
  */
 export function useButtonMotion<E extends HTMLElement>(
 	children: ReactNode,
@@ -73,10 +73,14 @@ export function useButtonMotion<E extends HTMLElement>(
 		const from = fromWidth.current
 		const target = element.current
 		fromWidth.current = null
-		if (from === null || !target || reducedMotion()) return
+		if (from === null || !target) return
+		target.style.minWidth = ''
 		const to = target.offsetWidth
-		if (Math.abs(from - to) < 1) return
-		target.animate([{ width: `${from}px` }, { width: `${to}px` }], { duration: 420, easing: SPRING })
+		// Texto mais curto (ex.: "salvar alterações" → "salvando…"): o botão fica na largura que tinha, em vez de
+		// encolher e crescer de novo quando o texto volta
+		if (to < from) target.style.minWidth = `${from}px`
+		else if (to - from >= 1 && !reducedMotion())
+			target.animate([{ width: `${from}px` }, { width: `${to}px` }], { duration: 420, easing: SPRING })
 	}, [key])
 
 	const content = (
