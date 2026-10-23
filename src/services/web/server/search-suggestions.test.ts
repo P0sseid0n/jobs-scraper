@@ -4,6 +4,7 @@ import type { Ollama } from 'ollama'
 import { PostProcessingSettingsSchema, ScraperSettingsSchema } from '@shared/contracts'
 import { createLogger } from '@shared/logging'
 
+import { relevanceRejection } from '../../post-processing/job-relevance'
 import { buildSuggestionMessages, normalizeSuggestions, suggestSearchSettings, type SuggestionProfile } from './search-suggestions'
 
 const log = createLogger('test')
@@ -60,13 +61,23 @@ describe('normalizeSuggestions', () => {
 		expect(result.requiredKeywords).toEqual(['enfermeiro', 'enfermagem', 'coren', 'uti'])
 	})
 
-	test('as palavras do cargo-alvo abrem as obrigatórias, sem preposições', () => {
+	test('as palavras do cargo-alvo que dizem a área abrem as obrigatórias, sem preposições nem genéricas', () => {
 		const result = normalizeSuggestions(
-			{ searchTerms: [], requiredKeywords: ['marketing', 'seo'], excludedKeywords: [] },
-			{ ...profile, targetRole: 'Analista de Marketing Digital' },
+			{ searchTerms: [], requiredKeywords: ['seo'], excludedKeywords: [] },
+			{ ...profile, targetRole: 'Técnico(a) de Enfermagem / Instrumentação' },
 		)
 
-		expect(result.requiredKeywords).toEqual(['analista', 'marketing', 'digital', 'seo'])
+		expect(result.requiredKeywords).toEqual(['enfermagem', 'instrumentação', 'seo'])
+	})
+
+	test('se nenhuma palavra do cargo-alvo diz a área, vai o cargo inteiro', () => {
+		const result = normalizeSuggestions(
+			{ searchTerms: [], requiredKeywords: ['sql'], excludedKeywords: [] },
+			{ ...profile, targetRole: 'Analista de Dados' },
+		)
+
+		expect(result.requiredKeywords).toEqual(['analista de dados', 'sql'])
+		expect(relevanceRejection({ title: 'Analista de Dados Pleno', necessaryKnowledge: [] }, { ...result })).toBeNull()
 	})
 
 	test('uma palavra não é obrigatória e excluída ao mesmo tempo', () => {
@@ -94,6 +105,73 @@ describe('normalizeSuggestions', () => {
 		expect(ScraperSettingsSchema.safeParse({ searchTerms }).success).toBe(true)
 		expect(PostProcessingSettingsSchema.safeParse(result).success).toBe(true)
 	})
+})
+
+// Respostas da IA com as palavras genéricas que ela costuma sugerir (a de marketing é a do teste do zero da #30)
+const AREA_CASES = [
+	{
+		profile: { area: 'Marketing', targetRole: 'Analista de Marketing Digital' },
+		raw: [
+			'analista',
+			'marketing',
+			'digital',
+			'conteúdo',
+			'estratégia',
+			'campanha',
+			'performance',
+			'seo',
+			'social media',
+			'análise',
+			'dados',
+			'plano',
+		],
+		required: ['marketing', 'conteúdo', 'campanha', 'performance', 'seo', 'social media'],
+		relevant: ['Analista de Marketing Pleno', 'Social Media'],
+		outside: ['Advogado(a) contencioso cível e direito digital', 'Analista de Sistemas de Automação – DevOps'],
+	},
+	{
+		profile: { area: 'Saúde', targetRole: 'Enfermeiro Assistencial' },
+		raw: ['enfermeiro', 'enfermagem', 'coren', 'uti', 'assistencial', 'supervisor', 'plano'],
+		required: ['enfermeiro', 'assistencial', 'enfermagem', 'coren', 'uti'],
+		relevant: ['Enfermeira UTI', 'Técnico(a) de Enfermagem'],
+		outside: ['Supervisor de Vendas', 'Analista de Planejamento'],
+	},
+	{
+		profile: { area: 'Direito', targetRole: 'Advogado Trabalhista' },
+		raw: ['advogado', 'direito', 'oab', 'trabalhista', 'contencioso', 'análise', 'gestão', 'processos'],
+		required: ['advogado', 'trabalhista', 'direito', 'oab', 'contencioso'],
+		relevant: ['Advogada Trabalhista Sênior', 'Assistente Jurídico - OAB'],
+		outside: ['Analista de Processos', 'Gerente de Projetos'],
+	},
+	{
+		profile: { area: 'Comercial', targetRole: 'Executivo de Vendas' },
+		raw: ['executivo', 'vendas', 'comercial', 'prospecção', 'crm', 'negócios', 'resultados', 'b2b'],
+		required: ['vendas', 'comercial', 'prospecção', 'crm', 'b2b'],
+		relevant: ['Executiva de Vendas B2B', 'Consultor Comercial'],
+		outside: ['Executivo de Contas Digital', 'Analista de Negócios'],
+	},
+]
+
+describe('palavras-chave por área', () => {
+	for (const area of AREA_CASES) {
+		const result = normalizeSuggestions(
+			{ searchTerms: [], requiredKeywords: area.raw, excludedKeywords: [] },
+			{ ...profile, ...area.profile },
+		)
+
+		test(`${area.profile.targetRole}: obrigatórias sem palavras genéricas`, () => {
+			expect(result.requiredKeywords).toEqual(area.required)
+		})
+
+		test(`${area.profile.targetRole}: as vagas da área passam no filtro, e as de fora não`, () => {
+			for (const title of area.relevant) {
+				expect(relevanceRejection({ title, necessaryKnowledge: [] }, result)).toBeNull()
+			}
+			for (const title of area.outside) {
+				expect(relevanceRejection({ title, necessaryKnowledge: [] }, result)).not.toBeNull()
+			}
+		})
+	}
 })
 
 describe('suggestSearchSettings', () => {
