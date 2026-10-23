@@ -67,6 +67,15 @@ export const GUIDES: Record<string, string> = {
 
 - \`id\` liga o texto ao interruptor; \`title\` é o texto (e o nome acessível); \`description\` explica em uma linha.
 - Usado nas configurações, um por linha, numa coluna com \`gap-4\`.`,
+	Tabs: `Abas sublinhadas para alternar entre partes do mesmo bloco (ex.: as contas em Configurações, uma por aba).
+
+- Controlado: \`items\` (\`value\` e \`label\`), \`selected\` e \`onSelect\`. \`label\` é o nome da lista para o leitor de tela e \`id\` liga as abas aos \`TabPanel\`.
+- O texto das abas é só o nome (sem ícone nem bolinha de status); o estado de cada parte fica dentro do painel.
+- Setas, Home e End trocam de aba; o Tab vai direto para o painel. Para filtros que ligam e desligam, use \`Pill\`.`,
+	TabPanel: `O conteúdo de uma aba, com o mesmo \`tabsId\` do \`Tabs\` e o \`value\` da aba.
+
+- Monte um por aba, todos ao mesmo tempo: fora da aba escolhida (\`selected\` falso) ele só fica escondido, e um formulário pela metade continua preenchido.
+- Recebe as classes do layout do conteúdo (ex.: \`flex flex-col gap-4\`).`,
 	Combobox: `Campo de texto com sugestões, como um select com filtro: a lista abre ao focar o campo, filtra enquanto se digita (ignorando maiúsculas e acentos) e aceita qualquer texto.
 
 - Controlado: \`value\` (o texto) e \`onChange(texto)\`; \`options\` são as sugestões.

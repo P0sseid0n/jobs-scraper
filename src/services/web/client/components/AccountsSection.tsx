@@ -1,4 +1,4 @@
-import { useRef, useState, type KeyboardEvent } from 'react'
+import { useState } from 'react'
 
 import type { CredentialCheck, CredentialGroup, WebCredentials } from '../../api-types'
 import { api, RequestError } from '../api'
@@ -12,6 +12,7 @@ import { ConfirmDialog } from './ui/Dialog'
 import { FieldError, FieldHelp, FieldLabel } from './ui/Field'
 import { IconButton } from './ui/IconButton'
 import { Input } from './ui/Input'
+import { TabPanel, Tabs } from './ui/Tabs'
 import { SECTION_TITLE } from './ui/text'
 
 type FieldDef = {
@@ -83,11 +84,7 @@ const SOURCE_BADGES = {
 } as const
 
 const GROUP_KEYS = Object.keys(GROUPS) as CredentialGroup[]
-
-const TAB = [
-	'-mb-px inline-flex items-center gap-2 whitespace-nowrap border-b-2 border-transparent bg-transparent px-3 py-2.5 text-sm font-medium text-muted transition',
-	'not-aria-selected:hover:text-ink aria-selected:border-ink aria-selected:text-ink dark:aria-selected:border-lime',
-].join(' ')
+const TABS = GROUP_KEYS.map(group => ({ value: group, label: GROUPS[group].title }))
 
 /**
  * As contas do LinkedIn, do Discord e do GitHub, uma por aba. Cada uma é salva à parte, no MongoDB local, e vale no
@@ -96,24 +93,6 @@ const TAB = [
 export function AccountsSection({ initial }: { initial: WebCredentials }) {
 	const [status, setStatus] = useState(initial)
 	const [selected, setSelected] = useState<CredentialGroup>('linkedin')
-	const tabs = useRef<Partial<Record<CredentialGroup, HTMLButtonElement | null>>>({})
-
-	// Setas, Home e End trocam de aba (o padrão de abas do WAI-ARIA); o Tab vai direto para o painel
-	function onTabKey(event: KeyboardEvent) {
-		const index = GROUP_KEYS.indexOf(selected)
-		const next = {
-			ArrowRight: (index + 1) % GROUP_KEYS.length,
-			ArrowLeft: (index - 1 + GROUP_KEYS.length) % GROUP_KEYS.length,
-			Home: 0,
-			End: GROUP_KEYS.length - 1,
-		}[event.key]
-		if (next === undefined) return
-
-		event.preventDefault()
-		const group = GROUP_KEYS[next]!
-		setSelected(group)
-		tabs.current[group]?.focus()
-	}
 
 	return (
 		<section className={card({ className: 'flex flex-col gap-6.5 p-7 max-md:p-4.5' })} aria-labelledby="accounts-title">
@@ -128,30 +107,12 @@ export function AccountsSection({ initial }: { initial: WebCredentials }) {
 			</div>
 
 			<div className="flex flex-col gap-6">
-				<div role="tablist" aria-label="Contas" className="flex border-b border-line" onKeyDown={onTabKey}>
-					{GROUP_KEYS.map(group => (
-						<button
-							key={group}
-							ref={element => {
-								tabs.current[group] = element
-							}}
-							type="button"
-							role="tab"
-							id={`account-tab-${group}`}
-							aria-selected={group === selected}
-							aria-controls={`account-panel-${group}`}
-							tabIndex={group === selected ? 0 : -1}
-							className={TAB}
-							onClick={() => setSelected(group)}
-						>
-							{GROUPS[group].title}
-						</button>
-					))}
-				</div>
+				<Tabs id="accounts" label="Contas" items={TABS} selected={selected} onSelect={setSelected} />
 
-				{/* Os painéis ficam montados (só escondidos), para não perder o que foi digitado ao trocar de aba */}
 				{GROUP_KEYS.map(group => (
-					<AccountGroup key={group} group={group} status={status} hidden={group !== selected} onSaved={setStatus} />
+					<TabPanel key={group} tabsId="accounts" value={group} selected={group === selected} className="flex flex-col gap-4">
+						<AccountGroup group={group} status={status} onSaved={setStatus} />
+					</TabPanel>
 				))}
 			</div>
 		</section>
@@ -167,12 +128,10 @@ function draftOf(group: CredentialGroup, status: WebCredentials) {
 function AccountGroup({
 	group,
 	status,
-	hidden,
 	onSaved,
 }: {
 	group: CredentialGroup
 	status: WebCredentials
-	hidden: boolean
 	onSaved: (status: WebCredentials) => void
 }) {
 	const config = GROUPS[group]
@@ -235,13 +194,7 @@ function AccountGroup({
 	const badge = SOURCE_BADGES[current.source ?? 'none']
 
 	return (
-		<div
-			role="tabpanel"
-			id={`account-panel-${group}`}
-			aria-labelledby={`account-tab-${group}`}
-			hidden={hidden}
-			className="flex flex-col gap-4"
-		>
+		<>
 			{confirmDelete && (
 				<ConfirmDialog
 					title={`Apagar a conta do ${config.title}?`}
@@ -347,6 +300,6 @@ function AccountGroup({
 					</p>
 				)}
 			</div>
-		</div>
+		</>
 	)
 }

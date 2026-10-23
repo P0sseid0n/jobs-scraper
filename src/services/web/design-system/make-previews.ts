@@ -141,6 +141,23 @@ const PREVIEWS: Record<string, Preview> = {
 	h(U.SwitchField, { id: 'discord', title: 'Publicar no Discord', checked: false, onChange: function () {} })
 )`,
 	},
+	Tabs: {
+		group: 'Forms',
+		height: 190,
+		subtitle: 'uma conta por aba, com o painel de cada uma',
+		body: `h(function Contas() {
+	var state = React.useState('linkedin'), selected = state[0]
+	var items = [{ value: 'linkedin', label: 'LinkedIn' }, { value: 'discord', label: 'Discord' }, { value: 'github', label: 'GitHub' }]
+	return col(
+		h(U.Tabs, { id: 'contas', label: 'Contas', items: items, selected: selected, onSelect: state[1] }),
+		items.map(function (item) {
+			return h(U.TabPanel, { key: item.value, tabsId: 'contas', value: item.value, selected: item.value === selected, className: 'flex max-w-md flex-col gap-1.5' },
+				h(U.FieldLabel, { htmlFor: item.value + '-user' }, item.value === 'discord' ? 'ID do canal' : item.value === 'github' ? 'usuário' : 'e-mail'),
+				h(U.Input, { id: item.value + '-user', placeholder: item.value === 'discord' ? '123456789012345678' : item.value === 'github' ? 'octocat' : 'voce@exemplo.com' }))
+		})
+	)
+})`,
+	},
 	Combobox: {
 		group: 'Forms',
 		height: 320,
