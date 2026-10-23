@@ -1,13 +1,13 @@
 import { describe, expect, test } from 'bun:test'
 
-import { CV_FORM_SECTIONS, type CvForm } from '@shared/contracts'
+import { CV_FORM_DEFAULT_TITLES, CV_FORM_SECTIONS, CvFormSchema, type CvFormInput } from '@shared/contracts'
 
 import { missingSections } from '../base-resume'
-import { FORM_SECTION_TITLES, formToLatex } from './latex-from-form'
+import { formToLatex } from './latex-from-form'
 import { readResumeTex } from './latex-reader'
-import { sectionKey } from './latex-syntax'
+import { isSectionTitle, sectionKey } from './latex-syntax'
 
-const contact: CvForm['contact'] = {
+const contact: CvFormInput['contact'] = {
 	name: 'Maria Souza',
 	headline: 'Enfermeira',
 	location: 'São Paulo, SP',
@@ -16,7 +16,7 @@ const contact: CvForm['contact'] = {
 	links: ['https://linkedin.com/in/maria/'],
 }
 
-const form: CvForm = {
+const form: CvFormInput = {
 	contact,
 	sections: [
 		{ kind: 'summary', text: 'Enfermeira com experiência em terapia intensiva.\n\nFocada em segurança do paciente.' },
@@ -64,13 +64,16 @@ const form: CvForm = {
 	],
 }
 
+/** Gera o .tex como o servidor: o schema preenche os campos com padrão (título, rótulo das ferramentas). */
+const latex = (form: CvFormInput) => formToLatex(CvFormSchema.parse(form))
+
 describe('currículo gerado do formulário', () => {
 	test('os títulos das seções são reconhecidos pelo leitor', () => {
-		for (const kind of CV_FORM_SECTIONS) expect(sectionKey(FORM_SECTION_TITLES[kind])).toBe(kind)
+		for (const kind of CV_FORM_SECTIONS) expect(sectionKey(CV_FORM_DEFAULT_TITLES[kind])).toBe(kind)
 	})
 
 	test('cada seção sai no formato que o leitor interpreta', () => {
-		const tex = formToLatex(form)
+		const tex = latex(form)
 		const { model, sections } = readResumeTex(tex)
 
 		expect(Object.keys(sections)).toEqual([...CV_FORM_SECTIONS])
@@ -97,7 +100,7 @@ describe('currículo gerado do formulário', () => {
 	})
 
 	test('usa o preâmbulo do modelo neutro, com o nome no título do PDF, e o contato no cabeçalho', () => {
-		const tex = formToLatex(form)
+		const tex = latex(form)
 
 		expect(tex).toStartWith('\\documentclass[a4paper,10pt]{article}')
 		expect(tex).toContain('\\setmainfont{Nunito}')
@@ -110,7 +113,7 @@ describe('currículo gerado do formulário', () => {
 
 	test('escapa os caracteres especiais do LaTeX e mantém os acentos', () => {
 		const special = 'Ação & 100% $50 #1 a_b {x} ~ ^ "c" \\'
-		const tex = formToLatex({
+		const tex = latex({
 			contact: { ...contact, name: 'Ana $1 & Cia', links: ['exemplo.com/a b#x%'] },
 			sections: [
 				{ kind: 'summary', text: special },
@@ -131,7 +134,7 @@ describe('currículo gerado do formulário', () => {
 	})
 
 	test('seções e itens vazios ficam de fora', () => {
-		const tex = formToLatex({
+		const tex = latex({
 			contact: { name: 'Maria', headline: '', location: '', email: '', phone: '', links: [''] },
 			sections: [
 				{ kind: 'summary', text: '  \n ' },
@@ -159,9 +162,43 @@ describe('currículo gerado do formulário', () => {
 	})
 
 	test('as seções saem na ordem do formulário', () => {
-		const tex = formToLatex({ contact, sections: [...form.sections].reverse() })
+		const tex = latex({ contact, sections: [...form.sections].reverse() })
 		const titles = [...tex.matchAll(/\\section\*\{([^}]*)\}/g)].map(match => match[1])
 
-		expect(titles).toEqual([...CV_FORM_SECTIONS].reverse().map(kind => FORM_SECTION_TITLES[kind]))
+		expect(titles).toEqual([...CV_FORM_SECTIONS].reverse().map(kind => CV_FORM_DEFAULT_TITLES[kind]))
+	})
+
+	test('usa o título escrito na seção e o rótulo escolhido para as ferramentas dos projetos', () => {
+		const tex = latex({
+			contact,
+			sections: [
+				{ kind: 'skills', title: 'Habilidades Técnicas', groups: [{ category: 'IA & LLM', items: ['Ollama'] }] },
+				{
+					kind: 'projects',
+					title: '',
+					toolsLabel: 'Tecnologias',
+					entries: [{ name: 'Jobs Scraper', url: '', description: 'Automação.', technologies: ['Bun'] }],
+				},
+				{ kind: 'education', title: 'Formação Acadêmica', entries: [{ course: 'ADS', institution: 'Unicesumar', period: '' }] },
+			],
+		})
+		const { sections, model, raw } = readResumeTex(tex)
+
+		expect(tex).toContain('\\section*{Habilidades Técnicas}')
+		expect(tex).toContain('\\section*{Projetos}')
+		expect(tex).toContain('\\section*{Formação Acadêmica}')
+		expect(tex).toContain('\\textit{Tecnologias: Bun}')
+		expect(Object.keys(sections)).toEqual(['skills', 'projects', 'education'])
+		expect(model.projects[0]!.technologies).toEqual(['Bun'])
+		expect(raw.projectSkillsLabel).toBe('Tecnologias')
+	})
+
+	test('o título próprio precisa ser um sinônimo da mesma seção', () => {
+		expect(isSectionTitle('skills', 'Habilidades Técnicas')).toBe(true)
+		expect(isSectionTitle('education', 'Formação Acadêmica')).toBe(true)
+		expect(isSectionTitle('summary', 'Sobre mim')).toBe(true)
+		expect(isSectionTitle('skills', '  ')).toBe(true)
+		expect(isSectionTitle('skills', 'Experiência')).toBe(false)
+		expect(isSectionTitle('education', 'Meus estudos')).toBe(false)
 	})
 })

@@ -208,3 +208,11 @@ export function splitItems(inner: string) {
 	const parts = inner.split(/(?=\\item\b)/)
 	return { before: parts[0]!, items: parts.slice(1) }
 }
+
+/**
+ * Se o título escrito no formulário do site é reconhecido como a seção `key` (um dos sinônimos acima). Com outro
+ * título, o ajuste à vaga não acharia a seção no `.tex` gerado. Vazio vale: o gerador usa o título padrão.
+ */
+export function isSectionTitle(key: SectionKey, title: string) {
+	return !title.trim() || sectionKey(escapeLatex(title.trim())) === key
+}

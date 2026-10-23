@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 import {
 	CV_BASE_TEX_MAX_BYTES,
+	CV_FORM_DEFAULT_TITLES,
 	CvBaseTexSchema,
 	CvFormSchema,
 	type CvBaseValidationRequest,
@@ -13,6 +14,7 @@ import type { Logger } from '@shared/logging'
 import { QUEUES, type QueueClient } from '@shared/messaging'
 
 import { formToLatex } from '../../cv-updater/resume/latex-from-form'
+import { isSectionTitle } from '../../cv-updater/resume/latex-syntax'
 import type { WebCvBase, WebCvBaseVersion, WebCvBaseVersionWithTex } from '../api-types'
 import { CV_TIMEOUT_MS } from './cv-request.model'
 import type { EventHub } from './event-hub'
@@ -32,7 +34,23 @@ const TexVersionSchema = z.object({
 })
 
 /** Corpo do `POST /api/cv-base/versions` com os dados do formulário. */
-const FormVersionSchema = z.object({ form: CvFormSchema })
+const FormVersionSchema = z.object({ form: CvFormSchema }).superRefine(({ form }, ctx) => {
+	form.sections.forEach((section, index) => {
+		if (isSectionTitle(section.kind, section.title)) return
+		ctx.addIssue({
+			code: 'custom',
+			path: ['form', 'sections', index, 'title'],
+			message: `O cv-updater não reconhece "${section.title}" como esta seção; use um sinônimo (ex.: ${CV_FORM_DEFAULT_TITLES[section.kind]}) ou deixe vazio.`,
+		})
+	})
+})
+
+/** Os dados do formulário guardados na versão, com os campos que vieram depois (título, rótulo) no padrão. */
+export function storedForm(form: unknown): CvForm | null {
+	if (!form) return null
+	const parsed = CvFormSchema.safeParse(form)
+	return parsed.success ? parsed.data : null
+}
 
 /**
  * O `.tex` da versão nova e de onde ele veio. Com `form`, o `.tex` é gerado dele (e os dados ficam na versão).
@@ -93,7 +111,7 @@ export async function getCvBaseVersion(req: Request & { params: { versionId: str
 	const doc = await CvBaseVersion.findOne({ versionId: req.params.versionId }, { pdf: 0 }).lean<Omit<CvBaseVersionDocument, 'pdf'>>()
 	if (!doc) throw new HttpError(404, 'Versão do currículo base não encontrada')
 
-	return Response.json({ ...toWebCvBaseVersion(doc), tex: doc.tex, form: doc.form ?? null } satisfies WebCvBaseVersionWithTex)
+	return Response.json({ ...toWebCvBaseVersion(doc), tex: doc.tex, form: storedForm(doc.form) } satisfies WebCvBaseVersionWithTex)
 }
 
 /** `GET /api/cv-base/versions/:versionId/pdf`: a pré-visualização compilada na validação. */

@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 
 import { CvFormSchema, type CvForm } from '@shared/contracts'
 
-import { cleanForm, emptyForm, emptySection, formProblems, moveItem, sameForm } from './cv-form'
+import { cleanForm, emptyForm, emptySection, formProblems, formSteps, moveItem, problemStep, sameForm, stepProblems } from './cv-form'
 
 const contact = { name: 'Maria', headline: '', location: '', email: '', phone: '', links: [] }
 
@@ -14,13 +14,14 @@ describe('formulário do currículo base', () => {
 		expect(CvFormSchema.safeParse({ ...form, contact }).success).toBe(true)
 	})
 
-	test('limpa linhas em branco e itens vazios antes de enviar', () => {
+	test('limpa linhas em branco, itens vazios e espaços do título antes de enviar', () => {
 		const form: CvForm = {
 			contact: { ...contact, name: ' Maria ', links: ['', ' linkedin.com/in/maria '] },
 			sections: [
-				{ kind: 'summary', text: '  Enfermeira.  ' },
+				{ kind: 'summary', title: ' Sobre mim ', text: '  Enfermeira.  ' },
 				{
 					kind: 'skills',
+					title: '',
 					groups: [
 						{ category: 'Gestão', items: [] },
 						{ category: '', items: [' Excel '] },
@@ -28,22 +29,28 @@ describe('formulário do currículo base', () => {
 				},
 				{
 					kind: 'experience',
+					title: '',
 					entries: [
 						{ role: 'Enfermeira', company: '', period: '', bullets: ['', ' Plantões. ', '  '] },
 						{ role: '', company: '', period: '', bullets: [''] },
 					],
 				},
-				{ kind: 'languages', entries: [{ language: ' ', level: '' }] },
+				{
+					kind: 'projects',
+					title: '',
+					toolsLabel: 'Tecnologias',
+					entries: [{ name: ' ', url: '', description: '', technologies: [] }],
+				},
 			],
 		}
 
 		expect(cleanForm(form)).toEqual({
 			contact: { ...contact, name: ' Maria ', links: ['linkedin.com/in/maria'] },
 			sections: [
-				{ kind: 'summary', text: 'Enfermeira.' },
-				{ kind: 'skills', groups: [{ category: '', items: ['Excel'] }] },
-				{ kind: 'experience', entries: [{ role: 'Enfermeira', company: '', period: '', bullets: ['Plantões.'] }] },
-				{ kind: 'languages', entries: [] },
+				{ kind: 'summary', title: 'Sobre mim', text: 'Enfermeira.' },
+				{ kind: 'skills', title: '', groups: [{ category: '', items: ['Excel'] }] },
+				{ kind: 'experience', title: '', entries: [{ role: 'Enfermeira', company: '', period: '', bullets: ['Plantões.'] }] },
+				{ kind: 'projects', title: '', toolsLabel: 'Tecnologias', entries: [] },
 			],
 		})
 	})
@@ -56,8 +63,22 @@ describe('formulário do currículo base', () => {
 
 		const form = emptyForm()
 		form.contact.name = 'Maria'
-		form.sections = [{ kind: 'education', entries: [{ course: 'Enfermagem', institution: '', period: '' }] }]
+		form.sections = [
+			{ kind: 'education', title: 'Formação Acadêmica', entries: [{ course: 'Enfermagem', institution: '', period: '' }] },
+		]
 		expect(formProblems(form)).toEqual({})
+	})
+
+	test('recusa um título que o cv-updater não reconhece como a seção', () => {
+		const form: CvForm = {
+			contact,
+			sections: [
+				{ kind: 'skills', title: 'Experiência', groups: [] },
+				{ kind: 'education', title: 'Formação', entries: [{ course: 'Enfermagem', institution: '', period: '' }] },
+			],
+		}
+
+		expect(Object.keys(formProblems(form))).toEqual(['sections.0.title'])
 	})
 
 	test('aponta o item com tópicos demais pela posição na tela', () => {
@@ -65,9 +86,10 @@ describe('formulário do currículo base', () => {
 		const form: CvForm = {
 			contact,
 			sections: [
-				{ kind: 'summary', text: '' },
+				{ kind: 'summary', title: '', text: '' },
 				{
 					kind: 'experience',
+					title: '',
 					entries: [
 						{ role: '', company: '', period: '', bullets: [] },
 						{ role: 'Enfermeira', company: '', period: '', bullets },
@@ -77,6 +99,19 @@ describe('formulário do currículo base', () => {
 		}
 
 		expect(formProblems(form)).toEqual({ 'sections.1.entries.1.bullets': 'No máximo 20 tópicos.' })
+	})
+
+	test('as etapas seguem as seções incluídas, e cada problema leva à etapa do campo', () => {
+		const form = emptyForm()
+
+		expect(formSteps(form)).toEqual(['contact', 'sections', 'summary', 'skills', 'experience', 'education', 'review'])
+		expect(problemStep('contact.name', form)).toBe('contact')
+		expect(problemStep('sections', form)).toBe('sections')
+		expect(problemStep('sections.2.entries.0.bullets', form)).toBe('experience')
+		expect(problemStep('sections.0.title', form)).toBe('summary')
+
+		const problems = { 'contact.name': 'a', 'sections.1.title': 'b', sections: 'c' }
+		expect(stepProblems('skills', problems, form)).toEqual({ 'sections.1.title': 'b' })
 	})
 
 	test('move um item para cima ou para baixo, sem passar das pontas', () => {

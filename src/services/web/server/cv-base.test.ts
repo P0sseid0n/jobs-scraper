@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test'
 import { ZodError } from 'zod'
 
-import { CV_BASE_TIMEOUT_ERROR, parseNewVersion, toWebCvBaseVersion } from './cv-base'
+import { CV_BASE_TIMEOUT_ERROR, parseNewVersion, storedForm, toWebCvBaseVersion } from './cv-base'
 import { CV_TIMEOUT_MS } from './cv-request.model'
 import { fieldErrors, HttpError } from './http'
 
@@ -43,7 +43,8 @@ test('versão do formulário: gera o .tex e guarda os dados', () => {
 	const version = parseNewVersion({ form })
 
 	expect(version.fileName).toBeNull()
-	expect(version.form).toEqual(form)
+	// O título vazio entra pelo padrão do schema
+	expect(version.form).toEqual({ ...form, sections: [{ ...form.sections[0]!, title: '' }] })
 	expect(version.tex).toContain('\\textbf{Universidade} - Enfermagem \\hfill 2018')
 	expect(toWebCvBaseVersion({ ...doc, fileName: null, fromForm: true }).fromForm).toBe(true)
 })
@@ -78,4 +79,29 @@ test('versão enviada como .tex não tem dados do formulário', () => {
 		form: null,
 	})
 	expect(toWebCvBaseVersion(doc).fromForm).toBe(false)
+})
+
+test('título de seção que o cv-updater não reconhece aponta o campo', () => {
+	const contact = { name: 'Maria', headline: '', location: '', email: '', phone: '', links: [] }
+	const education = { course: 'Enfermagem', institution: 'Universidade', period: '' }
+
+	expect(
+		parseNewVersion({ form: { contact, sections: [{ kind: 'education', title: 'Formação Acadêmica', entries: [education] }] } }).tex,
+	).toContain('\\section*{Formação Acadêmica}')
+	try {
+		parseNewVersion({ form: { contact, sections: [{ kind: 'education', title: 'Meus estudos', entries: [education] }] } })
+		throw new Error('deveria recusar')
+	} catch (error) {
+		expect(Object.keys(fieldErrors(error as ZodError))).toEqual(['form.sections.0.title'])
+	}
+})
+
+test('formulário guardado antes do título e do rótulo volta com os padrões', () => {
+	const old = {
+		contact: { name: 'Maria', headline: '', location: '', email: '', phone: '', links: [] },
+		sections: [{ kind: 'projects', entries: [] }],
+	}
+
+	expect(storedForm(old)?.sections).toEqual([{ kind: 'projects', title: '', toolsLabel: 'Ferramentas', entries: [] }])
+	expect(storedForm(null)).toBeNull()
 })

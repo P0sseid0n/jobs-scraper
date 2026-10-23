@@ -1,23 +1,46 @@
-import { useId, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 
-import { CV_FORM_MAX_ITEMS, CV_FORM_SECTIONS, type CvForm, type CvFormSection, type CvFormSectionKind } from '@shared/contracts'
+import {
+	CV_FORM_DEFAULT_TITLES,
+	CV_FORM_MAX_ITEMS,
+	CV_FORM_SECTIONS,
+	CV_FORM_TOOLS_LABELS,
+	type CvForm,
+	type CvFormSection,
+	type CvFormSectionKind,
+} from '@shared/contracts'
 
-import { EMPTY_ENTRY, emptySection, moveItem, SECTION_LABELS } from '../lib/cv-form'
+import {
+	cleanForm,
+	EMPTY_ENTRY,
+	emptySection,
+	formProblems,
+	formSteps,
+	moveItem,
+	problemStep,
+	SECTION_LABELS,
+	stepProblems,
+	type FormStep,
+} from '../lib/cv-form'
 import { cx } from '../lib/cx'
 import { Icon } from './Icon'
 import { Button } from './ui/Button'
-import { card } from './ui/Card'
+import { DIALOG } from './ui/Dialog'
 import { FieldError, FieldHelp, FieldLabel } from './ui/Field'
 import { IconButton } from './ui/IconButton'
 import { field, Input } from './ui/Input'
 import { KeywordInput } from './ui/KeywordInput'
+import { SelectMenu } from './ui/SelectMenu'
 import { LABEL } from './ui/text'
 
 type Props = {
 	form: CvForm
-	/** Caminho do campo → mensagem (`formProblems` ou os erros da API sem o prefixo `form.`). */
-	problems: Record<string, string>
+	/** Erros da API, com o caminho do campo sem o prefixo `form.` (os do próprio formulário vêm de `formProblems`). */
+	serverProblems: Record<string, string>
+	submitting: boolean
 	onChange: (form: CvForm) => void
+	onSubmit: () => void
+	onClose: () => void
 }
 
 /** Os itens da seção que viram caixas (grupos de habilidades ou entradas); a apresentação não tem. */
@@ -39,14 +62,71 @@ const ENTRY_NAMES: Record<Exclude<CvFormSectionKind, 'summary'>, string> = {
 	projects: 'projeto',
 }
 
+/** Plural dos itens, para o resumo da revisão ("3 experiências"). */
+const ENTRY_PLURALS: Record<Exclude<CvFormSectionKind, 'summary'>, string> = {
+	skills: 'grupos',
+	experience: 'experiências',
+	education: 'formações',
+	certifications: 'certificações ou cursos',
+	languages: 'idiomas',
+	projects: 'projetos',
+}
+
+const STEP_NAMES: Record<FormStep, string> = { contact: 'Contato', sections: 'Seções', review: 'Revisar', ...SECTION_LABELS }
+
+/** O que cada etapa pede, abaixo do título dela. */
+const STEP_HELP: Partial<Record<FormStep, string>> = {
+	contact: 'Os dados do topo do currículo. Só o nome é obrigatório.',
+	sections: 'Escolha as seções e a ordem em que aparecem no PDF. Cada seção incluída vira uma etapa.',
+	review: 'Confira o que entra no currículo. O cv-updater gera o PDF para você ver antes de ativar.',
+}
+
 /**
- * O currículo base em formulário, para quem não sabe LaTeX: contato e seções que dá para adicionar, tirar e
- * reordenar. O cv-updater gera o `.tex` a partir dos dados (`resume/latex-from-form.ts`). Controlado: cada mudança
- * chega em `onChange` com o formulário inteiro.
+ * O currículo base em formulário, para quem não sabe LaTeX, numa modal com etapas: contato, escolha das seções, uma
+ * etapa por seção e a revisão. O cv-updater gera o `.tex` a partir dos dados (`resume/latex-from-form.ts`). Controlado:
+ * cada mudança chega em `onChange` com o formulário inteiro, então fechar a modal não perde o que foi preenchido.
  */
-export function CvBaseForm({ form, problems, onChange }: Props) {
+export function CvBaseFormDialog({ form, serverProblems, submitting, onChange, onSubmit, onClose }: Props) {
 	const id = useId()
+	const ref = useRef<HTMLDialogElement>(null)
+	const body = useRef<HTMLDivElement>(null)
+	const [step, setStep] = useState<FormStep>('contact')
+	/** Etapas em que a pessoa já tentou avançar: só nelas os problemas aparecem, para não acusar o que vem depois. */
+	const [tried, setTried] = useState<ReadonlySet<FormStep>>(new Set())
 	const missing = CV_FORM_SECTIONS.filter(kind => !form.sections.some(section => section.kind === kind))
+
+	const steps = formSteps(form)
+	const index = Math.max(steps.indexOf(step), 0)
+	const current = steps[index]!
+	const allProblems = { ...serverProblems, ...formProblems(form) }
+	const problems = Object.fromEntries(
+		Object.entries(allProblems).filter(([path]) => current === 'review' || tried.has(problemStep(path, form))),
+	)
+
+	useEffect(() => {
+		ref.current?.showModal()
+	}, [])
+
+	// Os erros do servidor (ao gerar) levam à etapa do primeiro campo errado
+	useEffect(() => {
+		const [first] = Object.keys(serverProblems)
+		if (first) goTo(problemStep(first, form))
+	}, [serverProblems])
+
+	function goTo(next: FormStep) {
+		setStep(next)
+		body.current?.scrollTo({ top: 0 })
+	}
+
+	/** Avança se a etapa não tem problemas; o "falta experiência ou formação" só pesa na revisão. */
+	function next() {
+		const { sections: _, ...blocking } = stepProblems(current, formProblems(form), form)
+		if (Object.keys(blocking).length) {
+			setTried(previous => new Set(previous).add(current))
+			return
+		}
+		goTo(steps[index + 1]!)
+	}
 
 	/** Aplica a mudança numa cópia, como no formulário de configurações. */
 	function update(change: (draft: CvForm) => void) {
@@ -76,8 +156,7 @@ export function CvBaseForm({ form, problems, onChange }: Props) {
 		)
 
 		return (
-			<fieldset className="grid gap-4 md:grid-cols-2">
-				<legend className={cx(LABEL, 'mb-3')}>contato_</legend>
+			<div className="grid gap-4 md:grid-cols-2">
 				{text('name', 'Nome', 'Maria Souza', 'name')}
 				{text('headline', 'Cargo ou título', 'Enfermeira | COREN-SP 000.000', 'organization-title')}
 				{text('location', 'Cidade', 'São Paulo, SP', 'address-level2')}
@@ -96,7 +175,7 @@ export function CvBaseForm({ form, problems, onChange }: Props) {
 						})
 					}
 				/>
-			</fieldset>
+			</div>
 		)
 	}
 
@@ -385,7 +464,7 @@ export function CvBaseForm({ form, problems, onChange }: Props) {
 										onChange={value => set('description', value)}
 									/>
 									<div className="flex flex-col gap-1.5 md:col-span-2">
-										<FieldLabel htmlFor={toolsId}>Ferramentas</FieldLabel>
+										<FieldLabel htmlFor={toolsId}>{section.toolsLabel}</FieldLabel>
 										<KeywordInput
 											id={toolsId}
 											value={entry.technologies}
@@ -403,64 +482,249 @@ export function CvBaseForm({ form, problems, onChange }: Props) {
 				break
 		}
 
-		const label = SECTION_LABELS[section.kind]
+		const defaultTitle = CV_FORM_DEFAULT_TITLES[section.kind]
 
 		return (
-			<li key={section.kind}>
-				<section className={card({ size: 'md', className: 'flex flex-col gap-4' })} aria-labelledby={`${sectionId}-title`}>
-					<div className="flex items-center justify-between gap-3">
-						<h4 id={`${sectionId}-title`} className="font-semibold">
-							{label}
-						</h4>
-						<MoveButtons
-							name={`a seção ${label}`}
-							index={index}
-							count={form.sections.length}
-							onMove={delta =>
-								update(draft => {
-									draft.sections = moveItem(draft.sections, index, delta)
-								})
-							}
-							onRemove={() => update(draft => void draft.sections.splice(index, 1))}
-						/>
-					</div>
-					{body}
-				</section>
-			</li>
+			<div className="flex flex-col gap-5">
+				<div className="grid gap-4 md:grid-cols-2">
+					<TextField
+						id={`${sectionId}-title`}
+						label="Título no PDF"
+						value={section.title}
+						placeholder={defaultTitle}
+						help={`Vazio usa "${defaultTitle}". Outro título precisa ser um sinônimo que o cv-updater reconhece.`}
+						error={at('title')}
+						onChange={value =>
+							updateSection(index, draft => {
+								draft.title = value
+							})
+						}
+					/>
+					{section.kind === 'projects' && (
+						<div className="flex flex-col gap-1.5">
+							<FieldLabel htmlFor={`${sectionId}-tools-label`}>Rótulo das ferramentas</FieldLabel>
+							<SelectMenu
+								id={`${sectionId}-tools-label`}
+								value={section.toolsLabel}
+								options={CV_FORM_TOOLS_LABELS.map(label => ({ value: label, label }))}
+								describedBy={`${sectionId}-tools-label-help`}
+								onChange={toolsLabel =>
+									updateSection(index, draft => {
+										;(draft as typeof section).toolsLabel = toolsLabel
+									})
+								}
+							/>
+							<FieldHelp id={`${sectionId}-tools-label-help`}>
+								A linha abaixo de cada projeto: "{section.toolsLabel}: ...".
+							</FieldHelp>
+						</div>
+					)}
+				</div>
+				{body}
+			</div>
 		)
 	}
 
-	return (
-		<div className="flex flex-col gap-6">
-			{renderContact()}
+	function renderSections() {
+		return (
+			<div className="flex flex-col gap-5">
+				<ol className="m-0 flex list-none flex-col gap-2 p-0">
+					{form.sections.map((section, index) => {
+						const label = SECTION_LABELS[section.kind]
+						return (
+							<li key={section.kind} className="flex items-center gap-3 rounded-md border border-line px-4 py-2.5">
+								<span className="w-5 shrink-0 font-mono text-xs text-muted">{index + 1}</span>
+								<span className="flex min-w-0 grow flex-col">
+									<span className="font-medium">{label}</span>
+									<span className="truncate text-xs text-muted">
+										no PDF: {section.title.trim() || CV_FORM_DEFAULT_TITLES[section.kind]}
+									</span>
+								</span>
+								<MoveButtons
+									name={`a seção ${label}`}
+									index={index}
+									count={form.sections.length}
+									onMove={delta =>
+										update(draft => {
+											draft.sections = moveItem(draft.sections, index, delta)
+										})
+									}
+									onRemove={() => update(draft => void draft.sections.splice(index, 1))}
+								/>
+							</li>
+						)
+					})}
+				</ol>
+				{form.sections.length === 0 && <FieldHelp>Nenhuma seção: adicione pelo menos experiência ou formação.</FieldHelp>}
 
-			<div className="flex flex-col gap-3">
-				<h3 className={LABEL}>seções_</h3>
-				<FieldHelp>
-					Na ordem do PDF; use as setas para mudar. Itens vazios ficam de fora. Precisa de pelo menos uma experiência ou formação.
-				</FieldHelp>
-				{problems.sections && <FieldError>{problems.sections}</FieldError>}
-				<ul className="m-0 flex list-none flex-col gap-3 p-0">{form.sections.map(renderSection)}</ul>
+				{missing.length > 0 && (
+					<div className="flex flex-col gap-2">
+						<span className={LABEL}>adicionar seção</span>
+						<div className="flex flex-wrap gap-2">
+							{missing.map(kind => (
+								<Button
+									key={kind}
+									variant="ghost"
+									size="sm"
+									onClick={() => update(draft => void draft.sections.push(emptySection(kind)))}
+								>
+									<Icon name="plus" size={14} />
+									{SECTION_LABELS[kind]}
+								</Button>
+							))}
+						</div>
+					</div>
+				)}
+			</div>
+		)
+	}
+
+	function renderReview() {
+		const clean = cleanForm(form)
+		const entries = Object.entries(allProblems)
+
+		return (
+			<div className="flex flex-col gap-5">
+				<dl className="m-0 flex flex-col gap-2">
+					<ReviewRow label="Contato" onEdit={() => goTo('contact')}>
+						{[clean.contact.name.trim() || 'sem nome', clean.contact.headline, clean.contact.email].filter(Boolean).join(' · ')}
+					</ReviewRow>
+					{clean.sections.map(section => {
+						const count = itemsOf(section).length
+						const summary =
+							section.kind === 'summary'
+								? section.text && `${section.text.length} caracteres`
+								: count && `${count} ${count === 1 ? ENTRY_NAMES[section.kind] : ENTRY_PLURALS[section.kind]}`
+
+						return (
+							<ReviewRow
+								key={section.kind}
+								label={section.title || CV_FORM_DEFAULT_TITLES[section.kind]}
+								onEdit={() => goTo(section.kind)}
+							>
+								{summary || <span className="text-muted">vazia: fica de fora do PDF</span>}
+							</ReviewRow>
+						)
+					})}
+				</dl>
+
+				{entries.length > 0 && (
+					<div role="alert" className="flex flex-col gap-2 rounded-md border border-danger px-4 py-3">
+						<p className="text-sm font-semibold text-danger">Corrija antes de gerar:</p>
+						<ul className="m-0 flex list-none flex-col gap-1.5 p-0">
+							{entries.map(([path, message]) => {
+								const target = problemStep(path, form)
+								return (
+									<li key={path} className="flex flex-wrap items-center justify-between gap-2 text-sm">
+										<span>
+											<span className="font-medium">{STEP_NAMES[target]}:</span> {message}
+										</span>
+										<Button variant="ghost" size="xs" onClick={() => goTo(target)}>
+											corrigir
+										</Button>
+									</li>
+								)
+							})}
+						</ul>
+					</div>
+				)}
+			</div>
+		)
+	}
+
+	function renderStep() {
+		if (current === 'contact') return renderContact()
+		if (current === 'sections') return renderSections()
+		if (current === 'review') return renderReview()
+
+		const sectionIndex = form.sections.findIndex(section => section.kind === current)
+		return renderSection(form.sections[sectionIndex]!, sectionIndex)
+	}
+
+	return (
+		<dialog
+			ref={ref}
+			// Aberta, vira coluna: o meio rola e o topo (etapas) e o rodapé (voltar/próximo) ficam à vista
+			className={cx(DIALOG, 'w-3xl open:flex open:flex-col')}
+			aria-labelledby={`${id}-title`}
+			// Fechar não perde nada: os dados ficam na tela de trás até gerar
+			onClose={onClose}
+		>
+			<div className="flex flex-col gap-3 border-b border-line px-6 pt-5 pb-4 max-md:px-4.5">
+				<div className="flex items-center justify-between gap-3">
+					<h2 id={`${id}-title`} className="text-lg font-bold">
+						currículo pelo formulário
+					</h2>
+					<IconButton label="Fechar" size="sm" onClick={() => ref.current?.close()}>
+						<Icon name="close" size={16} />
+					</IconButton>
+				</div>
+				<nav aria-label="Etapas">
+					<ol className="m-0 flex list-none flex-wrap gap-x-3 gap-y-1 p-0 max-md:hidden">
+						{steps.map((item, position) => (
+							<li key={item}>
+								<button
+									type="button"
+									aria-current={item === current ? 'step' : undefined}
+									className={cx(
+										'font-mono text-xs transition hover:text-ink',
+										item === current ? 'font-semibold text-ink' : position < index ? 'text-ink' : 'text-muted',
+									)}
+									onClick={() => goTo(item)}
+								>
+									{position + 1}. {STEP_NAMES[item].toLowerCase()}
+								</button>
+							</li>
+						))}
+					</ol>
+					<p className="font-mono text-xs text-muted md:hidden">
+						etapa {index + 1} de {steps.length}: {STEP_NAMES[current].toLowerCase()}
+					</p>
+				</nav>
+				<div className="h-1 overflow-hidden rounded-pill bg-surface-2" aria-hidden>
+					<div
+						className="h-full rounded-pill bg-lime transition-all duration-500 ease-glide motion-reduce:transition-none"
+						style={{ width: `${((index + 1) / steps.length) * 100}%` }}
+					/>
+				</div>
 			</div>
 
-			{missing.length > 0 && (
-				<div className="flex flex-col gap-2">
-					<span className={LABEL}>adicionar seção</span>
-					<div className="flex flex-wrap gap-2">
-						{missing.map(kind => (
-							<Button
-								key={kind}
-								variant="ghost"
-								size="sm"
-								onClick={() => update(draft => void draft.sections.push(emptySection(kind)))}
-							>
-								<Icon name="plus" size={14} />
-								{SECTION_LABELS[kind]}
-							</Button>
-						))}
-					</div>
+			<div ref={body} className="flex min-h-0 grow flex-col gap-4 overflow-y-auto px-6 py-5 max-md:px-4.5">
+				<div className="flex flex-col gap-1">
+					<h3 className="text-xl font-semibold">{STEP_NAMES[current]}</h3>
+					{STEP_HELP[current] && <FieldHelp>{STEP_HELP[current]}</FieldHelp>}
 				</div>
-			)}
+				{renderStep()}
+			</div>
+
+			<div className="flex items-center justify-between gap-3 border-t border-line px-6 py-4 max-md:px-4.5">
+				<Button variant="ghost" disabled={index === 0} onClick={() => goTo(steps[index - 1]!)}>
+					<Icon name="back" size={14} />
+					voltar
+				</Button>
+				{current === 'review' ? (
+					<Button variant="lime" disabled={submitting || Object.keys(allProblems).length > 0} onClick={onSubmit}>
+						{submitting ? 'enviando…' : 'gerar e validar'}
+					</Button>
+				) : (
+					<Button variant="lime" onClick={next}>
+						próximo
+					</Button>
+				)}
+			</div>
+		</dialog>
+	)
+}
+
+/** Uma linha da revisão: o nome da seção, o resumo do que foi preenchido e o atalho para a etapa dela. */
+function ReviewRow({ label, onEdit, children }: { label: string; onEdit: () => void; children: ReactNode }) {
+	return (
+		<div className="flex items-center gap-3 rounded-md border border-line px-4 py-2.5">
+			<dt className="w-40 shrink-0 font-medium max-md:w-28">{label}</dt>
+			<dd className="m-0 min-w-0 grow truncate text-sm">{children}</dd>
+			<Button variant="ghost" size="xs" onClick={onEdit}>
+				editar
+			</Button>
 		</div>
 	)
 }

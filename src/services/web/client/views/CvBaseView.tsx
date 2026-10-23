@@ -5,7 +5,7 @@ import { CV_BASE_TEX_MAX_BYTES, type CvForm } from '@shared/contracts'
 
 import type { WebCvBaseVersion } from '../../api-types'
 import { api, cvBasePdfUrl, RequestError } from '../api'
-import { CvBaseForm } from '../components/CvBaseForm'
+import { CvBaseFormDialog } from '../components/CvBaseForm'
 import { Icon } from '../components/Icon'
 import { Badge } from '../components/ui/Badge'
 import { Button, ButtonLink } from '../components/ui/Button'
@@ -16,7 +16,6 @@ import { iconButton } from '../components/ui/IconButton'
 import { field } from '../components/ui/Input'
 import { Notice } from '../components/ui/Notice'
 import { Hero, Page } from '../components/ui/Page'
-import { TabPanel, Tabs } from '../components/ui/Tabs'
 import { LABEL, SECTION_TITLE } from '../components/ui/text'
 import { activeVersion, formatKilobytes, texBytes, upsertVersion } from '../lib/cv-base'
 import { CV_EXAMPLES, exampleDownloadUrl, type CvExample } from '../lib/cv-examples'
@@ -31,14 +30,6 @@ const MAX_SIZE = formatKilobytes(CV_BASE_TEX_MAX_BYTES)
 
 /** `activeForm`: os dados do formulário da versão ativa, quando ela veio dele. */
 export type CvBaseData = { versions: WebCvBaseVersion[]; activeTex: string; activeForm: CvForm | null }
-
-/** Como a versão nova é escrita: pelo formulário (sem saber LaTeX) ou direto no `.tex`. */
-type Mode = 'form' | 'tex'
-
-const MODES = [
-	{ value: 'form', label: 'formulário' },
-	{ value: 'tex', label: '.tex' },
-] as const satisfies readonly { value: Mode; label: string }[]
 
 /** O texto no editor e o arquivo de onde veio (o nome vai junto só se o texto não foi mexido depois). */
 type Source = { text: string; fileName: string | null }
@@ -91,18 +82,15 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 	const [form, setForm] = useState(() => initial.activeForm ?? emptyForm())
 	/** O formulário que já está numa versão, como o `savedText`. */
 	const [savedForm, setSavedForm] = useState(form)
-	/** Os problemas só aparecem depois da primeira tentativa de validar, para não acusar o que ainda vai ser preenchido. */
-	const [showProblems, setShowProblems] = useState(false)
+	/** A modal com as etapas do formulário; fechada, o rascunho continua em `form`. */
+	const [formOpen, setFormOpen] = useState(false)
 	const [serverProblems, setServerProblems] = useState<Record<string, string>>({})
-	// Sem versão ativa, começa pelo formulário: quem não tem um .tex não precisa saber LaTeX
-	const [mode, setMode] = useState<Mode>(() => (initial.activeForm || !activeVersion(initial.versions) ? 'form' : 'tex'))
 	const [candidateId, setCandidateId] = useState<string | null>(null)
 	const [submitting, setSubmitting] = useState(false)
 	const [activating, setActivating] = useState<string | null>(null)
 	const [replaceWith, setReplaceWith] = useState<Replacement | null>(null)
 	const fileInput = useRef<HTMLInputElement>(null)
 	const editor = useRef<HTMLTextAreaElement>(null)
-	const editorSection = useRef<HTMLElement>(null)
 
 	const active = activeVersion(versions)
 	const candidate = versions.find(version => version.versionId === candidateId) ?? null
@@ -110,7 +98,6 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 	const tooBig = size > CV_BASE_TEX_MAX_BYTES
 	const dirty = text !== savedText
 	const formDirty = !sameForm(form, savedForm)
-	const problems = showProblems ? { ...serverProblems, ...formProblems(form) } : {}
 
 	useEffect(() => {
 		const stop = onLive('cvBase', version => setVersions(current => upsertVersion(current, version)))
@@ -177,12 +164,9 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 	}
 
 	async function submitForm() {
-		setShowProblems(true)
 		setServerProblems({})
-		if (Object.keys(formProblems(form)).length) {
-			notify('Confira os campos marcados no formulário.', 'error')
-			return
-		}
+		// A modal só libera o botão sem problemas; a checagem fica para o caso de algo escapar dela
+		if (Object.keys(formProblems(form)).length) return
 
 		setSubmitting(true)
 		try {
@@ -190,6 +174,7 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 			setVersions(current => upsertVersion(current, version))
 			setCandidateId(version.versionId)
 			setSavedForm(form)
+			setFormOpen(false)
 		} catch (error) {
 			// Os erros de campo da API vêm como "form.contact.name"; o formulário usa o caminho sem o prefixo
 			if (error instanceof RequestError) {
@@ -233,9 +218,7 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 			if (loaded.form) {
 				setForm(loaded.form)
 				setSavedForm(loaded.form)
-				setShowProblems(false)
-				setMode('form')
-				editorSection.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+				setFormOpen(true)
 				return
 			}
 
@@ -263,12 +246,8 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 	}
 
 	function focusEditor() {
-		setMode('tex')
-		// O painel do .tex pode estar escondido até o React mostrar a aba
-		requestAnimationFrame(() => {
-			editor.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-			editor.current?.focus({ preventScroll: true })
-		})
+		editor.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+		editor.current?.focus({ preventScroll: true })
 	}
 
 	const replacesForm = !!replaceWith && 'version' in replaceWith && replaceWith.version.fromForm
@@ -421,74 +400,67 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 
 	function renderEditor() {
 		return (
-			<section ref={editorSection} className={SECTION_CARD} aria-labelledby="cv-base-new">
+			<section className={SECTION_CARD} aria-labelledby="cv-base-new">
 				<div className="flex flex-wrap items-center justify-between gap-3">
 					<h2 id="cv-base-new" className={SECTION_TITLE}>
 						nova versão
 					</h2>
-					{mode === 'tex' && (
+					<div className="flex flex-wrap gap-2">
+						<Button variant="ghost" size="sm" onClick={() => setFormOpen(true)}>
+							preencher com formulário
+						</Button>
 						<Button variant="ghost" size="sm" onClick={() => fileInput.current?.click()}>
 							<Icon name="file" size={14} />
 							carregar .tex
 						</Button>
-					)}
+					</div>
 					<input ref={fileInput} type="file" accept=".tex,text/x-tex,application/x-tex" hidden onChange={loadFile} />
 				</div>
 
-				<Tabs id="cv-base-mode" label="Como escrever a versão" items={MODES} selected={mode} onSelect={setMode} />
+				{formDirty && (
+					<p className="font-mono text-xs text-muted">
+						formulário com alterações não validadas: {form.contact.name.trim() || 'sem nome'} · {form.sections.length}{' '}
+						{form.sections.length === 1 ? 'seção' : 'seções'}
+					</p>
+				)}
 
-				<TabPanel tabsId="cv-base-mode" value="form" selected={mode === 'form'} className="flex flex-col gap-5">
-					<FieldHelp>
-						Preencha os seus dados: o currículo é montado no modelo neutro, sem precisar saber LaTeX. Para mudar o design, use o
-						.tex.
-					</FieldHelp>
-					<CvBaseForm form={form} problems={problems} onChange={setForm} />
-					<div className="flex flex-wrap items-center gap-3">
-						<Button variant="lime" size="lg" disabled={submitting} onClick={submitForm}>
-							{submitting ? 'enviando…' : 'gerar e validar'}
-						</Button>
-						{formDirty && <span className="font-mono text-xs text-muted">alterações não validadas</span>}
-					</div>
-				</TabPanel>
-
-				<TabPanel tabsId="cv-base-mode" value="tex" selected={mode === 'tex'} className="flex flex-col gap-5">
-					<div className="flex flex-col gap-1.5">
-						<span className="flex items-center justify-between gap-3">
-							<FieldLabel htmlFor="cv-base-tex">.tex do currículo</FieldLabel>
-							<span className={cx('font-mono text-xs', tooBig ? 'text-danger' : 'text-muted')}>
-								{formatKilobytes(size)} / {MAX_SIZE}
-							</span>
+				<div className="flex flex-col gap-1.5">
+					<span className="flex items-center justify-between gap-3">
+						<FieldLabel htmlFor="cv-base-tex">.tex do currículo</FieldLabel>
+						<span className={cx('font-mono text-xs', tooBig ? 'text-danger' : 'text-muted')}>
+							{formatKilobytes(size)} / {MAX_SIZE}
 						</span>
-						<textarea
-							id="cv-base-tex"
-							ref={editor}
-							value={text}
-							rows={18}
-							spellCheck={false}
-							placeholder="Cole aqui o .tex do seu currículo ou carregue o arquivo."
-							aria-invalid={tooBig || undefined}
-							aria-describedby={tooBig ? 'cv-base-tex-error' : 'cv-base-tex-help'}
-							onChange={event => setText(event.target.value)}
-							className={field({ invalid: tooBig, className: 'resize-y py-2.5 font-mono text-xs leading-relaxed' })}
-						/>
-						{tooBig ? (
-							<FieldError id="cv-base-tex-error">O .tex passa do limite de {MAX_SIZE}.</FieldError>
-						) : (
-							<FieldHelp id="cv-base-tex-help">
-								Precisa de pelo menos uma seção de experiência ou de formação, como nos modelos. Resumo, competências e
-								projetos são opcionais. Os títulos aceitam sinônimos (Resumo, Sobre, Competências, Experiência...), em
-								português ou em inglês. O cv-updater compila antes de você poder ativar.
-							</FieldHelp>
-						)}
-					</div>
+					</span>
+					<textarea
+						id="cv-base-tex"
+						ref={editor}
+						value={text}
+						rows={18}
+						spellCheck={false}
+						placeholder="Cole aqui o .tex do seu currículo, carregue o arquivo ou preencha com o formulário (sem precisar saber LaTeX)."
+						aria-invalid={tooBig || undefined}
+						aria-describedby={tooBig ? 'cv-base-tex-error' : 'cv-base-tex-help'}
+						onChange={event => setText(event.target.value)}
+						className={field({ invalid: tooBig, className: 'resize-y py-2.5 font-mono text-xs leading-relaxed' })}
+					/>
+					{tooBig ? (
+						<FieldError id="cv-base-tex-error">O .tex passa do limite de {MAX_SIZE}.</FieldError>
+					) : (
+						<FieldHelp id="cv-base-tex-help">
+							Precisa de pelo menos uma seção de experiência ou de formação, como nos modelos. Resumo, competências e projetos
+							são opcionais. Os títulos aceitam sinônimos (Resumo, Sobre, Competências, Experiência...), em português ou em
+							inglês. O cv-updater compila antes de você poder ativar. Sem saber LaTeX? Use "preencher com formulário": o
+							currículo sai no modelo neutro.
+						</FieldHelp>
+					)}
+				</div>
 
-					<div className="flex flex-wrap items-center gap-3">
-						<Button variant="lime" size="lg" disabled={submitting || tooBig || !text.trim()} onClick={submit}>
-							{submitting ? 'enviando…' : 'validar'}
-						</Button>
-						{dirty && <span className="font-mono text-xs text-muted">alterações não validadas</span>}
-					</div>
-				</TabPanel>
+				<div className="flex flex-wrap items-center gap-3">
+					<Button variant="lime" size="lg" disabled={submitting || tooBig || !text.trim()} onClick={submit}>
+						{submitting ? 'enviando…' : 'validar'}
+					</Button>
+					{dirty && <span className="font-mono text-xs text-muted">alterações não validadas</span>}
+				</div>
 
 				{candidate && renderCandidate(candidate)}
 			</section>
@@ -597,6 +569,17 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 					cancelLabel="continuar editando"
 					onConfirm={() => ('version' in replaceWith ? edit(replaceWith.version, true) : loadExample(replaceWith.example, true))}
 					onCancel={() => setReplaceWith(null)}
+				/>
+			)}
+
+			{formOpen && (
+				<CvBaseFormDialog
+					form={form}
+					serverProblems={serverProblems}
+					submitting={submitting}
+					onChange={setForm}
+					onSubmit={submitForm}
+					onClose={() => setFormOpen(false)}
 				/>
 			)}
 

@@ -1,6 +1,15 @@
-import { CV_FORM_MAX_ITEMS, type CvForm, type CvFormSection, type CvFormSectionKind } from '@shared/contracts'
+import {
+	CV_FORM_DEFAULT_TITLES,
+	CV_FORM_MAX_ITEMS,
+	CV_FORM_TOOLS_LABELS,
+	type CvForm,
+	type CvFormSection,
+	type CvFormSectionKind,
+} from '@shared/contracts'
 
-/** Nome de cada seção no formulário (os títulos do PDF ficam no cv-updater, `FORM_SECTION_TITLES`). */
+import { isSectionTitle } from '../../../cv-updater/resume/latex-syntax'
+
+/** Nome de cada seção no formulário (o título padrão no PDF é `CV_FORM_DEFAULT_TITLES`). */
 export const SECTION_LABELS: Record<CvFormSectionKind, string> = {
 	summary: 'Apresentação',
 	skills: 'Habilidades',
@@ -27,11 +36,13 @@ export const EMPTY_ENTRY = {
 export function emptySection(kind: CvFormSectionKind): CvFormSection {
 	switch (kind) {
 		case 'summary':
-			return { kind, text: '' }
+			return { kind, title: '', text: '' }
 		case 'skills':
-			return { kind, groups: [EMPTY_ENTRY.skillGroup()] }
+			return { kind, title: '', groups: [EMPTY_ENTRY.skillGroup()] }
+		case 'projects':
+			return { kind, title: '', entries: [EMPTY_ENTRY.projects()], toolsLabel: CV_FORM_TOOLS_LABELS[0] }
 		default:
-			return { kind, entries: [EMPTY_ENTRY[kind]()] } as CvFormSection
+			return { kind, title: '', entries: [EMPTY_ENTRY[kind]()] } as CvFormSection
 	}
 }
 
@@ -62,7 +73,8 @@ const filled = (entry: Record<string, string | string[]>) =>
 export function cleanForm(form: CvForm): CvForm {
 	return {
 		contact: { ...form.contact, links: lines(form.contact.links) },
-		sections: form.sections.map((section): CvFormSection => {
+		sections: form.sections.map((original): CvFormSection => {
+			const section = { ...original, title: original.title.trim() } as CvFormSection
 			switch (section.kind) {
 				case 'summary':
 					return { ...section, text: section.text.trim() }
@@ -101,6 +113,10 @@ export function formProblems(form: CvForm) {
 
 	// No formulário como está (não no limpo), para o caminho apontar o item da tela
 	form.sections.forEach((section, index) => {
+		if (!isSectionTitle(section.kind, section.title)) {
+			problems[`sections.${index}.title`] =
+				`Esse título não é reconhecido como ${SECTION_LABELS[section.kind].toLowerCase()}; use um sinônimo (ex.: ${CV_FORM_DEFAULT_TITLES[section.kind]}) ou deixe vazio.`
+		}
 		if (section.kind !== 'experience') return
 		section.entries.forEach((entry, entryIndex) => {
 			if (lines(entry.bullets).length > CV_FORM_MAX_ITEMS) {
@@ -115,4 +131,25 @@ export function formProblems(form: CvForm) {
 /** Se dois formulários têm o mesmo conteúdo (para saber se há mudanças não validadas). */
 export function sameForm(a: CvForm, b: CvForm) {
 	return JSON.stringify(cleanForm(a)) === JSON.stringify(cleanForm(b))
+}
+
+/** Uma etapa da modal do formulário: o contato, a escolha das seções, cada seção incluída e a revisão. */
+export type FormStep = 'contact' | 'sections' | CvFormSectionKind | 'review'
+
+/** As etapas na ordem, com uma por seção incluída (na ordem do PDF). */
+export function formSteps(form: CvForm): FormStep[] {
+	return ['contact', 'sections', ...form.sections.map(section => section.kind), 'review']
+}
+
+/** A etapa onde está o campo de um problema (`contact.name`, `sections.2.entries.0.bullets`...). */
+export function problemStep(path: string, form: CvForm): FormStep {
+	if (path.startsWith('contact')) return 'contact'
+
+	const index = path.match(/^sections\.(\d+)\./)?.[1]
+	return (index !== undefined && form.sections[Number(index)]?.kind) || 'sections'
+}
+
+/** Os problemas de uma etapa, para mostrar ao tentar avançar. */
+export function stepProblems(step: FormStep, problems: Record<string, string>, form: CvForm) {
+	return Object.fromEntries(Object.entries(problems).filter(([path]) => problemStep(path, form) === step))
 }

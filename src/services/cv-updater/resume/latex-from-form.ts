@@ -3,24 +3,10 @@
  * (`assets/cv.neutral.example.tex`). Cada seção sai no formato que o latex-reader.ts lê, para o ajuste à vaga
  * funcionar como num `.tex` escrito à mão. Seções e itens vazios ficam de fora.
  */
-import type { CvForm, CvFormSection, CvFormSectionKind, CvFormSectionOf } from '@shared/contracts'
+import { CV_FORM_DEFAULT_TITLES, type CvForm, type CvFormSection, type CvFormSectionOf } from '@shared/contracts'
 
 import neutralTex from '../assets/cv.neutral.example.tex' with { type: 'text' }
 import { escapeLatex } from './latex-syntax'
-
-/** Títulos das seções no `.tex` gerado; todos estão entre os sinônimos do latex-syntax.ts. */
-export const FORM_SECTION_TITLES: Record<CvFormSectionKind, string> = {
-	summary: 'Apresentação',
-	skills: 'Habilidades',
-	experience: 'Experiência Profissional',
-	education: 'Formação',
-	certifications: 'Certificações e Cursos',
-	languages: 'Idiomas',
-	projects: 'Projetos',
-}
-
-/** Rótulo das ferramentas dos projetos (um dos aceitos em PROJECT_SKILLS_LABEL), neutro para qualquer área. */
-const PROJECT_TOOLS_LABEL = 'Ferramentas'
 
 const PREAMBLE = neutralTex.slice(0, neutralTex.indexOf('\\begin{document}'))
 
@@ -35,7 +21,8 @@ export function formToLatex(form: CvForm) {
 
 	const sections = form.sections.flatMap(section => {
 		const body = renderSection(section)
-		return body ? [`\\section*{${FORM_SECTION_TITLES[section.kind]}}\n\n${body}`] : []
+		const title = escapeText(section.title) || CV_FORM_DEFAULT_TITLES[section.kind]
+		return body ? [`\\section*{${title}}\n\n${body}`] : []
 	})
 
 	return `${preamble}\\begin{document}\n\n${renderHeader(form.contact)}\n\n${sections.join('\n\n')}\n\n\\end{document}\n`
@@ -108,17 +95,13 @@ function renderExperience({ entries }: CvFormSectionOf<'experience'>) {
 }
 
 /** Blocos separados por `\vspace`: nome e link, a descrição e as ferramentas (o formato do latex-reader.ts). */
-function renderProjects({ entries }: CvFormSectionOf<'projects'>) {
+function renderProjects({ entries, toolsLabel }: CvFormSectionOf<'projects'>) {
 	return entries
 		.filter(entry => entry.name)
 		.map(({ name, url, description, technologies }) => {
 			const header = `\\textbf{${escapeText(name)}}${url ? ` | ${href(withScheme(url), displayUrl(url))}` : ''}`
 			const tools = technologies.filter(Boolean)
-			return [
-				header,
-				escapeText(description),
-				tools.length && `\\textit{${PROJECT_TOOLS_LABEL}: ${tools.map(escapeText).join(', ')}}`,
-			]
+			return [header, escapeText(description), tools.length && `\\textit{${toolsLabel}: ${tools.map(escapeText).join(', ')}}`]
 				.filter(Boolean)
 				.join('\n\n')
 		})
