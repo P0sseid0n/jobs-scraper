@@ -304,17 +304,14 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 					<h2 id="cv-base-examples" className={SECTION_TITLE}>
 						modelos
 					</h2>
-					<p className="text-sm text-muted">
-						Comece por um modelo: troque os dados pelos seus e valide. Os títulos das seções aceitam sinônimos (Resumo, Sobre,
-						Competências, Experiência...), em português ou em inglês.
-					</p>
+					<p className="text-sm text-muted">Comece por um modelo: troque os dados pelos seus e valide.</p>
 				</div>
-				<ul className="m-0 flex list-none flex-col gap-2.5 p-0">
+				<ul className="m-0 flex list-none flex-col divide-y divide-line border-t border-line p-0">
 					{CV_EXAMPLES.map(example => {
 						const download = `baixar ${example.fileName}`
 
 						return (
-							<li key={example.fileName} className={card({ size: 'sm', className: 'flex flex-col gap-1.5' })}>
+							<li key={example.fileName} className="flex flex-col gap-1.5 py-3 last:pb-0">
 								<div className="flex items-center justify-between gap-3">
 									<span className="flex min-w-0 items-baseline gap-2">
 										<span className="shrink-0 font-semibold">{example.title}</span>
@@ -390,7 +387,8 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 					) : (
 						<FieldHelp id="cv-base-tex-help">
 							Precisa de pelo menos uma seção de experiência ou de formação, como nos modelos. Resumo, competências e projetos
-							são opcionais. O cv-updater compila antes de você poder ativar.
+							são opcionais. Os títulos aceitam sinônimos (Resumo, Sobre, Competências, Experiência...), em português ou em
+							inglês. O cv-updater compila antes de você poder ativar.
 						</FieldHelp>
 					)}
 				</div>
