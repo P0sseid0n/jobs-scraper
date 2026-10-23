@@ -6,6 +6,7 @@ import { LatexCompileError, type CompileResult } from './latex-compiler'
 import { readResumeTex } from './resume/latex-reader'
 
 const example = await Bun.file(path.join(import.meta.dir, './assets/cv.example.tex')).text()
+const neutral = await Bun.file(path.join(import.meta.dir, './assets/cv.neutral.example.tex')).text()
 
 /** Sem o Tectonic: devolve um PDF falso, ou falha como ele falharia. */
 const compiles = async (): Promise<CompileResult> => ({ pdf: Buffer.from('%PDF-1.7'), pages: 1 })
@@ -14,7 +15,7 @@ const failsToCompile = async (): Promise<CompileResult> => {
 }
 
 describe('validateBaseTex', () => {
-	test('o cv.example.tex tem todas as seções e passa', async () => {
+	test('o cv.example.tex passa', async () => {
 		expect(missingSections(readResumeTex(example))).toEqual([])
 
 		const result = await validateBaseTex(example, compiles)
@@ -23,11 +24,30 @@ describe('validateBaseTex', () => {
 		expect(result.pdf).not.toBeNull()
 	})
 
-	test('sem as seções esperadas, lista cada uma que falta', async () => {
-		const tex = example.replace('\\section*{Projetos}', '\\section*{Portfólio}').replace('\\section*{Apresentação}', '')
+	test('um currículo de outra área, com formação e sem projetos, passa', async () => {
+		const result = await validateBaseTex(neutral, compiles)
+		expect(result.errors).toEqual([])
+	})
+
+	test('basta experiência ou formação; apresentação, habilidades e projetos são opcionais', async () => {
+		const onlyEducation = example
+			.replace('\\section*{Apresentação}', '\\section*{Outra}')
+			.replace('\\section*{Habilidades Técnicas}', '\\section*{Outra}')
+			.replace('\\section*{Projetos}', '\\section*{Outra}')
+			.replace('\\section*{Experiência Profissional}', '\\section*{Outra}')
+
+		expect((await validateBaseTex(onlyEducation, compiles)).errors).toEqual([])
+	})
+
+	test('sem experiência nem formação, explica o que falta', async () => {
+		const tex = example
+			.replace('\\section*{Experiência Profissional}', '\\section*{Outra}')
+			.replace('\\section*{Formação Acadêmica}', '')
 
 		const result = await validateBaseTex(tex, compiles)
-		expect(result.errors).toEqual(['Falta a seção \\section*{Apresentação}.', 'Falta a seção \\section*{Projetos}.'])
+		expect(result.errors).toEqual([
+			'Falta uma seção de experiência ou de formação, como \\section*{Experiência Profissional} ou \\section*{Formação}.',
+		])
 		// Compila mesmo assim: a prévia ajuda a achar o problema
 		expect(result.pdf).not.toBeNull()
 	})
@@ -42,7 +62,7 @@ describe('validateBaseTex', () => {
 	test('texto que não é LaTeX acumula as seções que faltam e o erro de compilação', async () => {
 		const result = await validateBaseTex('não é um currículo', failsToCompile)
 
-		expect(result.errors).toHaveLength(5)
+		expect(result.errors).toHaveLength(2)
 		expect(result.errors.at(-1)).toContain('Falha ao compilar')
 	})
 

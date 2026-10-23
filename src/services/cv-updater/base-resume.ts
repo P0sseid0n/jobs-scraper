@@ -3,11 +3,14 @@ import type { Logger } from '@shared/logging'
 
 import { compileLatex, LatexCompileError, type CompileOptions, type CompileResult } from './latex-compiler'
 import { readResumeTex } from './resume/latex-reader'
-import { SECTION_TITLES } from './resume/latex-syntax'
+import { SECTION_TITLES, type SectionKey } from './resume/latex-syntax'
 import type { ParsedResume } from './resume/resume.types'
 
-/** Seções que o currículo base precisa ter para ser ajustado (`\section*{título}`, com os títulos de SECTION_TITLES). */
-export const EXPECTED_SECTIONS: readonly (keyof typeof SECTION_TITLES)[] = ['summary', 'skills', 'projects', 'experience']
+/**
+ * O currículo base precisa ter pelo menos uma destas seções (`\section*{título}`, com um dos títulos aceitos em
+ * latex-syntax.ts). As outras (apresentação, habilidades, projetos) são opcionais: as ausentes não são ajustadas.
+ */
+export const EXPECTED_SECTIONS: readonly SectionKey[] = ['experience', 'education']
 
 /** O currículo base interpretado e de onde ele veio: o id da versão ativa no banco, ou `null` para o arquivo. */
 export type BaseResume = { resume: ParsedResume; versionId: string | null }
@@ -37,9 +40,12 @@ export async function loadBaseResume(
 	return { resume: readResumeTex(await file.text()), versionId: null }
 }
 
-/** Títulos das seções esperadas que o `.tex` não tem. */
+/** O que falta no `.tex` para ser um currículo base: vazio se ele tem pelo menos uma das EXPECTED_SECTIONS. */
 export function missingSections(resume: ParsedResume) {
-	return EXPECTED_SECTIONS.filter(section => !resume.sections[section]).map(section => SECTION_TITLES[section])
+	if (EXPECTED_SECTIONS.some(section => resume.sections[section])) return []
+
+	const titles = EXPECTED_SECTIONS.map(section => `\\section*{${SECTION_TITLES[section]}}`)
+	return [`Falta uma seção de experiência ou de formação, como ${titles.join(' ou ')}.`]
 }
 
 export type BaseValidation = { errors: string[]; pdf: Buffer | null; pages: number | null }
@@ -50,7 +56,7 @@ export type BaseValidation = { errors: string[]; pdf: Buffer | null; pages: numb
  * @throws Erros que não são do LaTeX (ex.: disco cheio), para a mensagem ser tentada de novo.
  */
 export async function validateBaseTex(tex: string, compile: (tex: string) => Promise<CompileResult>): Promise<BaseValidation> {
-	const errors = missingSections(readResumeTex(tex)).map(title => `Falta a seção \\section*{${title}}.`)
+	const errors = missingSections(readResumeTex(tex))
 
 	try {
 		const { pdf, pages } = await compile(tex)
@@ -85,7 +91,7 @@ export async function checkBaseResume(texFile: string, compileOptions: CompileOp
 
 	const missing = missingSections(resume)
 	if (missing.length > 0) {
-		logger.warn({ missing, versionId }, 'Seções não encontradas no .tex; elas não serão ajustadas')
+		logger.warn({ missing, versionId }, 'O currículo base não tem experiência nem formação; o ajuste quase não muda nada')
 	}
 
 	logger.info({ versionId }, 'Compilando o currículo base para validar o Tectonic e as fontes...')

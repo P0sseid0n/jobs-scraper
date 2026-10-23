@@ -19,12 +19,13 @@ export type TailoringSuggestions = z.infer<typeof TailoringSuggestionsSchema>
 
 const POST_MAX = 2500
 
-const SYSTEM_PROMPT = `You tailor a developer's résumé to a job opening.
+const SYSTEM_PROMPT = `You tailor a résumé (from any field) to a job opening.
 
 Return JSON with:
 - summary: a rewritten "Apresentação" paragraph in Brazilian Portuguese (2 to 3 sentences, at most 450 characters).
-  Emphasize what matches the job and mention the job's main required technologies.
-  Never invent companies, certifications or years of experience.
+  Emphasize what matches the job and mention the job's main required technologies or skills.
+  Never invent companies, certifications, degrees or years of experience. "Other sections" (education,
+  certifications, languages) are facts you may use but must not change.
   Write in the same impersonal style as the base summary (no "eu", no candidate name) and avoid repeating words.
 - relevantSkills: skills from the résumé "Skills" list that are related to this job, copied exactly, most relevant first.
   Include closely related ones (e.g. for a Vue.js job: Nuxt.js, Pinia) and leave out unrelated ones.
@@ -80,13 +81,15 @@ function outputSchema(categories: string[], toAdd: string[]) {
 function describeResume(cv: ResumeContent, categories: string[]) {
 	const projects = cv.projects.map(project => `${project.name} (${project.technologies.join(', ')})`)
 	const experience = cv.experience.map(entry => `${entry.header}: ${entry.bullets.join(' ')}`)
+	const otherSections = cv.otherSections.map(section => `${section.title}: ${section.text}`)
 
 	return [
 		`Base summary: ${cv.summary}`,
 		`Skills: ${cv.skills.flatMap(group => group.items).join(' | ')}`,
 		`Skill categories: ${categories.join(' | ')}`,
-		`Projects: ${projects.join(' | ')}`,
+		...(projects.length > 0 ? [`Projects: ${projects.join(' | ')}`] : []),
 		`Experience: ${experience.join(' | ')}`,
+		...(otherSections.length > 0 ? [`Other sections: ${otherSections.join(' | ')}`] : []),
 	].join('\n')
 }
 

@@ -2,19 +2,23 @@
 import {
 	ITEMIZE,
 	latexToPlainText,
-	SECTION_TITLES,
+	PROJECT_SKILLS_LABEL,
+	sectionKey,
 	SKILL_LINE,
 	splitItems,
 	splitProjectBlocks,
 	splitTopLevel,
 	splitWhitespace,
+	type SectionKey,
 } from './latex-syntax'
 import type { ParsedResume, ResumeContent } from './resume.types'
 
-type SectionKey = keyof typeof SECTION_TITLES
+const READ_ONLY_SECTIONS: readonly SectionKey[] = ['education', 'certifications', 'languages']
+
+const PROJECT_SKILLS_LINE = new RegExp(`\\\\textit\\{${PROJECT_SKILLS_LABEL.source}`)
 
 export function readResumeTex(tex: string): ParsedResume {
-	const sections = findSections(tex)
+	const { sections, titles } = findSections(tex)
 
 	const body = (key: SectionKey) => {
 		const range = sections[key]
@@ -34,29 +38,38 @@ export function readResumeTex(tex: string): ParsedResume {
 			skills: skills.groups,
 			projects: projects.projects,
 			experience: experience.entries,
+			otherSections: READ_ONLY_SECTIONS.filter(key => sections[key]).map(key => ({
+				title: titles[key]!,
+				text: latexToPlainText(body(key)),
+			})),
 			fullText: latexToPlainText(documentBody),
 		},
-		raw: { skillLines: skills.raw, projects: projects.raw, bullets: experience.raw },
+		raw: { skillLines: skills.raw, projects: projects.raw, projectSkillsLabel: projects.label, bullets: experience.raw },
 	}
 }
 
-/** Localiza o corpo de cada seção conhecida: do fim do `\section*{...}` até a próxima seção. */
-function findSections(tex: string): ParsedResume['sections'] {
+/**
+ * Localiza o corpo de cada seção conhecida: do fim do `\section*{...}` até a próxima seção. O título pode ser
+ * qualquer sinônimo aceito (ver `sectionKey`); se a mesma seção aparecer duas vezes, vale a primeira.
+ */
+function findSections(tex: string) {
 	const headers = [...tex.matchAll(/\\section\*?\{([^}]*)\}/g)]
 	const documentEnd = tex.indexOf('\\end{document}')
 	const sections: ParsedResume['sections'] = {}
+	const titles: Partial<Record<SectionKey, string>> = {}
 
 	headers.forEach((header, index) => {
-		const key = (Object.keys(SECTION_TITLES) as SectionKey[]).find(candidate => SECTION_TITLES[candidate] === header[1]?.trim())
-		if (!key) return
+		const key = sectionKey(header[1]!)
+		if (!key || sections[key]) return
 
 		const start = header.index! + header[0].length
 		const end = headers[index + 1]?.index ?? (documentEnd === -1 ? tex.length : documentEnd)
 
 		sections[key] = { start, end }
+		titles[key] = latexToPlainText(header[1]!)
 	})
 
-	return sections
+	return { sections, titles }
 }
 
 function parseSkills(body: string) {
@@ -81,17 +94,19 @@ function parseSkills(body: string) {
 function parseProjects(body: string) {
 	const projects: ResumeContent['projects'] = []
 	const raw: ParsedResume['raw']['projects'] = new Map()
+	let label: string | undefined
 
 	for (const block of splitProjectBlocks(splitWhitespace(body).content).blocks) {
 		const name = block.match(/\\textbf\{([^}]*)\}/)?.[1]
 		if (!name) continue
 
-		const technologies = block.match(/Tecnologias:\s*([^}]*)\}/)?.[1]
+		const [, blockLabel, technologies] = block.match(PROJECT_SKILLS_LABEL) ?? []
+		label ??= blockLabel
 		const url = block.match(/\\href\{[^}]*\}\{([^}]*)\}/)?.[1]
 
 		// A primeira linha é o cabeçalho (nome | link); a descrição é o que vem depois, sem a linha de tecnologias
 		const [, ...rest] = block.split(/\n\s*\n/)
-		const description = rest.join('\n\n').replace(/\\textit\{Tecnologias:[^}]*\}/, '')
+		const description = rest.join('\n\n').replace(PROJECT_SKILLS_LINE, '')
 
 		projects.push({
 			name: latexToPlainText(name),
@@ -102,7 +117,7 @@ function parseProjects(body: string) {
 		raw.set(latexToPlainText(name), block)
 	}
 
-	return { projects, raw }
+	return { projects, raw, label: label ?? 'Tecnologias' }
 }
 
 /** Lê a experiência: cada `itemize` é uma entrada e o texto antes dele, o cabeçalho (empresa, cargo, período). */

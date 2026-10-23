@@ -1,19 +1,29 @@
 /** Gera o `.tex` ajustado reescrevendo só os corpos das seções; o resto do arquivo fica idêntico. */
-import { escapeLatex, ITEMIZE, SKILL_LINE, splitItems, splitProjectBlocks, splitWhitespace, type SECTION_TITLES } from './latex-syntax'
+import {
+	EDITABLE_SECTIONS,
+	escapeLatex,
+	ITEMIZE,
+	SKILL_LINE,
+	splitItems,
+	splitProjectBlocks,
+	splitWhitespace,
+	type EditableSection,
+} from './latex-syntax'
 import type { ParsedResume, Range, ResumeProject, TailoredResume } from './resume.types'
 
-type SectionKey = keyof typeof SECTION_TITLES
-
 export function writeResumeTex(parsed: ParsedResume, cv: TailoredResume) {
-	const renderers: Record<SectionKey, (body: string) => string> = {
+	const renderers: Record<EditableSection, (body: string) => string> = {
 		summary: body => renderSummary(parsed, body, cv.summary),
 		skills: body => renderSkills(parsed, body, cv),
 		projects: body => renderProjects(parsed, body, cv),
 		experience: body => renderExperience(parsed, body, cv),
 	}
 
-	// Substitui de trás para frente para os índices das seções anteriores continuarem válidos
-	const sections = (Object.entries(parsed.sections) as [SectionKey, Range][]).sort(([, a], [, b]) => b.start - a.start)
+	// Só as seções editáveis; de trás para frente, para os índices das seções anteriores continuarem válidos
+	const sections = EDITABLE_SECTIONS.flatMap(key => {
+		const range = parsed.sections[key]
+		return range ? [[key, range] as [EditableSection, Range]] : []
+	}).sort(([, a], [, b]) => b.start - a.start)
 
 	let tex = parsed.tex
 	for (const [key, range] of sections) {
@@ -23,11 +33,11 @@ export function writeResumeTex(parsed: ParsedResume, cv: TailoredResume) {
 	return tex
 }
 
-/** Gera o bloco LaTeX de um projeto novo, no formato dos projetos do currículo base. */
-export function projectToLatex(project: ResumeProject) {
+/** Gera o bloco LaTeX de um projeto novo, no formato dos projetos do currículo base (`label`: "Tecnologias", ...). */
+export function projectToLatex(project: ResumeProject, label = 'Tecnologias') {
 	const url = project.url ? ` | \\href{https://${project.url}}{${escapeLatex(project.url)}}` : ''
 	const technologies = project.technologies.length
-		? `\n\n\\textit{Tecnologias: ${project.technologies.map(escapeLatex).join(', ')}}`
+		? `\n\n\\textit{${label}: ${project.technologies.map(escapeLatex).join(', ')}}`
 		: ''
 
 	return `\\textbf{${escapeLatex(project.name)}}${url}\n\n${escapeLatex(project.description)}${technologies}`
@@ -72,7 +82,9 @@ function renderProjects(parsed: ParsedResume, body: string, cv: TailoredResume) 
 	const { separator } = splitProjectBlocks(content)
 
 	// Projetos do .tex mantêm o bloco original; projetos novos (do GitHub) seguem o mesmo formato
-	const blocks = cv.projects.map(project => parsed.raw.projects.get(project.name) ?? projectToLatex(project))
+	const blocks = cv.projects.map(
+		project => parsed.raw.projects.get(project.name) ?? projectToLatex(project, parsed.raw.projectSkillsLabel),
+	)
 
 	return `${lead}${blocks.join(separator)}${trail}`
 }

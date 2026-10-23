@@ -23,6 +23,14 @@ describe('prompt', () => {
 		expect(JSON.stringify(format)).toContain('"skip"')
 	})
 
+	test('a IA vê formação, certificações e idiomas de um currículo de outra área', async () => {
+		const neutral = readResumeTex(await Bun.file(path.join(import.meta.dir, './assets/cv.neutral.example.tex')).text())
+		const { messages } = buildTailoringRequest(neutral.model, { ...job, title: 'Enfermeira UTI', necessaryKnowledge: ['ACLS'] })
+
+		expect(messages.at(-1)?.content).toContain('Other sections: Formação: Universidade Exemplo - Bacharelado em Enfermagem')
+		expect(messages.at(-1)?.content).toContain('Certificações e Cursos: Suporte Avançado de Vida em Cardiologia (ACLS)')
+	})
+
 	test('pede nova versão com o motivo da rejeição', () => {
 		expect(buildRetryMessage('tamanho 600').content).toContain('Your summary was rejected: tamanho 600')
 	})

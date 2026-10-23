@@ -3,13 +3,14 @@ import { describe, expect, test } from 'bun:test'
 
 import { readResumeTex } from './latex-reader'
 import { writeResumeTex } from './latex-writer'
-import type { TailoredResume } from './resume.types'
+import type { ResumeContent, TailoredResume } from './resume.types'
 
 const tex = await Bun.file(path.join(import.meta.dir, '../assets/cv.example.tex')).text()
 
 const parsed = readResumeTex(tex)
+const neutralTex = await Bun.file(path.join(import.meta.dir, '../assets/cv.neutral.example.tex')).text()
 
-const { fullText: _fullText, ...identity }: TailoredResume & { fullText: string } = parsed.model
+const { fullText: _fullText, otherSections: _otherSections, ...identity }: ResumeContent = parsed.model
 
 describe('readResumeTex', () => {
 	test('extrai as seções em texto puro', () => {
@@ -96,5 +97,111 @@ describe('writeResumeTex com habilidades adicionadas e removidas', () => {
 		)
 		expect(out).not.toContain('Back-end:')
 		expect(readResumeTex(out).model.skills).toEqual([{ category: 'Front-end', items: ['Vue.js', 'C# & .NET'] }])
+	})
+})
+
+describe('currículo de outra área (cv.neutral.example.tex)', () => {
+	const neutral = readResumeTex(neutralTex)
+	const { fullText: _neutralText, otherSections: _otherSections, ...neutralIdentity } = neutral.model
+
+	test('lê as seções pelos sinônimos, sem projetos', () => {
+		const { model } = neutral
+		expect(Object.keys(neutral.sections).sort()).toEqual([
+			'certifications',
+			'education',
+			'experience',
+			'languages',
+			'skills',
+			'summary',
+		])
+		expect(model.summary).toStartWith('Enfermeira com experiência em clínica médica')
+		expect(model.skills.map(group => group.category)).toEqual(['Assistência', 'Terapia intensiva', 'Gestão', 'Sistemas'])
+		expect(model.skills[0]?.items).toEqual([
+			'Sistematização da Assistência de Enfermagem (SAE)',
+			'administração de medicamentos',
+			'curativos',
+		])
+		expect(model.projects).toEqual([])
+		expect(model.experience.map(entry => entry.bullets.length)).toEqual([3, 2])
+	})
+
+	test('formação, certificações e idiomas ficam no texto que a IA lê, com o título do .tex', () => {
+		expect(neutral.model.otherSections.map(section => section.title)).toEqual(['Formação', 'Certificações e Cursos', 'Idiomas'])
+		expect(neutral.model.otherSections[0]?.text).toContain('Bacharelado em Enfermagem')
+		expect(neutral.model.otherSections[1]?.text).toContain('ACLS')
+	})
+
+	test('sem ajustes, o .tex gerado é idêntico; com ajustes, formação e o resto ficam intactos', () => {
+		expect(writeResumeTex(neutral, neutralIdentity)).toBe(neutralTex)
+
+		const out = writeResumeTex(neutral, {
+			...neutralIdentity,
+			summary: 'Enfermeira intensivista com foco em segurança do paciente.',
+			skills: [...neutralIdentity.skills].reverse(),
+			experience: neutralIdentity.experience.map(entry => ({ ...entry, bullets: [...entry.bullets].reverse() })),
+		})
+
+		expect(out).toContain('\\section*{Resumo}\nEnfermeira intensivista com foco em segurança do paciente.\n\n\\section*')
+		expect(out.indexOf('\\textbf{Sistemas:}')).toBeLessThan(out.indexOf('\\textbf{Assistência:}'))
+		expect(out.slice(out.indexOf('\\section*{Formação}'))).toBe(neutralTex.slice(neutralTex.indexOf('\\section*{Formação}')))
+	})
+})
+
+describe('títulos das seções', () => {
+	const sectionsOf = (...titles: string[]) =>
+		Object.keys(
+			readResumeTex(`\\begin{document}\n${titles.map(title => `\\section*{${title}}\ntexto\n`).join('')}\\end{document}`).sections,
+		)
+
+	test('aceita sinônimos em português e em inglês, sem diferenciar acentos nem maiúsculas', () => {
+		expect(sectionsOf('Sobre mim', 'Competências', 'Portfólio', 'Experiência', 'Formação Acadêmica')).toEqual([
+			'summary',
+			'skills',
+			'projects',
+			'experience',
+			'education',
+		])
+		expect(sectionsOf('Professional Summary', 'SKILLS', 'Portfolio', 'Work Experience', 'Education', 'Languages')).toEqual([
+			'summary',
+			'skills',
+			'projects',
+			'experience',
+			'education',
+			'languages',
+		])
+		expect(sectionsOf('Resumo:', 'experiencia profissional')).toEqual(['summary', 'experience'])
+	})
+
+	test('títulos compostos valem se todas as partes forem da mesma seção', () => {
+		expect(sectionsOf('Certificações/Cursos')).toEqual(['certifications'])
+		expect(sectionsOf('Cursos e Certificações')).toEqual(['certifications'])
+		expect(sectionsOf('Licenses \\& Certifications')).toEqual(['certifications'])
+		expect(sectionsOf('Formação e Experiência')).toEqual([])
+	})
+
+	test('títulos desconhecidos são mantidos como estão; uma seção repetida vale na primeira vez', () => {
+		const parsed = readResumeTex(
+			'\\begin{document}\n\\section*{Resumo}\nprimeiro\n\\section*{Sobre}\nsegundo\n\\section*{Hobbies}\nx\n\\end{document}',
+		)
+		expect(Object.keys(parsed.sections)).toEqual(['summary'])
+		expect(parsed.model.summary).toBe('primeiro')
+	})
+})
+
+describe('rótulo das tecnologias dos projetos', () => {
+	test('aceita "Ferramentas:" e "Competências:", e os projetos novos repetem o rótulo do .tex', () => {
+		const withTools = tex.replaceAll('\\textit{Tecnologias:', '\\textit{Ferramentas:')
+		const toolsParsed = readResumeTex(withTools)
+		expect(toolsParsed.model.projects[1]?.technologies).toEqual(['Vue.js', 'TypeScript'])
+		expect(toolsParsed.model.projects[1]?.description).toBe('Painel administrativo com gráficos em tempo real.')
+
+		const out = writeResumeTex(toolsParsed, {
+			...identity,
+			projects: [{ name: 'Novo', description: 'Projeto novo.', technologies: ['Vue.js'] }],
+		})
+		expect(out).toContain('\\textbf{Novo}\n\nProjeto novo.\n\n\\textit{Ferramentas: Vue.js}')
+
+		const withSkills = readResumeTex(tex.replace('\\textit{Tecnologias:', '\\textit{Competências:'))
+		expect(withSkills.model.projects[0]?.technologies).toEqual(['React', 'Node.js', 'PostgreSQL'])
 	})
 })

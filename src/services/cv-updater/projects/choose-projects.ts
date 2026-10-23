@@ -9,7 +9,7 @@ import { applyDescriptions, buildDescriptionRequest, parseDescriptions } from '.
 import { orderTechnologies, rankProjects, selectProjects, type ProjectCandidate } from './project-ranking'
 
 type ChooseProjectsOptions = {
-	/** Sem GitHub configurado, ficam os projetos do .tex. */
+	/** Sem GitHub configurado (usuário em Configurações › Contas ou `GITHUB_USERNAME`), ficam os projetos do .tex. */
 	github: GithubRepositories | null
 	ollama: Ollama
 	model: string
@@ -27,7 +27,8 @@ export async function chooseProjects(
 	job: TargetJob,
 	log: Logger,
 ): Promise<ResumeProject[]> {
-	if (!options.github) return fallback
+	// Sem a seção de projetos no .tex (comum fora de TI), não há onde colocar os do GitHub
+	if (!options.github || !base.sections.projects) return fallback
 
 	const jobSkills = job.necessaryKnowledge ?? []
 

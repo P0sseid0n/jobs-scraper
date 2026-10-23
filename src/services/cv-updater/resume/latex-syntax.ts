@@ -5,18 +5,124 @@
  *
  * Formato esperado de cada seção (o mesmo do currículo base):
  * - Apresentação: um parágrafo de texto.
- * - Habilidades Técnicas: itemize com linhas `\item \textbf{Categoria:} item, item, item`.
- * - Projetos: blocos começando com `\textbf{Nome}`, separados por `\vspace{...}`; tecnologias em `\textit{Tecnologias: ...}`.
- * - Experiência Profissional: cabeçalho de cada empresa seguido de um itemize com os bullets.
- * Seções ausentes ou fora desse formato são mantidas como estão.
+ * - Habilidades: itemize com linhas `\item \textbf{Categoria:} item, item, item`.
+ * - Projetos (opcional): blocos começando com `\textbf{Nome}`, separados por `\vspace{...}`; tecnologias em
+ *   `\textit{Tecnologias: ...}` (ou `Ferramentas:`, `Competências:`, ver PROJECT_SKILLS_LABEL).
+ * - Experiência: cabeçalho de cada empresa seguido de um itemize com os bullets.
+ * Formação, certificações e idiomas não são reescritos: a IA só os lê. Seções ausentes, com outro título ou fora
+ * desse formato são mantidas como estão.
  */
 
+/** Título de cada seção no modelo, usado nas mensagens; o `.tex` pode usar qualquer um de SECTION_ALIASES. */
 export const SECTION_TITLES = {
 	summary: 'Apresentação',
 	skills: 'Habilidades Técnicas',
 	projects: 'Projetos',
 	experience: 'Experiência Profissional',
+	education: 'Formação',
+	certifications: 'Certificações e Cursos',
+	languages: 'Idiomas',
 } as const
+
+export type SectionKey = keyof typeof SECTION_TITLES
+
+/** Seções que o ajuste reescreve; as demais só entram no texto que a IA lê. */
+export const EDITABLE_SECTIONS = ['summary', 'skills', 'projects', 'experience'] as const satisfies readonly SectionKey[]
+
+export type EditableSection = (typeof EDITABLE_SECTIONS)[number]
+
+/**
+ * Títulos aceitos para cada seção, em português e em inglês, comparados sem acentos nem maiúsculas.
+ * Um título composto ("Certificações/Cursos", "Cursos e Certificações") vale se todas as partes forem da mesma seção.
+ */
+const SECTION_ALIASES: Record<SectionKey, string[]> = {
+	summary: [
+		'apresentação',
+		'resumo',
+		'resumo profissional',
+		'sobre',
+		'sobre mim',
+		'perfil',
+		'perfil profissional',
+		'objetivo',
+		'objetivo profissional',
+		'summary',
+		'professional summary',
+		'about',
+		'about me',
+		'profile',
+		'professional profile',
+		'objective',
+	],
+	skills: [
+		'habilidades',
+		'habilidades técnicas',
+		'competências',
+		'competências técnicas',
+		'conhecimentos',
+		'conhecimentos técnicos',
+		'skills',
+		'technical skills',
+		'competencies',
+	],
+	projects: ['projetos', 'projetos pessoais', 'portfólio', 'projects', 'personal projects', 'portfolio'],
+	experience: [
+		'experiência',
+		'experiências',
+		'experiência profissional',
+		'experiências profissionais',
+		'histórico profissional',
+		'experience',
+		'professional experience',
+		'work experience',
+		'employment history',
+	],
+	education: ['formação', 'formação acadêmica', 'escolaridade', 'education', 'academic background'],
+	certifications: [
+		'certificações',
+		'certificados',
+		'cursos',
+		'cursos complementares',
+		'certifications',
+		'certificates',
+		'courses',
+		'licenses',
+	],
+	languages: ['idiomas', 'línguas', 'languages'],
+}
+
+const normalizeTitle = (title: string) =>
+	latexToPlainText(title)
+		.normalize('NFD')
+		.replace(/\p{Diacritic}/gu, '')
+		.toLowerCase()
+		.replace(/[:.]\s*$/, '')
+		.trim()
+
+const ALIAS_KEYS = new Map(
+	(Object.entries(SECTION_ALIASES) as [SectionKey, string[]][]).flatMap(([key, aliases]) =>
+		aliases.map(alias => [normalizeTitle(alias), key] as const),
+	),
+)
+
+/** A seção de um título do `.tex` (`\section*{título}`), ou `undefined` se não for nenhuma das conhecidas. */
+export function sectionKey(title: string): SectionKey | undefined {
+	const normalized = normalizeTitle(title)
+	const exact = ALIAS_KEYS.get(normalized)
+	if (exact) return exact
+
+	const keys = new Set(
+		normalized
+			.split(/\s*(?:[/&,]|\be\b|\band\b)\s*/)
+			.filter(Boolean)
+			.map(part => ALIAS_KEYS.get(part)),
+	)
+	const [key] = keys
+	return keys.size === 1 ? key : undefined
+}
+
+/** Rótulo das tecnologias (ou ferramentas) de um projeto: `\textit{Tecnologias: a, b}`. */
+export const PROJECT_SKILLS_LABEL = /(Tecnologias|Ferramentas|Competências|Technologies|Tools|Skills):\s*([^}]*)\}/
 
 /** Remove os comandos LaTeX mais comuns, deixando só o texto. */
 export function latexToPlainText(latex: string) {
@@ -25,6 +131,7 @@ export function latexToPlainText(latex: string) {
 		.replace(/\\href\{[^}]*\}\{([^}]*)\}/g, '$1')
 		.replace(/\\(?:textbf|textit|emph|underline|texttt|mbox)\{([^}]*)\}/g, '$1')
 		.replace(/\\(?:vspace|hspace)\*?\{[^}]*\}/g, ' ')
+		.replace(/\\begin\{[^}]*\}(?:\[[^\]]*\])?|\\end\{[^}]*\}|\\item\b/g, ' ')
 		.replace(/\\(?:hfill|newline|noindent|centering|par)\b/g, ' ')
 		.replace(/\\\\/g, ' ')
 		.replace(/\\([&%$#_{}])/g, '$1')

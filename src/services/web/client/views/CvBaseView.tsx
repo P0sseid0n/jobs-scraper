@@ -311,8 +311,9 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 						<FieldError id="cv-base-tex-error">O .tex passa do limite de {MAX_SIZE}.</FieldError>
 					) : (
 						<FieldHelp id="cv-base-tex-help">
-							Precisa das seções Apresentação, Habilidades Técnicas, Projetos e Experiência Profissional, como no{' '}
-							<code className="font-mono">cv.example.tex</code>. O cv-updater compila antes de você poder ativar.
+							Precisa de pelo menos uma seção de experiência ou de formação, como no{' '}
+							<code className="font-mono">cv.neutral.example.tex</code>. Resumo, competências e projetos são opcionais. O
+							cv-updater compila antes de você poder ativar.
 						</FieldHelp>
 					)}
 				</div>
