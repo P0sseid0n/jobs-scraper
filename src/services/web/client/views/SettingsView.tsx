@@ -424,7 +424,11 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 							min: 1,
 							max: 200,
 						})}
-						{fieldError('maxPostsPerRun') ?? <FieldHelp id="maxPostsPerRun-help">de 1 a 200, somando todos os termos</FieldHelp>}
+						{fieldError('maxPostsPerRun') ?? (
+							<FieldHelp id="maxPostsPerRun-help">
+								de 1 a 200, somando todos os termos; os descartados pela IA não contam
+							</FieldHelp>
+						)}
 					</div>
 					<div className="flex flex-col gap-1.5">
 						<FieldLabel htmlFor="intervalMinutes">intervalo entre coletas (min)</FieldLabel>
