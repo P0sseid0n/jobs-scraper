@@ -171,6 +171,8 @@
 		--placeholder-mix: 60%;
 
 		color-scheme: light;
+		/* Reserva o espaço da barra de rolagem: sem isso, ao trocar de uma tela longa para uma curta, o conteúdo centralizado pula */
+		scrollbar-gutter: stable;
 
 		/* Tema escuro: os mesmos tokens com outros valores, na mesma variante do `dark:` */
 		@variant dark {
