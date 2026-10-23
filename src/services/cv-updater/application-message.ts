@@ -6,7 +6,8 @@ import type { Logger } from '@shared/logging'
 
 import { knownTechnologies } from './projects/tech-catalog'
 import type { TailoredResume } from './resume/resume.types'
-import { normalizeSkill, skillAliases } from './skills/skill-matching'
+import { mentionsSkill, normalizeSkill, skillAliases } from './skills/skill-matching'
+import { describeProfile, type TailoringProfile } from './tailoring-prompt'
 import type { CvJob } from './target-job'
 
 const BODY_MIN = 150
@@ -17,19 +18,23 @@ const MODEL_ATTEMPTS = 2
 type MessageLanguage = 'pt' | 'en'
 type AiOptions = { ollama: Ollama; model: string }
 
+/** O que a mensagem precisa saber além do currículo e da vaga: o perfil e os requisitos que a pessoa não tem. */
+export type MessageContext = { profile?: TailoringProfile; unsupportedSkills?: string[] }
+
 const LANGUAGE_NAMES: Record<MessageLanguage, string> = { pt: 'Brazilian Portuguese', en: 'English' }
 
-const SYSTEM_PROMPT = `You write the body of a short job application email that a developer sends to a recruiter, with the tailored résumé attached.
+const SYSTEM_PROMPT = `You write the body of a short job application email that a professional (from any field) sends to a recruiter, with the tailored résumé attached.
 
 Return JSON with "body", following these rules:
 - Write in the language given in "Message language".
 - At most ${BODY_MAX - 100} characters, in 2 or 3 short paragraphs of plain text (no markdown, no lists, no subject line).
 - Start with a short greeting ("Olá! Tudo bem?" in Portuguese, "Hello," in English).
 - Say which role you are applying for and, if the company is known, the company name. Never write "unknown".
-- Mention 2 or 3 of the job's required technologies that are in the résumé skills, and at most one project or experience from the résumé that relates to the job, by its name.
+- Mention 2 or 3 of the job's required skills, tools or qualifications that are in the résumé, and at most one project or experience from the résumé that relates to the job, by its name.
 - Say the résumé is attached and that you are available to talk.
 - End with a short thanks. No signature, no candidate name and no placeholders like [name].
-- Use only facts from the résumé and the job: never invent companies, years of experience, certifications, numbers or technologies.
+- Use only facts from the résumé and the job: never invent companies, years of experience, certifications, numbers, skills or tools.
+- Never mention the items in "Not in the résumé": the person does not have them.
 - First person, polite and direct; avoid clichés like "I am passionate about".`
 
 /** O modelo pode devolver o corpo com espaços extras ou repetir o assunto na primeira linha. */
@@ -49,10 +54,11 @@ export async function requestApplicationMessage(
 	ai: AiOptions,
 	cv: TailoredResume,
 	job: CvJob,
+	context: MessageContext,
 	log: Logger,
 ): Promise<ApplicationMessage | null> {
 	const language = messageLanguage(job.language)
-	const request = buildMessageRequest(cv, job, language)
+	const request = buildMessageRequest(cv, job, language, context)
 	const messages: Message[] = request.messages
 
 	for (let attempt = 1; attempt <= MODEL_ATTEMPTS; attempt++) {
@@ -65,7 +71,7 @@ export async function requestApplicationMessage(
 			return null
 		}
 
-		const result = validateMessageBody(parseMessageBody(content), cv, job)
+		const result = validateMessageBody(parseMessageBody(content), cv, job, context.unsupportedSkills)
 		if (result.body) return { subject: messageSubject(job.title, language), body: result.body }
 
 		log.info({ attempt, reason: result.rejected }, 'Mensagem de candidatura rejeitada')
@@ -91,13 +97,16 @@ export function messageSubject(jobTitle: string | null, language: MessageLanguag
 	return language === 'en' ? `Application – ${jobTitle ?? 'open position'}` : `Candidatura – ${jobTitle ?? 'a vaga'}`
 }
 
-/** Monta o pedido à IA: as regras, o currículo ajustado e a vaga. */
-export function buildMessageRequest(cv: TailoredResume, job: CvJob, language: MessageLanguage) {
+/** Monta o pedido à IA: as regras, o perfil (se houver), o currículo ajustado, a vaga e o que a pessoa não tem. */
+export function buildMessageRequest(cv: TailoredResume, job: CvJob, language: MessageLanguage, context: MessageContext = {}) {
 	const projects = cv.projects.map(project => `${project.name} (${project.technologies.join(', ')}): ${project.description}`)
 	const experience = cv.experience.map(entry => `${entry.header}: ${entry.bullets.slice(0, 2).join(' ')}`)
+	const candidate = describeProfile(context.profile ?? {})
+	const unsupported = context.unsupportedSkills ?? []
 
 	const content = [
 		`## Message language\n${LANGUAGE_NAMES[language]}`,
+		...(candidate ? [`## Candidate profile\n${candidate}`] : []),
 		[
 			'## Job opening',
 			`Title: ${job.title ?? 'not stated'}`,
@@ -109,9 +118,10 @@ export function buildMessageRequest(cv: TailoredResume, job: CvJob, language: Me
 			'## Résumé',
 			`Summary: ${cv.summary}`,
 			`Skills: ${cv.skills.flatMap(group => group.items).join(' | ')}`,
-			`Projects: ${projects.join(' | ')}`,
+			...(projects.length > 0 ? [`Projects: ${projects.join(' | ')}`] : []),
 			`Experience: ${experience.join(' | ')}`,
 		].join('\n'),
+		...(unsupported.length > 0 ? [`## Not in the résumé\n${unsupported.join(', ')}`] : []),
 	].join('\n\n')
 
 	const messages: Message[] = [
@@ -132,14 +142,15 @@ export function parseMessageBody(content: string): string | null {
 }
 
 /**
- * Valida o corpo da mensagem: tamanho, texto puro, sem placeholders, sem anos de experiência e sem tecnologias
- * que não estão no currículo nem na vaga.
+ * Valida o corpo da mensagem: tamanho, texto puro, sem placeholders, sem anos de experiência, sem tecnologias
+ * que não estão no currículo nem na vaga e sem os requisitos da vaga que a pessoa não tem (`unsupportedSkills`).
  * @returns O corpo limpo, ou o motivo da rejeição.
  */
 export function validateMessageBody(
 	candidate: string | null,
 	cv: TailoredResume,
 	job: Pick<CvJob, 'necessaryKnowledge'>,
+	unsupportedSkills: string[] = [],
 ): { body: string; rejected: null } | { body: null; rejected: string } {
 	const body = cleanBody(candidate ?? '')
 
@@ -156,6 +167,11 @@ export function validateMessageBody(
 		return { body: null, rejected: `it mentions technologies that are not in the résumé or the job: ${unknown.join(', ')}` }
 	}
 
+	const invented = unsupportedSkills.filter(skill => mentionsSkill(body, skill))
+	if (invented.length > 0) {
+		return { body: null, rejected: `it mentions skills the person does not have: ${invented.join(', ')}` }
+	}
+
 	return { body, rejected: null }
 }
 
@@ -170,7 +186,10 @@ function cleanBody(text: string) {
 		.trim()
 }
 
-/** Tecnologias conhecidas citadas no texto que não estão nas habilidades, nos projetos do currículo nem na vaga. */
+/**
+ * Tecnologias do catálogo citadas no texto que não estão nas habilidades, nos projetos do currículo nem na vaga. Vale
+ * para qualquer área: um currículo sem tecnologias só não pode ganhar uma na mensagem.
+ */
 function technologiesOutside(body: string, cv: TailoredResume, job: Pick<CvJob, 'necessaryKnowledge'>) {
 	const allowed = new Set([
 		...cv.skills.flatMap(group => group.items).flatMap(item => [...skillAliases(item)]),

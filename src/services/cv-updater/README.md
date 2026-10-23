@@ -6,8 +6,10 @@ Gera um currículo em PDF ajustado para uma vaga, pedido pelo bot ou pelo site. 
 
 ## O que muda em cada currículo
 
-- **Apresentação:** reescrita pela IA para a vaga, destacando o que combina e citando as tecnologias pedidas.
-- **Habilidades:** as tecnologias da vaga entram na categoria certa (nuvem e DevOps vão para ferramentas), ficam só as suas categorias relacionadas à vaga, e as tecnologias da vaga vêm primeiro. Conceitos e metodologias ("Agile") não entram como tecnologia.
+Funciona para currículos de qualquer área. A área e o cargo-alvo do perfil (Configurações › Perfil) vão para a IA como contexto; sem perfil, o pedido fica sem eles.
+
+- **Apresentação:** reescrita pela IA para a vaga, destacando o que combina e citando as competências pedidas que estão no currículo. Se citar um requisito da vaga que a pessoa não tem, é rejeitada e a IA tenta de novo; na segunda falha, fica a original.
+- **Habilidades:** as competências da vaga são associadas às do currículo pelo nome ("CSS3/SCSS" ↔ "CSS (SASS/SCSS)") ou pelas palavras ("Gestão de tráfego pago" ↔ "Tráfego pago (Google Ads, Meta Ads)", aceitando o plural), ficam só as suas categorias relacionadas à vaga, e o que a vaga pede vem primeiro. Do que falta no currículo, só entram as tecnologias do catálogo (`projects/tech-catalog.ts`), na categoria certa (nuvem e DevOps vão para ferramentas); competências de outras áreas que você não tem ("Copywriting", "Hemodiálise") nunca são adicionadas.
 - **Projetos:** com o usuário do GitHub (em Configurações › Contas ou `GITHUB_USERNAME`), os projetos (`CV_MAX_PROJECTS`, padrão 2) vêm dos seus repositórios públicos, por ranqueamento:
   - +10 por tecnologia da vaga que o projeto usa (linguagens, topics e dependências do `package.json`);
   - +3 se tem descrição e +3 se tem topics;
@@ -15,7 +17,7 @@ Gera um currículo em PDF ajustado para uma vaga, pedido pelo bot ou pelo site. 
 
   Projetos que já estão no `.tex` usam o texto que você escreveu; os outros ganham uma descrição gerada a partir do README. Forks, arquivados e os de `GITHUB_EXCLUDE_REPOS` ficam de fora. Sem GitHub, ficam os projetos do `.tex`, reordenados. Sem a seção de projetos no `.tex`, o GitHub não é consultado.
 - **Experiência:** os bullets são reordenados por relevância. Nenhum é criado ou removido.
-- **Mensagem de candidatura** (só em vagas com e-mail): a IA escreve o e-mail a partir do currículo ajustado, citando o cargo, a empresa, tecnologias da vaga e um projeto relacionado, no idioma do post. Regras descartam placeholders, anos de experiência e tecnologias que não estão no currículo nem na vaga. Se a IA falhar, fica o modelo padrão.
+- **Mensagem de candidatura** (só em vagas com e-mail): a IA escreve o e-mail a partir do currículo ajustado, citando o cargo, a empresa, competências da vaga que estão no currículo e um projeto ou experiência relacionada, no idioma do post. Regras descartam placeholders, anos de experiência, tecnologias do catálogo que não estão no currículo nem na vaga e requisitos da vaga que a pessoa não tem. Se a IA falhar, fica o modelo padrão.
 
 Se o resultado passar de uma página, primeiro sai um projeto e depois volta a apresentação original, até caber. Os PDFs ficam em `data/cv/generated/`.
 
@@ -56,5 +58,5 @@ O pedido (`CvRequest`) traz um `replyTo` com a fila de resposta e um contexto li
 | `application-message.ts` | mensagem de candidatura |
 | `resume-pdf.ts`, `latex-compiler.ts` | PDF em uma página, compilado com o Tectonic |
 | `resume/` | leitura e escrita do `.tex` sem alterar o design |
-| `skills/` | seção de habilidades e associação entre as tecnologias da vaga e as do currículo |
+| `skills/` | seção de habilidades e associação entre as competências da vaga e as do currículo |
 | `projects/` | GitHub (API e cache), ranking, escolha e descrição dos projetos |

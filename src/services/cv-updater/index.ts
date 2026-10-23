@@ -14,7 +14,7 @@ import {
 import { Job } from '@shared/database'
 import { QUEUES } from '@shared/messaging'
 import { startService } from '@shared/service'
-import { loadCredentials } from '@shared/settings'
+import { loadCredentials, readSettings } from '@shared/settings'
 
 import { requestApplicationMessage } from './application-message'
 import { checkBaseResume, loadBaseResume, MissingBaseResumeError, validateBaseTex, type BaseResume } from './base-resume'
@@ -75,7 +75,9 @@ async function generateCv(request: CvRequest) {
 	log.info({ title: job.title }, 'Gerando currículo ajustado')
 
 	const { resume: base, versionId } = loaded
-	const suggestions = await requestTailoringSuggestions({ ollama, model: config.OLLAMA_MODEL }, base.model, job, log)
+	// Sem perfil, área e cargo-alvo ficam ausentes e os prompts não citam a área
+	const profile = await readSettings('profile')
+	const suggestions = await requestTailoringSuggestions({ ollama, model: config.OLLAMA_MODEL }, base.model, job, profile, log)
 
 	const { cv, report } = tailorResumeToJob(base.model, job, suggestions)
 	if (report.summaryRejected) {
@@ -110,7 +112,15 @@ async function generateCv(request: CvRequest) {
 	await savePdf(name, pdf)
 
 	// Só com e-mail de contato: sem ele, a candidatura é pelo site da vaga ou pelo post, e a mensagem não seria usada
-	const message = job.recruiterEmail ? await requestApplicationMessage({ ollama, model: config.OLLAMA_MODEL }, cv, job, log) : null
+	const message = job.recruiterEmail
+		? await requestApplicationMessage(
+				{ ollama, model: config.OLLAMA_MODEL },
+				cv,
+				job,
+				{ profile, unsupportedSkills: report.unsupportedSkills },
+				log,
+			)
+		: null
 
 	await reply({ jobTitle: job.title, file: { name, base64: pdf.toString('base64') }, error: null, message })
 

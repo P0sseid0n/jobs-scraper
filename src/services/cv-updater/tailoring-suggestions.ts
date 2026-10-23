@@ -4,7 +4,13 @@ import type { Logger } from '@shared/logging'
 
 import type { ResumeContent } from './resume/resume.types'
 import { tailorResumeToJob } from './tailor-resume'
-import { buildRetryMessage, buildTailoringRequest, parseTailoringSuggestions, type TailoringSuggestions } from './tailoring-prompt'
+import {
+	buildRetryMessage,
+	buildTailoringRequest,
+	parseTailoringSuggestions,
+	type TailoringProfile,
+	type TailoringSuggestions,
+} from './tailoring-prompt'
 import type { TargetJob } from './target-job'
 
 const MODEL_ATTEMPTS = 2
@@ -20,9 +26,10 @@ export async function requestTailoringSuggestions(
 	ai: AiOptions,
 	resume: ResumeContent,
 	job: TargetJob,
+	profile: TailoringProfile,
 	log: Logger,
 ): Promise<TailoringSuggestions | null> {
-	const request = buildTailoringRequest(resume, job)
+	const request = buildTailoringRequest(resume, job, profile)
 	const messages: Message[] = request.messages
 	let suggestions: TailoringSuggestions | null = null
 

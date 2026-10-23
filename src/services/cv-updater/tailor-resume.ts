@@ -1,5 +1,5 @@
 import type { ResumeContent, TailoredResume } from './resume/resume.types'
-import { normalizeSkill, skillAliases } from './skills/skill-matching'
+import { mentionsSkill, normalizeSkill, skillAliases, unsupportedJobSkills } from './skills/skill-matching'
 import { buildSkillsSection, orderBy, type AddedSkill } from './skills/skills-section'
 import type { TailoringSuggestions } from './tailoring-prompt'
 import type { TargetJob } from './target-job'
@@ -13,6 +13,9 @@ export type TailoringReport = {
 
 	/** Habilidades do currículo base que saíram por não terem relação com a vaga. */
 	removedSkills: string[]
+
+	/** Requisitos da vaga que a pessoa não tem e que não entraram no currículo: nada gerado pode citá-los. */
+	unsupportedSkills: string[]
 
 	/** Motivo de a apresentação da IA ter sido descartada (`null` = aceita). */
 	summaryRejected: string | null
@@ -30,7 +33,8 @@ export function tailorResumeToJob(
 	const skills = buildSkillsSection(cv, job, suggestions)
 	const projects = orderProjects(cv, suggestions)
 	const experience = orderExperience(cv, [...skills.relevant, ...skills.added.map(entry => entry.skill)])
-	const summary = validateSummary(suggestions?.summary, cv)
+	const unsupported = unsupportedJobSkills(cv, job)
+	const summary = validateSummary(suggestions?.summary, cv, unsupported)
 
 	return {
 		cv: { summary: summary.text, skills: skills.skills, projects, experience },
@@ -38,6 +42,7 @@ export function tailorResumeToJob(
 			relevantSkills: skills.relevant,
 			addedSkills: skills.added,
 			removedSkills: skills.removed,
+			unsupportedSkills: unsupported,
 			summaryRejected: summary.rejected,
 		},
 	}
@@ -70,16 +75,22 @@ function orderExperience(cv: ResumeContent, relevantSkills: string[]) {
 }
 
 /**
- * Valida só o tamanho da apresentação (ela pode citar as techs da vaga).
+ * Valida o tamanho da apresentação e se ela cita requisitos da vaga que a pessoa não tem (as tecnologias adicionadas
+ * podem ser citadas).
  * @returns O texto a usar (a original, se rejeitada) e o motivo da rejeição, ou `null`.
  */
-function validateSummary(candidate: string | undefined, cv: ResumeContent) {
+function validateSummary(candidate: string | undefined, cv: ResumeContent, unsupported: string[]) {
 	const text = candidate?.trim().replace(/\s+/g, ' ')
 
 	if (!text) return { text: cv.summary, rejected: 'vazia' }
 
 	if (text.length < SUMMARY_MIN || text.length > SUMMARY_MAX) {
 		return { text: cv.summary, rejected: `tamanho ${text.length} fora de ${SUMMARY_MIN}-${SUMMARY_MAX}` }
+	}
+
+	const invented = unsupported.filter(skill => mentionsSkill(text, skill))
+	if (invented.length > 0) {
+		return { text: cv.summary, rejected: `cita o que não está no currículo: ${invented.join(', ')}` }
 	}
 
 	return { text, rejected: null }

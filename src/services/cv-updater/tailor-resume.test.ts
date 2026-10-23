@@ -81,11 +81,21 @@ describe('tailorResumeToJob', () => {
 		expect(report.relevantSkills).toContain('Vue.js')
 	})
 
-	test('a apresentação pode citar as techs da vaga; só o tamanho é validado', () => {
+	test('a apresentação pode citar as techs da vaga que entram no currículo; o tamanho é validado', () => {
 		expect(tailorResumeToJob(cv, job, output()).cv.summary).toBe(summary)
 
 		const { cv: tailored, report } = tailorResumeToJob(cv, job, output({ summary: 'Curta demais.' }))
 		expect(tailored.summary).toBe(cv.summary)
 		expect(report.summaryRejected).toContain('tamanho')
+	})
+
+	test('rejeita a apresentação que cita requisitos que a pessoa não tem', () => {
+		const marketingJob = { ...job, necessaryKnowledge: ['Vue 3', 'Copywriting', 'Excel avançado', 'Agile/Scrum'] }
+		const invented = `${summary.replace('e Angular', 'e Vue 3')} Domínio de copywriting e Excel avançado.`
+		const { cv: tailored, report } = tailorResumeToJob(cv, marketingJob, output({ summary: invented }))
+
+		expect(report.unsupportedSkills).toEqual(['Copywriting', 'Excel avançado', 'Agile/Scrum'])
+		expect(report.summaryRejected).toBe('cita o que não está no currículo: Copywriting, Excel avançado')
+		expect(tailored.summary).toBe(cv.summary)
 	})
 })

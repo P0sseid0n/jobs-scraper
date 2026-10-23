@@ -56,6 +56,13 @@ describe('validateMessageBody', () => {
 		expect(result.rejected).toContain('Angular, Kubernetes')
 	})
 
+	test('rejeita competência da vaga que a pessoa não tem, em qualquer área', () => {
+		const body = goodBody.replace('Vue.js e TypeScript', 'Vue.js, copywriting e Excel avançado')
+		const result = validateMessageBody(body, cv, job, ['Copywriting', 'Excel avançado', 'HubSpot'])
+
+		expect(result.rejected).toBe('it mentions skills the person does not have: Copywriting, Excel avançado')
+	})
+
 	test('"express" como verbo não é a tecnologia Express', () => {
 		const english = `Hello,
 
@@ -103,6 +110,18 @@ describe('pedido à IA', () => {
 		expect(format.required).toEqual(['body'])
 	})
 
+	test('não supõe que a pessoa é dev e manda o perfil e o que falta no currículo', () => {
+		const { messages } = buildMessageRequest({ ...cv, projects: [] }, job, 'pt', {
+			profile: { area: 'Enfermagem', targetRole: 'Enfermeira UTI' },
+			unsupportedSkills: ['Hemodiálise'],
+		})
+
+		expect(messages[0]?.content).not.toContain('developer')
+		expect(messages.at(-1)?.content).toContain('## Candidate profile\nField: Enfermagem\nTarget role: Enfermeira UTI')
+		expect(messages.at(-1)?.content).toEndWith('## Not in the résumé\nHemodiálise')
+		expect(messages.at(-1)?.content).not.toContain('Projects:')
+	})
+
 	test('lê o corpo da resposta, ou null se não for o JSON esperado', () => {
 		expect(parseMessageBody(JSON.stringify({ body: 'Olá' }))).toBe('Olá')
 		expect(parseMessageBody('não é json')).toBeNull()
@@ -129,7 +148,7 @@ describe('requestApplicationMessage', () => {
 	test('devolve o assunto e o corpo quando a resposta passa nas validações', async () => {
 		const { ollama } = fakeOllama(goodBody)
 
-		expect(await requestApplicationMessage({ ollama, model: 'm' }, cv, job, log)).toEqual({
+		expect(await requestApplicationMessage({ ollama, model: 'm' }, cv, job, {}, log)).toEqual({
 			subject: 'Candidatura – Desenvolvedor(a) Front-end Pleno',
 			body: goodBody,
 		})
@@ -138,14 +157,18 @@ describe('requestApplicationMessage', () => {
 	test('pede outra versão uma vez quando a primeira é rejeitada', async () => {
 		const { ollama, calls } = fakeOllama(goodBody.replace('Obrigado!', 'Obrigado! [Seu nome]'), goodBody)
 
-		expect((await requestApplicationMessage({ ollama, model: 'm' }, cv, job, log))?.body).toBe(goodBody)
+		expect((await requestApplicationMessage({ ollama, model: 'm' }, cv, job, {}, log))?.body).toBe(goodBody)
 		expect(calls).toHaveLength(2)
 	})
 
 	test('null (modelo padrão) quando as duas versões são rejeitadas ou a IA falha', async () => {
 		const rejected = goodBody.replace('Trabalho com', 'Tenho 5 anos de experiência com')
 
-		expect(await requestApplicationMessage({ ollama: fakeOllama(rejected, rejected).ollama, model: 'm' }, cv, job, log)).toBeNull()
-		expect(await requestApplicationMessage({ ollama: fakeOllama(new Error('timeout')).ollama, model: 'm' }, cv, job, log)).toBeNull()
+		expect(
+			await requestApplicationMessage({ ollama: fakeOllama(rejected, rejected).ollama, model: 'm' }, cv, job, {}, log),
+		).toBeNull()
+		expect(
+			await requestApplicationMessage({ ollama: fakeOllama(new Error('timeout')).ollama, model: 'm' }, cv, job, {}, log),
+		).toBeNull()
 	})
 })

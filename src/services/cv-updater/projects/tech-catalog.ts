@@ -104,7 +104,10 @@ const LANGUAGE_NAMES: Record<string, string> = { vue: 'Vue.js', html: 'HTML', cs
 
 export const MAX_TECHNOLOGIES = 8
 
-/** Tecnologias comuns em vagas que não vêm do GitHub (nuvem, infraestrutura, outras stacks). */
+/**
+ * Tecnologias comuns em vagas que não vêm do GitHub (nuvem, infraestrutura, outras stacks). Junto com as de cima, são
+ * as únicas que entram no currículo quando a vaga pede e a pessoa não tem (`skillsToAdd`).
+ */
 const OTHER_TECHNOLOGIES = [
 	'AWS',
 	'Azure',
@@ -129,6 +132,17 @@ const OTHER_TECHNOLOGIES = [
 	'DynamoDB',
 	'Oracle',
 	'SQL Server',
+	'SQL',
+	'Git',
+	'GitLab CI',
+	'CI/CD',
+	'Linux',
+	'Nginx',
+	'Webpack',
+	'Redux',
+	'Storybook',
+	'jQuery',
+	'Bootstrap',
 ]
 
 /** Nomes de exibição de todas as tecnologias conhecidas, para achar tecnologias citadas num texto. */
