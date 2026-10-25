@@ -24,7 +24,6 @@ import { cx } from '../lib/cx'
 import { useFlipList } from '../lib/flip-list'
 import { CONTRACT_TYPES, LANGUAGE_NAMES, WORK_MODES } from '../lib/format'
 import { hasActiveFilters } from '../lib/job-filters'
-import { isMorphingBack } from '../lib/job-morph'
 import { useWideLayout } from '../lib/media'
 import { useStore } from '../lib/store'
 import { useTrayRequests } from '../stores/cv'
@@ -57,12 +56,12 @@ export function DetailPanel({ children }: { children: ReactNode }) {
 
 	return (
 		<aside
-			// A vaga clicada na lista cresce até este painel (`lib/job-morph.ts`)
-			data-vt="card"
+			// A vaga clicada na lista acende este painel (`lib/job-opening.ts`)
+			data-job-panel
 			className={card({
 				size: 'lg',
 				className: cx(
-					'vt-job-card sticky top-19 max-h-below-topbar grow-999 overflow-y-auto transition-all duration-300 ease-out motion-reduce:transition-none',
+					'sticky top-19 max-h-below-topbar grow-999 overflow-y-auto transition-all duration-300 ease-out motion-reduce:transition-none',
 					wider ? 'max-w-190 basis-130' : 'max-w-115 basis-100',
 				),
 			})}
@@ -356,12 +355,8 @@ const SKELETONS = [0, 1, 2, 3, 4].map(index => <JobCardSkeleton key={index} inde
 function JobList({ selectedId, keepScroll }: { selectedId: string | null; keepScroll: boolean }) {
 	const { jobs, status, error, nextCursor, loadingMore } = useJobs()
 	const { filters, clearFilters } = useFilters()
-	// Os cards deslizam para o lugar novo ao mudar a lista; voltando da página de uma vaga (celular) com a transição do
-	// card, não entram em cascata
-	const { list, ghosts } = useFlipList(
-		jobs.map(job => job.postId),
-		{ enterOnMount: !isMorphingBack() },
-	)
+	// Os cards deslizam para o lugar novo ao mudar a lista
+	const { list, ghosts } = useFlipList(jobs.map(job => job.postId))
 
 	// A primeira página vem pelo loader da rota (com o pendingComponent); aqui é a recarga ao mudar um filtro. Com vagas na
 	// tela, elas ficam (esmaecidas pela seção) até a nova lista chegar, sem piscar a cada letra da busca

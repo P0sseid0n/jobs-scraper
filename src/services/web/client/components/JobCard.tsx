@@ -3,7 +3,7 @@ import { Link } from '@tanstack/react-router'
 import type { WebJob } from '../../api-types'
 import { cx } from '../lib/cx'
 import { jobDate, jobSubtitle, safeLink, timeAgo } from '../lib/format'
-import { canMorph, isMorphTarget, prepareJobMorph } from '../lib/job-morph'
+import { openJobFromCard } from '../lib/job-opening'
 import { jobParams } from '../router'
 import { filtersOpen } from '../stores/filters-panel'
 import { setViewed, useViewed } from '../stores/viewed'
@@ -38,20 +38,11 @@ export function JobCard({
 	const viewed = useViewed(job)
 	const skills = job.necessaryKnowledge ?? []
 	const hidden = skills.length - VISIBLE_SKILLS
-	// Voltando da página desta vaga (celular), o detalhe vira este card
-	const morphTarget = isMorphTarget(job.postId)
 
 	return (
 		<article
 			data-flip-key={job.postId}
-			data-vt="card"
-			className={cx(
-				JOB_CARD,
-				DOT_GUTTER,
-				'group/card relative',
-				selected ? 'inverted border-inv-bg' : 'hover:border-line-strong',
-				morphTarget && 'vt-job-card',
-			)}
+			className={cx(JOB_CARD, DOT_GUTTER, 'group/card relative', selected ? 'inverted border-inv-bg' : 'hover:border-line-strong')}
 			aria-current={selected ? 'true' : undefined}
 		>
 			<ViewedDot job={job} viewed={viewed} />
@@ -65,23 +56,20 @@ export function JobCard({
 					// Os filtros da lista continuam na URL
 					search
 					resetScroll={!keepScroll}
-					// O card cresce até virar o detalhe (painel ao lado ou página da vaga)
-					viewTransition={!selected && canMorph()}
 					onClick={event => {
 						// Escolhida a vaga, os filtros saem do caminho (a vaga ganha o espaço deles)
 						filtersOpen.set(false)
+						// Uma faixa liga o card ao painel do detalhe, que acende (`lib/job-opening.ts`)
 						const plainClick = event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey
 						const card = event.currentTarget.closest('article')
-						if (!selected && plainClick && card) prepareJobMorph(card)
+						if (!selected && plainClick && card) openJobFromCard(card)
 					}}
 				>
 					{/* Já vista: o cargo perde o contraste; não vista: a bolinha (fora do link, na margem do card) */}
 					<span
-						data-vt="title"
 						className={cx(
 							'text-base leading-snug font-semibold wrap-break-word group-hover:underline group-hover:underline-offset-3',
 							viewed && 'text-muted',
-							morphTarget && 'vt-job-title',
 						)}
 					>
 						{!viewed && <span className="sr-only">não vista:</span>}

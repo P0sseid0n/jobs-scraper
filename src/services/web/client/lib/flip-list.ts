@@ -82,10 +82,10 @@ function leave(box: Box, layer: HTMLElement) {
  * Anima a lista quando os itens mudam (filtro, página nova, vagas novas no topo), com a técnica FLIP: quem continua
  * desliza da posição antiga para a nova, quem entra cresce no lugar (um depois do outro) e quem sai encolhe e some.
  * `keys` são as chaves dos itens, na ordem; na lista (`list`), os itens são os filhos diretos com `data-flip-key`, e
- * `ghosts` é uma camada vazia (`absolute inset-0`) dentro dela, que recebe os que saem enquanto somem. Com
- * `enterOnMount`, os itens visíveis também entram em cascata quando a lista aparece (inclusive no lugar do esqueleto).
+ * `ghosts` é uma camada vazia (`absolute inset-0`) dentro dela, que recebe os que saem enquanto somem. Quando a lista
+ * aparece (inclusive no lugar do esqueleto), os itens visíveis entram em cascata.
  */
-export function useFlipList(keys: string[], { enterOnMount = true } = {}) {
+export function useFlipList(keys: string[]) {
 	const list = useRef<HTMLDivElement>(null)
 	const ghosts = useRef<HTMLDivElement>(null)
 	/** As chaves que estão na tela e o elemento da lista em que estão (sem ele, a lista ainda não apareceu). */
@@ -115,7 +115,6 @@ export function useFlipList(keys: string[], { enterOnMount = true } = {}) {
 		const boxes = measure(element)
 
 		if (mounting) {
-			if (!enterOnMount) return
 			let index = 0
 			for (const box of boxes.values()) if (box.visible) enter(box.node, index++)
 			return

@@ -350,18 +350,6 @@
 	background: linear-gradient(currentColor, currentColor) no-repeat 0 55% / 100% 1.5px;
 }
 
-/*
- * O card da vaga que vira o detalhe (`lib/job-morph.ts`): a caixa e o cargo com o mesmo nome na tela de antes e na de
- * depois são animados um no outro pela View Transitions API.
- */
-@utility vt-job-card {
-	view-transition-name: job-card;
-}
-
-@utility vt-job-title {
-	view-transition-name: job-title;
-}
-
 /* Repete o `gap` do pai: o conteúdo do botão, embrulhado para animar, fica com o mesmo espaço entre ícone e texto */
 @utility gap-inherit {
 	gap: inherit;
@@ -545,28 +533,5 @@
 	/* Sem isso, um grupo de opções não encolhe abaixo da largura do conteúdo (os filtros num painel estreito) */
 	fieldset {
 		min-width: 0;
-	}
-
-	/*
-	 * O card da vaga virando o detalhe: a caixa cresce cortando o conteúdo (que fica preso no topo, sem esticar) e o
-	 * cargo voa junto, na curva do marcador que desliza. O resto da tela troca num esmaecer (o padrão do navegador). Com
-	 * o movimento reduzido, a transição nem começa (`canMorph`).
-	 */
-	::view-transition-group(job-card),
-	::view-transition-group(job-title) {
-		animation-duration: 450ms;
-		animation-timing-function: var(--ease-glide);
-	}
-
-	::view-transition-group(job-card) {
-		overflow: clip;
-		border-radius: var(--radius-lg);
-	}
-
-	::view-transition-old(job-card),
-	::view-transition-new(job-card) {
-		height: 100%;
-		object-fit: cover;
-		object-position: top;
 	}
 }

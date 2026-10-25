@@ -8,7 +8,6 @@ import { ButtonLink } from '../components/ui/Button'
 import { card } from '../components/ui/Card'
 import { EmptyState } from '../components/ui/EmptyState'
 import { Page } from '../components/ui/Page'
-import { prepareMorphBack } from '../lib/job-morph'
 import { jobsStore } from '../stores/jobs'
 
 /**
@@ -19,8 +18,7 @@ export function JobPage({ job, error }: { job?: WebJob; error?: string }) {
 	let content: ReactNode
 	if (job) {
 		content = (
-			// O card da vaga na lista cresce até esta caixa, e "voltar" a encolhe até ele (`lib/job-morph.ts`)
-			<article data-vt="card" className={card({ size: 'lg', className: 'vt-job-card' })}>
+			<article className={card({ size: 'lg' })}>
 				<JobDetail job={job} />
 			</article>
 		)
@@ -46,14 +44,14 @@ export function JobPage({ job, error }: { job?: WebJob; error?: string }) {
 
 	return (
 		<Page width="narrow">
-			<BackToList postId={job?.postId} />
+			<BackToList />
 			{content}
 		</Page>
 	)
 }
 
 /** Volta para a tela anterior do site (com a rolagem); aberta direto por um link, vai para a lista. */
-function BackToList({ postId }: { postId?: string }) {
+function BackToList() {
 	const router = useRouter()
 	const canGoBack = useCanGoBack()
 
@@ -67,7 +65,6 @@ function BackToList({ postId }: { postId?: string }) {
 			onClick={event => {
 				if (!canGoBack) return
 				event.preventDefault()
-				if (postId) prepareMorphBack(postId)
 				router.history.back()
 			}}
 		>

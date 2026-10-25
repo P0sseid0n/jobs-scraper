@@ -1,5 +1,5 @@
 import { useNavigate } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 
 import { applicationMessage, formatApplicationMessage } from '@shared/templates'
 
@@ -7,6 +7,7 @@ import type { WebJob } from '../../api-types'
 import { api, RequestError } from '../api'
 import { cx } from '../lib/cx'
 import { jobDate, jobSubtitle, languageLabel, listingPageText, safeLink, timeAgo } from '../lib/format'
+import { revealJobDetail } from '../lib/job-opening'
 import { useCvFor, useGeneratedMessage } from '../stores/cv'
 import { removeJob, replaceJob } from '../stores/jobs'
 import { copyText, notify } from '../stores/toast'
@@ -49,6 +50,7 @@ export function JobDetail({ job }: { job: WebJob }) {
 
 function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job: WebJob) => void }) {
 	const navigate = useNavigate()
+	const root = useRef<HTMLDivElement>(null)
 	const [expanded, setExpanded] = useState(false)
 	const [reporting, setReporting] = useState(false)
 
@@ -72,6 +74,11 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 	const contentNoun = fromList ? 'texto' : 'post'
 	const isLong = content.length > LONG_POST_CHARS
 
+	// Aberta pelo card da lista, os blocos entram um depois do outro (a chave remonta este componente a cada vaga)
+	useLayoutEffect(() => {
+		if (root.current) revealJobDetail(root.current)
+	}, [])
+
 	async function toggleRawJson() {
 		if (rawJson !== null) {
 			setRawJson(null)
@@ -89,7 +96,7 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 	}
 
 	return (
-		<div className="flex flex-col gap-5.5">
+		<div ref={root} className="flex flex-col gap-5.5">
 			<header className="flex flex-col gap-2.5">
 				<div className="flex items-center justify-between gap-3">
 					<div className="flex flex-wrap items-center gap-1.5">
@@ -116,10 +123,7 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 						</IconButton>
 					</div>
 				</div>
-				{/* O cargo do card clicado na lista voa até aqui (`lib/job-morph.ts`) */}
-				<h2 data-vt="title" className="vt-job-title self-start text-2xl leading-tight font-bold">
-					{job.title}
-				</h2>
+				<h2 className="text-2xl leading-tight font-bold">{job.title}</h2>
 				{jobSubtitle(job) && <p className="text-muted">{jobSubtitle(job)}</p>}
 				{job.author && (job.company || job.location) && <p className="font-mono text-muted text-xs">postado por {job.author}</p>}
 			</header>
