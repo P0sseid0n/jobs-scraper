@@ -19,6 +19,7 @@ import { loadCredentials, readSettings } from '@shared/settings'
 import { requestApplicationMessage } from './application-message'
 import { checkBaseResume, loadBaseResume, MissingBaseResumeError, validateBaseTex, type BaseResume } from './base-resume'
 import { cvUpdaterEnv } from './config'
+import { cvChanges } from './cv-changes'
 import { compileLatex, LatexCompileError } from './latex-compiler'
 import { chooseProjects } from './projects/choose-projects'
 import { GithubRepositories } from './projects/github-repositories'
@@ -57,7 +58,7 @@ async function generateCv(request: CvRequest) {
 	const job = await findTargetJob(request.postId)
 	if (!job) {
 		log.warn('Vaga não encontrada no banco')
-		await reply({ jobTitle: null, file: null, error: 'Não encontrei essa vaga no banco de dados.', message: null })
+		await reply({ jobTitle: null, file: null, error: 'Não encontrei essa vaga no banco de dados.', message: null, changes: null })
 		return
 	}
 
@@ -68,7 +69,7 @@ async function generateCv(request: CvRequest) {
 		if (!(error instanceof MissingBaseResumeError)) throw error
 
 		log.warn('Currículo pedido sem currículo base configurado')
-		await reply({ jobTitle: job.title, file: null, error: error.message, message: null })
+		await reply({ jobTitle: job.title, file: null, error: error.message, message: null, changes: null })
 		return
 	}
 
@@ -92,9 +93,9 @@ async function generateCv(request: CvRequest) {
 		log,
 	)
 
-	let pdf: Buffer
+	let rendered: Awaited<ReturnType<typeof renderOnePagePdf>>
 	try {
-		pdf = await renderOnePagePdf(base, cv, compileOptions, log)
+		rendered = await renderOnePagePdf(base, cv, compileOptions, log)
 	} catch (error) {
 		if (!(error instanceof LatexCompileError)) throw error
 
@@ -104,10 +105,12 @@ async function generateCv(request: CvRequest) {
 			file: null,
 			error: 'O LaTeX do currículo não compilou. Veja os logs do cv-updater.',
 			message: null,
+			changes: null,
 		})
 		return
 	}
 
+	const { pdf, resume } = rendered
 	const name = pdfFileName(job)
 	await savePdf(name, pdf)
 
@@ -122,7 +125,13 @@ async function generateCv(request: CvRequest) {
 			)
 		: null
 
-	await reply({ jobTitle: job.title, file: { name, base64: pdf.toString('base64') }, error: null, message })
+	await reply({
+		jobTitle: job.title,
+		file: { name, base64: pdf.toString('base64') },
+		error: null,
+		message,
+		changes: cvChanges(base.model, resume, report),
+	})
 
 	log.info(
 		{

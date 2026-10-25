@@ -23,6 +23,19 @@ export type CvRequest = z.infer<typeof CvRequestSchema>
 export const ApplicationMessageSchema = z.object({ subject: z.string().min(1), body: z.string().min(1) })
 export type ApplicationMessage = z.infer<typeof ApplicationMessageSchema>
 
+/** O que o currículo da vaga mudou em relação ao currículo base (o site mostra o ajuste). */
+export const CvChangesSchema = z.object({
+	/** Tecnologias da vaga que entraram no currículo. */
+	addedSkills: z.array(z.string()),
+	/** Habilidades do currículo base que saíram por não terem relação com a vaga. */
+	removedSkills: z.array(z.string()),
+	/** A apresentação reescrita para a vaga; `null` quando ficou a do currículo base. */
+	summary: z.object({ before: z.string(), after: z.string() }).nullable(),
+	/** Os projetos que ficaram no PDF, na ordem em que aparecem. */
+	projects: z.array(z.string()),
+})
+export type CvChanges = z.infer<typeof CvChangesSchema>
+
 /** Mensagem da fila indicada em `replyTo.queue`: currículo gerado (ou o motivo da falha), com o contexto do pedido. */
 export const CvResultSchema = z.object({
 	postId: z.string().min(1),
@@ -35,6 +48,8 @@ export const CvResultSchema = z.object({
 	 * `null` nos outros casos (os canais mostram o modelo padrão). O padrão aceita resultados de antes do campo.
 	 */
 	message: ApplicationMessageSchema.nullable().default(null),
+	/** O ajuste feito para a vaga, com o currículo gerado; `null` na falha. O padrão aceita resultados de antes do campo. */
+	changes: CvChangesSchema.nullable().default(null),
 })
 
 export type CvResult = z.infer<typeof CvResultSchema>

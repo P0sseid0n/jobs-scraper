@@ -7,6 +7,7 @@ import type {
 	ContractType,
 	CredentialGroup,
 	CredentialsStatus,
+	CvChanges,
 	CvForm,
 	PostProcessingSettings,
 	ProcessedJob,
@@ -66,6 +67,8 @@ export type WebCvRequest = {
 	error: string | null
 	/** E-mail de candidatura gerado pela IA para a vaga (só com e-mail de contato e resposta válida da IA). */
 	message: ApplicationMessage | null
+	/** O que o currículo mudou para a vaga (só nos prontos; pedidos de antes do campo não o têm). */
+	changes: CvChanges | null
 	requestedAt: string
 	finishedAt: string | null
 }
