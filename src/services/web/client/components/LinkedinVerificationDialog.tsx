@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 
 import type { LinkedinLoginState } from '../../api-types'
 import { api } from '../api'
+import { cx } from '../lib/cx'
 import {
 	dismissLinkedinVerification,
 	refreshLinkedinVerification,
@@ -10,7 +11,7 @@ import {
 	watchLinkedinVerification,
 } from '../stores/linkedin-verification'
 import { notify } from '../stores/toast'
-import { Icon } from './Icon'
+import { DrawnCheck, Icon } from './Icon'
 import { Button } from './ui/Button'
 import { DIALOG } from './ui/Dialog'
 import { FieldHelp, FieldLabel } from './ui/Field'
@@ -74,12 +75,15 @@ function VerificationDialog({ login }: { login: LinkedinLoginState }) {
 				{login.challenge === 'qr' && login.qrSvg && <QrCode svg={login.qrSvg} />}
 
 				{remaining !== null && (
-					<p className="flex items-center gap-2 font-mono text-xs text-muted" role="timer">
-						<Icon name="spinner" size={14} />
-						{remaining > 0
-							? `esperando a confirmação · faltam ${formatClock(remaining)}`
-							: 'o tempo acabou: o LinkedIn não confirmou o acesso'}
-					</p>
+					<div className="flex flex-col gap-2">
+						<p className="flex items-center gap-2 font-mono text-xs text-muted" role="timer">
+							<Icon name="spinner" size={14} />
+							{remaining > 0
+								? `esperando a confirmação · faltam ${formatClock(remaining)}`
+								: 'o tempo acabou: o LinkedIn não confirmou o acesso'}
+						</p>
+						<TimeBar remaining={remaining} />
+					</div>
 				)}
 			</div>
 		</dialog>
@@ -117,18 +121,45 @@ function AppApproval() {
 	)
 }
 
-/** Código que o LinkedIn mandou por e-mail, SMS ou app autenticador. */
+/** O tempo que sobra para confirmar, numa barra que esvazia (e fica laranja no último quinto). */
+function TimeBar({ remaining }: { remaining: number }) {
+	// O prazo todo é o que faltava quando a modal abriu: o scraper não diz quando a verificação começou
+	const [total] = useState(remaining)
+	const fraction = total > 0 ? remaining / total : 0
+
+	return (
+		<div className="h-1 overflow-hidden rounded-pill bg-line" aria-hidden="true">
+			<div
+				className={cx(
+					'h-full rounded-pill transition-all duration-1000 ease-linear motion-reduce:transition-none',
+					fraction > 0.2 ? 'bg-lime-accent' : 'bg-warn',
+				)}
+				style={{ width: `${fraction * 100}%` }}
+			/>
+		</div>
+	)
+}
+
+/**
+ * Código que o LinkedIn mandou por e-mail, SMS ou app autenticador. O código que não deu para enviar faz o campo
+ * tremer; o enviado ganha um check.
+ */
 function CodeForm({ message }: { message: string | null }) {
 	const [code, setCode] = useState('')
 	const [sending, setSending] = useState(false)
+	const [shaking, setShaking] = useState(false)
+	const [sent, setSent] = useState(false)
 
 	async function send(event: FormEvent) {
 		event.preventDefault()
 		setSending(true)
+		setSent(false)
 		try {
 			await api.sendVerificationCode(code.trim())
 			setCode('')
+			setSent(true)
 		} catch (error) {
+			setShaking(true)
 			notify(`Não consegui enviar o código: ${(error as Error).message}`, 'error')
 		} finally {
 			setSending(false)
@@ -141,7 +172,8 @@ function CodeForm({ message }: { message: string | null }) {
 			<div className="flex flex-wrap items-center gap-2.5">
 				<Input
 					id="linkedin-code"
-					className="max-w-48 font-mono tracking-widest"
+					className={cx('max-w-48 font-mono tracking-widest', shaking && 'animate-shake motion-reduce:animate-none')}
+					onAnimationEnd={() => setShaking(false)}
 					inputMode="numeric"
 					autoComplete="one-time-code"
 
@@ -152,6 +184,12 @@ function CodeForm({ message }: { message: string | null }) {
 				<Button variant="lime" type="submit" disabled={code.length < 4 || sending}>
 					{sending ? 'enviando…' : 'enviar código'}
 				</Button>
+				{sent && !code && (
+					<span className="flex items-center gap-1.5 text-sm text-ok animate-pop-in motion-reduce:animate-none" role="status">
+						<DrawnCheck />
+						enviado
+					</span>
+				)}
 			</div>
 			{message && <FieldHelp>{message}</FieldHelp>}
 		</form>

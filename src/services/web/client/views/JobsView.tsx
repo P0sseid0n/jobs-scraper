@@ -5,6 +5,7 @@ import { isJobRouteId } from '../../job-route-id'
 import type { JobFilters } from '../api'
 import { Icon } from '../components/Icon'
 import { JobCard, JobCardSkeleton } from '../components/JobCard'
+import { JobDetailSkeleton } from '../components/JobDetail'
 import { Badge } from '../components/ui/Badge'
 import { Button, ButtonLink } from '../components/ui/Button'
 import { card } from '../components/ui/Card'
@@ -15,12 +16,15 @@ import { Hero, Page } from '../components/ui/Page'
 import { Pill, PILL_COUNT, PillGroup } from '../components/ui/Pill'
 import { PRESS } from '../components/ui/press'
 import { SelectMenu } from '../components/ui/SelectMenu'
+import { Skeleton } from '../components/ui/Skeleton'
 import { StatusDot } from '../components/ui/StatusDot'
 import { FIELDSET, LABEL } from '../components/ui/text'
 import { TextLink } from '../components/ui/TextLink'
 import { cx } from '../lib/cx'
+import { useFlipList } from '../lib/flip-list'
 import { CONTRACT_TYPES, LANGUAGE_NAMES, WORK_MODES } from '../lib/format'
 import { hasActiveFilters } from '../lib/job-filters'
+import { isMorphingBack } from '../lib/job-morph'
 import { useWideLayout } from '../lib/media'
 import { useStore } from '../lib/store'
 import { useTrayRequests } from '../stores/cv'
@@ -53,10 +57,12 @@ export function DetailPanel({ children }: { children: ReactNode }) {
 
 	return (
 		<aside
+			// A vaga clicada na lista cresce até este painel (`lib/job-morph.ts`)
+			data-vt="card"
 			className={card({
 				size: 'lg',
 				className: cx(
-					'sticky top-19 max-h-below-topbar grow-999 overflow-y-auto transition-all duration-300 ease-out motion-reduce:transition-none',
+					'vt-job-card sticky top-19 max-h-below-topbar grow-999 overflow-y-auto transition-all duration-300 ease-out motion-reduce:transition-none',
 					wider ? 'max-w-190 basis-130' : 'max-w-115 basis-100',
 				),
 			})}
@@ -345,15 +351,21 @@ function Filters({ open }: { open: boolean }) {
 	)
 }
 
+const SKELETONS = [0, 1, 2, 3, 4].map(index => <JobCardSkeleton key={index} index={index} />)
+
 function JobList({ selectedId, keepScroll }: { selectedId: string | null; keepScroll: boolean }) {
 	const { jobs, status, error, nextCursor, loadingMore } = useJobs()
 	const { filters, clearFilters } = useFilters()
+	// Os cards deslizam para o lugar novo ao mudar a lista; voltando da página de uma vaga (celular) com a transição do
+	// card, não entram em cascata
+	const { list, ghosts } = useFlipList(
+		jobs.map(job => job.postId),
+		{ enterOnMount: !isMorphingBack() },
+	)
 
 	// A primeira página vem pelo loader da rota (com o pendingComponent); aqui é a recarga ao mudar um filtro. Com vagas na
 	// tela, elas ficam (esmaecidas pela seção) até a nova lista chegar, sem piscar a cada letra da busca
-	if (status === 'loading' && jobs.length === 0) {
-		return [1, 2, 3, 4, 5].map(key => <JobCardSkeleton key={key} />)
-	}
+	if (status === 'loading' && jobs.length === 0) return SKELETONS
 
 	if (status === 'error') {
 		return (
@@ -396,9 +408,13 @@ function JobList({ selectedId, keepScroll }: { selectedId: string | null; keepSc
 
 	return (
 		<>
-			{jobs.map(job => (
-				<JobCard key={job.postId} job={job} selected={selectedId === job.postId} keepScroll={keepScroll} />
-			))}
+			<div ref={list} className="relative flex flex-col gap-2.5">
+				{/* Os cards que saíram da lista somem aqui, por cima do lugar onde estavam (`useFlipList`) */}
+				<div ref={ghosts} className="pointer-events-none absolute inset-0" aria-hidden="true" />
+				{jobs.map(job => (
+					<JobCard key={job.postId} job={job} selected={selectedId === job.postId} keepScroll={keepScroll} />
+				))}
+			</div>
 			{nextCursor ? (
 				<div ref={error ? undefined : observeEnd} className="flex flex-col items-center gap-2 py-2">
 					{error && (
@@ -414,6 +430,57 @@ function JobList({ selectedId, keepScroll }: { selectedId: string | null; keepSc
 				<p className="font-mono text-muted py-2 text-center text-xs">fim da lista</p>
 			)}
 		</>
+	)
+}
+
+const HERO_TITLE = (
+	<>
+		vagas <Hero.Mono>coletadas.</Hero.Mono>
+	</>
+)
+const HERO_LEAD = 'Posts do LinkedIn lidos pela IA. Abra o post, copie o contato ou gere o currículo.'
+
+/**
+ * A tela das vagas na primeira carga (o `pendingComponent` da rota), no formato dela: os filtros (se abertos), os cards
+ * e, no desktop, o detalhe ao lado.
+ */
+export function JobsPending() {
+	const wide = useWideLayout()
+	const showFilters = useStore(filtersOpen)
+
+	return (
+		<Page>
+			<Hero title={HERO_TITLE} lead={HERO_LEAD} />
+			<div className="flex flex-wrap items-start gap-6 max-md:flex-col max-md:items-stretch max-md:gap-3.5">
+				{showFilters && (
+					<div className="flex w-66 shrink-0 flex-col gap-5.5 max-md:hidden" aria-hidden="true">
+						<Skeleton className="h-10 rounded-pill bg-surface-2" />
+						{[4, 3, 6].map(count => (
+							<div key={count} className="flex flex-col gap-2.5">
+								<Skeleton className="h-3 w-20 rounded-xs bg-surface-2" />
+								<div className="flex flex-wrap gap-1.5">
+									{Array.from({ length: count }, (_, index) => (
+										<Skeleton key={index} className={cx('h-8 rounded-pill bg-surface-2', index % 2 ? 'w-14' : 'w-18')} />
+									))}
+								</div>
+							</div>
+						))}
+					</div>
+				)}
+				<section
+					className={cx('flex min-w-0 grow-999 flex-col gap-2.5 max-md:basis-auto', showFilters ? 'basis-110' : 'basis-100')}
+					aria-label="Lista de vagas"
+					aria-busy="true"
+				>
+					{SKELETONS}
+				</section>
+				{wide && (
+					<DetailPanel>
+						<JobDetailSkeleton />
+					</DetailPanel>
+				)}
+			</div>
+		</Page>
 	)
 }
 
@@ -440,12 +507,8 @@ export function JobsView({ selectedRouteId, detail }: { selectedRouteId: string 
 	return (
 		<Page>
 			<Hero
-				title={
-					<>
-						vagas <Hero.Mono>coletadas.</Hero.Mono>
-					</>
-				}
-				lead="Posts do LinkedIn lidos pela IA. Abra o post, copie o contato ou gere o currículo."
+				title={HERO_TITLE}
+				lead={HERO_LEAD}
 				aside={
 					<span className="font-mono text-muted text-sm">
 						{facets ? facets.total.toLocaleString('pt-BR') : '–'} no histórico

@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router'
 import type { WebJob } from '../../api-types'
 import { cx } from '../lib/cx'
 import { jobDate, jobSubtitle, safeLink, timeAgo } from '../lib/format'
+import { canMorph, isMorphTarget, prepareJobMorph } from '../lib/job-morph'
 import { jobParams } from '../router'
 import { filtersOpen } from '../stores/filters-panel'
 import { setViewed, useViewed } from '../stores/viewed'
@@ -37,10 +38,20 @@ export function JobCard({
 	const viewed = useViewed(job)
 	const skills = job.necessaryKnowledge ?? []
 	const hidden = skills.length - VISIBLE_SKILLS
+	// Voltando da página desta vaga (celular), o detalhe vira este card
+	const morphTarget = isMorphTarget(job.postId)
 
 	return (
 		<article
-			className={cx(JOB_CARD, DOT_GUTTER, 'group/card relative', selected ? 'inverted border-inv-bg' : 'hover:border-line-strong')}
+			data-flip-key={job.postId}
+			data-vt="card"
+			className={cx(
+				JOB_CARD,
+				DOT_GUTTER,
+				'group/card relative',
+				selected ? 'inverted border-inv-bg' : 'hover:border-line-strong',
+				morphTarget && 'vt-job-card',
+			)}
 			aria-current={selected ? 'true' : undefined}
 		>
 			<ViewedDot job={job} viewed={viewed} />
@@ -54,14 +65,23 @@ export function JobCard({
 					// Os filtros da lista continuam na URL
 					search
 					resetScroll={!keepScroll}
-					// Escolhida a vaga, os filtros saem do caminho (a vaga ganha o espaço deles)
-					onClick={() => filtersOpen.set(false)}
+					// O card cresce até virar o detalhe (painel ao lado ou página da vaga)
+					viewTransition={!selected && canMorph()}
+					onClick={event => {
+						// Escolhida a vaga, os filtros saem do caminho (a vaga ganha o espaço deles)
+						filtersOpen.set(false)
+						const plainClick = event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey
+						const card = event.currentTarget.closest('article')
+						if (!selected && plainClick && card) prepareJobMorph(card)
+					}}
 				>
 					{/* Já vista: o cargo perde o contraste; não vista: a bolinha (fora do link, na margem do card) */}
 					<span
+						data-vt="title"
 						className={cx(
 							'text-base leading-snug font-semibold wrap-break-word group-hover:underline group-hover:underline-offset-3',
 							viewed && 'text-muted',
+							morphTarget && 'vt-job-title',
 						)}
 					>
 						{!viewed && <span className="sr-only">não vista:</span>}
@@ -155,16 +175,39 @@ function ViewedDot({ job, viewed }: { job: WebJob; viewed: boolean }) {
 	)
 }
 
-export function JobCardSkeleton() {
+/** Larguras do cargo, da empresa e das tecnologias, diferentes de um esqueleto para o outro como numa lista de verdade. */
+const SKELETON_SHAPES = [
+	{ title: 'w-2/3', subtitle: 'w-2/5', skills: ['w-14', 'w-18', 'w-12'] },
+	{ title: 'w-1/2', subtitle: 'w-1/3', skills: ['w-16', 'w-12', 'w-20', 'w-14'] },
+	{ title: 'w-3/4', subtitle: 'w-1/2', skills: ['w-12', 'w-16'] },
+	{ title: 'w-3/5', subtitle: 'w-1/4', skills: ['w-18', 'w-14', 'w-12'] },
+]
+
+/** O card carregando, no formato do `JobCard`: cargo e empresa, selos e data, tecnologias e o canal da candidatura. */
+export function JobCardSkeleton({ index = 0 }: { index?: number }) {
+	const shape = SKELETON_SHAPES[index % SKELETON_SHAPES.length]!
+
 	return (
 		<div className={cx(JOB_CARD, DOT_GUTTER)} aria-hidden="true">
-			<Skeleton className="h-3.5 w-2/3 rounded-xs bg-surface-2" />
-			<Skeleton className="h-2.5 w-2/5 rounded-xs bg-surface-2" />
+			<div className="flex items-start gap-3 max-md:flex-col max-md:gap-2">
+				<div className="flex min-w-0 flex-1 flex-col gap-2 pt-1">
+					<Skeleton className={cx('h-4 rounded-xs bg-surface-2', shape.title)} />
+					<Skeleton className={cx('h-3 rounded-xs bg-surface-2', shape.subtitle)} />
+				</div>
+				<div className="flex shrink-0 flex-col items-end gap-2 max-md:flex-row max-md:items-center">
+					<div className="flex gap-1.5">
+						<Skeleton className="h-6 w-16 rounded-pill bg-surface-2" />
+						<Skeleton className="h-6 w-12 rounded-pill bg-surface-2" />
+					</div>
+					<Skeleton className="h-3 w-12 rounded-xs bg-surface-2" />
+				</div>
+			</div>
 			<div className="flex gap-1.5">
-				{[1, 2, 3].map(key => (
-					<Skeleton key={key} className="h-5 w-16 rounded-pill bg-surface-2" />
+				{shape.skills.map((width, key) => (
+					<Skeleton key={key} className={cx('h-6 rounded-pill bg-surface-2', width)} />
 				))}
 			</div>
+			<Skeleton className="h-3 w-40 rounded-xs bg-surface-2" />
 		</div>
 	)
 }

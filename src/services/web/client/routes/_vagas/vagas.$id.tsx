@@ -3,10 +3,9 @@ import { useEffect } from 'react'
 
 import { isJobRouteId } from '../../../job-route-id'
 import { api } from '../../api'
-import { JobDetail } from '../../components/JobDetail'
+import { JobDetail, JobDetailSkeleton } from '../../components/JobDetail'
 import { ButtonLink } from '../../components/ui/Button'
 import { EmptyState } from '../../components/ui/EmptyState'
-import { Skeleton } from '../../components/ui/Skeleton'
 import { useWideLayout } from '../../lib/media'
 import { jobsStore, useJobs } from '../../stores/jobs'
 import { markViewed } from '../../stores/viewed'
@@ -50,7 +49,7 @@ function JobPending() {
 	if (!wide) return <JobPage />
 	return (
 		<DetailPanel>
-			<Skeleton className="min-h-60" aria-busy="true" />
+			<JobDetailSkeleton />
 		</DetailPanel>
 	)
 }

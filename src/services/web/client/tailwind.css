@@ -262,11 +262,104 @@
 			transform: translateX(-56px);
 		}
 	}
+
+	/* O brilho que atravessa os esqueletos (`shimmer`, abaixo) */
+	--animate-shimmer: shimmer 1600ms ease-in-out infinite;
+	/*
+	 * O currículo ajustado para a vaga: a habilidade que saiu ganha um risco da esquerda para a direita
+	 * (`strike-through`, abaixo) e o cursor da apresentação sendo escrita pisca.
+	 */
+	--animate-strike-in: strike-in 500ms var(--ease-glide) both;
+	--animate-caret: caret 1s steps(1) infinite;
+	/* Login do LinkedIn: o código recusado treme; o check do sucesso é desenhado (no `<path pathLength="1">`) */
+	--animate-shake: shake 420ms ease-in-out;
+	--animate-draw: draw 600ms var(--ease-glide) both;
+
+	@keyframes shimmer {
+		from {
+			translate: -100% 0;
+		}
+		to {
+			translate: 100% 0;
+		}
+	}
+
+	@keyframes strike-in {
+		from {
+			background-size: 0% 1.5px;
+		}
+	}
+
+	@keyframes caret {
+		50% {
+			opacity: 0;
+		}
+	}
+
+	@keyframes shake {
+		20%,
+		60% {
+			translate: -6px 0;
+		}
+		40%,
+		80% {
+			translate: 6px 0;
+		}
+	}
+
+	@keyframes draw {
+		from {
+			stroke-dasharray: 1;
+			stroke-dashoffset: 1;
+		}
+		to {
+			stroke-dasharray: 1;
+			stroke-dashoffset: 0;
+		}
+	}
 }
 
 /* Atraso da animação em degraus de 90 ms, para os blocos chegarem um depois do outro: `stagger-2` espera 180 ms */
 @utility stagger-* {
 	animation-delay: calc(--value(integer) * 90ms);
+}
+
+/* Brilho que atravessa o esqueleto (o `Skeleton`): um `::after` com o degradê, que some com o movimento reduzido */
+@utility shimmer {
+	position: relative;
+	overflow: hidden;
+
+	&::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		translate: -100% 0;
+		background: linear-gradient(90deg, transparent, var(--shimmer), transparent);
+		animation: var(--animate-shimmer);
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		&::after {
+			display: none;
+		}
+	}
+}
+
+/* Risco na cor do texto, que pode crescer da esquerda para a direita com o `animate-strike-in` */
+@utility strike-through {
+	background: linear-gradient(currentColor, currentColor) no-repeat 0 55% / 100% 1.5px;
+}
+
+/*
+ * O card da vaga que vira o detalhe (`lib/job-morph.ts`): a caixa e o cargo com o mesmo nome na tela de antes e na de
+ * depois são animados um no outro pela View Transitions API.
+ */
+@utility vt-job-card {
+	view-transition-name: job-card;
+}
+
+@utility vt-job-title {
+	view-transition-name: job-title;
 }
 
 /* Repete o `gap` do pai: o conteúdo do botão, embrulhado para animar, fica com o mesmo espaço entre ícone e texto */
@@ -373,6 +466,7 @@
 	--color-check-low: var(--color-inv-check-low);
 	--color-check-high: var(--color-inv-check-high);
 	--placeholder-mix: 85%;
+	--shimmer: rgb(255 255 255 / 0.07);
 	/* O lime escuro do tema claro sumiria no fundo escuro */
 	--color-focus: var(--color-lime);
 }
@@ -383,6 +477,8 @@
 		--elevation: 0 18px 40px rgb(20 22 19 / 0.18);
 		/* Quanto do `muted` vai no placeholder: no fundo escuro a mistura com o transparente escurece demais */
 		--placeholder-mix: 60%;
+		/* O brilho que passa pelos esqueletos: no escuro, bem mais fraco */
+		--shimmer: rgb(255 255 255 / 0.6);
 
 		color-scheme: light;
 		/* Reserva o espaço da barra de rolagem: sem isso, ao trocar de uma tela longa para uma curta, o conteúdo centralizado pula */
@@ -412,6 +508,7 @@
 				--color-code-bg: rgb(0 0 0 / 0.35);
 				--elevation: 0 18px 40px rgb(0 0 0 / 0.5);
 				--placeholder-mix: 85%;
+				--shimmer: rgb(255 255 255 / 0.05);
 
 				color-scheme: dark;
 			}
@@ -448,5 +545,28 @@
 	/* Sem isso, um grupo de opções não encolhe abaixo da largura do conteúdo (os filtros num painel estreito) */
 	fieldset {
 		min-width: 0;
+	}
+
+	/*
+	 * O card da vaga virando o detalhe: a caixa cresce cortando o conteúdo (que fica preso no topo, sem esticar) e o
+	 * cargo voa junto, na curva do marcador que desliza. O resto da tela troca num esmaecer (o padrão do navegador). Com
+	 * o movimento reduzido, a transição nem começa (`canMorph`).
+	 */
+	::view-transition-group(job-card),
+	::view-transition-group(job-title) {
+		animation-duration: 450ms;
+		animation-timing-function: var(--ease-glide);
+	}
+
+	::view-transition-group(job-card) {
+		overflow: clip;
+		border-radius: var(--radius-lg);
+	}
+
+	::view-transition-old(job-card),
+	::view-transition-new(job-card) {
+		height: 100%;
+		object-fit: cover;
+		object-position: top;
 	}
 }

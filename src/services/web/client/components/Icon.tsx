@@ -48,3 +48,23 @@ export function Icon({ name, size = 16, className }: { name: IconName; size?: nu
 		</svg>
 	)
 }
+
+/** O check desenhado na hora, do começo ao fim do traço (um sucesso que acabou de acontecer). */
+export function DrawnCheck({ size = 16, className }: { size?: number; className?: string }) {
+	return (
+		<svg
+			className={cx('shrink-0', className)}
+			width={size}
+			height={size}
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			strokeWidth="2.4"
+			strokeLinecap="round"
+			strokeLinejoin="round"
+			aria-hidden="true"
+		>
+			<path d={PATHS.check} pathLength={1} className="animate-draw motion-reduce:animate-none" />
+		</svg>
+	)
+}

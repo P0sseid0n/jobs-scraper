@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { applicationMessage, formatApplicationMessage } from '@shared/templates'
 
 import type { WebJob } from '../../api-types'
-import { api, cvPdfUrl, RequestError } from '../api'
+import { api, RequestError } from '../api'
 import { cx } from '../lib/cx'
 import { jobDate, jobSubtitle, languageLabel, listingPageText, safeLink, timeAgo } from '../lib/format'
 import { useCvFor, useGeneratedMessage } from '../stores/cv'
@@ -13,6 +13,7 @@ import { copyText, notify } from '../stores/toast'
 import { ContractTypeBadge } from './ContractTypeBadge'
 import { CorrectedBadge } from './CorrectedBadge'
 import { CvButton } from './CvButton'
+import { CvReady } from './CvReady'
 import { ExtractionChecksBadge, MissedChecks } from './ExtractionChecksBadge'
 import { Icon } from './Icon'
 import { ListingBadge } from './ListingBadge'
@@ -22,7 +23,7 @@ import { Button } from './ui/Button'
 import { CodeBlock } from './ui/CodeBlock'
 import { IconButton } from './ui/IconButton'
 import { Notice } from './ui/Notice'
-import { PdfIcon } from './ui/PdfIcon'
+import { Skeleton } from './ui/Skeleton'
 import { LABEL } from './ui/text'
 import { TextLink } from './ui/TextLink'
 import { WorkModeBadge } from './WorkModeBadge'
@@ -115,7 +116,10 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 						</IconButton>
 					</div>
 				</div>
-				<h2 className="text-2xl leading-tight font-bold">{job.title}</h2>
+				{/* O cargo do card clicado na lista voa até aqui (`lib/job-morph.ts`) */}
+				<h2 data-vt="title" className="vt-job-title self-start text-2xl leading-tight font-bold">
+					{job.title}
+				</h2>
 				{jobSubtitle(job) && <p className="text-muted">{jobSubtitle(job)}</p>}
 				{job.author && (job.company || job.location) && <p className="font-mono text-muted text-xs">postado por {job.author}</p>}
 			</header>
@@ -161,18 +165,7 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 				)}
 			</div>
 
-			{cv?.status === 'ready' && (
-				<div className="flex items-center gap-3 rounded-md bg-lime-soft p-3">
-					<PdfIcon>PDF</PdfIcon>
-					<div className="grow min-w-0">
-						<div className="font-semibold text-sm">currículo pronto</div>
-						<div className="font-mono text-muted text-xs block truncate">{cv.fileName}</div>
-					</div>
-					<TextLink className="text-sm" href={cvPdfUrl(cv.requestId)} external>
-						pré-visualizar
-					</TextLink>
-				</div>
-			)}
+			{cv?.status === 'ready' && <CvReady key={cv.requestId} cv={cv} />}
 			{cv?.status === 'failed' && (
 				<Notice tone="danger" className="text-sm">
 					O currículo falhou: {cv.error}
@@ -267,6 +260,40 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 					</CodeBlock>
 				)}
 			</footer>
+		</div>
+	)
+}
+
+/** O detalhe carregando, no formato do `JobDetail`: selos e data, cargo, empresa, tecnologias, botões e o post. */
+export function JobDetailSkeleton() {
+	return (
+		<div className="flex flex-col gap-5.5" aria-busy="true">
+			<div className="flex flex-col gap-2.5">
+				<div className="flex items-center justify-between gap-3">
+					<div className="flex gap-1.5">
+						<Skeleton className="h-6 w-18 rounded-pill bg-surface-2" />
+						<Skeleton className="h-6 w-12 rounded-pill bg-surface-2" />
+					</div>
+					<Skeleton className="h-4 w-28 rounded-xs bg-surface-2" />
+				</div>
+				<Skeleton className="h-7 w-4/5 rounded-xs bg-surface-2" />
+				<Skeleton className="h-4 w-1/2 rounded-xs bg-surface-2" />
+			</div>
+			<div className="flex flex-wrap gap-1.5">
+				{['w-16', 'w-20', 'w-12', 'w-18', 'w-14'].map(width => (
+					<Skeleton key={width} className={cx('h-6 rounded-pill bg-surface-2', width)} />
+				))}
+			</div>
+			<div className="flex flex-wrap gap-2">
+				<Skeleton className={cx('h-11.5 rounded-pill bg-surface-2', DETAIL_ACTION)} />
+				<Skeleton className={cx('h-11.5 rounded-pill bg-surface-2', DETAIL_ACTION)} />
+			</div>
+			<div className="flex flex-col gap-2.5">
+				<Skeleton className="h-3 w-24 rounded-xs bg-surface-2" />
+				{['w-full', 'w-11/12', 'w-full', 'w-5/6', 'w-2/3'].map((width, index) => (
+					<Skeleton key={index} className={cx('h-3.5 rounded-xs bg-surface-2', width)} />
+				))}
+			</div>
 		</div>
 	)
 }
