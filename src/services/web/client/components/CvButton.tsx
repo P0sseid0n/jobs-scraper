@@ -11,9 +11,8 @@ import { Icon } from './Icon'
 import { Button } from './ui/Button'
 
 /**
- * Ação de currículo da vaga, conforme o último pedido: gerar → gerando → baixar, ou tentar de novo se falhou. Gerando, o
- * botão encolhe até virar um círculo com o anel girando (a largura muda com mola, no `Button`) e, pronto, se abre de
- * volta em "baixar currículo", com uma comemoração discreta. O espaço do botão (`className`) fica o mesmo.
+ * Ação de currículo da vaga, conforme o último pedido: gerar → gerando (com o anel girando) → baixar, ou tentar de novo
+ * se falhou. A largura do botão é sempre a mesma; ficando pronto com a vaga na tela, vem uma comemoração discreta.
  */
 export function CvButton({ job, size = 'md', className }: { job: Pick<WebJob, 'postId'>; size?: 'md' | 'lg'; className?: string }) {
 	const [sending, setSending] = useState(false)
@@ -66,16 +65,16 @@ export function CvButton({ job, size = 'md', className }: { job: Pick<WebJob, 'p
 				<Button
 					variant="lime"
 					size={size}
-					// Um círculo do tamanho da altura do botão; desativado, mas sem apagar (é andamento, não bloqueio)
-					className={cx('px-0 disabled:opacity-100', size === 'lg' ? 'w-11.5' : 'w-9.5')}
+					// Desativado, mas sem apagar: é andamento, não bloqueio
+					className="w-full disabled:opacity-100"
 					disabled
-					aria-label="gerando o currículo"
 					title="gerando o currículo · até ~1 min"
 				>
 					<span
 						aria-hidden="true"
-						className="size-5 rounded-full border-2 border-lime-ink/20 border-t-lime-ink animate-spin motion-reduce:animate-none"
+						className="size-4 rounded-full border-2 border-lime-ink/20 border-t-lime-ink animate-spin motion-reduce:animate-none"
 					/>
+					gerando…
 				</Button>
 			)
 		}
@@ -89,7 +88,7 @@ export function CvButton({ job, size = 'md', className }: { job: Pick<WebJob, 'p
 	}
 
 	return (
-		<div ref={slot} className={cx('flex justify-center', className)} aria-live="polite">
+		<div ref={slot} className={cx('flex', className)} aria-live="polite">
 			{render()}
 		</div>
 	)
