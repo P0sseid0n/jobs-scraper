@@ -21,17 +21,27 @@ const LINK_LABEL =
 	/(candidate-se|candidatar-se|candidatura|inscreva-se|inscricoes|inscrições|aplique|apply( here| now)?|link( da vaga)?|acesse|saiba mais)\s*[:-]?\s*$/i
 
 /** Caracteres com que os autores forçam uma linha "em branco" no LinkedIn: o espaço braille e os de largura zero. */
-const INVISIBLE = /[⠀​-‍⁠﻿ㅤ]/g
+const INVISIBLE = /[\u2800\u200B-\u200D\u2060\uFEFF\u3164]/g
 
 /** Início de item numerado: "1️⃣", "🔟", "1." ou "2)". */
 const NUMBERED_ITEM = /^(\d\u{FE0F}?\u{20E3}|\u{1F51F}|\d{1,2}[.)]\s)/u
 
 /**
+ * Palavras de quem divulga vagas, no texto sem acentos. Sem nenhuma, os links são de outra coisa: um projeto com
+ * "🌐 Aplicação:", "📦 Backend:" e "📦 Frontend:" tinha o formato de uma lista de vagas. "Candidatos" fica de fora
+ * (posts sobre eleição).
+ */
+const HIRING_SIGNAL =
+	/\b(vagas?|contratando|contratamos|contrata-se|recrutando|oportunidades?|candidate-se|candidatar|candidatura|inscreva-se|inscricoes|hiring|jobs?|openings?|positions?|apply)\b/i
+
+/**
  * Reconhece posts de agregadores que listam várias vagas, cada uma com o próprio link
  * ("📄 Cargo" + "🔗 Candidate-se: https://lnkd.in/..."), em blocos ou uma por linha ("Cargo - https://...").
- * @returns As vagas (sem repetir link nem cargo), ou `null` se o post não seguir esse formato.
+ * @returns As vagas (sem repetir link nem cargo), ou `null` se o post não seguir esse formato ou não falar de vagas.
  */
 export function splitMultiJobPost(text: string): JobListing[] | null {
+	if (!HIRING_SIGNAL.test(text.replace(URL_PATTERN, ' ').normalize('NFKD').replace(/\p{Diacritic}/gu, ''))) return null
+
 	const lines = text.split('\n').map(line => (line.replace(INVISIBLE, '').trim() ? line.trim() : ''))
 	const listings: JobListing[] = []
 

@@ -135,6 +135,26 @@ Conheça a empresa: https://empresa.com`
 		expect(splitMultiJobPost(post)).toBeNull()
 	})
 
+	test('post de projeto com links no formato de lista, sem falar de vagas, não é dividido', () => {
+		const post = `Placar Live V2 — pronto para a final do campeonato
+Evoluí o projeto com gráficos, atualizações por WebSocket e cache com ETag.
+
+Tecnologias: Node.js • TypeScript • Next.js • React • PostgreSQL
+
+🌐 Aplicação:
+https://lnkd.in/app111
+
+📦 Backend:
+https://lnkd.in/back222
+
+📦 Frontend:
+https://lnkd.in/front333
+
+Feedbacks são bem-vindos! #NodeJS #React`
+
+		expect(splitMultiJobPost(post)).toBeNull()
+	})
+
 	test('vários links na mesma linha não são divididos', () => {
 		const post = `Links: https://a.com https://b.com
 Outros: https://c.com https://d.com
