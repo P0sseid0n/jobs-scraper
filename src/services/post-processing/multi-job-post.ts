@@ -20,17 +20,25 @@ const URL_PATTERN = /https?:\/\/[^\s<>"'()[\]]+/gi
 const LINK_LABEL =
 	/(candidate-se|candidatar-se|candidatura|inscreva-se|inscricoes|inscrições|aplique|apply( here| now)?|link( da vaga)?|acesse|saiba mais)\s*[:-]?\s*$/i
 
+/** Caracteres com que os autores forçam uma linha "em branco" no LinkedIn: o espaço braille e os de largura zero. */
+const INVISIBLE = /[⠀​-‍⁠﻿ㅤ]/g
+
+/** Início de item numerado: "1️⃣", "🔟", "1." ou "2)". */
+const NUMBERED_ITEM = /^(\d\u{FE0F}?\u{20E3}|\u{1F51F}|\d{1,2}[.)]\s)/u
+
 /**
  * Reconhece posts de agregadores que listam várias vagas, cada uma com o próprio link
  * ("📄 Cargo" + "🔗 Candidate-se: https://lnkd.in/..."), em blocos ou uma por linha ("Cargo - https://...").
  * @returns As vagas (sem repetir link nem cargo), ou `null` se o post não seguir esse formato.
  */
 export function splitMultiJobPost(text: string): JobListing[] | null {
-	const lines = text.split('\n').map(line => line.trim())
+	const lines = text.split('\n').map(line => (line.replace(INVISIBLE, '').trim() ? line.trim() : ''))
 	const listings: JobListing[] = []
 
 	// Linhas desde a última linha em branco ou o último link: a última é o cargo da próxima vaga
 	let pending: number[] = []
+	// Primeira linha depois do último link: o bloco da próxima vaga, que pode ter vários parágrafos
+	let blockStart = 0
 
 	for (const [index, line] of lines.entries()) {
 		const urls = line.match(URL_PATTERN) ?? []
@@ -46,7 +54,7 @@ export function splitMultiJobPost(text: string): JobListing[] | null {
 
 		const link = trimUrl(urls[0] ?? '')
 		const inlineTitle = cleanTitle(line.slice(0, line.search(URL_PATTERN)))
-		const titleLine = inlineTitle ? index : (pending.at(-1) ?? index)
+		const titleLine = inlineTitle ? index : findTitleLine(lines, pending, blockStart, index)
 		const title = inlineTitle || cleanTitle(lines[titleLine] ?? '')
 
 		if (title && title.length <= MAX_TITLE_LENGTH && /\p{L}/u.test(title)) {
@@ -54,16 +62,41 @@ export function splitMultiJobPost(text: string): JobListing[] | null {
 		}
 
 		pending = []
+		blockStart = index + 1
 	}
 
 	const unique = uniqueListings(listings)
 	return unique.length >= MIN_LISTINGS ? unique : null
 }
 
-/** Tira emojis, marcadores, numeração ("1." "2)") e o rótulo do link, deixando só o cargo. */
+/**
+ * Linha do cargo de uma vaga com o link sozinho na linha: a linha antes do link ou, se ela for só o rótulo
+ * ("Candidatura:"), o item numerado do bloco ("1️⃣ DIGITAL AD QUALITY ANALYST", parágrafos acima) ou a primeira
+ * linha do parágrafo.
+ */
+function findTitleLine(lines: string[], pending: number[], blockStart: number, linkLine: number) {
+	const previous = pending.at(-1) ?? linkLine
+	if (cleanTitle(lines[previous] ?? '')) return previous
+
+	for (let index = linkLine - 1; index >= blockStart; index--) {
+		if (NUMBERED_ITEM.test(lines[index] ?? '')) return index
+	}
+
+	return pending[0] ?? previous
+}
+
+/**
+ * Texto da vaga para o filtro de palavras-chave, sem os links: o cargo da lista às vezes é a empresa
+ * ("3️⃣ INFLECT", com "Senior Fullstack Engineer" na linha seguinte).
+ */
+export function listingKeywordText(listing: JobListing) {
+	return listing.text.replace(URL_PATTERN, ' ')
+}
+
+/** Tira emojis, marcadores, numeração ("1." "2)" "1️⃣") e o rótulo do link, deixando só o cargo. */
 function cleanTitle(text: string) {
 	return text
-		.replace(/\p{Extended_Pictographic}|\u{FE0F}|\u{200D}/gu, ' ')
+		.replace(/\d\u{FE0F}?\u{20E3}|\p{Extended_Pictographic}|\u{FE0F}|\u{200D}/gu, ' ')
 		.replace(/^[\s\d.)\-–—•*|:]+(?=\p{L})/u, '')
 		.replace(LINK_LABEL, '')
 		.replace(/[\s:\-–—|•]+$/u, '')

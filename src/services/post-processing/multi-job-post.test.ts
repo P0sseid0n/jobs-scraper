@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { splitMultiJobPost } from './multi-job-post'
+import { listingKeywordText, splitMultiJobPost } from './multi-job-post'
 
 // Post real de agregador (resumido)
 const AGGREGATOR_POST = `🚨 10 VAGAS EM TODO BRASIL:
@@ -69,6 +69,60 @@ Candidate-se: https://lnkd.in/c3`
 
 		expect(listings?.map(listing => listing.title)).toEqual(['Dev Front-end', 'Dev Back-end', 'Dev Mobile'])
 		expect(listings?.[0]?.text).toBe('Dev Front-end\nCandidate-se: https://lnkd.in/a1')
+	})
+
+	test('rótulo sozinho antes do link e linhas "em branco" com espaço braille: o cargo é o item numerado do bloco', () => {
+		const post = [
+			'Separei vagas remotas pagando em dólar 💵',
+			'⠀',
+			'3 VAGAS INTERNACIONAIS.',
+			'⠀',
+			'1️⃣ CONTENT REVIEW ANALYST',
+			'💰 US$ 12 a 15/hora',
+			'⠀',
+			'Área: revisão de anúncios.',
+			'⠀',
+			'Candidatura:',
+			'https://lnkd.in/aaa111',
+			'⠀',
+			'2️⃣ NORTHWIND',
+			'Senior Frontend Engineer',
+			'⠀',
+			'Área: React e TypeScript.',
+			'⠀',
+			'Candidatura:',
+			'https://lnkd.in/bbb222',
+			'⠀',
+			'3️⃣ PRODUCT DESIGNER',
+			'⠀',
+			'Candidatura:',
+			'https://lnkd.in/ccc333',
+		].join('\n')
+
+		const listings = splitMultiJobPost(post)
+
+		expect(listings?.map(listing => listing.title)).toEqual(['CONTENT REVIEW ANALYST', 'NORTHWIND', 'PRODUCT DESIGNER'])
+		expect(listings?.[1]?.text).toBe(
+			'2️⃣ NORTHWIND\nSenior Frontend Engineer\n\nÁrea: React e TypeScript.\n\nCandidatura:\nhttps://lnkd.in/bbb222',
+		)
+		expect(listingKeywordText(listings![1]!)).not.toContain('lnkd.in')
+	})
+
+	test('rótulo sozinho antes do link, sem numeração: o cargo é a primeira linha do parágrafo', () => {
+		const post = `Dev Front-end
+Remoto
+Candidatura:
+https://lnkd.in/a1
+
+Dev Back-end
+Candidatura:
+https://lnkd.in/b2
+
+Dev Mobile
+Candidatura:
+https://lnkd.in/c3`
+
+		expect(splitMultiJobPost(post)?.map(listing => listing.title)).toEqual(['Dev Front-end', 'Dev Back-end', 'Dev Mobile'])
 	})
 
 	test('post de uma vaga só, mesmo com alguns links, não é dividido', () => {
