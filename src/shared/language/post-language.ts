@@ -94,6 +94,11 @@ export function checkPostLanguage(text: string, allowedLanguages: string[]): Lan
 	return { language, rejection: languageRejection(language, allowedLanguages) }
 }
 
+/** Código ISO 639-1 de um código ISO 639-3 ("eng" → "en"), ou `null` para um idioma que o detector não conhece. */
+export function fromIso6393(code: string): string | null {
+	return LANGUAGE_CODES[code] ?? OTHER_SCRIPT_CODES[code] ?? null
+}
+
 /** Motivo para descartar um post em `language`, ou `null` se ele é aceito ou o idioma é desconhecido. */
 export function languageRejection(language: string | null, allowedLanguages: string[]): string | null {
 	if (!language || allowedLanguages.length === 0 || allowedLanguages.includes(language)) return null

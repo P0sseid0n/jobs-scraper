@@ -1,6 +1,6 @@
 import type { Ollama } from 'ollama'
 
-import { checkPostLanguage, languageRejection, type LanguageCheck } from '@shared/language'
+import { checkPostLanguage, fromIso6393, languageRejection, type LanguageCheck } from '@shared/language'
 
 // Chamada separada da extração: dentro do prompt de extração, cheio de exemplos em português, o modelo de 4B
 // respondia "pt" para "We're Hiring! Support Developer"; sozinho, acerta até textos que misturam os dois idiomas
@@ -33,12 +33,17 @@ export async function checkLanguage(ollama: Ollama, model: string, text: string,
 	return { language, rejection: languageRejection(language, allowedLanguages) }
 }
 
-/** Código ISO 639-1 da resposta, sem a região ("pt-BR" → "pt"); resposta fora desse formato vira `null` (o post segue). */
+/**
+ * Código ISO 639-1 da resposta, sem a região ("pt-BR" → "pt"). O modelo às vezes responde o código de três letras
+ * ("eng" para "Front-End Developer"), que é convertido. Resposta fora desses formatos vira `null` (o post segue).
+ */
 export function parseLanguage(content: string): string | null {
 	try {
 		const { language } = JSON.parse(content) as { language?: unknown }
 		if (typeof language !== 'string') return null
-		return /^([a-z]{2})(?:[-_][a-z]+)?$/i.exec(language.trim())?.[1]?.toLowerCase() ?? null
+		const code = /^([a-z]{2,3})(?:[-_][a-z]+)?$/i.exec(language.trim())?.[1]?.toLowerCase()
+		if (!code) return null
+		return code.length === 2 ? code : fromIso6393(code)
 	} catch {
 		return null
 	}
