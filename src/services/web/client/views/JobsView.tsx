@@ -63,15 +63,15 @@ export function DetailPanel({ children }: { children: ReactNode }) {
 			// A vaga clicada na lista acende este painel (`lib/job-opening.ts`)
 			data-job-panel
 			className={card({
-				size: 'lg',
 				className: cx(
-					'sticky top-19 max-h-below-topbar grow-999 overflow-y-auto transition-all duration-300 ease-out motion-reduce:transition-none',
+					'sticky top-19 flex max-h-below-topbar grow-999 flex-col overflow-hidden transition-all duration-300 ease-out motion-reduce:transition-none',
 					wider ? 'max-w-190 basis-130' : 'max-w-115 basis-100',
 				),
 			})}
 			aria-label="Detalhe da vaga"
 		>
-			{children}
+			{/* Rola por dentro: rolando o próprio card, a barra de rolagem passava por cima dos cantos arredondados */}
+			<div className="min-h-0 overflow-y-auto p-7 max-md:p-4.5">{children}</div>
 		</aside>
 	)
 }
