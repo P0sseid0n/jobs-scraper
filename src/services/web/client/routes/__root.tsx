@@ -112,6 +112,7 @@ function NotFound() {
 	return (
 		<Page width="narrow">
 			<EmptyState
+				illustration="lost"
 				title="Página não encontrada"
 				action={
 					<ButtonLink variant="lime" to="/">

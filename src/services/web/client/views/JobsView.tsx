@@ -439,6 +439,7 @@ function JobList({ selectedId, keepScroll }: { selectedId: string | null; keepSc
 	if (jobs.length === 0) {
 		return hasActiveFilters(filters) ? (
 			<EmptyState
+				illustration="search"
 				title="Nenhuma vaga com esses filtros"
 				description="Tente outra busca ou volte a mostrar todas as vagas."
 				action={
@@ -449,6 +450,7 @@ function JobList({ selectedId, keepScroll }: { selectedId: string | null; keepSc
 			/>
 		) : (
 			<EmptyState
+				illustration="jobs"
 				title="Nenhuma vaga ainda"
 				description="Rode uma coleta: as vagas aparecem aqui assim que a IA terminar de ler os posts."
 				action={

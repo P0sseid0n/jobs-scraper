@@ -36,6 +36,9 @@ const LONG_POST_CHARS = 600
 const DETAIL_ACTION = 'flex-1 basis-45'
 
 const MESSAGE_BOX = 'flex flex-col gap-2.5 rounded-sm bg-surface-2 p-3.5'
+
+/** No `bun dev` (com o recarregamento ao vivo): o JSON da vaga só aparece para quem está desenvolvendo. */
+const DEVELOPMENT = Boolean(import.meta.hot)
 const MESSAGE_TEXT = 'm-0 font-mono text-xs leading-relaxed whitespace-pre-wrap wrap-break-word'
 
 /** Todos os dados da vaga, com as ações de candidatura (painel lateral no desktop, página própria no celular). */
@@ -255,9 +258,11 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 					</Notice>
 				)}
 				{job.language && <span className="font-mono text-muted text-xs">idioma: {languageLabel(job.language)}</span>}
-				<TextLink className="text-xs font-mono" aria-expanded={rawJson !== null} disabled={loadingRaw} onClick={toggleRawJson}>
-					{loadingRaw ? 'carregando json…' : rawJson !== null ? 'esconder json da vaga' : 'ver json da vaga (debug)'}
-				</TextLink>
+				{DEVELOPMENT && (
+					<TextLink className="text-xs font-mono" aria-expanded={rawJson !== null} disabled={loadingRaw} onClick={toggleRawJson}>
+						{loadingRaw ? 'carregando json…' : rawJson !== null ? 'esconder json da vaga' : 'ver json da vaga (debug)'}
+					</TextLink>
+				)}
 				{rawJson !== null && (
 					<CodeBlock label="documento no mongodb" onCopy={() => copyText(rawJson, 'JSON da vaga')} scroll>
 						{rawJson}

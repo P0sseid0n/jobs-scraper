@@ -121,6 +121,7 @@ export function CvsView({ baseVersions }: { baseVersions: WebCvBaseVersion[] | n
 
 			{requests.length === 0 && (
 				<EmptyState
+					illustration="cv"
 					title="Nenhum currículo gerado pelo site ainda"
 					description="Em qualquer vaga, clique em “gerar currículo”. Ele fica pronto em até ~1 minuto."
 					action={
