@@ -53,6 +53,9 @@ type ScraperRunDocument = {
 	status: ScraperRunStatus
 	startedAt: Date
 	finishedAt: Date | null
+	/** Os termos que a coleta vai buscar, na ordem; ausente nas coletas antigas. */
+	plannedTerms: string[]
+	/** O resultado de cada termo, gravado assim que ele termina (o site acompanha a coleta em andamento). */
 	terms: ScraperRunTerm[]
 	sent: number
 	error: string | null
@@ -69,6 +72,7 @@ const scraperRunSchema = new Schema<ScraperRunDocument>(
 		status: { type: String, enum: SCRAPER_RUN_STATUSES, required: true },
 		startedAt: { type: Date, required: true },
 		finishedAt: { type: Date, default: null },
+		plannedTerms: { type: [String], default: [] },
 		terms: {
 			type: [
 				{

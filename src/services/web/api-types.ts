@@ -122,6 +122,9 @@ export type WebScraperRun = {
 	 * fila; `null` nas coletas antigas.
 	 */
 	outcomes: { counts: Partial<Record<SeenPostOutcome | 'unknown', number>>; pending: number } | null
+	/** Os termos que a coleta vai buscar, na ordem (os que faltam são os depois de `terms`); vazio nas coletas antigas. */
+	plannedTerms: string[]
+	/** O resultado de cada termo terminado (na coleta em andamento, só os que já terminaram). */
 	terms: WebScraperRunTerm[]
 	error: string | null
 	/** Por que o login parou a coleta; `null` nas outras falhas. Nas coletas antigas, `other` se o erro fala de login. */

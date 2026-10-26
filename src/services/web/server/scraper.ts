@@ -37,6 +37,7 @@ type RunDocument = {
 	startedAt: Date
 	finishedAt: Date | null
 	sent: number
+	plannedTerms?: string[]
 	// Coletas antigas não têm alguns dos campos de cada termo
 	terms: (Omit<ScraperRunTerm, OptionalTermField> & Partial<Pick<ScraperRunTerm, OptionalTermField>>)[]
 	error: string | null
@@ -139,6 +140,7 @@ async function toWebRun(doc: RunDocument): Promise<WebScraperRun> {
 		otherLanguage: terms.reduce((total, term) => total + (term.otherLanguage ?? 0), 0),
 		newJobs,
 		outcomes,
+		plannedTerms: doc.plannedTerms ?? [],
 		terms: terms.map(term => ({
 			term: term.term,
 			sent: term.sent ?? 0,

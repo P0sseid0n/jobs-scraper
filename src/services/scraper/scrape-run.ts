@@ -16,9 +16,17 @@ import { SELECTORS } from './linkedin/selectors'
 import { buildSearchUrl, externalLink, LOGIN_URL } from './linkedin/urls'
 import { ensureLoggedIn, LoginError, loginOptionsFrom, NO_LINKEDIN_ACCOUNT } from './login'
 import { hashPost } from './post-id'
+import type { TermProgress } from './run-history'
 import { postsPerTerm } from './schedule'
 
-type ScrapeOptions = { config: ScraperConfig; settings: ScraperSettings; queue: QueueClient; logger: Logger }
+type ScrapeOptions = {
+	config: ScraperConfig
+	settings: ScraperSettings
+	queue: QueueClient
+	logger: Logger
+	/** Chamado a cada termo terminado, com os resultados até ali. */
+	onTerm?: TermProgress
+}
 
 /** As opções da coleta com a conta do LinkedIn, lida no começo de cada uma. */
 type RunOptions = ScrapeOptions & { account: CredentialsOf<'linkedin'> }
@@ -87,6 +95,7 @@ export async function scrapeOnce(options: ScrapeOptions): Promise<ScraperRunTerm
 			if (limit === 0) {
 				logger.info({ term }, 'Termo pulado: o limite de posts da coleta já foi completado ou distribuído')
 				results.push({ term, sent: 0, skipped: 0, otherLanguage: 0, postIds: [], error: null, errorKind: null, searchUrl: null })
+				await options.onTerm?.([...results])
 				continue
 			}
 
@@ -94,6 +103,7 @@ export async function scrapeOnce(options: ScrapeOptions): Promise<ScraperRunTerm
 			const { kept, ...result } = await scrapeTerm(session, { term, limit, seen, allowedLanguages }, runOptions)
 			results.push(result)
 			remaining -= kept
+			await options.onTerm?.([...results])
 		}
 
 		// Renova a sessão salva (o LinkedIn atualiza os cookies durante a navegação)
