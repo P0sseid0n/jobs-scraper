@@ -8,7 +8,6 @@ import type { WebCvBaseVersion, WebCvRequest } from '../../api-types'
 import { cvBasePdfUrl, cvPdfUrl } from '../api'
 import { Changes } from '../components/CvReady'
 import { Icon } from '../components/Icon'
-import { PdfThumbnail } from '../components/PdfThumbnail'
 import { Badge } from '../components/ui/Badge'
 import { Button, ButtonLink } from '../components/ui/Button'
 import { card } from '../components/ui/Card'
@@ -16,6 +15,7 @@ import { EmptyState } from '../components/ui/EmptyState'
 import { iconButton, IconButton } from '../components/ui/IconButton'
 import { NEW_TAB } from '../components/ui/link'
 import { Hero, Page } from '../components/ui/Page'
+import { PdfIcon } from '../components/ui/PdfIcon'
 import { LABEL } from '../components/ui/text'
 import { TextLink } from '../components/ui/TextLink'
 import { activeVersion } from '../lib/cv-base'
@@ -141,12 +141,12 @@ function CvItem({ request, outdated, latest }: CvItemProps) {
 			<div className="flex items-start gap-3.5">
 				{ready ? (
 					<a className={SHEET_LINK} href={cvPdfUrl(request.requestId)} {...NEW_TAB} aria-label={`Abrir o PDF de ${title}`}>
-						<PdfThumbnail url={cvPdfUrl(request.requestId)}>PDF</PdfThumbnail>
+						<PdfIcon>PDF</PdfIcon>
 					</a>
 				) : (
-					<PdfThumbnail dashed={request.status === 'pending'}>
+					<PdfIcon dashed={request.status === 'pending'}>
 						{request.status === 'pending' ? <Icon name="spinner" size={14} /> : 'erro'}
-					</PdfThumbnail>
+					</PdfIcon>
 				)}
 
 				<div className="flex min-w-0 grow flex-col gap-2">
@@ -292,12 +292,10 @@ function CvBaseCard({ versions, requests }: CvBaseCardProps) {
 			<div className="flex min-w-0 grow items-center gap-5 max-md:gap-4">
 				{active?.status === 'valid' ? (
 					<a className={SHEET_LINK} href={cvBasePdfUrl(active.versionId)} {...NEW_TAB} aria-label="Abrir o PDF do currículo base">
-						<PdfThumbnail url={cvBasePdfUrl(active.versionId)} size="lg">
-							PDF
-						</PdfThumbnail>
+						<PdfIcon>PDF</PdfIcon>
 					</a>
 				) : (
-					<PdfThumbnail size="lg">.tex</PdfThumbnail>
+					<PdfIcon>.tex</PdfIcon>
 				)}
 
 				<div className="flex min-w-0 grow flex-col gap-1">

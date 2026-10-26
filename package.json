@@ -59,7 +59,6 @@
 		"jsqr": "^1.4.0",
 		"mongoose": "^9.11.1",
 		"ollama": "^0.6.4",
-		"pdfjs-dist": "^6.4.299",
 		"pino": "^10.4.0",
 		"pino-pretty": "^13.2.0",
 		"pngjs": "^7.0.0",
