@@ -50,6 +50,11 @@ export const CvResultSchema = z.object({
 	message: ApplicationMessageSchema.nullable().default(null),
 	/** O ajuste feito para a vaga, com o currículo gerado; `null` na falha. O padrão aceita resultados de antes do campo. */
 	changes: CvChangesSchema.nullable().default(null),
+	/**
+	 * De qual currículo base o PDF saiu: `versionId` da versão ativa no banco, ou `null` para o arquivo. `null` na falha;
+	 * o padrão aceita resultados de antes do campo.
+	 */
+	base: z.object({ versionId: z.string().nullable() }).nullable().default(null),
 })
 
 export type CvResult = z.infer<typeof CvResultSchema>

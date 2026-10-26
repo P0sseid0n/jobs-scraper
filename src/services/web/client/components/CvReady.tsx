@@ -69,7 +69,7 @@ export function CvReady({ cv }: { cv: WebCvRequest }) {
 	)
 }
 
-function Changes({ changes, fresh }: { changes: CvChanges; fresh: boolean }) {
+export function Changes({ changes, fresh }: { changes: CvChanges; fresh: boolean }) {
 	const { addedSkills, removedSkills, summary, projects } = changes
 
 	return (

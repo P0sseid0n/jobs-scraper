@@ -63,6 +63,9 @@ await queue.consume(QUEUES.webCvBase, CvBaseValidationResultSchema, result => sa
 
 const api = <R extends Request>(fn: (req: R) => Promise<Response> | Response) => handler(logger, fn)
 
+/** O worker do pdf.js, que desenha as miniaturas dos currículos no navegador (`client/lib/pdf-thumbnail.ts`). */
+const PDF_WORKER_FILE = Bun.resolveSync('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.dir)
+
 const SUGGESTIONS_TIMEOUT_SECONDS = 240
 const suggestSearchTerms = api(() => searchSuggestions(ai, logger))
 
@@ -110,6 +113,12 @@ const server = Bun.serve({
 				srv.timeout(req, SUGGESTIONS_TIMEOUT_SECONDS)
 				return suggestSearchTerms(req)
 			},
+		},
+		'/pdf.worker.mjs': {
+			GET: () =>
+				new Response(Bun.file(PDF_WORKER_FILE), {
+					headers: { 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control': 'public, max-age=86400' },
+				}),
 		},
 		'/api/*': Response.json({ error: 'Rota da API não encontrada' } satisfies ApiError, { status: 404 }),
 		// O resto é a aplicação (as rotas do navegador são resolvidas no cliente)

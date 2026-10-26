@@ -69,6 +69,11 @@ export type WebCvRequest = {
 	message: ApplicationMessage | null
 	/** O que o currículo mudou para a vaga (só nos prontos; pedidos de antes do campo não o têm). */
 	changes: CvChanges | null
+	/**
+	 * De qual currículo base o PDF saiu: `versionId` da versão do site, ou `null` para o arquivo `data/cv/cv.tex`. É
+	 * `null` nos pendentes, nos falhos e nos pedidos de antes do campo.
+	 */
+	base: { versionId: string | null } | null
 	requestedAt: string
 	finishedAt: string | null
 }

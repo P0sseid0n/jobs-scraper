@@ -17,6 +17,8 @@ type CvRequestDocument = {
 	message?: ApplicationMessage | null
 	/** O ajuste feito para a vaga; pedidos de antes do campo não o têm. */
 	changes?: CvChanges | null
+	/** De qual currículo base o PDF saiu (`versionId` `null`: o arquivo); `null` na falha e nos pedidos de antes do campo. */
+	base?: { versionId: string | null } | null
 	requestedAt: Date
 	finishedAt: Date | null
 }
@@ -50,6 +52,7 @@ const cvRequestSchema = new Schema<CvRequestDocument>(
 			),
 			default: null,
 		},
+		base: { type: new Schema({ versionId: { type: String, default: null } }, { _id: false }), default: null },
 		requestedAt: { type: Date, required: true },
 		finishedAt: { type: Date, default: null },
 	},
@@ -87,6 +90,7 @@ export function toWebCvRequest(doc: Omit<CvRequestDocument, 'pdf'>, now = new Da
 					projects: [...doc.changes.projects],
 				}
 			: null,
+		base: doc.base ? { versionId: doc.base.versionId ?? null } : null,
 		requestedAt: doc.requestedAt.toISOString(),
 		finishedAt: doc.finishedAt?.toISOString() ?? null,
 	}

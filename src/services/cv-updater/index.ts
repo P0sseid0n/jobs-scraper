@@ -58,7 +58,14 @@ async function generateCv(request: CvRequest) {
 	const job = await findTargetJob(request.postId)
 	if (!job) {
 		log.warn('Vaga não encontrada no banco')
-		await reply({ jobTitle: null, file: null, error: 'Não encontrei essa vaga no banco de dados.', message: null, changes: null })
+		await reply({
+			jobTitle: null,
+			file: null,
+			error: 'Não encontrei essa vaga no banco de dados.',
+			message: null,
+			changes: null,
+			base: null,
+		})
 		return
 	}
 
@@ -69,7 +76,7 @@ async function generateCv(request: CvRequest) {
 		if (!(error instanceof MissingBaseResumeError)) throw error
 
 		log.warn('Currículo pedido sem currículo base configurado')
-		await reply({ jobTitle: job.title, file: null, error: error.message, message: null, changes: null })
+		await reply({ jobTitle: job.title, file: null, error: error.message, message: null, changes: null, base: null })
 		return
 	}
 
@@ -106,6 +113,7 @@ async function generateCv(request: CvRequest) {
 			error: 'O LaTeX do currículo não compilou. Veja os logs do cv-updater.',
 			message: null,
 			changes: null,
+			base: null,
 		})
 		return
 	}
@@ -131,6 +139,7 @@ async function generateCv(request: CvRequest) {
 		error: null,
 		message,
 		changes: cvChanges(base.model, resume, report),
+		base: { versionId },
 	})
 
 	log.info(
