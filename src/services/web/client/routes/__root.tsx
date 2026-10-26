@@ -1,5 +1,5 @@
 import { createRootRoute, Link, Outlet, redirect, useMatches, useRouterState } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { REQUIRED_SETUP_STEPS, type ScraperStatus, type SetupStatus } from '../../api-types'
 import { api } from '../api'
@@ -17,6 +17,7 @@ import { useSlidingIndicator } from '../components/ui/sliding-indicator'
 import { StatusDot, type StatusDotTone } from '../components/ui/StatusDot'
 import { cx } from '../lib/cx'
 import { formatDuration } from '../lib/format'
+import { reducedMotion } from '../lib/motion'
 import { useTrayRequests } from '../stores/cv'
 import { jobsStore } from '../stores/jobs'
 import { useConnected } from '../stores/live'
@@ -133,6 +134,7 @@ function RootLayout() {
 	const toasts = useToasts()
 	const pendingCvs = useTrayRequests().filter(request => request.status === 'pending').length
 	const nav = useSlidingIndicator<HTMLElement>('[aria-current="page"]', path)
+	const navPill = useJellyOnSlide(nav.box)
 	const missing = missingSetup(useSetup())
 
 	// "vagas" também fica marcado com uma vaga aberta (`/vagas/$id`)
@@ -154,7 +156,9 @@ function RootLayout() {
 	}
 
 	return (
-		<div className="flex min-h-dvh flex-col">
+		<div className="relative isolate flex min-h-dvh flex-col">
+			{/* O degradê do topo, mais ao fundo: desce mais devagar que a rolagem e some (`parallax-glow`) */}
+			<div aria-hidden="true" className="parallax-glow pointer-events-none absolute inset-x-0 top-0 -z-10 h-120" />
 			<a className="absolute -top-15 left-3 z-50 rounded-pill bg-lime px-3.5 py-2.5 text-lime-ink focus:top-3" href="#main">
 				pular para o conteúdo
 			</a>
@@ -167,6 +171,7 @@ function RootLayout() {
 						{/* O fundo da tela atual, que desliza até a nova */}
 						{nav.box && (
 							<span
+								ref={navPill}
 								aria-hidden="true"
 								className={cx(
 									'pointer-events-none absolute inset-y-0 left-0 rounded-pill bg-surface-2',
@@ -289,6 +294,31 @@ function RootLayout() {
 			<Toasts toasts={toasts} />
 		</div>
 	)
+}
+
+/**
+ * O fundo da aba do menu, enquanto desliza até a nova: estica na direção do movimento e, ao chegar, se acomoda com
+ * mola (como geleia), em vez de só deslizar.
+ */
+function useJellyOnSlide(box: { left: number; slide: boolean } | null) {
+	const pill = useRef<HTMLSpanElement>(null)
+	const lastLeft = useRef(box?.left)
+
+	useEffect(() => {
+		const from = lastLeft.current
+		lastLeft.current = box?.left
+		if (!box?.slide || from === undefined || from === box.left || !pill.current || reducedMotion()) return
+
+		pill.current.animate(
+			[{ scale: '1 1' }, { scale: '1.25 0.85', offset: 0.35 }, { scale: '0.94 1.06', offset: 0.7 }, { scale: '1 1' }],
+			{
+				duration: 600,
+				easing: 'ease-out',
+			},
+		)
+	}, [box?.left, box?.slide])
+
+	return pill
 }
 
 /**

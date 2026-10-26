@@ -268,10 +268,13 @@
 	--animate-shimmer: shimmer 1600ms ease-in-out infinite;
 	/*
 	 * O currículo ajustado para a vaga: a habilidade que saiu ganha um risco da esquerda para a direita
-	 * (`strike-through`, abaixo) e o cursor da apresentação sendo escrita pisca.
+	 * (`strike-through`, abaixo); a apresentação antiga se desfaz desfocando e a nova chega palavra por palavra; um
+	 * brilho atravessa a caixa uma vez.
 	 */
 	--animate-strike-in: strike-in 500ms var(--ease-glide) both;
-	--animate-caret: caret 1s steps(1) infinite;
+	--animate-dissolve: dissolve 600ms ease-in both;
+	--animate-word-in: word-in 520ms var(--ease-glide) both;
+	--animate-sheen: sheen 1400ms ease-in-out both;
 	/* Login do LinkedIn: o código recusado treme; o check do sucesso é desenhado (no `<path pathLength="1">`) */
 	--animate-shake: shake 420ms ease-in-out;
 	--animate-draw: draw 600ms var(--ease-glide) both;
@@ -291,9 +294,28 @@
 		}
 	}
 
-	@keyframes caret {
-		50% {
+	@keyframes dissolve {
+		to {
 			opacity: 0;
+			filter: blur(6px);
+			transform: translateY(-4px);
+		}
+	}
+
+	@keyframes word-in {
+		from {
+			opacity: 0;
+			filter: blur(4px);
+			transform: translateY(6px);
+		}
+	}
+
+	@keyframes sheen {
+		from {
+			translate: -100% 0;
+		}
+		to {
+			translate: 300% 0;
 		}
 	}
 
@@ -328,8 +350,17 @@
 	--animate-drain: drain linear both;
 	/* O currículo pronto sai da fenda da "impressora" */
 	--animate-print-out: print-out 900ms var(--ease-glide) both;
-	/* O termo sendo coletado: uma faixa que atravessa a barra sem parar */
-	--animate-sweep: sweep 1400ms ease-in-out infinite;
+	/* O termo sendo coletado: a barra respira, clareando e escurecendo devagar */
+	--animate-breathe: breathe 2200ms ease-in-out infinite;
+	/*
+	 * Os desenhos dos estados vazios mexem uma vez ao aparecer: a lupa passeia, a placa balança, o ponteiro anda, a
+	 * bolinha cai na caixa, o selo pula e a folha rasgada se separa.
+	 */
+	--animate-wander: wander 2600ms ease-in-out 300ms both;
+	--animate-swing: swing 1600ms var(--ease-glide) 200ms both;
+	--animate-tick: tick 1800ms var(--ease-glide) 300ms both;
+	--animate-drop: drop 900ms var(--ease-spring) 300ms both;
+	--animate-tear: tear 900ms var(--ease-glide) 300ms both;
 
 	@keyframes page-next {
 		from {
@@ -367,12 +398,60 @@
 		}
 	}
 
-	@keyframes sweep {
-		from {
-			translate: -100% 0;
+	@keyframes breathe {
+		0%,
+		100% {
+			opacity: 0.35;
 		}
-		to {
-			translate: 250% 0;
+		50% {
+			opacity: 0.9;
+		}
+	}
+
+	@keyframes wander {
+		0%,
+		100% {
+			translate: 0 0;
+		}
+		30% {
+			translate: -14px -4px;
+		}
+		65% {
+			translate: 6px 4px;
+		}
+	}
+
+	@keyframes swing {
+		0% {
+			rotate: -14deg;
+		}
+		40% {
+			rotate: 8deg;
+		}
+		70% {
+			rotate: -3deg;
+		}
+		100% {
+			rotate: 0deg;
+		}
+	}
+
+	@keyframes tick {
+		from {
+			rotate: -120deg;
+		}
+	}
+
+	@keyframes drop {
+		from {
+			opacity: 0;
+			translate: 0 -18px;
+		}
+	}
+
+	@keyframes tear {
+		from {
+			translate: 0 5px;
 		}
 	}
 }
@@ -391,6 +470,60 @@
 	:where(.group\/toasts:hover) & {
 		scale: 1;
 		opacity: 1;
+	}
+}
+
+/*
+ * Um reflexo muito leve que acompanha o mouse sobre a superfície (cards e o painel da vaga). As coordenadas (`--mx`,
+ * `--my`) vêm do `lib/pointer-glow.ts`; a força (`--glow-strength`) sobe com o mouse em cima e desce ao sair. Sem
+ * transição própria, que trocaria a do elemento: com o `transition-all` dele (o painel), a força sobe devagar.
+ */
+@property --glow-strength {
+	syntax: '<percentage>';
+	inherits: false;
+	initial-value: 0%;
+}
+
+@utility pointer-glow {
+	background-image: radial-gradient(
+		360px circle at var(--mx, 50%) var(--my, 50%),
+		color-mix(in srgb, var(--color-lime) var(--glow-strength), transparent),
+		transparent 70%
+	);
+
+	&:hover {
+		--glow-strength: 9%;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		background-image: none;
+	}
+}
+
+/*
+ * O degradê do topo das telas, que desce mais devagar que a rolagem (como se ficasse mais ao fundo). Só nos
+ * navegadores com animação presa à rolagem; nos outros, fica parado.
+ */
+@utility parallax-glow {
+	background-image:
+		radial-gradient(60% 100% at 15% 0%, color-mix(in srgb, var(--color-lime) 14%, transparent), transparent 70%),
+		radial-gradient(50% 90% at 85% 10%, color-mix(in srgb, var(--color-surface-2) 90%, transparent), transparent 70%);
+
+	@supports (animation-timeline: scroll()) {
+		animation: parallax linear both;
+		animation-timeline: scroll(root);
+		animation-range: 0 900px;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		animation: none;
+	}
+}
+
+@keyframes parallax {
+	to {
+		translate: 0 450px;
+		opacity: 0;
 	}
 }
 

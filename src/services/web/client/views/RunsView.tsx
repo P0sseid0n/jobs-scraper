@@ -257,7 +257,8 @@ function TermCard({ term }: { term: WebScraperRunTerm }) {
 
 /**
  * A coleta em andamento, ao vivo (o status é relido a cada 5 s): os números rolam como num odômetro, e cada termo tem a
- * barra dele: cheia quando terminou, com uma faixa correndo no que está sendo coletado agora e vazia nos que faltam.
+ * barra dele: cheia quando terminou, respirando (clareando e escurecendo) no que está sendo coletado agora e vazia nos
+ * que faltam.
  */
 function LiveRun({ run }: { run: WebScraperRun }) {
 	const done = run.terms.length
@@ -318,7 +319,7 @@ function LiveRun({ run }: { run: WebScraperRun }) {
 									)}
 								/>
 								{state === 'current' && (
-									<span className="absolute inset-y-0 left-0 w-2/5 rounded-pill bg-lime-accent animate-sweep motion-reduce:animate-none" />
+									<span className="absolute inset-0 rounded-pill bg-lime-accent animate-breathe motion-reduce:animate-none motion-reduce:opacity-50" />
 								)}
 							</span>
 						</li>

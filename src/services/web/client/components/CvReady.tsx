@@ -13,16 +13,15 @@ import { LABEL } from './ui/text'
 import { TextLink } from './ui/TextLink'
 
 /**
- * Quando cada parte do ajuste aparece (ms), no currículo que acabou de ficar pronto: a faixa de leitura passa pela
- * caixa, o selo acende, as habilidades que saíram são riscadas e as novas entram, os projetos sobem e a apresentação
- * antiga é riscada antes de a nova ser escrita no lugar.
+ * Quando cada parte do ajuste aparece (ms), no currículo que acabou de ficar pronto: um brilho atravessa a caixa, o
+ * selo acende, as habilidades que saíram são riscadas e as novas entram, os projetos sobem e a apresentação antiga se
+ * desfaz antes de a nova chegar no lugar.
  */
-const AT = { mark: 300, removed: 600, added: 900, projects: 1300, strikeSummary: 1200, typeSummary: 2000 }
+const AT = { mark: 300, removed: 600, added: 900, projects: 1300, dissolveSummary: 1200, revealSummary: 2000 }
 /** Entre um item e o seguinte da mesma linha. */
 const STEP_MS = 90
-/** A apresentação nova leva isso para ser escrita, qualquer que seja o tamanho. */
-const TYPING_MS = 1800
-const TYPING_TICK_MS = 30
+/** A apresentação nova leva isso para chegar inteira, qualquer que seja o tamanho (as palavras entram em cascata). */
+const REVEAL_MS = 1600
 
 const delay = (ms: number): CSSProperties => ({ animationDelay: `${ms}ms` })
 
@@ -43,9 +42,10 @@ export function CvReady({ cv }: { cv: WebCvRequest }) {
 	return (
 		<div className="relative flex flex-col gap-3.5 overflow-hidden rounded-md bg-lime-soft p-3">
 			{fresh && (
+				// Um brilho que atravessa a caixa uma vez, como luz passando pelo papel
 				<span
 					aria-hidden="true"
-					className="pointer-events-none absolute inset-x-0 h-6 bg-linear-to-b from-transparent via-lime/40 to-transparent animate-scan"
+					className="pointer-events-none absolute inset-y-0 left-0 w-1/2 -skew-x-12 bg-linear-to-r from-transparent via-white/60 to-transparent animate-sheen dark:via-lime/15"
 				/>
 			)}
 			<div className="flex items-center gap-3">
@@ -150,45 +150,46 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 }
 
 /**
- * A apresentação reescrita para a vaga. Acabando de ficar pronta, a antiga aparece e é riscada, e a nova é escrita no
- * lugar dela, com o cursor piscando; depois, a antiga fica a um clique.
+ * A apresentação reescrita para a vaga. Acabando de ficar pronta, a antiga aparece e se desfaz, desfocando, e a nova
+ * chega palavra por palavra no lugar dela; depois, a antiga fica a um clique.
  */
 function Summary({ summary, fresh }: { summary: NonNullable<CvChanges['summary']>; fresh: boolean }) {
-	const [phase, setPhase] = useState<'before' | 'typing' | 'done'>(fresh ? 'before' : 'done')
-	const [typed, setTyped] = useState(0)
+	const [phase, setPhase] = useState<'before' | 'reveal' | 'done'>(fresh ? 'before' : 'done')
 	const [showOriginal, setShowOriginal] = useState(false)
 	const text = summary.after
+	const words = text.split(/(\s+)/)
+	const step = REVEAL_MS / Math.max(1, words.length / 2)
 
 	useEffect(() => {
 		if (phase === 'before') {
-			const timer = setTimeout(() => setPhase('typing'), AT.typeSummary)
+			const timer = setTimeout(() => setPhase('reveal'), AT.revealSummary)
 			return () => clearTimeout(timer)
 		}
-		if (phase !== 'typing') return
+		if (phase !== 'reveal') return
 
-		const step = Math.max(1, Math.ceil(text.length / (TYPING_MS / TYPING_TICK_MS)))
-		const timer = setInterval(() => setTyped(count => Math.min(text.length, count + step)), TYPING_TICK_MS)
-		return () => clearInterval(timer)
-	}, [phase, text])
-
-	useEffect(() => {
-		if (phase === 'typing' && typed >= text.length) setPhase('done')
-	}, [phase, typed, text])
+		const timer = setTimeout(() => setPhase('done'), REVEAL_MS + 600)
+		return () => clearTimeout(timer)
+	}, [phase])
 
 	return (
 		<div className="flex flex-col gap-1.5 text-sm leading-relaxed">
 			{phase !== 'done' && <p className="sr-only">{text}</p>}
 			{phase === 'before' && (
-				<p aria-hidden="true" className="text-muted">
-					<span className="strike-through animate-strike-in" style={delay(AT.strikeSummary)}>
-						{summary.before}
-					</span>
+				<p aria-hidden="true" className="text-muted animate-dissolve" style={delay(AT.dissolveSummary)}>
+					{summary.before}
 				</p>
 			)}
-			{phase === 'typing' && (
+			{phase === 'reveal' && (
 				<p aria-hidden="true">
-					{text.slice(0, typed)}
-					<span className="ml-px inline-block h-4 w-0.5 translate-y-0.5 bg-ink animate-caret" />
+					{words.map((word, index) =>
+						/^\s+$/.test(word) ? (
+							word
+						) : (
+							<span key={index} className="inline-block animate-word-in" style={delay((index / 2) * step)}>
+								{word}
+							</span>
+						),
+					)}
 				</p>
 			)}
 			{phase === 'done' && (

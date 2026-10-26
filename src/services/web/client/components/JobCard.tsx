@@ -46,8 +46,12 @@ export function JobCard({
 				JOB_CARD,
 				DOT_GUTTER,
 				'group/card relative',
+				// Como papel na mesa: sobe um pouco no hover, com a sombra crescendo, e afunda no clique; o reflexo segue o mouse
+				'pointer-glow transition duration-300 ease-glide hover:-translate-y-0.5 hover:shadow-float active:translate-y-0 active:scale-99 active:duration-100',
+				'motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100',
 				selected ? 'border-lime-accent ring-1 ring-lime-accent' : 'hover:border-line-strong',
 			)}
+			data-pointer-glow
 			aria-current={selected ? 'true' : undefined}
 		>
 			<ViewedDot job={job} viewed={viewed} />

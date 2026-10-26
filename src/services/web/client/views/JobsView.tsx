@@ -1,5 +1,5 @@
 import { useNavigate, useSearch } from '@tanstack/react-router'
-import { useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { flushSync } from 'react-dom'
 
 import { isJobRouteId } from '../../job-route-id'
@@ -22,6 +22,7 @@ import { Skeleton } from '../components/ui/Skeleton'
 import { StatusDot } from '../components/ui/StatusDot'
 import { FIELDSET, LABEL } from '../components/ui/text'
 import { TextLink } from '../components/ui/TextLink'
+import { celebrate } from '../lib/celebrate'
 import { cx } from '../lib/cx'
 import { useFiltersDrag } from '../lib/filters-drag'
 import { useFlipList } from '../lib/flip-list'
@@ -60,11 +61,12 @@ export function DetailPanel({ children }: { children: ReactNode }) {
 
 	return (
 		<aside
-			// A vaga clicada na lista acende este painel (`lib/job-opening.ts`)
+			// A vaga clicada na lista acende este painel (`lib/job-opening.ts`); o reflexo segue o mouse (`pointer-glow`)
 			data-job-panel
+			data-pointer-glow
 			className={card({
 				className: cx(
-					'sticky top-19 flex max-h-below-topbar grow-999 flex-col overflow-hidden transition-all duration-300 ease-out motion-reduce:transition-none',
+					'pointer-glow sticky top-19 flex max-h-below-topbar grow-999 flex-col overflow-hidden transition-all duration-300 ease-out motion-reduce:transition-none',
 					wider ? 'max-w-190 basis-130' : 'max-w-115 basis-100',
 				),
 			})}
@@ -416,6 +418,15 @@ function JobList({ selectedId, keepScroll }: { selectedId: string | null; keepSc
 	const { filters, clearFilters } = useFilters()
 	// Os cards deslizam para o lugar novo ao mudar a lista
 	const { list, ghosts } = useFlipList(jobs.map(job => job.postId))
+
+	// A primeira vaga chegando ao vivo na lista vazia (sem filtros): uma comemoração discreta em cima dela
+	const before = useRef({ count: jobs.length, status })
+	useEffect(() => {
+		const previous = before.current
+		before.current = { count: jobs.length, status }
+		const arrived = previous.count === 0 && previous.status === 'ready' && status === 'ready' && jobs.length > 0
+		if (arrived && !hasActiveFilters(filters) && list.current) celebrate(list.current)
+	}, [jobs.length, status, filters, list])
 
 	// A primeira página vem pelo loader da rota (com o pendingComponent); aqui é a recarga ao mudar um filtro. Com vagas na
 	// tela, elas ficam (esmaecidas pela seção) até a nova lista chegar, sem piscar a cada letra da busca
