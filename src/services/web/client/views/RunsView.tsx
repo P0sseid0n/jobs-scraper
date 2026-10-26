@@ -50,6 +50,15 @@ const OUTCOMES: Record<keyof NonNullable<WebScraperRun['outcomes']>['counts'], s
 // Não são descarte: as listas têm as vagas abertas à parte, e os posts sem destino registrado podem ter virado vaga
 const NOT_DISCARDED = new Set(['saved', 'multi-job', 'unknown'])
 
+/**
+ * Se a coleta terminou sem completar o mínimo de vagas (as buscas acabaram antes), depois de a IA ler toda a fila.
+ * As vagas das listas, abertas depois da coleta, também contam aqui.
+ */
+function belowMinimum(run: WebScraperRun) {
+	if (run.status !== 'success' || run.minJobs === null || run.newJobs === null) return false
+	return (run.outcomes?.pending ?? 0) === 0 && run.newJobs < run.minJobs
+}
+
 /** Posts da coleta descartados pelo post-processing. */
 function discarded(run: WebScraperRun) {
 	const counts = run.outcomes?.counts ?? {}
@@ -352,6 +361,7 @@ function RunRows({ run, open, onToggle }: { run: WebScraperRun; open: boolean; o
 				</td>
 				<td className={cx(TD, 'font-mono')}>
 					{run.newJobs ?? '–'}
+					{belowMinimum(run) && <span className="text-muted text-xs"> · mínimo de {run.minJobs}</span>}
 					{discarded(run) > 0 && <span className="text-muted text-xs"> · {discarded(run)} descartados</span>}
 					{(run.outcomes?.pending ?? 0) > 0 && <span className="text-muted text-xs"> · {run.outcomes?.pending} na fila</span>}
 				</td>

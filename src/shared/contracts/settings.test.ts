@@ -13,7 +13,7 @@ describe('ScraperSettingsSchema', () => {
 		expect(ScraperSettingsSchema.parse({})).toEqual({
 			searchTerms: [],
 			datePosted: 'past-24h',
-			maxPostsPerRun: 50,
+			minJobsPerRun: 10,
 			intervalMinutes: 240,
 			paused: false,
 		})
@@ -47,7 +47,7 @@ describe('ScraperSettingsSchema', () => {
 	})
 
 	test('rejeita limites fora da faixa', () => {
-		expect(ScraperSettingsSchema.safeParse({ maxPostsPerRun: 500 }).success).toBe(false)
+		expect(ScraperSettingsSchema.safeParse({ minJobsPerRun: 51 }).success).toBe(false)
 		expect(ScraperSettingsSchema.safeParse({ intervalMinutes: 0 }).success).toBe(false)
 	})
 })

@@ -55,6 +55,8 @@ type ScraperRunDocument = {
 	finishedAt: Date | null
 	/** Os termos que a coleta vai buscar, na ordem; ausente nas coletas antigas. */
 	plannedTerms: string[]
+	/** O mínimo de vagas que a coleta procurou; `null` nas coletas antigas. */
+	minJobs: number | null
 	/** O resultado de cada termo, gravado assim que ele termina (o site acompanha a coleta em andamento). */
 	terms: ScraperRunTerm[]
 	sent: number
@@ -73,6 +75,7 @@ const scraperRunSchema = new Schema<ScraperRunDocument>(
 		startedAt: { type: Date, required: true },
 		finishedAt: { type: Date, default: null },
 		plannedTerms: { type: [String], default: [] },
+		minJobs: { type: Number, default: null },
 		terms: {
 			type: [
 				{

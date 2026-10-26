@@ -28,7 +28,7 @@ describe('settingsSeedsFromEnv', () => {
 		const seeds = seedsOf({
 			SEARCH_KEYWORDS: 'Enfermeiro, Enfermeira ,, Enfermeiro',
 			SCRAPER_DATE_POSTED: 'past-week',
-			SCRAPER_MAX_POSTS: '30',
+			SCRAPER_MIN_JOBS: '30',
 			SCRAPER_INTERVAL_MINUTES: '180',
 			SCRAPER_PAUSED: 'true',
 			REVIEW_CHECKS_PERCENT: '50',
@@ -47,7 +47,7 @@ describe('settingsSeedsFromEnv', () => {
 				{ term: 'Enfermeira', enabled: true },
 			],
 			datePosted: 'past-week',
-			maxPostsPerRun: 30,
+			minJobsPerRun: 30,
 			intervalMinutes: 180,
 			paused: true,
 		})

@@ -89,7 +89,8 @@ async function collect(trigger: ScraperRunTrigger) {
 
 	return browserLock.run(async () => {
 		await lookups.close()
-		return recordRun(trigger, activeSearchTerms(settings), onTerm => scrapeOnce({ config, settings, queue, logger, onTerm }))
+		const plan = { terms: activeSearchTerms(settings), minJobs: settings.minJobsPerRun }
+		return recordRun(trigger, plan, onTerm => scrapeOnce({ config, settings, queue, logger, onTerm }))
 	})
 }
 

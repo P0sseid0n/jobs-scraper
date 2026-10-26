@@ -110,7 +110,7 @@ export type WebScraperRun = {
 	sent: number
 	/** Posts da busca que já tinham passado pela IA (não enviados de novo). */
 	skipped: number
-	/** Posts novos em um idioma fora dos aceitos, ignorados na coleta (não vão para a IA nem contam no limite). */
+	/** Posts novos em um idioma fora dos aceitos, ignorados na coleta (não vão para a IA nem contam no mínimo). */
 	otherLanguage: number
 	/**
 	 * Vagas salvas a partir dos posts da coleta (cresce enquanto a IA processa a fila); `null` nas coletas antigas,
@@ -124,6 +124,8 @@ export type WebScraperRun = {
 	outcomes: { counts: Partial<Record<SeenPostOutcome | 'unknown', number>>; pending: number } | null
 	/** Os termos que a coleta vai buscar, na ordem (os que faltam são os depois de `terms`); vazio nas coletas antigas. */
 	plannedTerms: string[]
+	/** O mínimo de vagas que a coleta procurou; `null` nas coletas antigas. */
+	minJobs: number | null
 	/** O resultado de cada termo terminado (na coleta em andamento, só os que já terminaram). */
 	terms: WebScraperRunTerm[]
 	error: string | null

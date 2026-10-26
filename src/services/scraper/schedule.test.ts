@@ -1,16 +1,16 @@
 import { describe, expect, test } from 'bun:test'
 
-import { nextRunAt, postsPerTerm, waitingReason } from './schedule'
+import { nextRunAt, jobsPerTerm, waitingReason } from './schedule'
 
-describe('postsPerTerm', () => {
+describe('jobsPerTerm', () => {
 	test('divide o limite exato entre os termos, com o resto nos primeiros', () => {
-		expect(postsPerTerm(50, 1)).toEqual([50])
-		expect(postsPerTerm(50, 3)).toEqual([17, 17, 16])
-		expect(postsPerTerm(50, 7).reduce((total, limit) => total + limit, 0)).toBe(50)
+		expect(jobsPerTerm(50, 1)).toEqual([50])
+		expect(jobsPerTerm(50, 3)).toEqual([17, 17, 16])
+		expect(jobsPerTerm(50, 7).reduce((total, limit) => total + limit, 0)).toBe(50)
 	})
 
 	test('com mais termos que posts, os últimos ficam com 0', () => {
-		expect(postsPerTerm(2, 5)).toEqual([1, 1, 0, 0, 0])
+		expect(jobsPerTerm(2, 5)).toEqual([1, 1, 0, 0, 0])
 	})
 })
 

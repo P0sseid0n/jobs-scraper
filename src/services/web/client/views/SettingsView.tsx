@@ -406,7 +406,7 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 						</Notice>
 					)}
 					<FieldHelp>
-						Até 10 termos, com até 100 caracteres e sem repetidos. Os posts por coleta são divididos entre os termos ativos.
+						Até 10 termos, com até 100 caracteres e sem repetidos. As vagas por coleta são divididas entre os termos ativos.
 					</FieldHelp>
 				</fieldset>
 
@@ -425,14 +425,14 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 						/>
 					</div>
 					<div className="flex flex-col gap-1.5">
-						<FieldLabel htmlFor="maxPostsPerRun">máx. de posts por coleta</FieldLabel>
-						{numberInput(d.scraper.maxPostsPerRun, (next, value) => (next.scraper.maxPostsPerRun = value), 'maxPostsPerRun', {
+						<FieldLabel htmlFor="minJobsPerRun">mín. de vagas por coleta</FieldLabel>
+						{numberInput(d.scraper.minJobsPerRun, (next, value) => (next.scraper.minJobsPerRun = value), 'minJobsPerRun', {
 							min: 1,
-							max: 200,
+							max: 50,
 						})}
-						{fieldError('maxPostsPerRun') ?? (
-							<FieldHelp id="maxPostsPerRun-help">
-								de 1 a 200, somando todos os termos; os descartados pela IA não contam
+						{fieldError('minJobsPerRun') ?? (
+							<FieldHelp id="minJobsPerRun-help">
+								de 1 a 50, somando todos os termos; a coleta só para antes se as buscas acabarem
 							</FieldHelp>
 						)}
 					</div>

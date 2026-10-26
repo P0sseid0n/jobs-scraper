@@ -3,7 +3,7 @@ import type { WebSettings } from '../../api-types'
 export const LIMITS = {
 	searchTerms: 10,
 	termLength: 100,
-	maxPostsPerRun: [1, 200],
+	minJobsPerRun: [1, 50],
 	intervalMinutes: [1, 7 * 24 * 60],
 	keywords: 50,
 	keywordLength: 50,
@@ -33,7 +33,7 @@ export function profileDraftOf(profile: WebSettings['profile']): ProfileDraft {
  */
 export function validateDraft(draft: SettingsDraft) {
 	const errors: Record<string, string> = {}
-	const { searchTerms, maxPostsPerRun, intervalMinutes } = draft.scraper
+	const { searchTerms, minJobsPerRun, intervalMinutes } = draft.scraper
 	const seen = new Set<string>()
 
 	searchTerms.forEach((item, index) => {
@@ -49,7 +49,7 @@ export function validateDraft(draft: SettingsDraft) {
 	// Sem termos ativos é válido: o scraper fica em espera (a tela avisa)
 	if (searchTerms.length > LIMITS.searchTerms) errors.searchTerms = `Use no máximo ${LIMITS.searchTerms} termos`
 
-	if (!isIntIn(maxPostsPerRun, LIMITS.maxPostsPerRun)) errors.maxPostsPerRun = 'Use um número inteiro de 1 a 200'
+	if (!isIntIn(minJobsPerRun, LIMITS.minJobsPerRun)) errors.minJobsPerRun = 'Use um número inteiro de 1 a 50'
 	if (!isIntIn(intervalMinutes, LIMITS.intervalMinutes)) errors.intervalMinutes = 'Use um número inteiro de 1 a 10.080 (7 dias)'
 
 	const processing = draft['post-processing']

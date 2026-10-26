@@ -33,7 +33,7 @@ A sessão fica salva em `data/scraper/linkedin-cookies.json` (no Docker, no volu
 
 ## Variáveis
 
-`LINKEDIN_EMAIL`, `LINKEDIN_PASSWORD` e `LINKEDIN_LI_AT` (ou a conta salva em Configurações › Contas, que vale no lugar delas e é relida a cada coleta; ver [credenciais](../../shared/README.md#credenciais)), `LINKEDIN_COOKIES_FILE`, `HEADLESS`, `BROWSER_NO_SANDBOX`, `SCRAPER_SCROLL_DELAY_MS` e `SCRAPER_LOOKUP_DELAY_MS`. `SEARCH_KEYWORDS`, `SCRAPER_DATE_POSTED`, `SCRAPER_MAX_POSTS`, `SCRAPER_INTERVAL_MINUTES` e `SCRAPER_PAUSED` só preenchem as configurações que ainda não existem (ver [shared](../../shared/README.md#configurações-em-tempo-de-execução)); `SCRAPER_INTERVAL_MINUTES` também decide se o scraper roda uma vez (0) ou fica rodando. Todas estão documentadas no `.env.example`.
+`LINKEDIN_EMAIL`, `LINKEDIN_PASSWORD` e `LINKEDIN_LI_AT` (ou a conta salva em Configurações › Contas, que vale no lugar delas e é relida a cada coleta; ver [credenciais](../../shared/README.md#credenciais)), `LINKEDIN_COOKIES_FILE`, `HEADLESS`, `BROWSER_NO_SANDBOX`, `SCRAPER_SCROLL_DELAY_MS` e `SCRAPER_LOOKUP_DELAY_MS`. `SEARCH_KEYWORDS`, `SCRAPER_DATE_POSTED`, `SCRAPER_MIN_JOBS`, `SCRAPER_INTERVAL_MINUTES` e `SCRAPER_PAUSED` só preenchem as configurações que ainda não existem (ver [shared](../../shared/README.md#configurações-em-tempo-de-execução)); `SCRAPER_INTERVAL_MINUTES` também decide se o scraper roda uma vez (0) ou fica rodando. Todas estão documentadas no `.env.example`.
 
 ## Arquivos
 

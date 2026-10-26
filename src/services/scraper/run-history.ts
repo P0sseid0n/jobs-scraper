@@ -6,16 +6,22 @@ import { LoginError } from './login'
 export type TermProgress = (terms: ScraperRunTerm[]) => Promise<void>
 
 /**
- * Executa a coleta registrando-a em `scraper_runs` (em andamento → sucesso ou falha). Os termos previstos (`planned`)
- * e o resultado de cada termo, assim que ele termina, ficam gravados: o site mostra a coleta andando.
+ * Executa a coleta registrando-a em `scraper_runs` (em andamento → sucesso ou falha). Os termos previstos e o mínimo de
+ * vagas (`plan`) e o resultado de cada termo, assim que ele termina, ficam gravados: o site mostra a coleta andando.
  * @returns O resultado por termo, o total enviado e se todas as buscas falharam.
  */
 export async function recordRun(
 	trigger: ScraperRunTrigger,
-	planned: string[],
+	plan: { terms: string[]; minJobs: number },
 	collect: (onTerm: TermProgress) => Promise<ScraperRunTerm[]>,
 ) {
-	const run = await ScraperRun.create({ trigger, status: 'running', startedAt: new Date(), plannedTerms: planned })
+	const run = await ScraperRun.create({
+		trigger,
+		status: 'running',
+		startedAt: new Date(),
+		plannedTerms: plan.terms,
+		minJobs: plan.minJobs,
+	})
 
 	// O andamento é só para o site: se não der para gravar, a coleta segue (o resultado final é gravado no fim)
 	const onTerm: TermProgress = terms =>
