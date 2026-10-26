@@ -42,7 +42,12 @@ export function JobCard({
 	return (
 		<article
 			data-flip-key={job.postId}
-			className={cx(JOB_CARD, DOT_GUTTER, 'group/card relative', selected ? 'inverted border-inv-bg' : 'hover:border-line-strong')}
+			className={cx(
+				JOB_CARD,
+				DOT_GUTTER,
+				'group/card relative',
+				selected ? 'border-lime-accent ring-1 ring-lime-accent' : 'hover:border-line-strong',
+			)}
 			aria-current={selected ? 'true' : undefined}
 		>
 			<ViewedDot job={job} viewed={viewed} />

@@ -25,7 +25,15 @@ import { useStore } from '../lib/store'
 import { RUNS_PAGE_SIZE_OPTIONS, runsPageSize } from '../stores/runs-page-size'
 import { copyText, notify } from '../stores/toast'
 
-const TRIGGERS: Record<WebScraperRun['trigger'], string> = { schedule: 'Agendada', manual: 'Manual', once: 'Execução única' }
+/** Como a coleta começou, em palavras de quem usa o site. */
+const TRIGGERS: Record<WebScraperRun['trigger'], string> = {
+	schedule: 'Automática',
+	manual: 'Pedida por você',
+	once: 'Execução única',
+}
+
+/** A falha que não foi no login: a mensagem do erro fica no "ver o erro completo". */
+const UNEXPECTED_FAILURE = 'A coleta parou por um erro inesperado. A próxima tenta de novo sozinha.'
 
 /** O que o post-processing fez com cada post, na ordem em que os filtros rodam. */
 const OUTCOMES: Record<keyof NonNullable<WebScraperRun['outcomes']>['counts'], string> = {
@@ -125,7 +133,7 @@ function FailureAlert({ status }: { status: ScraperStatus | null }) {
 			<p className="font-semibold">{login?.title ?? 'A última coleta falhou'}</p>
 			<p className="text-sm">
 				{formatDateTime(last.startedAt)} ·{' '}
-				{login ? `${login.hint} Até lá, as coletas não entram no LinkedIn.` : (last.error ?? 'sem detalhes')}
+				{login ? `${login.hint} Até lá, as coletas não entram no LinkedIn.` : UNEXPECTED_FAILURE}
 			</p>
 			{login && (
 				<div className="flex flex-wrap items-center gap-3 pt-1">
@@ -137,9 +145,9 @@ function FailureAlert({ status }: { status: ScraperStatus | null }) {
 					<RouteLink to="/configuracoes">abrir configurações › contas</RouteLink>
 				</div>
 			)}
-			{login && last.error && (
+			{last.error && (
 				<details className="text-xs">
-					<summary className="cursor-pointer text-muted">detalhes técnicos</summary>
+					<summary className="cursor-pointer text-muted">ver o erro completo</summary>
 					<p className="mt-1 font-mono break-all">{last.error}</p>
 				</details>
 			)}
@@ -228,7 +236,7 @@ function TermCard({ term }: { term: WebScraperRunTerm }) {
 			)}
 			{!empty && (
 				<details className="text-xs">
-					<summary className="cursor-pointer text-muted">detalhes técnicos</summary>
+					<summary className="cursor-pointer text-muted">ver o erro completo</summary>
 					<CodeBlock label="erro original" onCopy={() => copyText(term.error ?? '', 'Erro')} className="mt-1.5">
 						{term.error}
 					</CodeBlock>
@@ -312,6 +320,14 @@ function LiveRun({ run }: { run: WebScraperRun }) {
 	)
 }
 
+/** A falha que não foi no login, resumida: o erro de uma biblioteca (do navegador, do banco) não vai para a tabela. */
+function failureSummary(run: WebScraperRun) {
+	// As duas mensagens do próprio scraper (`run-history.ts`) já são para pessoas
+	if (run.error === 'Todas as buscas falharam') return 'todas as buscas falharam'
+	if (run.error?.startsWith('Coleta interrompida')) return 'interrompida: o serviço foi reiniciado no meio'
+	return 'parou por um erro inesperado'
+}
+
 function RunRows({ run, open, onToggle }: { run: WebScraperRun; open: boolean; onToggle: () => void }) {
 	const failedTerms = run.terms.filter(term => term.error && term.errorKind !== 'empty').length
 	const emptyTerms = run.terms.filter(term => term.errorKind === 'empty').length
@@ -339,11 +355,15 @@ function RunRows({ run, open, onToggle }: { run: WebScraperRun; open: boolean; o
 					{discarded(run) > 0 && <span className="text-muted text-xs"> · {discarded(run)} descartados</span>}
 					{(run.outcomes?.pending ?? 0) > 0 && <span className="text-muted text-xs"> · {run.outcomes?.pending} na fila</span>}
 				</td>
-				<td className={cx(TD, 'max-w-85 whitespace-normal', (run.error || failedTerms > 0) && 'text-danger')}>
+				<td
+					className={cx(TD, 'max-w-85 whitespace-normal', (run.error || failedTerms > 0) && 'text-danger')}
+					// A mensagem original do erro, para quem quiser ver (o texto da célula é o resumo)
+					title={run.status === 'failed' ? (run.error ?? undefined) : undefined}
+				>
 					{run.error && run.status === 'failed'
 						? run.loginFailure
 							? LOGIN_FAILURES[run.loginFailure].title
-							: run.error
+							: failureSummary(run)
 						: run.terms.length > 0
 							? [
 									`${run.terms.length - failedTerms} de ${run.terms.length}`,
@@ -684,7 +704,7 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 
 		return (
 			<div className="flex flex-wrap gap-4">
-				<section className="inverted flex grow-2 basis-130 flex-col gap-5 rounded-xl p-7 max-md:p-4.5" aria-live="polite">
+				<section className={card({ size: 'lg', className: 'flex grow-2 basis-130 flex-col gap-5' })} aria-live="polite">
 					<div className="flex items-center justify-between gap-3 flex-wrap">
 						<div className="flex items-center gap-2.5">
 							<Badge tone={running ? 'lime' : status.paused || waiting || firstRun ? 'muted' : 'ok'}>
@@ -739,14 +759,7 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 											? '“coletar agora” continua funcionando'
 											: formatInterval(status.intervalMinutes)}
 						</span>
-						<Button
-							variant="lime"
-							size="lg"
-							// No card escuro, o lime apagado sumia: desativado, o botão fica na cor da borda
-							className="disabled:bg-line disabled:text-muted disabled:opacity-100"
-							disabled={!!running || requesting || starting || waiting}
-							onClick={runNow}
-						>
+						<Button variant="lime" size="lg" disabled={!!running || requesting || starting || waiting} onClick={runNow}>
 							<Icon name={running || starting ? 'spinner' : 'refresh'} />
 							{running ? 'coletando…' : requesting ? 'pedindo…' : starting ? 'iniciando…' : 'coletar agora'}
 						</Button>
@@ -817,6 +830,7 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 				{runsState === 'loading' && runs.length === 0 && <Skeleton className={card({ className: 'min-h-60' })} aria-busy="true" />}
 				{runsState === 'ready' && runs.length === 0 && (
 					<EmptyState
+						illustration="runs"
 						title="Nenhuma coleta nos últimos 90 dias"
 						description="Use “coletar agora” para fazer a primeira; depois, elas seguem o intervalo."
 					/>
@@ -836,7 +850,7 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 											status
 										</th>
 										<th scope="col" className={TH}>
-											gatilho
+											origem
 										</th>
 										<th scope="col" className={TH}>
 											início

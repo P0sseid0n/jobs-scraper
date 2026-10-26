@@ -85,6 +85,7 @@
 
 	/* Sombra dos elementos flutuantes (toast, bandeja, modal); `--elevation` troca com o tema */
 	--shadow-float: var(--elevation);
+	--shadow-soft: var(--elevation-soft);
 	/* Brilho do botão lime no hover */
 	--shadow-glow: 0 6px 18px -6px var(--color-lime-accent);
 
@@ -446,22 +447,23 @@
 
 /* Os tokens (tema claro). `static` gera todas as variáveis, também as usadas só aqui (ex.: no `inverted`) */
 @theme static {
-	--color-bg: #f5f6ef;
+	/* Neutros quentes (creme e pedra): o lime fica só para o destaque */
+	--color-bg: #f7f5f0;
 	--color-surface: #ffffff;
-	--color-surface-2: #eceee4;
-	--color-ink: #141613;
-	--color-muted: #585c52;
-	--color-line: #dcdfd2;
+	--color-surface-2: #efebe4;
+	--color-ink: #1d1b18;
+	--color-muted: #5e5850;
+	--color-line: #e4ded4;
 	--color-lime: #c8f542;
-	--color-lime-ink: #141613;
-	--color-lime-soft: #eefbc4;
+	--color-lime-ink: #1d1b18;
+	--color-lime-soft: #f1f9d2;
 	--color-lime-text: #3b6400;
 	--color-lime-hover: #b9e632;
 	--color-lime-accent: #8fc20c;
 	--color-lime-glow: rgb(200 245 66 / 0.35);
-	--color-inv-bg: #141613;
-	--color-inv-ink: #f5f6ef;
-	--color-inv-muted: #b4b9ac;
+	--color-inv-bg: #1d1b18;
+	--color-inv-ink: #f7f5f0;
+	--color-inv-muted: #bdb6ab;
 	--color-inv-line: rgb(255 255 255 / 0.16);
 	--color-inv-surface-2: rgb(255 255 255 / 0.1);
 	--color-warn: #7a4300;
@@ -480,9 +482,9 @@
 	/* Contorno de foco: o lime de texto, com contraste de pelo menos 3:1 com o fundo nos dois temas */
 	--color-focus: var(--color-lime-text);
 	--color-switch-knob: #ffffff;
-	--color-backdrop: rgb(20 22 19 / 0.45);
+	--color-backdrop: rgb(29 27 24 / 0.45);
 	/* Fundo do CodeBlock: no escuro, preto translúcido, que escurece o fundo de baixo sem trazer outra cor */
-	--color-code-bg: #141613;
+	--color-code-bg: #1d1b18;
 
 	/* Pontos de status: as mesmas cores nos dois temas */
 	--color-ok-dot: #2ecc71;
@@ -494,11 +496,11 @@
 	--font-sans: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
 	--font-mono: 'Geist Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
 
-	--radius-xs: 6px;
-	--radius-sm: 10px;
-	--radius-md: 12px;
-	--radius-lg: 14px;
-	--radius-xl: 18px;
+	--radius-xs: 8px;
+	--radius-sm: 12px;
+	--radius-md: 14px;
+	--radius-lg: 18px;
+	--radius-xl: 22px;
 	--radius-pill: 999px;
 }
 
@@ -517,7 +519,7 @@
 }
 
 /*
- * Superfície escura nos dois temas (card de vaga selecionado, card da coleta, bandeja de currículos). Redefine os
+ * Superfície escura nos dois temas (o bloco de código). Redefine os
  * tokens, então `bg-surface-2`, `text-muted`, `border-line` etc. dentro dela já saem na versão escura.
  */
 @utility inverted {
@@ -541,7 +543,9 @@
 @layer base {
 	:root {
 		/* Sombra dos elementos flutuantes; fora do @theme para trocar com o tema (use `shadow-(--elevation)`) */
-		--elevation: 0 18px 40px rgb(20 22 19 / 0.18);
+		--elevation: 0 2px 6px rgb(29 27 24 / 0.06), 0 16px 36px -8px rgb(29 27 24 / 0.16);
+		/* Sombra leve dos cards: separa do fundo sem pesar */
+		--elevation-soft: 0 1px 2px rgb(29 27 24 / 0.04), 0 6px 16px -8px rgb(29 27 24 / 0.1);
 		/* Quanto do `muted` vai no placeholder: no fundo escuro a mistura com o transparente escurece demais */
 		--placeholder-mix: 60%;
 		/* O brilho que passa pelos esqueletos: no escuro, bem mais fraco */
@@ -554,17 +558,17 @@
 		/* Tema escuro: os mesmos tokens com outros valores, na mesma variante do `dark:` */
 		@variant dark {
 			& {
-				--color-bg: #0e100c;
-				--color-surface: #161913;
-				--color-surface-2: #1f231b;
-				--color-ink: #eceee4;
-				--color-muted: #a0a698;
-				--color-line: #2b3026;
-				--color-lime-soft: #26300f;
+				--color-bg: #131210;
+				--color-surface: #1b1a17;
+				--color-surface-2: #25231f;
+				--color-ink: #eeebe5;
+				--color-muted: #a9a399;
+				--color-line: #302d28;
+				--color-lime-soft: #283010;
 				--color-lime-text: #c8f542;
-				--color-inv-bg: #232a18;
-				--color-inv-ink: #f2f5ea;
-				--color-inv-muted: #b9c0ae;
+				--color-inv-bg: #2a2723;
+				--color-inv-ink: #f4f1eb;
+				--color-inv-muted: #bfb8ad;
 				--color-warn: #ffc37a;
 				--color-warn-bg: #3a2a12;
 				--color-danger: #ff9c90;
@@ -573,7 +577,8 @@
 				--color-check-low: var(--color-inv-check-low);
 				--color-check-high: var(--color-inv-check-high);
 				--color-code-bg: rgb(0 0 0 / 0.35);
-				--elevation: 0 18px 40px rgb(0 0 0 / 0.5);
+				--elevation: 0 2px 6px rgb(0 0 0 / 0.3), 0 16px 36px -8px rgb(0 0 0 / 0.5);
+				--elevation-soft: 0 1px 2px rgb(0 0 0 / 0.25);
 				--placeholder-mix: 85%;
 				--shimmer: rgb(255 255 255 / 0.05);
 

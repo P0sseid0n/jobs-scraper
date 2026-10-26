@@ -104,8 +104,7 @@ function ChecksList({ job, alignRight }: { job: Pick<WebJob, 'extractionChecks' 
 			<ul className="m-0 flex list-none flex-col gap-1 p-0 text-sm">
 				{job.extractionChecks.map(check => (
 					<li key={check} className="flex items-center gap-2">
-						{/* Na superfície escura (card selecionado), o vermelho claro dos pontos de status */}
-						<Icon name="close" size={14} className="text-danger in-[.inverted]:text-danger-dot" />
+						<Icon name="close" size={14} className="text-danger" />
 						<span className="font-medium">{EXTRACTION_CHECK_LABELS[check]}</span>
 					</li>
 				))}
