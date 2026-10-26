@@ -1,5 +1,5 @@
 import { useNavigate, useSearch } from '@tanstack/react-router'
-import { useState, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 
 import { isJobRouteId } from '../../job-route-id'
 import type { JobFilters } from '../api'
@@ -21,6 +21,7 @@ import { StatusDot } from '../components/ui/StatusDot'
 import { FIELDSET, LABEL } from '../components/ui/text'
 import { TextLink } from '../components/ui/TextLink'
 import { cx } from '../lib/cx'
+import { useFiltersDrag } from '../lib/filters-drag'
 import { useFlipList } from '../lib/flip-list'
 import { CONTRACT_TYPES, LANGUAGE_NAMES, WORK_MODES } from '../lib/format'
 import { hasActiveFilters } from '../lib/job-filters'
@@ -177,10 +178,51 @@ function MobileFiltersBar({ open }: { open: boolean }) {
 	)
 }
 
+/** A troca do ícone da alça dos filtros: o que sai gira e encolhe, o que entra cresce no lugar. */
+const HANDLE_ICON = 'col-start-1 row-start-1 transition duration-300 ease-spring motion-reduce:transition-none'
+
+/**
+ * A alça dos filtros (desktop), na borda direita da coluna, acompanhando a rolagem: clicada, abre ou fecha; arrastada,
+ * a coluna segue o mouse (`useFiltersDrag`). O ícone mostra o que vai acontecer: o funil abre, a seta fecha.
+ */
+function FiltersHandle({ open, count, drag }: { open: boolean; count: number; drag: ReturnType<typeof useFiltersDrag> }) {
+	const closing = drag.previewOpen
+
+	return (
+		<div className="sticky top-19 z-10 h-0 max-md:hidden">
+			<IconButton
+				bordered
+				label={open ? 'esconder filtros' : count > 0 ? `mostrar filtros (${count} ligados)` : 'mostrar filtros'}
+				aria-expanded={open}
+				aria-controls="filters"
+				className={cx('absolute top-0 right-0 touch-none bg-bg', drag.dragging ? 'cursor-grabbing' : 'cursor-grab')}
+				{...drag.handleProps}
+			>
+				<Icon name="filter" className={cx(HANDLE_ICON, closing && '-rotate-90 scale-50 opacity-0')} />
+				<Icon name="back" className={cx(HANDLE_ICON, !closing && 'rotate-90 scale-50 opacity-0')} />
+				{count > 0 && !closing && (
+					// A chave remonta o contador quando ele muda: pula de novo
+					<span
+						key={count}
+						className="absolute -top-1 -right-1 grid size-4.5 place-items-center rounded-full bg-ink font-mono text-xs text-bg animate-pop motion-reduce:animate-none"
+					>
+						{count}
+					</span>
+				)}
+			</IconButton>
+		</div>
+	)
+}
+
 function Filters({ open }: { open: boolean }) {
 	const { facets } = useJobs()
 	const { filters, setFilters, clearFilters } = useFilters()
 	const [allSkills, setAllSkills] = useState(false)
+	const aside = useRef<HTMLElement>(null)
+	const content = useRef<HTMLDivElement>(null)
+	const drag = useFiltersDrag({ aside, content, open, setOpen: filtersOpen.set })
+	// Arrastando, o conteúdo aparece (com a opacidade seguindo a largura) mesmo com os filtros ainda fechados
+	const expanded = open || drag.dragging
 
 	const skills = facets?.skills ?? []
 	const selectedSkills = filters.skills.filter(skill => !skills.some(item => item.name.toLowerCase() === skill.toLowerCase()))
@@ -189,10 +231,11 @@ function Filters({ open }: { open: boolean }) {
 	const count = activeFilterChips(filters).length
 
 	return (
-		// Desktop: fechados, viram uma faixa com o botão (que acompanha a rolagem); abertos, a coluna desliza a partir dela. O
+		// Desktop: fechados, viram uma faixa com a alça (que acompanha a rolagem); abertos, a coluna desliza a partir dela. O
 		// padding com margem negativa deixa o contorno de foco das pills da borda fora do corte. Celular: card que desce
 		// abaixo do botão "filtros"
 		<aside
+			ref={aside}
 			className={cx(
 				'relative shrink-0 self-stretch overflow-x-clip transition-all duration-300 ease-out motion-reduce:transition-none md:-mx-1 md:px-1',
 				open ? 'md:w-66' : 'md:w-12 max-md:hidden',
@@ -201,36 +244,20 @@ function Filters({ open }: { open: boolean }) {
 			aria-label="Filtros"
 			id="filters"
 		>
-			{!open && (
-				<IconButton
-					bordered
-					label={count > 0 ? `mostrar filtros (${count} ligados)` : 'mostrar filtros'}
-					aria-expanded={false}
-					className="sticky top-19 max-md:hidden"
-					onClick={() => filtersOpen.set(true)}
-				>
-					<Icon name="filter" />
-					{count > 0 && (
-						<span className="absolute -top-1 -right-1 grid size-4.5 place-items-center rounded-full bg-ink font-mono text-xs text-bg">
-							{count}
-						</span>
-					)}
-				</IconButton>
-			)}
+			<FiltersHandle open={open} count={count} drag={drag} />
 
 			{/* Fechados, saem do fluxo (sem esticar a página) e somem aos poucos enquanto a coluna encolhe */}
 			<div
-				inert={!open}
+				ref={content}
+				inert={!expanded}
 				className={cx(
 					'flex w-64 flex-col gap-5.5 transition-all duration-300 ease-out motion-reduce:transition-none max-md:w-auto',
-					!open && 'invisible absolute top-0 left-1 opacity-0',
+					!expanded && 'invisible absolute top-0 left-1 opacity-0',
 				)}
 			>
-				<div className="flex items-center justify-between gap-3 max-md:hidden">
+				{/* O lugar da alça, que fica por cima (acompanhando a rolagem) */}
+				<div className="flex min-h-10 items-center justify-between gap-3 pr-12 max-md:hidden">
 					<span className={LABEL}>filtros_</span>
-					<IconButton size="sm" label="esconder filtros" aria-expanded onClick={() => filtersOpen.set(false)}>
-						<Icon name="back" />
-					</IconButton>
 				</div>
 
 				<SearchInput
