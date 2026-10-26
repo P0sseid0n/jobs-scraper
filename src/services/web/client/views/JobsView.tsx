@@ -195,7 +195,7 @@ function FiltersHandle({ open, count, drag }: { open: boolean; count: number; dr
 				label={open ? 'esconder filtros' : count > 0 ? `mostrar filtros (${count} ligados)` : 'mostrar filtros'}
 				aria-expanded={open}
 				aria-controls="filters"
-				className={cx('absolute top-0 right-0 touch-none bg-bg', drag.dragging ? 'cursor-grabbing' : 'cursor-grab')}
+				className={cx('absolute top-0 right-0 touch-none bg-bg', drag.dragging && 'cursor-ew-resize')}
 				{...drag.handleProps}
 			>
 				<Icon name="filter" className={cx(HANDLE_ICON, closing && '-rotate-90 scale-50 opacity-0')} />
