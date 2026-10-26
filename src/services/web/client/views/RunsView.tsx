@@ -11,6 +11,7 @@ import { EmptyState } from '../components/ui/EmptyState'
 import { iconButton, IconButton } from '../components/ui/IconButton'
 import { Notice } from '../components/ui/Notice'
 import { Hero, Page } from '../components/ui/Page'
+import { RollingNumber } from '../components/ui/RollingNumber'
 import { SelectMenu } from '../components/ui/SelectMenu'
 import { Skeleton } from '../components/ui/Skeleton'
 import { StatusDot, type StatusDotTone } from '../components/ui/StatusDot'
@@ -234,6 +235,80 @@ function TermCard({ term }: { term: WebScraperRunTerm }) {
 				</details>
 			)}
 		</li>
+	)
+}
+
+/**
+ * A coleta em andamento, ao vivo (o status é relido a cada 5 s): os números rolam como num odômetro, e cada termo tem a
+ * barra dele: cheia quando terminou, com uma faixa correndo no que está sendo coletado agora e vazia nos que faltam.
+ */
+function LiveRun({ run }: { run: WebScraperRun }) {
+	const done = run.terms.length
+	const counters = [
+		{ label: 'posts novos', value: run.sent },
+		{ label: 'vagas novas', value: run.newJobs ?? 0 },
+		{ label: 'descartados', value: discarded(run) },
+	]
+
+	return (
+		<div className="flex flex-col gap-5">
+			<p className="text-muted text-sm">
+				Buscando os posts de cada termo e enviando para a IA. Uma coleta leva de 2 a 10 minutos; as vagas novas continuam chegando
+				enquanto a IA lê a fila.
+			</p>
+			<dl className="m-0 grid grid-cols-3 gap-4">
+				{counters.map(counter => (
+					<div key={counter.label} className="flex flex-col gap-1">
+						<dt className="font-mono text-xs text-muted">{counter.label}</dt>
+						<dd className="m-0 font-mono text-3xl">
+							<RollingNumber value={counter.value} />
+						</dd>
+					</div>
+				))}
+			</dl>
+			<ol className="m-0 flex list-none flex-col gap-3 p-0" aria-label="Termos da coleta">
+				{run.plannedTerms.map((term, index) => {
+					const result = run.terms[index]
+					const state = index < done ? 'done' : index === done ? 'current' : 'upcoming'
+					const failed = !!result?.error && result.errorKind !== 'empty'
+
+					return (
+						<li key={`${index}-${term}`} className="flex flex-col gap-1.5">
+							<div className="flex items-center justify-between gap-3 font-mono text-xs">
+								<span className={cx('flex min-w-0 items-center gap-2', state === 'upcoming' && 'text-muted')}>
+									{state === 'current' && <StatusDot tone="lime" glow pulse />}
+									<span className="truncate">{term}</span>
+								</span>
+								<span className={cx('shrink-0', failed ? 'text-danger' : 'text-muted')}>
+									{state === 'done'
+										? failed
+											? 'falhou'
+											: result?.errorKind === 'empty'
+												? 'sem resultados'
+												: `${result?.sent ?? 0} novos`
+										: state === 'current'
+											? 'coletando…'
+											: 'a seguir'}
+								</span>
+							</div>
+							<span className="relative h-1 overflow-hidden rounded-pill bg-line" aria-hidden="true">
+								{/* A mesma barra do começo ao fim: ao terminar o termo, ela enche */}
+								<span
+									className={cx(
+										'block h-full origin-left rounded-pill transition-transform duration-700 ease-glide motion-reduce:transition-none',
+										failed ? 'bg-danger' : 'bg-lime-accent',
+										state === 'done' ? 'scale-x-100' : 'scale-x-0',
+									)}
+								/>
+								{state === 'current' && (
+									<span className="absolute inset-y-0 left-0 w-2/5 rounded-pill bg-lime-accent animate-sweep motion-reduce:animate-none" />
+								)}
+							</span>
+						</li>
+					)
+				})}
+			</ol>
+		</div>
 	)
 }
 
@@ -626,7 +701,9 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 						)}
 					</div>
 
-					{running ? (
+					{running && running.plannedTerms.length > 0 ? (
+						<LiveRun run={running} />
+					) : running ? (
 						<p className="text-muted text-sm">
 							Buscando os posts de cada termo ativo e enviando para a IA. Uma coleta leva de 2 a 10 minutos; o resultado por
 							termo aparece no histórico quando ela terminar.

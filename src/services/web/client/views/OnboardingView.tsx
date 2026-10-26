@@ -163,10 +163,17 @@ export function OnboardingView({
 					label="Alternar tema claro/escuro"
 					bordered
 					className="absolute top-6 right-8 max-lg:top-3 max-lg:right-4"
-					onClick={toggleTheme}
+					onClick={event => toggleTheme(event.currentTarget)}
 				>
-					<Icon name="moon" className="dark:hidden" />
-					<Icon name="sun" className="hidden dark:block" />
+					{/* Os dois ícones no mesmo lugar: um gira e encolhe enquanto o outro cresce */}
+					<Icon
+						name="moon"
+						className="col-start-1 row-start-1 transition duration-500 ease-spring dark:scale-0 dark:rotate-90 dark:opacity-0"
+					/>
+					<Icon
+						name="sun"
+						className="col-start-1 row-start-1 scale-0 -rotate-90 opacity-0 transition duration-500 ease-spring dark:scale-100 dark:rotate-0 dark:opacity-100"
+					/>
 				</IconButton>
 				{/* Sem espaço para as etapas ao lado do formulário: a barra de progresso no lugar delas */}
 				{numbered >= 0 && (

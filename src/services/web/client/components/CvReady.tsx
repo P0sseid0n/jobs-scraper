@@ -49,8 +49,12 @@ export function CvReady({ cv }: { cv: WebCvRequest }) {
 				/>
 			)}
 			<div className="flex items-center gap-3">
-				<span className={cx(fresh && 'animate-pop')}>
-					<PdfIcon>PDF</PdfIcon>
+				{/* Acabou de ficar pronto: a folha desce da fenda, como saindo de uma impressora */}
+				<span className={cx('relative shrink-0', fresh && 'overflow-hidden pt-1')}>
+					{fresh && <span aria-hidden="true" className="absolute inset-x-0 top-0 z-10 h-1 rounded-pill bg-ink" />}
+					<span className={cx('block', fresh && 'animate-print-out')}>
+						<PdfIcon>PDF</PdfIcon>
+					</span>
 				</span>
 				<div className="grow min-w-0">
 					<div className="font-semibold text-sm">currículo pronto</div>

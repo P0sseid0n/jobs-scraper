@@ -317,6 +317,85 @@
 			stroke-dashoffset: 0;
 		}
 	}
+
+	/* A tela nova entra pelo lado da aba escolhida no menu (à direita das outras, entra pela direita) */
+	--animate-page-next: page-next 380ms var(--ease-glide) both;
+	--animate-page-back: page-back 380ms var(--ease-glide) both;
+	/* A pílula das vagas novas cai do topo */
+	--animate-drop-in: drop-in 500ms var(--ease-spring) both;
+	/* A barra do tempo do aviso, que esvazia (a duração vem no `style`) */
+	--animate-drain: drain linear both;
+	/* O currículo pronto sai da fenda da "impressora" */
+	--animate-print-out: print-out 900ms var(--ease-glide) both;
+	/* O termo sendo coletado: uma faixa que atravessa a barra sem parar */
+	--animate-sweep: sweep 1400ms ease-in-out infinite;
+
+	@keyframes page-next {
+		from {
+			opacity: 0;
+			transform: translateX(24px);
+		}
+	}
+
+	@keyframes page-back {
+		from {
+			opacity: 0;
+			transform: translateX(-24px);
+		}
+	}
+
+	@keyframes drop-in {
+		from {
+			opacity: 0;
+			transform: translateY(-16px) scale(0.9);
+		}
+	}
+
+	@keyframes drain {
+		from {
+			transform: scaleX(1);
+		}
+		to {
+			transform: scaleX(0);
+		}
+	}
+
+	@keyframes print-out {
+		from {
+			transform: translateY(-100%);
+		}
+	}
+
+	@keyframes sweep {
+		from {
+			translate: -100% 0;
+		}
+		to {
+			translate: 250% 0;
+		}
+	}
+}
+
+/*
+ * Os avisos empilhados (`Toasts`): cada um mais antigo (`--depth`, no `style`) encolhe e apaga um pouco, como se ficasse
+ * atrás; com o mouse em cima da pilha, todos voltam ao tamanho normal.
+ */
+@utility toast-stack {
+	scale: calc(1 - var(--depth, 0) * 0.04);
+	opacity: calc(1 - var(--depth, 0) * 0.18);
+	transition:
+		scale 300ms var(--ease-spring),
+		opacity 300ms ease-out;
+
+	:where(.group\/toasts:hover) & {
+		scale: 1;
+		opacity: 1;
+	}
+}
+
+/* Animação parada (a barra do tempo do aviso, com o mouse em cima) */
+@utility paused {
+	animation-play-state: paused;
 }
 
 /* Atraso da animação em degraus de 90 ms, para os blocos chegarem um depois do outro: `stagger-2` espera 180 ms */
@@ -528,6 +607,13 @@
 
 	button:disabled {
 		cursor: not-allowed;
+	}
+
+	/* A troca de tema (`toggleTheme`): sem o esmaecer padrão, a tela nova aparece num círculo que cresce do botão */
+	::view-transition-old(root),
+	::view-transition-new(root) {
+		animation: none;
+		mix-blend-mode: normal;
 	}
 
 	/* Sem isso, um grupo de opções não encolhe abaixo da largura do conteúdo (os filtros num painel estreito) */

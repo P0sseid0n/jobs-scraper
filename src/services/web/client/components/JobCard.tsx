@@ -68,7 +68,7 @@ export function JobCard({
 					{/* Já vista: o cargo perde o contraste; não vista: a bolinha (fora do link, na margem do card) */}
 					<span
 						className={cx(
-							'text-base leading-snug font-semibold wrap-break-word group-hover:underline group-hover:underline-offset-3',
+							'text-base leading-snug font-semibold wrap-break-word transition-colors duration-500 group-hover:underline group-hover:underline-offset-3',
 							viewed && 'text-muted',
 						)}
 					>
@@ -147,18 +147,26 @@ function ViewedDot({ job, viewed }: { job: WebJob; viewed: boolean }) {
 			)}
 			onClick={() => void setViewed(job, !viewed)}
 		>
-			{viewed ? (
+			{/* As duas no mesmo lugar: vista, a bolinha lime encolhe e some enquanto o anel cresce (e o contrário) */}
+			<span
+				aria-hidden="true"
+				className="grid place-items-center transition duration-300 ease-spring group-hover/dot:scale-125 group-active/dot:scale-90 group-active/dot:duration-75"
+			>
 				<span
-					aria-hidden="true"
-					className="size-2.5 rounded-full border border-current text-muted transition duration-300 ease-spring group-hover/dot:scale-125 group-hover/dot:text-ink group-active/dot:scale-90 group-active/dot:duration-75"
+					className={cx(
+						'col-start-1 row-start-1 size-2.5 rounded-full border border-current text-muted transition duration-500 ease-spring group-hover/dot:text-ink motion-reduce:transition-none',
+						!viewed && 'scale-0 opacity-0',
+					)}
 				/>
-			) : (
 				<StatusDot
 					tone="lime"
 					glow
-					className="size-2.5 transition duration-300 ease-spring group-hover/dot:scale-125 group-active/dot:scale-90 group-active/dot:duration-75"
+					className={cx(
+						'col-start-1 row-start-1 size-2.5 transition duration-500 ease-spring motion-reduce:transition-none',
+						viewed && 'scale-0 opacity-0',
+					)}
 				/>
-			)}
+			</span>
 		</button>
 	)
 }

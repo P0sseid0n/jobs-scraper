@@ -1,5 +1,6 @@
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import { useRef, useState, type ReactNode } from 'react'
+import { flushSync } from 'react-dom'
 
 import { isJobRouteId } from '../../job-route-id'
 import type { JobFilters } from '../api'
@@ -15,6 +16,7 @@ import { Checkbox, SearchInput } from '../components/ui/Input'
 import { Hero, Page } from '../components/ui/Page'
 import { Pill, PILL_COUNT, PillGroup } from '../components/ui/Pill'
 import { PRESS } from '../components/ui/press'
+import { RollingNumber } from '../components/ui/RollingNumber'
 import { SelectMenu } from '../components/ui/SelectMenu'
 import { Skeleton } from '../components/ui/Skeleton'
 import { StatusDot } from '../components/ui/StatusDot'
@@ -26,10 +28,11 @@ import { useFlipList } from '../lib/flip-list'
 import { CONTRACT_TYPES, LANGUAGE_NAMES, WORK_MODES } from '../lib/format'
 import { hasActiveFilters } from '../lib/job-filters'
 import { useWideLayout } from '../lib/media'
+import { reducedMotion } from '../lib/motion'
 import { useStore } from '../lib/store'
 import { useTrayRequests } from '../stores/cv'
 import { filtersOpen } from '../stores/filters-panel'
-import { loadJobs, loadMoreJobs, showIncoming, useJobs } from '../stores/jobs'
+import { jobsStore, loadJobs, loadMoreJobs, showIncoming, useJobs } from '../stores/jobs'
 import { markAllViewed, useViewedCheck } from '../stores/viewed'
 
 const PERIODS = [
@@ -71,6 +74,35 @@ export function DetailPanel({ children }: { children: ReactNode }) {
 			{children}
 		</aside>
 	)
+}
+
+const FRESH_GLOW = { delay: 250, duration: 1600 }
+
+/**
+ * "N vagas novas": as vagas entram no topo da lista (deslizando, pelo `useFlipList`), a tela sobe até elas e cada uma
+ * acende em lime e apaga devagar.
+ */
+function showIncomingOnTop() {
+	const fresh = jobsStore.get().incoming.map(job => job.postId)
+	flushSync(showIncoming)
+	window.scrollTo({ top: 0, behavior: reducedMotion() ? 'auto' : 'smooth' })
+	if (reducedMotion()) return
+
+	const style = getComputedStyle(document.documentElement)
+	const accent = style.getPropertyValue('--color-lime-accent').trim()
+	const glow = style.getPropertyValue('--color-lime-glow').trim()
+	for (const postId of fresh) {
+		document
+			.querySelector(`[data-flip-key="${CSS.escape(postId)}"]`)
+			?.animate(
+				[
+					{ borderColor: accent, boxShadow: `0 0 0 3px ${glow}, 0 0 24px ${glow}` },
+					{ borderColor: accent, boxShadow: `0 0 0 3px ${glow}, 0 0 24px ${glow}`, offset: 0.3 },
+					{},
+				],
+				{ ...FRESH_GLOW, easing: 'ease-out', fill: 'backwards' },
+			)
+	}
 }
 
 /** A lista com `value` incluído ou removido. */
@@ -541,18 +573,21 @@ export function JobsView({ selectedRouteId, detail }: { selectedRouteId: string 
 			/>
 
 			{incoming.length > 0 && (
+				// Cai do topo quando chega a primeira; o número rola a cada vaga nova
 				<button
 					type="button"
 					className={cx(
-						'sticky top-19 z-10 inline-flex min-h-10 items-center gap-2.5 self-center rounded-pill border border-line bg-lime-soft py-1.5 pr-4 pl-2 text-sm text-ink shadow-float max-md:top-17.5',
+						'sticky top-19 z-10 inline-flex min-h-10 items-center gap-2.5 self-center rounded-pill border border-line bg-lime-soft py-1.5 pr-4 pl-2 text-sm text-ink shadow-float animate-drop-in motion-reduce:animate-none max-md:top-17.5',
 						PRESS,
 					)}
-					onClick={showIncoming}
+					onClick={showIncomingOnTop}
 				>
 					<Badge tone="lime" size="sm">
 						ao vivo
 					</Badge>
-					{incoming.length === 1 ? '1 vaga nova' : `${incoming.length} vagas novas`}
+					<span>
+						<RollingNumber value={incoming.length} /> {incoming.length === 1 ? 'vaga nova' : 'vagas novas'}
+					</span>
 					<span className="font-mono text-xs underline">mostrar no topo</span>
 				</button>
 			)}

@@ -7,6 +7,7 @@ import { CvTray } from '../components/CvTray'
 import { Icon, type IconName } from '../components/Icon'
 import { LinkedinVerificationDialog } from '../components/LinkedinVerificationDialog'
 import { Logo } from '../components/Logo'
+import { Toasts } from '../components/Toasts'
 import { Badge, badge } from '../components/ui/Badge'
 import { ButtonLink } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
@@ -21,7 +22,7 @@ import { jobsStore } from '../stores/jobs'
 import { useConnected } from '../stores/live'
 import { loadSetup, needsOnboarding, useSetup } from '../stores/setup'
 import { toggleTheme } from '../stores/theme'
-import { dismissToast, useToasts } from '../stores/toast'
+import { useToasts } from '../stores/toast'
 
 /**
  * A moldura de todas as telas: cabeçalho, navegação, bandeja de currículos e avisos. Enquanto falta o mínimo (perfil,
@@ -135,6 +136,7 @@ function RootLayout() {
 
 	// "vagas" também fica marcado com uma vaga aberta (`/vagas/$id`)
 	const isActive = (item: string) => (item === '/' ? path === '/' || path.startsWith('/vagas/') : path.startsWith(item))
+	const page = usePageTransition(NAV.findIndex(item => isActive(item.path)))
 
 	useEffect(() => {
 		document.title = `${title ?? 'Jobs Scraper'} · jobs/scraper`
@@ -207,7 +209,7 @@ function RootLayout() {
 								offline
 							</Badge>
 						)}
-						<IconButton label="Alternar tema claro/escuro" bordered onClick={toggleTheme}>
+						<IconButton label="Alternar tema claro/escuro" bordered onClick={event => toggleTheme(event.currentTarget)}>
 							{/* Os dois ícones no mesmo lugar: um gira e encolhe enquanto o outro cresce */}
 							<Icon
 								name="moon"
@@ -235,8 +237,21 @@ function RootLayout() {
 				</div>
 			)}
 
-			<main id="main" className="flex-1 outline-none" tabIndex={-1}>
-				<Outlet />
+			{/* `clip` (e não `hidden`): a tela entrando de lado não abre rolagem horizontal, e o `sticky` continua funcionando */}
+			<main id="main" className="flex-1 overflow-x-clip outline-none" tabIndex={-1}>
+				{/* Trocando de aba no menu, a tela nova entra pelo lado dela (a chave remonta só entre abas, não entre vagas) */}
+				<div
+					key={page.section}
+					className={cx(
+						page.direction === 'next' && 'animate-page-next',
+						page.direction === 'back' && 'animate-page-back',
+						'motion-reduce:animate-none',
+					)}
+					// Terminada, a animação sai: um `transform` parado no fim prenderia os `fixed` da tela (a barra de salvar) nela
+					onAnimationEnd={event => event.target === event.currentTarget && page.settle()}
+				>
+					<Outlet />
+				</div>
 			</main>
 
 			<nav
@@ -275,28 +290,14 @@ function RootLayout() {
 	)
 }
 
-/** Os avisos que chegam embaixo da tela. */
-function Toasts({ toasts }: { toasts: ReturnType<typeof useToasts> }) {
-	return (
-		<div
-			className="pointer-events-none fixed inset-x-4 bottom-6 z-40 mx-auto flex max-w-115 flex-col gap-2 max-md:bottom-safe-21"
-			aria-live="polite"
-		>
-			{toasts.map(toast => (
-				<div
-					key={toast.id}
-					className={cx(
-						'pointer-events-auto flex items-center gap-2.5 rounded-md bg-ink py-2 pr-2 pl-3.5 text-sm text-bg shadow-float animate-toast-in motion-reduce:animate-none',
-						toast.tone === 'error' && 'border border-danger bg-danger-bg text-danger',
-					)}
-					role={toast.tone === 'error' ? 'alert' : 'status'}
-				>
-					<span className="grow">{toast.message}</span>
-					<IconButton label="Fechar aviso" size="sm" onClick={() => dismissToast(toast.id)}>
-						<Icon name="close" size={14} />
-					</IconButton>
-				</div>
-			))}
-		</div>
-	)
+/**
+ * A aba do menu na tela (`section`, o índice em `NAV`; -1 fora dele) e de que lado a tela nova entra: pela direita
+ * vindo de uma aba à esquerda, e ao contrário. Na primeira tela, sem animação.
+ */
+function usePageTransition(section: number) {
+	const [page, setPage] = useState<{ section: number; direction: 'next' | 'back' | null }>({ section, direction: null })
+	// Guardado no estado (e não calculado a cada render): outro render no meio não corta a animação
+	if (page.section !== section) setPage({ section, direction: section > page.section ? 'next' : 'back' })
+
+	return { ...page, settle: () => setPage(current => ({ ...current, direction: null })) }
 }

@@ -7,7 +7,7 @@ import { jobParams } from '../router'
 import { dismissCv, requestCv, useTrayRequests } from '../stores/cv'
 import { jobsStore } from '../stores/jobs'
 import { notify } from '../stores/toast'
-import { Icon } from './Icon'
+import { DrawnCheck, Icon } from './Icon'
 import { Button } from './ui/Button'
 import { IconButton } from './ui/IconButton'
 import { StatusDot, type StatusDotTone } from './ui/StatusDot'
@@ -44,6 +44,8 @@ export function CvTray() {
 
 	return (
 		<aside
+			// O currículo pedido voa até aqui (`lib/cv-flight.ts`)
+			data-cv-tray
 			className="inverted fixed right-5 bottom-5 left-4 z-30 ml-auto max-w-90 rounded-xl px-3.5 py-3 shadow-float animate-toast-in motion-reduce:animate-none with-save-bar:bottom-23 max-md:right-4 max-md:bottom-safe-19 max-md:with-save-bar:bottom-safe-38"
 			aria-label="Currículos em andamento"
 		>
@@ -64,7 +66,12 @@ export function CvTray() {
 				>
 					{items.map(item => (
 						<li key={item.requestId} className="flex items-center gap-2.5">
-							<StatusDot {...TRAY_DOTS[item.status]} />
+							{/* Pronto, o ponto pulsando vira um check desenhado */}
+							{item.status === 'ready' ? (
+								<DrawnCheck size={14} className="-mx-0.5 text-ok-dot" />
+							) : (
+								<StatusDot {...TRAY_DOTS[item.status]} />
+							)}
 							<div className="grow min-w-0">
 								<Link
 									className="block truncate text-sm no-underline"

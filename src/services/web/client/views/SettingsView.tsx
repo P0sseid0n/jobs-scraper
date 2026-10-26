@@ -15,7 +15,7 @@ import {
 import type { WebCredentials, WebSettings } from '../../api-types'
 import { api, RequestError } from '../api'
 import { AccountsSection } from '../components/AccountsSection'
-import { Icon } from '../components/Icon'
+import { DrawnCheck, Icon } from '../components/Icon'
 import { Button } from '../components/ui/Button'
 import { card } from '../components/ui/Card'
 import { Combobox } from '../components/ui/Combobox'
@@ -32,7 +32,9 @@ import { Switch, SwitchField } from '../components/ui/Switch'
 import { SECTION_TITLE } from '../components/ui/text'
 import { cx } from '../lib/cx'
 import { formatInterval, LANGUAGE_NAMES, languageLabel } from '../lib/format'
+import { shakeInvalid } from '../lib/motion'
 import { LIMITS, profileDraftOf, validateDraft, validateProfile, type SettingsDraft } from '../lib/settings-form'
+import { useFlash } from '../lib/use-flash'
 import { notify } from '../stores/toast'
 
 const DATE_POSTED_LABELS: Record<DatePostedFilter, string> = {
@@ -84,6 +86,7 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 	const [touched, setTouched] = useState(false)
 	const [newTerm, setNewTerm] = useState('')
 	const [savingPause, setSavingPause] = useState(false)
+	const [savedFlash, flashSaved] = useFlash()
 
 	function reset(settings = loaded) {
 		if (!settings) return
@@ -148,6 +151,7 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 		if (Object.keys(clientErrors).length > 0) {
 			setSaveState('error')
 			setSaveMessage({ title: 'Não salvo', detail: 'Corrija os campos marcados antes de salvar.' })
+			shakeInvalid(() => document.getElementById('main'))
 			return
 		}
 
@@ -161,6 +165,7 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 			}
 			reset(current)
 			setSaveState('saved')
+			flashSaved()
 			setSaveMessage({
 				title: 'Salvo',
 				detail: 'O scraper relê as configurações em até 30 s; os filtros valem para os próximos posts.',
@@ -169,6 +174,7 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 			setSaveState('error')
 			setServerErrors(error instanceof RequestError ? error.fields : {})
 			setSaveMessage({ title: 'Não foi possível salvar', detail: (error as Error).message })
+			shakeInvalid(() => document.getElementById('main'))
 		}
 	}
 
@@ -634,8 +640,26 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 							<Button variant="ghost" disabled={!dirty || saveState === 'saving'} onClick={() => reset()}>
 								descartar
 							</Button>
-							<Button variant="lime" size="lg" disabled={!dirty || saveState === 'saving'} onClick={save}>
-								{saveState === 'saving' ? 'salvando…' : 'salvar alterações'}
+							{/* Salvo, o botão mostra o check desenhado por um instante antes de voltar (e não apaga nesse meio-tempo) */}
+							<Button
+								variant="lime"
+								size="lg"
+								disabled={(!dirty && !savedFlash) || saveState === 'saving'}
+								onClick={savedFlash ? undefined : save}
+							>
+								{saveState === 'saving' ? (
+									<>
+										<Icon name="spinner" />
+										salvando…
+									</>
+								) : savedFlash ? (
+									<>
+										<DrawnCheck />
+										salvo
+									</>
+								) : (
+									'salvar alterações'
+								)}
 							</Button>
 						</div>
 					</div>

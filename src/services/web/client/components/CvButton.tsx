@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, type MouseEvent } from 'react'
 
 import type { WebJob } from '../../api-types'
 import { cvPdfUrl } from '../api'
+import { flyToTray } from '../lib/cv-flight'
 import { requestCv, useCvFor } from '../stores/cv'
 import { notify } from '../stores/toast'
 import { Icon } from './Icon'
@@ -12,10 +13,13 @@ export function CvButton({ job, size = 'md', className }: { job: Pick<WebJob, 'p
 	const [sending, setSending] = useState(false)
 	const cv = useCvFor(job.postId)
 
-	async function generate() {
+	async function generate(event: MouseEvent<HTMLElement>) {
+		// Medido no clique: o pedido aceito manda uma folhinha do botão até a bandeja
+		const from = event.currentTarget.getBoundingClientRect()
 		setSending(true)
 		try {
 			await requestCv(job)
+			flyToTray(from)
 		} catch (error) {
 			notify(`Não consegui pedir o currículo: ${(error as Error).message}`, 'error')
 		} finally {
