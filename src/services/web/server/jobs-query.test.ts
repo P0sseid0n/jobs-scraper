@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
 import { encodeCursor, HttpError } from './http'
-import { buildJobsFilter, escapeRegExp, JobsQuerySchema, LISTABLE_JOBS, toWebJob } from './jobs-query'
+import { buildJobsFilter, escapeRegExp, JobsQuerySchema, LISTABLE_JOBS, toWebJob, upToCursor } from './jobs-query'
 
 const NOW = new Date('2026-10-10T12:00:00.000Z')
 
@@ -85,6 +85,14 @@ describe('buildJobsFilter', () => {
 
 	test('cursor que não veio da API vira 400', () => {
 		expect(() => filterFor({ cursor: 'lixo' })).toThrow(HttpError)
+	})
+
+	test('até o cursor: os mais recentes e o próprio item (o contrário do cursor)', () => {
+		const at = new Date('2026-10-09T10:00:00.000Z')
+		const upTo = upToCursor({ at, id: '6ac9a547e4a3ee550b03ecd3' })
+
+		expect(upTo.$or[0]).toEqual({ createdAt: { $gt: at } })
+		expect(String((upTo.$or[1] as { _id: { $gte: unknown } })._id.$gte)).toBe('6ac9a547e4a3ee550b03ecd3')
 	})
 })
 

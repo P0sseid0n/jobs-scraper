@@ -413,11 +413,36 @@ function Filters({ open }: { open: boolean }) {
 
 const SKELETONS = [0, 1, 2, 3, 4].map(index => <JobCardSkeleton key={index} index={index} />)
 
-function JobList({ selectedId, keepScroll }: { selectedId: string | null; keepScroll: boolean }) {
+/**
+ * Leva o card para o meio da tela se ele não estiver todo à vista (abaixo do cabeçalho, pelo `scroll-margin-top`). Num
+ * clique na lista ele já está à vista e nada se mexe.
+ */
+function reveal(card: Element) {
+	const { top, bottom } = card.getBoundingClientRect()
+	if (top >= parseFloat(getComputedStyle(card).scrollMarginTop) && bottom <= window.innerHeight) return
+
+	card.scrollIntoView({ block: 'center' })
+}
+
+function JobList({
+	selectedId,
+	revealId,
+	keepScroll,
+}: {
+	selectedId: string | null
+	/** A vaga da URL: a lista rola até ela ao chegar (link, recarregar, voltar de outra tela ou no histórico). */
+	revealId: string | null
+	keepScroll: boolean
+}) {
 	const { jobs, status, error, nextCursor, loadingMore } = useJobs()
 	const { filters, clearFilters } = useFilters()
 	// Os cards deslizam para o lugar novo ao mudar a lista
 	const { list, ghosts } = useFlipList(jobs.map(job => job.postId))
+
+	useEffect(() => {
+		const card = revealId && list.current?.querySelector(`[data-flip-key="${CSS.escape(revealId)}"]`)
+		if (card) reveal(card)
+	}, [revealId, list])
 
 	// A primeira vaga chegando ao vivo na lista vazia (sem filtros): uma comemoração discreta em cima dela
 	const before = useRef({ count: jobs.length, status })
@@ -439,7 +464,7 @@ function JobList({ selectedId, keepScroll }: { selectedId: string | null; keepSc
 				title="Não consegui carregar as vagas"
 				description={error}
 				action={
-					<Button variant="lime" onClick={loadJobs}>
+					<Button variant="lime" onClick={() => void loadJobs()}>
 						tentar de novo
 					</Button>
 				}
@@ -634,7 +659,11 @@ export function JobsView({ selectedRouteId, detail }: { selectedRouteId: string 
 							)}
 						</div>
 					)}
-					<JobList selectedId={wide ? selectedId : null} keepScroll={wide} />
+					<JobList
+						selectedId={wide ? selectedId : null}
+						revealId={wide && selectedRouteId ? selectedId : null}
+						keepScroll={wide}
+					/>
 				</section>
 
 				{detail}

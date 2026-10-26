@@ -44,6 +44,11 @@ export const JobsQuerySchema = z.object({
 		.regex(/^[a-z]{2}$/)
 		.optional(),
 	cursor: z.string().max(200).optional(),
+	/**
+	 * Id da vaga aberta na URL: a primeira página vem do topo até ela (mais uma página), para a lista mostrar a vaga.
+	 * Ignorado com `cursor`.
+	 */
+	until: z.string().max(200).optional(),
 	limit: z.coerce.number().int().min(1).max(100).default(30),
 })
 
@@ -111,6 +116,13 @@ export function afterCursor(cursor: Cursor, field = 'createdAt') {
 	const id = new Types.ObjectId(cursor.id)
 
 	return { $or: [{ [field]: { $lt: cursor.at } }, { [field]: cursor.at, _id: { $lt: id } }] }
+}
+
+/** Itens até o cursor, inclusive, na mesma ordem (o contrário de `afterCursor`). */
+export function upToCursor(cursor: Cursor, field = 'createdAt') {
+	const id = new Types.ObjectId(cursor.id)
+
+	return { $or: [{ [field]: { $gt: cursor.at } }, { [field]: cursor.at, _id: { $gte: id } }] }
 }
 
 /**

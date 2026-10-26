@@ -16,11 +16,18 @@ export const Route = createFileRoute('/_vagas')({
 	// Os valores padrão não aparecem na URL
 	search: { middlewares: [stripSearchParams(DEFAULT_FILTERS)] },
 	loaderDeps: ({ search }) => search,
-	loader: ({ deps }) => loadJobsFor(deps),
+	// Chegando por `/vagas/$id` (link, recarregar, outra tela), a lista vem até a vaga. O `$id` é da rota filha e o
+	// loader do layout só recebe os próprios parâmetros: o id sai do caminho da URL
+	loader: ({ deps, cause, location }) => loadJobsFor(deps, cause === 'enter' ? openJobId(location.pathname) : undefined),
 	pendingComponent: JobsPending,
 	errorComponent: routeError('Não consegui carregar as vagas'),
 	component: JobsLayout,
 })
+
+function openJobId(pathname: string) {
+	const id = /^\/vagas\/([^/]+)/.exec(pathname)?.[1]
+	return id && decodeURIComponent(id)
+}
 
 function JobsLayout() {
 	const { id } = useParams({ strict: false })

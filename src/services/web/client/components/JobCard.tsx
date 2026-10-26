@@ -45,7 +45,8 @@ export function JobCard({
 			className={cx(
 				JOB_CARD,
 				DOT_GUTTER,
-				'group/card relative',
+				// A margem do cabeçalho fixo, para a lista rolar até a vaga da URL (`JobList`)
+				'group/card relative scroll-mt-20',
 				// Como papel na mesa: sobe um pouco no hover, com a sombra crescendo, e afunda no clique; o reflexo segue o mouse
 				'pointer-glow transition duration-300 ease-glide hover:-translate-y-0.5 hover:shadow-float active:translate-y-0 active:scale-99 active:duration-100',
 				'motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100',
