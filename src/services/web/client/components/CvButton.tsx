@@ -11,7 +11,7 @@ import { Icon } from './Icon'
 import { Button } from './ui/Button'
 
 /**
- * Ação de currículo da vaga, conforme o último pedido: gerar → gerando (com o anel girando) → baixar, ou tentar de novo
+ * Ação de currículo da vaga, conforme o último pedido: gerar → gerando… → baixar, ou tentar de novo
  * se falhou. A largura do botão é sempre a mesma; ficando pronto com a vaga na tela, vem uma comemoração discreta.
  */
 export function CvButton({ job, size = 'md', className }: { job: Pick<WebJob, 'postId'>; size?: 'md' | 'lg'; className?: string }) {
@@ -62,18 +62,8 @@ export function CvButton({ job, size = 'md', className }: { job: Pick<WebJob, 'p
 
 		if (sending || cv?.status === 'pending') {
 			return (
-				<Button
-					variant="lime"
-					size={size}
-					// Desativado, mas sem apagar: é andamento, não bloqueio
-					className="w-full disabled:opacity-100"
-					disabled
-					title="gerando o currículo · até ~1 min"
-				>
-					<span
-						aria-hidden="true"
-						className="size-4 rounded-full border-2 border-lime-ink/20 border-t-lime-ink animate-spin motion-reduce:animate-none"
-					/>
+				<Button variant="lime" size={size} className="w-full" disabled>
+					<Icon name="spinner" />
 					gerando…
 				</Button>
 			)
