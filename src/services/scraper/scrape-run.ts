@@ -62,11 +62,15 @@ export function closeActiveBrowser() {
 	return activeSession?.close()
 }
 
+/** O resultado de cada termo e as listas de vagas deixadas para outra coleta (`deferLists`). */
+export type ScrapeResult = { terms: ScraperRunTerm[]; deferredLists: string[] }
+
 /**
- * Faz uma coleta: busca cada termo ativo em sequência e envia os posts novos para a fila.
- * @returns O resultado de cada termo; um termo que falhar não impede os outros.
+ * Faz uma coleta: busca cada termo ativo em sequência e envia os posts novos para a fila. Com o mínimo de vagas
+ * completo, as listas de vagas da coleta ficam para outra (ver `deferLists`).
+ * @returns O resultado de cada termo (um termo que falhar não impede os outros) e as listas deixadas para depois.
  */
-export async function scrapeOnce(options: ScrapeOptions): Promise<ScraperRunTerm[]> {
+export async function scrapeOnce(options: ScrapeOptions): Promise<ScrapeResult> {
 	const { config, settings, logger } = options
 
 	const terms = activeSearchTerms(settings)
@@ -115,9 +119,14 @@ export async function scrapeOnce(options: ScrapeOptions): Promise<ScraperRunTerm
 
 		const sent = results.reduce((total, result) => total + result.sent, 0)
 		if (remaining > 0) logger.info({ missing: remaining }, 'As buscas acabaram antes de completar o mínimo de vagas')
+
+		const deferredLists = remaining > 0 ? [] : await deferLists(results.flatMap(result => result.postIds))
+		if (deferredLists.length > 0) {
+			logger.info({ lists: deferredLists.length }, 'Mínimo completo: as listas de vagas da coleta ficam para outra')
+		}
 		logger.info({ sent, terms: results.length }, '✅ Coleta finalizada')
 
-		return results
+		return { terms: results, deferredLists }
 	} finally {
 		activeSession = undefined
 		await session.close()
@@ -403,6 +412,22 @@ async function waitForOutcomes(pending: Set<string>, { all, logger }: { all: boo
 	}
 
 	return { jobs, stalled: false }
+}
+
+/**
+ * Tira de `seen_posts` as listas de vagas entre os posts enviados, para elas aparecerem de novo em outra busca. As
+ * vagas delas já pedidas ao scraper não são abertas: o pedido de uma lista que não está mais em `seen_posts` é
+ * ignorado (ver `JobLookupWorker`).
+ * @returns Os ids das listas.
+ */
+async function deferLists(postIds: string[]) {
+	if (postIds.length === 0) return []
+
+	const lists = await SeenPost.find({ postId: { $in: postIds }, outcome: 'multi-job' }, { postId: 1 }).lean()
+	const ids = lists.map(list => list.postId)
+	if (ids.length > 0) await SeenPost.deleteMany({ postId: { $in: ids }, outcome: 'multi-job' })
+
+	return ids
 }
 
 /** Registra o post como visto, para as próximas coletas o pularem como fariam com um descartado pelo post-processing. */

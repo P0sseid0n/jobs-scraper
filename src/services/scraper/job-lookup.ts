@@ -1,6 +1,7 @@
 import type { Page } from 'puppeteer'
 
 import type { JobLookup } from '@shared/contracts'
+import { SeenPost } from '@shared/database'
 import type { Logger } from '@shared/logging'
 import { QUEUES, type QueueClient } from '@shared/messaging'
 import { loadCredentials } from '@shared/settings'
@@ -24,7 +25,8 @@ const REDIRECT_TIMEOUT_MS = 30_000
 
 /**
  * Abre o link de cada vaga de um post com várias (fila `scraper-lookup`), como uma busca: uma por vez, no navegador
- * logado, com pausa depois de cada uma e nunca durante uma coleta. O texto da página vai para o post-processing.
+ * logado, com pausa depois de cada uma e nunca durante uma coleta. O texto da página vai para o post-processing. As
+ * vagas de uma lista deixada para outra coleta (fora de `seen_posts`, ver `deferLists`) não são abertas.
  */
 export class JobLookupWorker {
 	private session?: BrowserSession
@@ -36,6 +38,12 @@ export class JobLookupWorker {
 		return this.options.lock.run(async () => {
 			clearTimeout(this.idleTimer)
 			const log = this.options.logger.child({ postId: lookup.postId, link: lookup.link })
+
+			// Dentro da trava: a coleta que deixa a lista para depois termina antes de a vaga ser vista aqui
+			if (!(await SeenPost.exists({ postId: lookup.sourcePostId }))) {
+				log.debug({ sourcePostId: lookup.sourcePostId }, 'Vaga de uma lista deixada para outra coleta: não aberta')
+				return
+			}
 
 			const page = await this.readListing(lookup, log)
 			await this.options.queue.publish(QUEUES.postProcessing, lookupToRawPost(lookup, page))

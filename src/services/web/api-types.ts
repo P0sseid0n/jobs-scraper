@@ -121,7 +121,7 @@ export type WebScraperRun = {
 	 * O que o post-processing fez com os posts enviados (vaga salva ou o motivo do descarte) e quantos ainda estão na
 	 * fila; `null` nas coletas antigas.
 	 */
-	outcomes: { counts: Partial<Record<SeenPostOutcome | 'unknown', number>>; pending: number } | null
+	outcomes: { counts: Partial<Record<SeenPostOutcome | 'unknown' | 'deferred-list', number>>; pending: number } | null
 	/** Os termos que a coleta vai buscar, na ordem (os que faltam são os depois de `terms`); vazio nas coletas antigas. */
 	plannedTerms: string[]
 	/** O mínimo de vagas que a coleta procurou; `null` nas coletas antigas. */

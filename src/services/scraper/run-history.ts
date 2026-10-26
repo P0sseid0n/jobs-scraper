@@ -1,6 +1,7 @@
 import { ScraperRun, type ScraperRunTerm, type ScraperRunTrigger } from '@shared/database'
 
 import { LoginError } from './login'
+import type { ScrapeResult } from './scrape-run'
 
 /** Recebe os termos terminados até agora, a cada termo que termina. */
 export type TermProgress = (terms: ScraperRunTerm[]) => Promise<void>
@@ -13,7 +14,7 @@ export type TermProgress = (terms: ScraperRunTerm[]) => Promise<void>
 export async function recordRun(
 	trigger: ScraperRunTrigger,
 	plan: { terms: string[]; minJobs: number },
-	collect: (onTerm: TermProgress) => Promise<ScraperRunTerm[]>,
+	collect: (onTerm: TermProgress) => Promise<ScrapeResult>,
 ) {
 	const run = await ScraperRun.create({
 		trigger,
@@ -31,7 +32,7 @@ export async function recordRun(
 		)
 
 	try {
-		const terms = await collect(onTerm)
+		const { terms, deferredLists } = await collect(onTerm)
 		const sent = terms.reduce((total, term) => total + term.sent, 0)
 		// Busca sem resultados não é falha: a coleta só falha se todos os termos quebraram de verdade
 		const failed = terms.every(term => term.error && term.errorKind !== 'empty')
@@ -43,6 +44,7 @@ export async function recordRun(
 				finishedAt: new Date(),
 				terms,
 				sent,
+				deferredLists,
 				error: failed ? 'Todas as buscas falharam' : null,
 			},
 		)

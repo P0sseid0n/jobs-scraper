@@ -39,6 +39,7 @@ const UNEXPECTED_FAILURE = 'A coleta parou por um erro inesperado. A próxima te
 const OUTCOMES: Record<keyof NonNullable<WebScraperRun['outcomes']>['counts'], string> = {
 	saved: 'viraram vaga',
 	'multi-job': 'listas de vagas (abertas uma a uma)',
+	'deferred-list': 'listas de vagas para outra coleta (o mínimo já estava completo)',
 	language: 'idioma fora dos aceitos',
 	'job-seeker': 'candidato procurando vaga',
 	'not-a-job': 'não são vaga, segundo a IA',
@@ -47,8 +48,9 @@ const OUTCOMES: Record<keyof NonNullable<WebScraperRun['outcomes']>['counts'], s
 	unknown: 'processados por uma versão anterior',
 }
 
-// Não são descarte: as listas têm as vagas abertas à parte, e os posts sem destino registrado podem ter virado vaga
-const NOT_DISCARDED = new Set(['saved', 'multi-job', 'unknown'])
+// Não são descarte: as listas têm as vagas abertas à parte (ou numa próxima coleta), e os posts sem destino registrado
+// podem ter virado vaga
+const NOT_DISCARDED = new Set(['saved', 'multi-job', 'deferred-list', 'unknown'])
 
 /**
  * Se a coleta terminou sem completar o mínimo de vagas (as buscas acabaram antes), depois de a IA ler toda a fila.

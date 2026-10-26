@@ -39,6 +39,7 @@ type RunDocument = {
 	sent: number
 	plannedTerms?: string[]
 	minJobs?: number | null
+	deferredLists?: string[]
 	// Coletas antigas não têm alguns dos campos de cada termo
 	terms: (Omit<ScraperRunTerm, OptionalTermField> & Partial<Pick<ScraperRunTerm, OptionalTermField>>)[]
 	error: string | null
@@ -126,9 +127,12 @@ function hasLinkedinAccount() {
 async function toWebRun(doc: RunDocument): Promise<WebScraperRun> {
 	const terms = doc.terms ?? []
 	const tracked = terms.length > 0 && terms.every(term => term.postIds !== undefined)
-	const postIds = terms.flatMap(term => term.postIds ?? [])
+	// As listas deixadas para outra coleta podem voltar numa busca seguinte: o destino delas fica com aquela coleta
+	const deferred = new Set(doc.deferredLists ?? [])
+	const postIds = terms.flatMap(term => term.postIds ?? []).filter(postId => !deferred.has(postId))
 
 	const [newJobs, outcomes] = tracked ? await Promise.all([countNewJobs(postIds), countOutcomes(postIds)]) : [null, null]
+	if (outcomes && deferred.size > 0) outcomes.counts['deferred-list'] = deferred.size
 
 	return {
 		id: String(doc._id),
