@@ -471,7 +471,7 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 		return (
 			<section className="flex flex-col gap-2.5" aria-labelledby="cv-base-history">
 				<h2 id="cv-base-history" className={LABEL}>
-					histórico_
+					histórico
 				</h2>
 				<ul className="m-0 flex list-none flex-col gap-2.5 p-0">
 					{versions.map(version => {

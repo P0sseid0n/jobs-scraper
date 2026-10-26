@@ -55,7 +55,7 @@ export function CvTray() {
 				aria-expanded={!collapsed}
 				onClick={() => setCollapsed(!collapsed)}
 			>
-				<span>currículos_</span>
+				<span>currículos</span>
 				<span>{pending ? `${pending} gerando` : `${items.length} ${items.length === 1 ? 'pronto' : 'prontos'}`}</span>
 			</button>
 			{!collapsed && (

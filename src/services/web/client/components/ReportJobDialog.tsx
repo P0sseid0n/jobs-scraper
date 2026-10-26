@@ -272,7 +272,7 @@ export function ReportJobDialog({
 				) : (
 					<>
 						<fieldset className={FIELDSET}>
-							<legend className={cx(LABEL, 'mb-2.5')}>dados errados_</legend>
+							<legend className={cx(LABEL, 'mb-2.5')}>dados errados</legend>
 							<PillGroup>
 								{(Object.keys(REPORTABLE_FIELDS) as ReportableField[]).map(name => (
 									<Pill

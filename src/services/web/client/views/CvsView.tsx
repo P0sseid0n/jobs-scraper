@@ -133,7 +133,7 @@ export function CvsView({ baseVersions }: { baseVersions: WebCvBaseVersion[] | n
 
 			{pending.length > 0 && (
 				<section className="flex flex-col gap-2.5">
-					<h2 className={LABEL}>em andamento_</h2>
+					<h2 className={LABEL}>em andamento</h2>
 					<ul className="flex flex-col gap-2.5 m-0 list-none p-0">
 						{pending.map(request => (
 							<CvItem key={request.requestId} request={request} />
@@ -143,7 +143,7 @@ export function CvsView({ baseVersions }: { baseVersions: WebCvBaseVersion[] | n
 			)}
 			{done.length > 0 && (
 				<section className="flex flex-col gap-2.5">
-					<h2 className={LABEL}>gerados_</h2>
+					<h2 className={LABEL}>gerados</h2>
 					<ul className="flex flex-col gap-2.5 m-0 list-none p-0">
 						{done.map(request => (
 							<CvItem key={request.requestId} request={request} />

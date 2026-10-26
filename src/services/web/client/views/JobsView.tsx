@@ -289,7 +289,7 @@ function Filters({ open }: { open: boolean }) {
 			>
 				{/* O lugar da alça, que fica por cima (acompanhando a rolagem) */}
 				<div className="flex min-h-10 items-center justify-between gap-3 pr-12 max-md:hidden">
-					<span className={LABEL}>filtros_</span>
+					<span className={LABEL}>filtros</span>
 				</div>
 
 				<SearchInput
@@ -300,7 +300,7 @@ function Filters({ open }: { open: boolean }) {
 				/>
 
 				<fieldset className={FIELDSET}>
-					<legend className={cx(LABEL, 'mb-2.5')}>período_</legend>
+					<legend className={cx(LABEL, 'mb-2.5')}>período</legend>
 					<PillGroup>
 						{PERIODS.map(([value, label]) => (
 							<Pill key={value} pressed={filters.since === value} onClick={() => setFilters({ since: value })}>
@@ -311,7 +311,7 @@ function Filters({ open }: { open: boolean }) {
 				</fieldset>
 
 				<fieldset className={FIELDSET}>
-					<legend className={cx(LABEL, 'mb-2.5')}>modalidade_</legend>
+					<legend className={cx(LABEL, 'mb-2.5')}>modalidade</legend>
 					<div className="flex flex-col gap-1.5">
 						{(Object.keys(WORK_MODES) as (keyof typeof WORK_MODES)[]).map(mode => (
 							<Pill
@@ -329,7 +329,7 @@ function Filters({ open }: { open: boolean }) {
 				</fieldset>
 
 				<fieldset className={FIELDSET}>
-					<legend className={cx(LABEL, 'mb-2.5')}>regime_</legend>
+					<legend className={cx(LABEL, 'mb-2.5')}>regime</legend>
 					<PillGroup>
 						{(Object.keys(CONTRACT_TYPES) as (keyof typeof CONTRACT_TYPES)[]).map(type => (
 							<Pill
@@ -345,7 +345,7 @@ function Filters({ open }: { open: boolean }) {
 
 				{(skills.length > 0 || filters.skills.length > 0) && (
 					<fieldset className={FIELDSET}>
-						<legend className={cx(LABEL, 'mb-2.5')}>tecnologias_</legend>
+						<legend className={cx(LABEL, 'mb-2.5')}>tecnologias</legend>
 						<PillGroup>
 							{selectedSkills.map(skill => (
 								<Pill key={skill} pressed onClick={() => setFilters({ skills: toggled(filters.skills, skill) })}>

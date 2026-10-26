@@ -357,7 +357,7 @@ function Welcome({ onStart }: { onStart: () => void }) {
 		<div className="flex min-w-0 flex-1 flex-col gap-10">
 			<div className="flex flex-col gap-4">
 				<Rise>
-					<p className="font-mono text-sm text-lime-text">oi! que bom ter você aqui_</p>
+					<p className="font-mono text-sm text-lime-text">oi! que bom ter você aqui</p>
 				</Rise>
 				<Rise order={1}>
 					<h1 className="text-4xl font-bold tracking-tight text-balance md:text-6xl">

@@ -82,7 +82,7 @@ function Changes({ changes, fresh }: { changes: CvChanges; fresh: boolean }) {
 				)}
 				style={fresh ? delay(AT.mark) : undefined}
 			>
-				ajustado para esta vaga_
+				ajustado para esta vaga
 			</span>
 
 			{(addedSkills.length > 0 || removedSkills.length > 0) && (

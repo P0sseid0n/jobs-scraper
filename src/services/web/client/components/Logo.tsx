@@ -17,15 +17,12 @@ const ICON_SIZES = { sm: 22, md: 25, lg: 28 } as const
 
 type LogoSize = NonNullable<VariantProps<typeof logo>['size']>
 
-/** O logo do projeto: o ícone e "jobs/scraper_", com o cursor em lime. Dentro de um link, vira o link para o início. */
+/** O logo do projeto: o ícone e "jobs/scraper". Dentro de um link, vira o link para o início. */
 export function Logo({ size = 'sm', className }: { size?: LogoSize; className?: string }) {
 	return (
 		<span className={logo({ size, className })}>
 			<ProjectIcon size={ICON_SIZES[size]} />
-			{/* Num elemento só: no flex, o `gap` separaria o "_" do nome */}
-			<span>
-				jobs/scraper<span className="text-lime-text">_</span>
-			</span>
+			<span>jobs/scraper</span>
 		</span>
 	)
 }

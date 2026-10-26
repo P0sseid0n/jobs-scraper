@@ -372,7 +372,7 @@ function RunRows({ run, open, onToggle }: { run: WebScraperRun; open: boolean; o
 						</ul>
 						{run.outcomes && run.sent > 0 && (
 							<div className="mt-3 flex flex-col gap-1.5">
-								<span className={LABEL}>destino dos posts novos_</span>
+								<span className={LABEL}>destino dos posts novos</span>
 								<BadgeList>
 									{(Object.keys(OUTCOMES) as (keyof typeof OUTCOMES)[])
 										.filter(outcome => run.outcomes?.counts[outcome])
@@ -754,7 +754,7 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 				</section>
 
 				<section className={card({ size: 'lg', className: 'flex flex-1 basis-70 flex-col gap-2.5' })}>
-					<h2 className={LABEL}>agenda_</h2>
+					<h2 className={LABEL}>agenda</h2>
 					<SwitchField
 						id="runs-paused"
 						title="pausar coletas automáticas"

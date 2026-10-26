@@ -1,4 +1,4 @@
-/** Rótulo de seção em mono, discreto ("contato_", "período_"); serve em `h2`, `h3`, `legend` ou `span`. */
+/** Rótulo de seção em mono, discreto ("contato", "período"); serve em `h2`, `h3`, `legend` ou `span`. */
 export const LABEL = 'font-mono text-xs font-normal text-muted'
 
 /** Grupo de opções (`<fieldset>`); a `<legend>` leva `mb-2.5` para ficar a mesma distância das opções. */

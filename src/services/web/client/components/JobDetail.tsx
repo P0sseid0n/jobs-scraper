@@ -178,7 +178,7 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 
 			{job.recruiterEmail && (
 				<section className="flex flex-col gap-2.5" aria-label="Contato">
-					<h3 className={LABEL}>contato_</h3>
+					<h3 className={LABEL}>contato</h3>
 					<div className="flex min-w-0 items-center gap-2 rounded-sm border border-line py-1.5 pr-1.5 pl-3 text-sm">
 						<a className="font-mono block truncate grow no-underline" href={`mailto:${job.recruiterEmail}`}>
 							{job.recruiterEmail}
@@ -217,7 +217,7 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 
 			<section className="flex flex-col gap-2.5" aria-label={fromList ? 'Página da vaga' : 'Post original'}>
 				<div className="flex items-center justify-between gap-3">
-					<h3 className={LABEL}>{fromList ? 'página da vaga_' : 'post original_'}</h3>
+					<h3 className={LABEL}>{fromList ? 'página da vaga' : 'post original'}</h3>
 					{/* Com outra forma de candidatura, o post serve mais para conferir (debug): link discreto */}
 					{postLink && !appliesThroughPost && (
 						<TextLink className="text-xs font-mono" href={postLink} external>
