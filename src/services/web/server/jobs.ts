@@ -1,5 +1,5 @@
 import { CONTRACT_TYPES } from '@shared/contracts'
-import { Job } from '@shared/database'
+import { findJobImage, Job } from '@shared/database'
 import { readSettings } from '@shared/settings'
 
 import type { JobFacets, JobsPage, WebJob } from '../api-types'
@@ -89,4 +89,24 @@ export async function getRawJob(req: Request & { params: { postId: string } }) {
 	if (!doc) throw new HttpError(404, 'Vaga não encontrada')
 
 	return Response.json(doc)
+}
+
+/**
+ * `GET /api/jobs/:postId/images/:index`: uma imagem do post da vaga, baixada na coleta (a URL do LinkedIn expira).
+ * A imagem de uma posição nunca muda: o navegador a guarda sem perguntar de novo.
+ */
+export async function getJobImage(req: Request & { params: { postId: string; index: string } }) {
+	const index = Number(req.params.index)
+	if (!Number.isInteger(index) || index < 0) throw new HttpError(404, 'Imagem não encontrada')
+
+	const image = await findJobImage(req.params.postId, index)
+	if (!image) throw new HttpError(404, 'Imagem não encontrada')
+
+	return new Response(new Blob([new Uint8Array(image.data)]), {
+		headers: {
+			'Content-Type': image.mimeType,
+			'Cache-Control': 'private, max-age=31536000, immutable',
+			'X-Content-Type-Options': 'nosniff',
+		},
+	})
 }

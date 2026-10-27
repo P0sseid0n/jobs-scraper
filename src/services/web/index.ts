@@ -25,7 +25,7 @@ import { EventHub } from './server/event-hub'
 import { handler } from './server/http'
 import { correctJob } from './server/job-correction'
 import { setJobsViewed, setJobViewed } from './server/job-viewed'
-import { getJob, getRawJob, jobFacets, listJobs } from './server/jobs'
+import { getJob, getJobImage, getRawJob, jobFacets, listJobs } from './server/jobs'
 import { toWebJob, type JobDocument } from './server/jobs-query'
 import { getLinkedinLogin, requestLinkedinLogin, sendVerificationCode } from './server/linkedin-login'
 import { listRuns, requestRun, scraperStatus } from './server/scraper'
@@ -84,6 +84,7 @@ const server = Bun.serve({
 		'/api/jobs/:postId': { GET: api(getJob), PATCH: api(req => correctJob(req, { logger })) },
 		'/api/jobs/:postId/viewed': { PUT: api(req => setJobViewed(req, { events })) },
 		'/api/jobs/:postId/raw': { GET: api(getRawJob) },
+		'/api/jobs/:postId/images/:index': { GET: api(getJobImage) },
 		'/api/jobs/:postId/cv': { POST: api(req => requestCv(req, { queue, events, logger })) },
 		'/api/cv': { GET: api(listCvRequests) },
 		'/api/cv/:requestId': { GET: api(getCvRequest) },

@@ -68,6 +68,8 @@ export const AiJobOutputSchema = z
 			.nullable()
 			.catch(null),
 		recruiter_email: nullableString,
+		// Só nos posts com imagens (ver `EXTRACTION_OUTPUT_FORMAT_WITH_IMAGES`)
+		imageText: nullableString,
 		// Lista sem repetição, na ordem de CONTRACT_TYPES; sem nenhum regime válido vira `null`
 		contractTypes: z
 			.union([z.array(z.string()), z.string().transform(value => value.split(/,|\/| ou | or /i))])

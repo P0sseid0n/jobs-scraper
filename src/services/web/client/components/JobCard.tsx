@@ -99,18 +99,26 @@ export function JobCard({
 			)}
 
 			{/* Só o canal da candidatura: os botões ficam no detalhe, para a pessoa ler a vaga antes de se candidatar */}
-			<span className="font-mono text-muted inline-flex items-center gap-1.5 text-xs">
-				{job.recruiterEmail ? (
-					<>
-						<Icon name="mail" size={14} />
-						com e-mail de contato
-					</>
-				) : safeLink(job.applyLink) ? (
-					'candidatura pelo site da vaga'
-				) : (
-					'candidatura pelo post'
+			<div className="flex items-center justify-between gap-3">
+				<span className="font-mono text-muted inline-flex items-center gap-1.5 text-xs">
+					{job.recruiterEmail ? (
+						<>
+							<Icon name="mail" size={14} />
+							com e-mail de contato
+						</>
+					) : safeLink(job.applyLink) ? (
+						'candidatura pelo site da vaga'
+					) : (
+						'candidatura pelo post'
+					)}
+				</span>
+				{job.imageCount > 0 && (
+					<span className="text-muted inline-flex" title="O post tem imagem">
+						<Icon name="image" size={14} />
+						<span className="sr-only">o post tem imagem</span>
+					</span>
 				)}
-			</span>
+			</div>
 		</article>
 	)
 }

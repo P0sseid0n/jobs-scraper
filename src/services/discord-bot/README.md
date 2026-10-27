@@ -6,7 +6,7 @@ Publica cada vaga nova num canal do Discord e entrega o currículo ajustado para
 
 ## Vagas
 
-Cada vaga vira um card (embed) com cargo, empresa, local, modalidade, regime de contratação, data, tecnologias e botões para o post e para o contato do recrutador. O canal é o configurado em Configurações › Contas (ou `DISCORD_CHANNEL_ID`):
+Cada vaga vira um card (embed) com cargo, empresa, local, modalidade, regime de contratação, data, tecnologias e botões para o post e para o contato do recrutador. Se o post tem imagem, a primeira aparece no card, enviada como anexo (lida da coleção `job_images`: a URL do LinkedIn expira). O canal é o configurado em Configurações › Contas (ou `DISCORD_CHANNEL_ID`):
 
 - **Canal de texto:** cada vaga vira uma mensagem.
 - **Canal de fórum:** cada vaga vira um post próprio, com as tags do fórum que batem com a modalidade, o regime ou as tecnologias. Crie no fórum tags como "Remoto", "PJ" ou "Vue".

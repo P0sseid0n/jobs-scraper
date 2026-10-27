@@ -1,5 +1,6 @@
 import type { Page } from 'puppeteer'
 
+import type { CardImage } from './linkedin/post-images'
 import { SELECTORS } from './linkedin/selectors'
 
 export type ScrapedPost = {
@@ -11,6 +12,9 @@ export type ScrapedPost = {
 
 	/** Links do card fora do texto (o cartão anexado, entre outros); `externalLink` escolhe o que vale. */
 	cardLinks: string[]
+
+	/** As `<img>` do card; `postImageUrls` separa as do conteúdo (fora avatares e logos). */
+	images: CardImage[]
 }
 
 const SCRAPED_ATTRIBUTE = 'data-jobs-scraped'
@@ -22,7 +26,13 @@ const SCRAPED_ATTRIBUTE = 'data-jobs-scraped'
 export function collectNewPosts(page: Page): Promise<ScrapedPost[]> {
 	return page.evaluate(
 		(selectors, scrapedAttribute) => {
-			const results: { urnCandidates: string[]; text: string; author: string | null; cardLinks: string[] }[] = []
+			const results: {
+				urnCandidates: string[]
+				text: string
+				author: string | null
+				cardLinks: string[]
+				images: { src: string; srcset: string }[]
+			}[] = []
 
 			// Posts compartilhados contêm o post original dentro: fica só com o card mais externo
 			let containers = Array.from(document.querySelectorAll<HTMLElement>(selectors.post))
@@ -61,7 +71,13 @@ export function collectNewPosts(page: Page): Promise<ScrapedPost[]> {
 					.filter(link => !textElement?.contains(link))
 					.map(link => link.href)
 
-				results.push({ urnCandidates, text, author: author || null, cardLinks })
+				// Imagens ainda não carregadas (lazy) têm a URL em `data-delayed-url` no layout antigo
+				const images = Array.from(container.querySelectorAll<HTMLImageElement>('img')).map(img => ({
+					src: img.currentSrc || img.src || img.getAttribute('data-delayed-url') || '',
+					srcset: img.getAttribute('srcset') ?? '',
+				}))
+
+				results.push({ urnCandidates, text, author: author || null, cardLinks, images })
 			}
 
 			return results

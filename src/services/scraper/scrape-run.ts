@@ -10,12 +10,14 @@ import { loadCredentials, readSettings } from '@shared/settings'
 import { browserOptionsFrom, BrowserSession } from './browser-session'
 import type { ScraperConfig } from './config'
 import { collectNewPosts, loadMorePosts, type ScrapedPost } from './feed-reader'
+import { postImageUrls } from './linkedin/post-images'
 import { cleanPostText } from './linkedin/post-text'
 import { postedAtFromUrn, postUrlFromUrn, resolvePostUrn } from './linkedin/post-urn'
 import { SELECTORS } from './linkedin/selectors'
 import { buildSearchUrl, externalLink, LOGIN_URL } from './linkedin/urls'
 import { ensureLoggedIn, LoginError, loginOptionsFrom, NO_LINKEDIN_ACCOUNT } from './login'
 import { hashPost } from './post-id'
+import { downloadPostImages } from './post-images'
 import { postsPerTerm } from './schedule'
 
 type ScrapeOptions = { config: ScraperConfig; settings: ScraperSettings; queue: QueueClient; logger: Logger }
@@ -201,6 +203,8 @@ async function publishNewPosts(page: Page, { limit, seen, allowedLanguages }: Te
 	while (sent < limit) {
 		const posts = await collectNewPosts(page)
 		const candidates: RawPost[] = []
+		// Baixadas só para os posts enviados: os já vistos e os de outro idioma não gastam download
+		const imageUrls = new Map<string, string[][]>()
 
 		for (const scraped of posts) {
 			const post = toRawPost(scraped)
@@ -223,6 +227,7 @@ async function publishNewPosts(page: Page, { limit, seen, allowedLanguages }: Te
 
 			seen.add(post.postId).add(textHash)
 			candidates.push(post)
+			imageUrls.set(post.postId, postImageUrls(scraped.images))
 		}
 
 		const processed = await alreadyProcessed(candidates.map(post => post.postId))
@@ -247,12 +252,13 @@ async function publishNewPosts(page: Page, { limit, seen, allowedLanguages }: Te
 				continue
 			}
 
-			await queue.publish(QUEUES.postProcessing, post)
+			const images = await downloadPostImages(imageUrls.get(post.postId) ?? [], logger)
+			await queue.publish(QUEUES.postProcessing, { ...post, images })
 			postIds.push(post.postId)
 			sent++
 			sentNow++
 
-			logger.debug({ postId: post.postId, url: post.url }, '📨 Post enviado para a fila')
+			logger.debug({ postId: post.postId, url: post.url, images: images.length }, '📨 Post enviado para a fila')
 		}
 
 		logger.info(
@@ -304,6 +310,7 @@ function toRawPost(post: ScrapedPost): RawPost | null {
 		sourcePostId: null,
 		jobLink: null,
 		attachedLink: externalLink(post.cardLinks),
+		images: [],
 	}
 }
 

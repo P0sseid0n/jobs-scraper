@@ -115,13 +115,15 @@ export function afterCursor(cursor: Cursor, field = 'createdAt') {
 
 /**
  * Documento da coleção `jobs` como o `lean()` devolve (com os timestamps do mongoose). Vagas salvas antes do
- * campo `contractTypes`, dos de correção e do `viewedAt` não os têm.
+ * campo `contractTypes`, dos de correção, do `viewedAt` e dos das imagens não os têm.
  */
-export type JobDocument = Omit<ProcessedJob, 'title' | 'contractTypes' | 'extractionChecks'> &
+export type JobDocument = Omit<ProcessedJob, 'title' | 'contractTypes' | 'extractionChecks' | 'imageCount' | 'imageText'> &
 	Partial<JobExtractionSource & JobCorrectionState & JobViewState> & {
 		title: string | null
 		contractTypes?: ProcessedJob['contractTypes']
 		extractionChecks?: ProcessedJob['extractionChecks']
+		imageCount?: number
+		imageText?: string | null
 		createdAt?: Date | null
 	}
 
@@ -151,6 +153,8 @@ export function toWebJob(doc: JobDocument, reviewChecksPercent: number): WebJob 
 		sourcePostId: doc.sourcePostId ?? null,
 		postLink: doc.postLink ?? null,
 		rawContent: doc.rawContent,
+		imageCount: doc.imageCount ?? 0,
+		imageText: doc.imageText ?? null,
 		correctedAt: doc.correctedAt?.toISOString() ?? null,
 		viewedAt: doc.viewedAt?.toISOString() ?? null,
 	}

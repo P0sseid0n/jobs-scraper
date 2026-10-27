@@ -1,7 +1,14 @@
+import { join } from 'node:path'
+
+import { PostImageSchema, type PostImage } from '@shared/contracts'
+
 import { ExtractionCaseSchema, type ExtractionCase } from './extraction-eval'
 
 /** Casos de avaliação versionados, exportados por `bun eval:export-fixtures` e lidos por `bun eval:extraction --fixtures`. */
 export const DEFAULT_FIXTURES_PATH = Bun.fileURLToPath(new URL('./fixtures/extraction-cases.json', import.meta.url))
+
+/** Pasta das imagens dos posts das fixtures (`post.images` de cada caso). */
+export const FIXTURE_IMAGES_DIR = Bun.fileURLToPath(new URL('./fixtures/images/', import.meta.url))
 
 const EMAIL = /[\w.+-]+@[\w-]+(\.[\w-]+)+/g
 const LINKEDIN_PROFILE = /linkedin\.com\/in\/[^\s/?#)"]+/gi
@@ -115,6 +122,19 @@ export async function readFixtures(path = DEFAULT_FIXTURES_PATH): Promise<Extrac
 	if (!(await file.exists())) return []
 
 	return ExtractionCaseSchema.array().parse(await file.json())
+}
+
+/** As imagens do post de um caso, lidas de `FIXTURE_IMAGES_DIR` como o scraper as mandaria. */
+export async function readCaseImages(item: ExtractionCase, dir = FIXTURE_IMAGES_DIR): Promise<PostImage[]> {
+	return Promise.all(
+		(item.post.images ?? []).map(async name => {
+			const file = Bun.file(join(dir, name))
+			return PostImageSchema.parse({
+				mimeType: file.type.split(';')[0],
+				data: Buffer.from(await file.arrayBuffer()).toString('base64'),
+			})
+		}),
+	)
 }
 
 /** O nome completo e o primeiro nome (com 3 letras ou mais), do maior para o menor. */

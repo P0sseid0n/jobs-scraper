@@ -2012,5 +2012,59 @@
 		"correctedFields": [],
 		"model": "gemma3:4b",
 		"promptVersion": "186cb8044bb7"
+	},
+	{
+		"postId": "caso-imagem-front-end",
+		"anonymized": true,
+		"area": "dev",
+		"kind": "fields",
+		"post": {
+			"text": "🚀 Vaga aberta! Todos os detalhes estão na imagem 👇\n\nCompartilhe com quem está procurando!\n\n#vagas #frontend #vuejs",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null,
+			"images": [
+				"vaga-detalhes-na-imagem.jpg"
+			]
+		},
+		"aiOutput": {
+			"title": null,
+			"company": null,
+			"location": null,
+			"workMode": null,
+			"contractTypes": null,
+			"necessaryKnowledge": null,
+			"recruiterEmail": null,
+			"applyLink": null
+		},
+		"expected": {
+			"title": "Desenvolvedor(a) Front-end Pleno",
+			"company": "Acme Tecnologia",
+			"location": null,
+			"workMode": "remoto",
+			"contractTypes": [
+				"pj"
+			],
+			"necessaryKnowledge": [
+				"Vue.js",
+				"Pinia",
+				"TypeScript",
+				"Vitest",
+				"Git"
+			],
+			"recruiterEmail": "contato1@exemplo.com",
+			"applyLink": null
+		},
+		"correctedFields": [
+			"title",
+			"company",
+			"workMode",
+			"contractTypes",
+			"necessaryKnowledge",
+			"recruiterEmail"
+		],
+		"model": null,
+		"promptVersion": null
 	}
 ]

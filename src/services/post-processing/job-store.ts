@@ -1,5 +1,5 @@
-import { needsReview, ProcessedJobSchema, type JobPublished, type ProcessedJob } from '@shared/contracts'
-import { Job, type JobExtractionSource } from '@shared/database'
+import { needsReview, ProcessedJobSchema, type JobPublished, type PostImage, type ProcessedJob } from '@shared/contracts'
+import { Job, saveJobImages, type JobExtractionSource } from '@shared/database'
 import type { Logger } from '@shared/logging'
 import { EXCHANGES, type QueueClient } from '@shared/messaging'
 import { readSettings } from '@shared/settings'
@@ -10,10 +10,11 @@ type Deps = { queue: QueueClient; logger: Logger }
 
 /**
  * Salva a vaga (uma única vez) e publica o evento `job-published`, que cada canal (ex.: o discord-bot) recebe.
- * `source` diz qual modelo e prompt extraíram a vaga (usado na avaliação das correções feitas pelo site).
+ * `source` diz qual modelo e prompt extraíram a vaga (usado na avaliação das correções feitas pelo site). As imagens
+ * do post são guardadas antes do anúncio: os canais as leem do banco, porque as URLs do LinkedIn expiram.
  * @returns `false` se a vaga foi descartada por falta de campos obrigatórios.
  */
-export async function saveJob(data: ProcessedJob, { queue, logger }: Deps, source?: JobExtractionSource) {
+export async function saveJob(data: ProcessedJob, { queue, logger }: Deps, source?: JobExtractionSource, images: PostImage[] = []) {
 	const log = logger.child({ postId: data.postId })
 
 	const missing = missingRequiredFields(data)
@@ -21,6 +22,9 @@ export async function saveJob(data: ProcessedJob, { queue, logger }: Deps, sourc
 		log.warn({ missing }, 'Vaga sem os campos obrigatórios, descartando')
 		return false
 	}
+
+	// Antes da vaga: se ela for salva, as imagens já estão lá quando um canal as pedir
+	await saveJobImages(data.postId, images)
 
 	// Upsert idempotente: a mesma vaga nunca é salva duas vezes, mesmo se a mensagem for reprocessada
 	const job = await Job.findOneAndUpdate(

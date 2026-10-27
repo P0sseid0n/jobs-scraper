@@ -29,6 +29,7 @@ describe('parseModelResponse', () => {
 			link: null,
 			necessary_knowledge: ['Vue', 'TypeScript'],
 			recruiter_email: null,
+			imageText: null,
 			contractTypes: null,
 			workMode: 'hibrido',
 			postType: null,

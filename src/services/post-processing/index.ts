@@ -7,7 +7,7 @@ import { QUEUES } from '@shared/messaging'
 import { startService } from '@shared/service'
 import { loadSettings, readSettings } from '@shared/settings'
 
-import { EXTRACTION_PROMPT_VERSION } from './extraction-prompt'
+import { extractionPromptVersion } from './extraction-prompt'
 import { buildProcessedJob, extractJobFromPost } from './job-extraction'
 import { relevanceRejection } from './job-relevance'
 import { resumeSavedJob, saveJob } from './job-store'
@@ -74,7 +74,7 @@ async function processPost(post: RawPost) {
 		return
 	}
 
-	log.info({ language }, 'Processando post')
+	log.info({ language, images: post.images.length }, 'Processando post')
 	// Sem perfil, `targetRole` fica ausente e o modelo extrai a primeira vaga de um post com várias
 	const { targetRole } = await readSettings('profile')
 	const aiJob = await extractJobFromPost(ollama, config.OLLAMA_MODEL, post, targetRole ?? null)
@@ -99,7 +99,8 @@ async function processPost(post: RawPost) {
 	const saved = await saveJob(
 		job,
 		{ queue, logger },
-		{ extractionModel: config.OLLAMA_MODEL, promptVersion: EXTRACTION_PROMPT_VERSION },
+		{ extractionModel: config.OLLAMA_MODEL, promptVersion: extractionPromptVersion(post) },
+		post.images,
 	)
 	await markAsSeen(post, saved ? 'saved' : 'missing-fields')
 }
