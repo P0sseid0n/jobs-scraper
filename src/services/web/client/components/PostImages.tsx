@@ -7,6 +7,7 @@ import { stepImage, swipeStep } from '../lib/image-viewer'
 import { Icon } from './Icon'
 import { Badge } from './ui/Badge'
 import { IconButton } from './ui/IconButton'
+import { NEW_TAB_NOTICE } from './ui/link'
 import { PRESS } from './ui/press'
 
 type PostImagesJob = Pick<WebJob, 'postId' | 'imageCount'>
@@ -129,6 +130,7 @@ function ImageViewer({ job, start, onClose }: { job: PostImagesJob; start: numbe
 							rel="noreferrer"
 						>
 							abrir original
+							<span className="sr-only">{NEW_TAB_NOTICE}</span>
 							<Icon name="external" size={13} />
 						</a>
 						<IconButton data-close label="fechar imagem" onClick={() => ref.current?.close()}>

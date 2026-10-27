@@ -48,7 +48,7 @@ export function MissedChecks({ job }: { job: Pick<WebJob, 'extractionChecks'> })
 }
 
 /**
- * Selo "⚠ 2/6" dos checks da extração. Sem checks, não aparece; o hover abre a lista dos checks que falharam.
+ * Selo "⚠ 2/6" dos checks da extração. Sem checks, não aparece; o hover ou o foco abre a lista dos checks que falharam.
  * `iconOnly` (a lista): só o ícone na cor do nível, para não poluir o card.
  */
 export function ExtractionChecksBadge({
@@ -69,8 +69,12 @@ export function ExtractionChecksBadge({
 	const description = `${count} de ${total} checks da extração faltaram: ${extractionCheckList(job).join(', ')}.`
 
 	return (
-		// Por cima do link que cobre o card (`z-10`), para o hover chegar ao selo; aberto, sobe acima dos cards de baixo
-		<span className={cx('group/checks relative z-10 inline-flex hover:z-30', className)}>
+		// Por cima do link que cobre o card (`z-10`), para o hover chegar ao selo; aberto, sobe acima dos cards de baixo.
+		// Focável: pelo teclado (ou um toque), a lista abre como no hover
+		<span
+			tabIndex={0}
+			className={cx('group/checks relative z-10 inline-flex rounded-pill hover:z-30 focus-visible:z-30', className)}
+		>
 			{iconOnly ? (
 				<span className={cx('inline-flex', color)}>
 					<Icon name="alert" size={16} />
@@ -95,7 +99,7 @@ function ChecksList({ job, alignRight }: { job: Pick<WebJob, 'extractionChecks' 
 		<span
 			aria-hidden="true"
 			className={cx(
-				'absolute top-full z-20 hidden w-max flex-col gap-1 rounded-md border border-line bg-surface p-3 text-ink shadow-float group-hover/checks:flex',
+				'absolute top-full z-20 hidden w-max flex-col gap-1 rounded-md border border-line bg-surface p-3 text-ink shadow-float group-hover/checks:flex group-focus/checks:flex',
 				// No card, o selo fica na borda direita; no celular, desce para a esquerda
 				alignRight ? 'right-0 max-md:right-auto max-md:left-0' : 'left-0',
 			)}
