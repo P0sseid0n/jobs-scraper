@@ -1,5 +1,4 @@
-import { Link } from '@tanstack/react-router'
-import { useId, useState } from 'react'
+import { useId, useState, type MouseEvent } from 'react'
 
 import type { CvChanges } from '@shared/contracts'
 import { formatApplicationMessage } from '@shared/templates'
@@ -132,99 +131,80 @@ function CvItem({ request, outdated, latest }: CvItemProps) {
 
 	const ready = request.status === 'ready'
 	const changes = hasChanges(request.changes) ? request.changes : null
-	const expandable = ready && (!!changes || !!request.message)
 	const title = request.jobTitle ?? 'Vaga'
 	const meta = [request.company, formatDateTime(request.finishedAt ?? request.requestedAt)].filter(Boolean).join(' · ')
 
+	// O cabeçalho todo abre e fecha o ajuste; os botões e links dentro dele fazem só a ação deles
+	const toggleFromHeader = (event: MouseEvent<HTMLDivElement>) => {
+		if ((event.target as HTMLElement).closest('a, button')) return
+		setExpanded(!expanded)
+	}
+
 	return (
 		<li className={card({ size: 'sm', failed: request.status === 'failed', className: 'flex flex-col gap-3' })}>
-			<div className="flex items-start gap-3.5">
-				{ready ? (
-					<a className={SHEET_LINK} href={cvPdfUrl(request.requestId)} {...NEW_TAB} aria-label={`Abrir o PDF de ${title}`}>
-						<PdfIcon>PDF</PdfIcon>
-					</a>
-				) : (
-					<PdfIcon dashed={request.status === 'pending'}>
-						{request.status === 'pending' ? <Icon name="spinner" size={14} /> : 'erro'}
-					</PdfIcon>
-				)}
+			{/* Pelo teclado, quem abre e fecha é a seta (um botão de verdade) */}
+			{/* biome-ignore lint/a11y/useKeyWithClickEvents lint/a11y/noStaticElementInteractions: atalho do mouse para a seta */}
+			<div className="flex cursor-pointer items-start gap-3.5" onClick={toggleFromHeader}>
+				<PdfIcon dashed={request.status === 'pending'}>
+					{request.status === 'pending' ? <Icon name="spinner" size={14} /> : request.status === 'failed' ? 'erro' : 'PDF'}
+				</PdfIcon>
 
 				<div className="flex min-w-0 grow flex-col gap-2">
 					<div className="flex items-start gap-3">
 						<div className="flex min-w-0 grow flex-col gap-1">
-							<Link
-								className="block truncate font-semibold no-underline hover:underline"
-								to="/vagas/$id"
-								params={jobParams(request.postId)}
-							>
-								{title}
-							</Link>
+							<span className="block truncate font-semibold">{title}</span>
 							<span className="font-mono text-xs text-muted">
 								{request.status === 'pending' ? `gerando · pedido ${formatDateTime(request.requestedAt)}` : meta}
 							</span>
 							{request.status === 'failed' && <span className="text-sm text-danger">{request.error}</span>}
 						</div>
 
-						{ready && (
-							<div className="flex shrink-0 items-center gap-2">
-								<Button className="max-md:hidden" variant="ghost" href={cvPdfUrl(request.requestId)} external>
-									abrir
-								</Button>
-								<Button
-									className="max-md:hidden"
-									variant="lime"
-									href={cvPdfUrl(request.requestId, true)}
-									download={request.fileName ?? undefined}
-								>
-									<Icon name="download" size={14} />
-									baixar
-								</Button>
-								{/* No celular, a folha abre o PDF e o baixar vira só o ícone */}
-								<a
-									className={iconButton({ size: 'sm', bordered: true, className: 'md:hidden' })}
-									href={cvPdfUrl(request.requestId, true)}
-									download={request.fileName ?? undefined}
-									aria-label={`Baixar o PDF de ${title}`}
-									title="Baixar"
-								>
-									<Icon name="download" size={15} />
-								</a>
-								{expandable && (
-									<IconButton
-										size="sm"
-										label={expanded ? 'Esconder o ajuste' : 'Ver o ajuste e o e-mail'}
-										aria-expanded={expanded}
-										aria-controls={detailsId}
-										onClick={() => setExpanded(!expanded)}
+						<div className="flex shrink-0 items-center gap-2">
+							{ready && (
+								<>
+									<Button className="max-md:hidden" variant="ghost" href={cvPdfUrl(request.requestId)} external>
+										abrir
+									</Button>
+									<Button
+										className="max-md:hidden"
+										variant="lime"
+										href={cvPdfUrl(request.requestId, true)}
+										download={request.fileName ?? undefined}
 									>
-										<Icon
-											name="chevron"
-											size={16}
-											className={cx('transition-transform duration-200', expanded && 'rotate-180')}
-										/>
-									</IconButton>
-								)}
-							</div>
-						)}
-						{request.status === 'failed' && (
-							<Button className="shrink-0" variant="ghost" size="sm" onClick={() => retry(request)}>
-								tentar de novo
-							</Button>
-						)}
+										<Icon name="download" size={14} />
+										baixar
+									</Button>
+									{/* No celular, o baixar vira só o ícone e o abrir fica no ajuste */}
+									<a
+										className={iconButton({ size: 'sm', bordered: true, className: 'md:hidden' })}
+										href={cvPdfUrl(request.requestId, true)}
+										download={request.fileName ?? undefined}
+										aria-label={`Baixar o PDF de ${title}`}
+										title="Baixar"
+									>
+										<Icon name="download" size={15} />
+									</a>
+								</>
+							)}
+							{request.status === 'failed' && (
+								<Button variant="ghost" size="sm" onClick={() => retry(request)}>
+									tentar de novo
+								</Button>
+							)}
+							<IconButton
+								size="sm"
+								label={expanded ? 'Esconder os detalhes' : 'Ver os detalhes'}
+								aria-expanded={expanded}
+								aria-controls={detailsId}
+								onClick={() => setExpanded(!expanded)}
+							>
+								<Icon name="chevron" size={16} className={cx('transition-transform duration-200', expanded && 'rotate-180')} />
+							</IconButton>
+						</div>
 					</div>
 					{(changes || outdated) && (
 						<div className="flex flex-col gap-1.5">
-							{changes && (
-								<button
-									type="button"
-									className="cursor-pointer border-0 bg-transparent p-0 text-left"
-									aria-expanded={expanded}
-									aria-controls={detailsId}
-									onClick={() => setExpanded(!expanded)}
-								>
-									<ChangeSummary changes={changes} />
-								</button>
-							)}
+							{changes && <ChangeSummary changes={changes} />}
 							{outdated && (
 								<span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
 									<span className="flex items-center gap-1.5">
@@ -246,7 +226,18 @@ function CvItem({ request, outdated, latest }: CvItemProps) {
 			{expanded && (
 				<div id={detailsId} className="flex flex-col gap-3 animate-panel-in motion-reduce:animate-none">
 					{changes && <Changes changes={changes} fresh={false} />}
-					{request.message && <ApplicationMessageBox message={request.message} />}
+					{ready && request.message && <ApplicationMessageBox message={request.message} />}
+					<div className="flex flex-wrap gap-2 border-t border-line pt-3">
+						<ButtonLink variant="ghost" size="sm" to="/vagas/$id" params={jobParams(request.postId)}>
+							<Icon name="briefcase" size={14} />
+							ver a vaga
+						</ButtonLink>
+						{ready && (
+							<Button className="md:hidden" variant="ghost" size="sm" href={cvPdfUrl(request.requestId)} external>
+								abrir PDF
+							</Button>
+						)}
+					</div>
 				</div>
 			)}
 		</li>
