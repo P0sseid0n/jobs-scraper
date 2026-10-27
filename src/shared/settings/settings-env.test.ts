@@ -56,6 +56,8 @@ describe('settingsSeedsFromEnv', () => {
 			allowedLanguages: ['pt', 'en'],
 			requiredKeywords: ['enfermagem', 'coren'],
 			excludedKeywords: ['veterinário'],
+			duplicateSimilarityPercent: 60,
+			duplicateWindowDays: 30,
 		})
 		expect(ProfileSettingsSchema.parse(seeds.profile)).toEqual({
 			area: 'Enfermagem',

@@ -38,7 +38,12 @@ export type WebJob = Omit<ProcessedJob, 'title'> & {
 	viewedAt: string | null
 	/** Se há checks da extração suficientes para pedir que a pessoa confira o post original. */
 	needsReview: boolean
+	/** Outros posts da mesma vaga (repostagens agrupadas nela), do mais antigo ao mais novo. */
+	reposts: WebRepost[]
 }
+
+/** Um post que repetiu a vaga, mostrado no detalhe dela ("também postada por …"). */
+export type WebRepost = { postId: string; author: string | null; postLink: string | null; postedAt: string | null }
 
 export type JobsPage = { jobs: WebJob[]; nextCursor: string | null }
 

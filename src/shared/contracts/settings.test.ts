@@ -59,9 +59,19 @@ describe('PostProcessingSettingsSchema', () => {
 			allowedLanguages: ['pt'],
 			requiredKeywords: [],
 			excludedKeywords: [],
+			duplicateSimilarityPercent: 60,
+			duplicateWindowDays: 30,
 		})
 		expect(PostProcessingSettingsSchema.safeParse({ reviewChecksPercent: 0 }).success).toBe(false)
 		expect(PostProcessingSettingsSchema.safeParse({ reviewChecksPercent: 120 }).success).toBe(false)
+	})
+
+	test('agrupamento de repostagens: semelhança de 1 a 100% e janela de 1 a 365 dias', () => {
+		expect(PostProcessingSettingsSchema.safeParse({ duplicateSimilarityPercent: 0 }).success).toBe(false)
+		expect(PostProcessingSettingsSchema.safeParse({ duplicateSimilarityPercent: 101 }).success).toBe(false)
+		expect(PostProcessingSettingsSchema.safeParse({ duplicateWindowDays: 0 }).success).toBe(false)
+		expect(PostProcessingSettingsSchema.safeParse({ duplicateWindowDays: 400 }).success).toBe(false)
+		expect(PostProcessingSettingsSchema.parse({ duplicateWindowDays: 7 }).duplicateWindowDays).toBe(7)
 	})
 
 	test('idiomas: normaliza, remove repetidos e exige o código ISO 639-1', () => {

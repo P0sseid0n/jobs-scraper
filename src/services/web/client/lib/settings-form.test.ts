@@ -36,8 +36,9 @@ describe('validateDraft (as mesmas regras do servidor)', () => {
 		const value = draft()
 		value.scraper.minJobsPerRun = 51
 		value.scraper.intervalMinutes = Number.NaN
+		value['post-processing'].duplicateWindowDays = 0
 
-		expect(Object.keys(validateDraft(value))).toEqual(['minJobsPerRun', 'intervalMinutes'])
+		expect(Object.keys(validateDraft(value))).toEqual(['minJobsPerRun', 'intervalMinutes', 'duplicateWindowDays'])
 	})
 
 	test('o resultado aceito pelo cliente também passa no schema do servidor', () => {

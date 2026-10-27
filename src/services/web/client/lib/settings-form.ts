@@ -5,6 +5,7 @@ export const LIMITS = {
 	termLength: 100,
 	minJobsPerRun: [1, 50],
 	intervalMinutes: [1, 7 * 24 * 60],
+	duplicateWindowDays: [1, 365],
 	keywords: 50,
 	keywordLength: 50,
 	languages: 20,
@@ -58,6 +59,9 @@ export function validateDraft(draft: SettingsDraft) {
 	for (const field of ['requiredKeywords', 'excludedKeywords'] as const) {
 		if (processing[field].length > LIMITS.keywords) errors[field] = `Use no máximo ${LIMITS.keywords} palavras`
 	}
+
+	if (!isIntIn(processing.duplicateWindowDays, LIMITS.duplicateWindowDays))
+		errors.duplicateWindowDays = 'Use um número inteiro de 1 a 365'
 
 	return errors
 }

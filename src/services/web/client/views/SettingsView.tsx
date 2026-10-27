@@ -564,6 +564,46 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 						seja, “Vue.js” = “vue” e “Front-End” = “frontend”.
 					</FieldHelp>
 				</div>
+
+				<div className="grid grid-cols-2 gap-5 max-md:grid-cols-1">
+					<div className="flex flex-col gap-1.5">
+						<span className="flex items-center justify-between gap-3">
+							<FieldLabel htmlFor="duplicateSimilarityPercent">agrupar repostagens a partir de</FieldLabel>
+							<span className="font-mono">{p.duplicateSimilarityPercent}%</span>
+						</span>
+						<Range
+							id="duplicateSimilarityPercent"
+							aria-describedby="duplicateSimilarityPercent-help"
+							min={1}
+							max={100}
+							value={p.duplicateSimilarityPercent}
+							aria-valuetext={`${p.duplicateSimilarityPercent}% de texto em comum`}
+							onChange={event => {
+								const value = Number(event.target.value)
+								edit(next => {
+									next['post-processing'].duplicateSimilarityPercent = value
+								})
+							}}
+						/>
+						<FieldHelp id="duplicateSimilarityPercent-help">
+							Texto em comum entre dois posts da mesma empresa e cargo para virarem uma vaga só. Mais alto agrupa menos.
+						</FieldHelp>
+					</div>
+					<div className="flex flex-col gap-1.5">
+						<FieldLabel htmlFor="duplicateWindowDays">procurar repostagens em (dias)</FieldLabel>
+						{numberInput(
+							p.duplicateWindowDays,
+							(next, value) => (next['post-processing'].duplicateWindowDays = value),
+							'duplicateWindowDays',
+							{ min: 1, max: 365 },
+						)}
+						{fieldError('duplicateWindowDays') ?? (
+							<FieldHelp id="duplicateWindowDays-help">
+								de 1 a 365; a vaga nova é comparada com as salvas nesse período
+							</FieldHelp>
+						)}
+					</div>
+				</div>
 			</section>
 		)
 	}

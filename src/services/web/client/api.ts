@@ -91,6 +91,9 @@ export const api = {
 	/** Marca ou desmarca várias vagas; devolve só as que mudaram. */
 	setJobsViewed: (postIds: string[], viewed: boolean) =>
 		request<JobsViewedChange>('/api/jobs/viewed', { method: 'PUT', body: JSON.stringify({ postIds, viewed }) }),
+	/** "Não é a mesma vaga": a repostagem vira uma vaga própria; devolve a vaga original atualizada. */
+	ungroupRepost: (postId: string, repostId: string) =>
+		request<WebJob>(`/api/jobs/${encodeURIComponent(postId)}/reposts/${encodeURIComponent(repostId)}`, { method: 'DELETE' }),
 	/** O documento da vaga no MongoDB, para depuração. */
 	rawJob: (postId: string) => request<Record<string, unknown>>(`/api/jobs/${encodeURIComponent(postId)}/raw`),
 

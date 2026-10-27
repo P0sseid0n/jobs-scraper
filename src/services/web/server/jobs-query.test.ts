@@ -32,6 +32,10 @@ describe('buildJobsFilter', () => {
 		expect(filterFor({})).toEqual([LISTABLE_JOBS])
 	})
 
+	test('repostagens ficam fora da lista (`null` também pega as vagas de antes do campo)', () => {
+		expect(LISTABLE_JOBS.duplicateOf).toBeNull()
+	})
+
 	test('"none" vira as vagas sem modalidade', () => {
 		expect(filterFor({ workMode: 'remoto,none' })).toContainEqual({ workMode: { $in: ['remoto', null] } })
 	})
@@ -138,6 +142,13 @@ describe('toWebJob', () => {
 		// 3 de 6 checks: abaixo de 60% (4 checks), dentro de 50% (3 checks)
 		expect(toWebJob({ ...doc, extractionChecks: ['title', 'company', 'workMode'] }, 60).needsReview).toBe(false)
 		expect(toWebJob({ ...doc, extractionChecks: ['title', 'company', 'workMode'] }, 50).needsReview).toBe(true)
+	})
+
+	test('repostagens: nenhuma em vaga de antes do campo; sem a data em que foram agrupadas', () => {
+		expect(toWebJob(doc, 60).reposts).toEqual([])
+
+		const repost = { postId: 'def', author: 'Fulana', postLink: 'https://www.linkedin.com/feed/update/def', postedAt: null }
+		expect(toWebJob({ ...doc, reposts: [{ ...repost, createdAt: NOW }] }, 60).reposts).toEqual([repost])
 	})
 
 	test('mantém os regimes da vaga', () => {

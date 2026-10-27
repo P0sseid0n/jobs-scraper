@@ -20,7 +20,21 @@ export type JobCorrectionState = {
 /** Quando a vaga foi aberta no site (`null`: ainda não vista). O sistema tem um único usuário: o campo fica na vaga. */
 export type JobViewState = { viewedAt: Date | null }
 
-type JobDocument = ProcessedJob & JobExtractionSource & JobCorrectionState & JobViewState & { notifiedAt: Date | null }
+/** Outro post da mesma vaga (ver `post-processing/job-duplicates.ts`), guardado na vaga original. */
+export type JobRepost = { postId: string; author: string | null; postLink: string | null; postedAt: string | null; createdAt: Date }
+
+/**
+ * O agrupamento da mesma vaga repostada: a repostagem aponta para a original em `duplicateOf` (sai da lista e não é
+ * anunciada), e a original guarda os outros posts em `reposts`. Vagas salvas antes dos campos não os têm: ausente é o
+ * mesmo que `null` / nenhum.
+ */
+export type JobDuplicateState = { duplicateOf: string | null; reposts: JobRepost[] }
+
+type JobDocument = ProcessedJob &
+	JobExtractionSource &
+	JobCorrectionState &
+	JobViewState &
+	JobDuplicateState & { notifiedAt: Date | null }
 
 const jobSchema = new Schema<JobDocument>(
 	{
@@ -54,6 +68,20 @@ const jobSchema = new Schema<JobDocument>(
 		notAJob: { type: Boolean, default: false },
 		wrongLanguage: { type: Boolean, default: false },
 		viewedAt: { type: Date, default: null },
+		duplicateOf: { type: String, default: null },
+		reposts: {
+			type: [
+				{
+					_id: false,
+					postId: { type: String, required: true },
+					author: { type: String, default: null },
+					postLink: { type: String, default: null },
+					postedAt: { type: String, default: null },
+					createdAt: { type: Date, required: true },
+				},
+			],
+			default: [],
+		},
 		// Quando o evento `job-published` foi publicado (com pelo menos uma fila ligada); não confirma a entrega
 		notifiedAt: { type: Date, default: null },
 	},
