@@ -70,12 +70,17 @@ function ImageViewer({ job, start, onClose }: { job: PostImagesJob; start: numbe
 	const swipeFrom = useRef<{ x: number; y: number } | null>(null)
 	// O clique que o navegador às vezes dispara no fim de um deslize não fecha o visualizador
 	const swiped = useRef(false)
+	/** Proporção (largura / altura) de cada imagem já carregada, para ela ocupar o espaço livre sem distorcer. */
+	const [ratios, setRatios] = useState<Record<number, number>>({})
+	const ratio = ratios[index]
 	const count = job.imageCount
 	const src = jobImageUrl(job.postId, index)
 	const go = (step: number) => setIndex(current => stepImage(current, step, count))
 
 	useEffect(() => {
 		ref.current?.showModal()
+		// O `showModal` foca o primeiro link ("abrir original"); o foco fica no fechar, como nas outras modais
+		ref.current?.querySelector<HTMLButtonElement>('[data-close]')?.focus()
 	}, [])
 
 	function onPointerUp(event: PointerEvent) {
@@ -103,12 +108,13 @@ function ImageViewer({ job, start, onClose }: { job: PostImagesJob; start: numbe
 			// Clique fora da imagem e dos controles fecha
 			onClick={event => {
 				if (swiped.current) swiped.current = false
-				else if (event.target === event.currentTarget.firstElementChild) ref.current?.close()
+				else if (event.target instanceof HTMLElement && 'closes' in event.target.dataset) ref.current?.close()
 			}}
 		>
 			<div
 				// `pan-y`: o deslize horizontal fica para trocar de imagem, sem o navegador tratar como gesto dele
-				className="flex h-full touch-pan-y flex-col items-center justify-center gap-3 px-4 pt-16 pb-6"
+				className="flex h-full touch-pan-y flex-col items-center justify-center gap-3 px-3 pt-15 pb-4 md:px-18"
+				data-closes
 				onPointerDown={event => {
 					swipeFrom.current = { x: event.clientX, y: event.clientY }
 				}}
@@ -128,20 +134,32 @@ function ImageViewer({ job, start, onClose }: { job: PostImagesJob; start: numbe
 							abrir original
 							<Icon name="external" size={13} />
 						</a>
-						<IconButton label="fechar imagem" autoFocus onClick={() => ref.current?.close()}>
+						<IconButton data-close label="fechar imagem" onClick={() => ref.current?.close()}>
 							<Icon name="close" size={18} />
 						</IconButton>
 					</div>
 				</header>
 
-				<img
-					// Nova imagem, nova animação de entrada
-					key={index}
-					className="block max-h-full max-w-full animate-pop-in rounded-sm object-contain shadow-float select-none motion-reduce:animate-none"
-					src={src}
-					alt={imageLabel(index, count)}
-					draggable={false}
-				/>
+				{/* A área livre da tela: a imagem cresce até encostar na largura ou na altura dela (`cqw`/`cqh`), mesmo que o
+				    arquivo seja menor que a tela, sem distorcer nem sobrar moldura em volta */}
+				<div className="flex min-h-0 w-full flex-1 items-center justify-center" style={{ containerType: 'size' }} data-closes>
+					<img
+						// Nova imagem, nova animação de entrada
+						key={index}
+						className={cx(
+							'block max-h-full max-w-full animate-pop-in rounded-sm shadow-float select-none motion-reduce:animate-none',
+							!ratio && 'invisible',
+						)}
+						style={ratio ? { aspectRatio: ratio, width: `min(100cqw, ${ratio} * 100cqh)` } : undefined}
+						src={src}
+						alt={imageLabel(index, count)}
+						draggable={false}
+						onLoad={event => {
+							const { naturalWidth, naturalHeight } = event.currentTarget
+							if (naturalWidth && naturalHeight) setRatios(current => ({ ...current, [index]: naturalWidth / naturalHeight }))
+						}}
+					/>
+				</div>
 
 				{count > 1 && (
 					<>
