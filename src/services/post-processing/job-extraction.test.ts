@@ -1,13 +1,18 @@
 import { describe, expect, test } from 'bun:test'
+import type { Ollama } from 'ollama'
 
 import { caseToRawPost } from './extraction-eval'
 import { AiJobOutputSchema } from './extraction-output'
 import { readCaseImages, readFixtures } from './feedback-fixtures'
-import { buildProcessedJob } from './job-extraction'
+import { classifiesByText } from './extraction-prompt'
+import { buildProcessedJob, extractJobFromPost } from './job-extraction'
 
 // Post de verdade no formato "detalhes na imagem": o texto não tem nenhum dado da vaga, a arte tem todos
 const item = (await readFixtures()).find(fixture => fixture.postId === 'caso-imagem-front-end')!
 const images = await readCaseImages(item)
+// Quem procura emprego, com o currículo anexado
+const seekerCase = (await readFixtures()).find(fixture => fixture.postId === 'caso-imagem-curriculo')!
+const seeker = caseToRawPost(seekerCase, await readCaseImages(seekerCase))
 
 /** A resposta do modelo para o post: o texto transcrito da arte e os campos tirados dele. */
 const answer = AiJobOutputSchema.parse({
@@ -68,4 +73,53 @@ describe('vaga com os dados na imagem', () => {
 		expect(job.workMode).toBeNull()
 		expect(job.extractionChecks).toEqual(['workMode', 'necessaryKnowledge'])
 	})
+})
+
+describe('post com imagens: o texto decide se é vaga', () => {
+	/** Um Ollama que responde `postTypes` em ordem e guarda quantas imagens foram em cada chamada. */
+	function fakeOllama(...postTypes: string[]) {
+		const calls: number[] = []
+		const ollama = {
+			chat: async (request: { messages: { images?: string[] }[] }) => {
+				calls.push(request.messages.at(-1)?.images?.length ?? 0)
+				return { message: { content: JSON.stringify({ ...answer, postType: postTypes[calls.length - 1] }) } }
+			},
+		}
+		return { ollama: ollama as unknown as Ollama, calls }
+	}
+
+	test('texto que não é vaga: a imagem nem vai ao modelo', async () => {
+		const { ollama, calls } = fakeOllama('job_seeker', 'job_opening')
+
+		expect(await extractJobFromPost(ollama, 'gemma3:4b', seeker, null)).toMatchObject({ postType: 'job_seeker', isJob: false })
+		expect(calls).toEqual([0])
+	})
+
+	test('texto que é vaga: a chamada com as imagens completa os dados e tem a palavra final', async () => {
+		const { ollama, calls } = fakeOllama('job_opening', 'job_opening')
+
+		expect(await extractJobFromPost(ollama, 'gemma3:4b', caseToRawPost(item, images), null)).toMatchObject({ imageText: answer.imageText })
+		expect(calls).toEqual([0, 1])
+	})
+
+	test('texto curto demais: só a chamada com as imagens', async () => {
+		const { ollama, calls } = fakeOllama('job_opening')
+		const post = { ...caseToRawPost(item, images), text: 'Front-End Developer 👇 #vagas #frontend https://exemplo.com/vaga' }
+
+		expect(await extractJobFromPost(ollama, 'gemma3:4b', post, null)).toMatchObject({ isJob: true })
+		expect(calls).toEqual([1])
+	})
+
+	test('sem imagens: uma chamada só, como antes', async () => {
+		const { ollama, calls } = fakeOllama('job_seeker')
+
+		await extractJobFromPost(ollama, 'gemma3:4b', caseToRawPost(item), null)
+		expect(calls).toEqual([0])
+	})
+})
+
+test('as palavras que contam para o texto classificar o post: sem hashtags, links e menções', () => {
+	expect(classifiesByText('🚀 Vaga aberta! Todos os detalhes estão na imagem 👇')).toBe(true)
+	expect(classifiesByText('Front-End Developer #vagas #frontend #remoto #clt #pj #react #vue @Empresa https://exemplo.com')).toBe(false)
+	expect(classifiesByText('Vaga de dev, detalhes na imagem')).toBe(false)
 })

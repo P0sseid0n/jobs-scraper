@@ -5,7 +5,7 @@ import { PermanentError } from '@shared/messaging'
 
 import { extractionChecks } from './extraction-checks'
 import type { AiJobOutput } from './extraction-output'
-import { buildExtractionMessages, extractionOutputFormat } from './extraction-prompt'
+import { buildExtractionMessages, classifiesByText, extractionOutputFormat } from './extraction-prompt'
 import {
 	keepCompanyIfInPost,
 	keepContractTypesInPost,
@@ -19,7 +19,8 @@ import {
 /**
  * Pede ao modelo os dados da vaga contidos no post (`null` se ele responder `null`). Num post com várias vagas, o
  * modelo escolhe a mais próxima de `targetRole` (o cargo-alvo do perfil) ou, sem ele, a primeira. As imagens do
- * post vão junto: o modelo transcreve o texto delas (`imageText`) e o usa na extração.
+ * post vão junto: o modelo transcreve o texto delas (`imageText`) e o usa na extração. Num post com imagens e texto
+ * suficiente, o texto decide antes, sozinho, se é vaga: as imagens só completam os dados de uma vaga.
  */
 export async function extractJobFromPost(
 	ollama: Ollama,
@@ -27,10 +28,26 @@ export async function extractJobFromPost(
 	post: RawPost,
 	targetRole: string | null,
 ): Promise<AiJobOutput | null> {
+	const text = normalizePostText(post.text)
+
+	if (post.images.length > 0 && classifiesByText(text)) {
+		const byText = await chatExtraction(ollama, model, { text, author: post.author, images: [] }, targetRole)
+		if (!byText?.isJob) return byText
+	}
+
+	return chatExtraction(ollama, model, { text, author: post.author, images: post.images }, targetRole)
+}
+
+async function chatExtraction(
+	ollama: Ollama,
+	model: string,
+	post: { text: string; author: string | null; images: RawPost['images'] },
+	targetRole: string | null,
+): Promise<AiJobOutput | null> {
 	// Erros do Ollama (fora do ar, timeout) são transitórios: o QueueClient tenta de novo
 	const response = await ollama.chat({
 		model,
-		messages: buildExtractionMessages({ text: normalizePostText(post.text), author: post.author, images: post.images }, targetRole),
+		messages: buildExtractionMessages(post, targetRole),
 		format: extractionOutputFormat(post),
 		options: { temperature: 0 },
 	})

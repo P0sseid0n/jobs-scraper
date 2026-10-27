@@ -65,9 +65,8 @@ Never guess or invent values; use null when the information is not in the post, 
 const IMAGES_PROMPT = `
 
 ## Images attached to the post
-The post comes with images. Some job posts put the details in an image (requirements, contract type, salary, contact email) and keep the text short ("details in the image"). Many other posts just show photos or screenshots.
+The post comes with images. Job posts often put the details in an image (requirements, contract type, salary, contact email) and keep the text short ("details in the image").
 - imageText: first, transcribe all the text written in the images, line by line, exactly as written (copy emails and URLs character by character). "" if the images have no text (a photo, a logo).
-- The images do not change who the post is about. If the author writes in the first person about a project, product, app or site they built, it is NOT a job_opening, even if a screenshot of it says "contrate", "hire", "vagas" or "publique vagas": that is the product's own text, not a vacancy. Only a job ad in the image (a role being hired for, requirements, how to apply) can make the post a job_opening.
 - Then classify and extract using both the post text and imageText. Every rule above that says "the post" or "the post text" also covers imageText: the values must be written in one of them.
 - Use the images only for the same opening as the text. If the images describe other openings, follow the rule for several openings, and never mix fields from different openings.`
 
@@ -90,10 +89,28 @@ export const EXTRACTION_PROMPT_VERSION = new Bun.CryptoHasher('sha256')
 	.digest('hex')
 	.slice(0, 12)
 
-/** A versão do prompt usado nos posts com imagens (o de texto mais as instruções das imagens). */
+/**
+ * Palavras (sem hashtags, links e menções) a partir das quais o texto de um post com imagens decide sozinho se ele é
+ * vaga. Com as imagens, o modelo de 4B classificava como vaga o post de quem procura emprego (com o currículo anexado)
+ * ou mostra o próprio projeto (com o print do site), mesmo quando só pelo texto ele acertava. Abaixo disso ("Front-End
+ * Developer" e a arte da vaga), o texto não basta e quem decide é a extração com as imagens.
+ */
+const MIN_WORDS_TO_CLASSIFY_BY_TEXT = 8
+
+/** Se o texto de um post com imagens basta para classificá-lo (ver `MIN_WORDS_TO_CLASSIFY_BY_TEXT`). */
+export function classifiesByText(text: string) {
+	const words = text
+		.replace(/https?:\/\/\S+/g, ' ')
+		.replace(/[#@][\p{L}\p{N}_]+/gu, ' ')
+		.match(/\p{L}[\p{L}\p{N}'’-]*/gu)
+	return (words?.length ?? 0) >= MIN_WORDS_TO_CLASSIFY_BY_TEXT
+}
+
+/** A versão do prompt usado nos posts com imagens (o de texto mais as instruções das imagens e o limite acima). */
 export const EXTRACTION_PROMPT_VERSION_WITH_IMAGES = new Bun.CryptoHasher('sha256')
 	.update(EXTRACTION_PROMPT_VERSION)
 	.update(IMAGES_PROMPT)
+	.update(String(MIN_WORDS_TO_CLASSIFY_BY_TEXT))
 	.update(JSON.stringify(EXTRACTION_OUTPUT_FORMAT_WITH_IMAGES))
 	.digest('hex')
 	.slice(0, 12)

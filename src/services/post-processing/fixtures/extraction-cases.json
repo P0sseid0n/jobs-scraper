@@ -2103,5 +2103,43 @@
 		"correctedFields": [],
 		"model": "gemma3:4b",
 		"promptVersion": "3205cf472bb7"
+	},
+	{
+		"postId": "caso-imagem-curriculo",
+		"anonymized": true,
+		"area": "dev",
+		"kind": "not-a-job",
+		"post": {
+			"text": "Oi, rede!\nEstou procurando uma nova oportunidade em Desenvolvimento de Software e queria pedir uma ajuda de vocês!\n\nSou formado em Análise e Desenvolvimento de Sistemas e já trabalhei criando e mantendo aplicações, desenvolvendo funcionalidades novas, integrando APIs e resolvendo problemas técnicos.\nTenho experiência com JavaScript, TypeScript, Flutter, Java, React.js, React Native e MongoDB.\n\nNo momento busco vagas de Desenvolvedor Júnior, principalmente em Front-End e Mobile, em times que valorizem colaboração e aprendizado.\n\nSe souberem de alguma vaga, compartilhar este post ou me indicar já ajuda muito!\n\nJoinville, SC 📍\nContato: contato1@exemplo.com\n\n#OpenToWork #DesenvolvimentoDeSoftware #DesenvolvedorJunior #ReactNative #TypeScript",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null,
+			"images": [
+				"curriculo-anexado.jpg"
+			]
+		},
+		"aiOutput": {
+			"title": "Desenvolvedor Júnior",
+			"company": null,
+			"location": "Joinville, SC",
+			"workMode": null,
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"JavaScript",
+				"TypeScript",
+				"Flutter",
+				"Java",
+				"React.js",
+				"React Native",
+				"MongoDB"
+			],
+			"recruiterEmail": "contato1@exemplo.com",
+			"applyLink": null
+		},
+		"expected": null,
+		"correctedFields": [],
+		"model": "gemma3:4b",
+		"promptVersion": "21cdca7b977a"
 	}
 ]
