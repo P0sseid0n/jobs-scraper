@@ -5,7 +5,7 @@ import type { VariantProps } from 'tailwind-variants'
 import { tv } from '../../lib/cx'
 import { Icon } from '../Icon'
 import { useButtonMotion } from './button-motion'
-import { NEW_TAB } from './link'
+import { NEW_TAB, NEW_TAB_NOTICE } from './link'
 import { OUTLINED } from './outlined'
 import { PRESS } from './press'
 
@@ -53,6 +53,7 @@ export function Button({ variant, size, className, external, children, ...props 
 		<>
 			{external && <Icon name="external" size={size === 'lg' ? 16 : 14} />}
 			{children}
+			{external && <span className="sr-only">{NEW_TAB_NOTICE}</span>}
 		</>,
 		props.onPointerDown as ((event: PointerEvent<HTMLElement>) => void) | undefined,
 	)

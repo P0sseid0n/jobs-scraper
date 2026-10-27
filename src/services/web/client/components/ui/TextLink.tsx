@@ -2,7 +2,7 @@ import { createLink } from '@tanstack/react-router'
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes, Ref } from 'react'
 
 import { tv } from '../../lib/cx'
-import { NEW_TAB } from './link'
+import { NEW_TAB, NEW_TAB_NOTICE } from './link'
 
 const textLink = tv({
 	base: 'text-ink underline underline-offset-3 hover:text-lime-text',
@@ -29,6 +29,7 @@ export function TextLink({ className, external, children, ...props }: TextLinkPr
 			<a {...(external ? NEW_TAB : {})} {...(props as LinkProps)} className={textLink({ as: 'a', className })}>
 				{children}
 				{external && <span aria-hidden="true"> ↗</span>}
+				{external && <span className="sr-only">{NEW_TAB_NOTICE}</span>}
 			</a>
 		)
 	}

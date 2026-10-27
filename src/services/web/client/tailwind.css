@@ -606,9 +606,10 @@
 	--color-ok: #1d7a45;
 	/*
 	 * Pontas da escala dos checks da extração (do 1 check, amarelo, aos 6, vermelho forte). No claro, o amarelo é
-	 * escuro para ter contraste de pelo menos 3:1 com o fundo; `inv-*` são as da superfície escura, nos dois temas.
+	 * escuro para o "1/6" do selo ter contraste de texto (4,5:1) no branco do card; `inv-*` são as da superfície escura,
+	 * nos dois temas.
 	 */
-	--color-check-low: #a87b00;
+	--color-check-low: #8a6500;
 	--color-check-high: #b91c1c;
 	--color-inv-check-low: #facc15;
 	--color-inv-check-high: #ff4433;
