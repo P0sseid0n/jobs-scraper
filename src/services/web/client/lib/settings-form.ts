@@ -103,13 +103,9 @@ export function errorFor(errors: Record<string, string>, field: string) {
  * por volta de 80%; outra vaga da mesma empresa escrita no mesmo modelo de post, por volta de 40%.
  */
 export function duplicateSimilarityHint(percent: number) {
-	if (percent < 30)
-		return 'Muito solto: basta dividirem trechos do texto, como a apresentação da empresa. Vagas diferentes da mesma empresa podem sumir dentro de outra.'
-	if (percent < 50)
-		return 'Solto: agrupa até repostagens bem reescritas, mas pode juntar vagas diferentes da mesma empresa que usam o mesmo modelo de post.'
-	if (percent < 70)
-		return 'Equilibrado (recomendado): agrupa repostagens com outra abertura, emojis, hashtags ou uma linha a mais, e mantém separadas as vagas diferentes.'
-	if (percent < 90)
-		return 'Rígido: só agrupa repostagens com poucas mudanças; as que reescrevem parte do texto aparecem como vagas separadas.'
-	return 'Muito rígido: só agrupa textos praticamente iguais; quase toda repostagem aparece como vaga separada.'
+	if (percent < 30) return 'Muito solto: pode juntar vagas diferentes da mesma empresa.'
+	if (percent < 50) return 'Solto: agrupa repostagens bem reescritas, mas pode juntar vagas diferentes.'
+	if (percent < 70) return 'Equilibrado (recomendado): agrupa repostagens com pequenas mudanças no texto.'
+	if (percent < 90) return 'Rígido: repostagens com parte do texto reescrita ficam separadas.'
+	return 'Muito rígido: só agrupa textos quase iguais.'
 }

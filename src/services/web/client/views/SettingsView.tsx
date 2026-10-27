@@ -593,9 +593,8 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 							}}
 						/>
 						<FieldHelp id="duplicateSimilarityPercent-help">
-							{duplicateSimilarityHint(p.duplicateSimilarityPercent)} Vale para posts da mesma empresa e cargo: a porcentagem é
-							quanto do texto os dois têm em comum (trechos de três palavras seguidas, sem emojis, links e hashtags). Com o
-							mesmo link de candidatura, o texto não importa.
+							{duplicateSimilarityHint(p.duplicateSimilarityPercent)} É quanto do texto dois posts da mesma empresa e cargo têm
+							em comum.
 						</FieldHelp>
 					</div>
 					<div className="flex flex-col gap-1.5">
