@@ -2141,5 +2141,37 @@
 		"correctedFields": [],
 		"model": "gemma3:4b",
 		"promptVersion": "21cdca7b977a"
+	},
+	{
+		"postId": "caso-enquete-hashtags",
+		"anonymized": true,
+		"area": "dev",
+		"kind": "not-a-job",
+		"post": {
+			"text": "Imagine ganhar uma proposta para trabalhar numa empresa internacional, com novas oportunidades e salário em moeda estrangeira.\n\nVocê se sentiria seguro para fazer uma entrevista em inglês hoje?\n\nQuero saber de verdade!\n\n#memedodia #desenvolvedor #frontend #frontenddeveloper #frontenddev #frontendengineer #webdevelopment #webdesigner #webdev #web #techie #linkedin #linkedincommunity #html #css #javascript #tips #tipsandtricks #helpfultips #insights #help #job #jobalert #coding #programming #developer #programação #tecnologiadainformação #cienciadacomputação #python #engenhariadacomputação",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Desenvolvedor Front-end",
+			"company": null,
+			"location": null,
+			"workMode": null,
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"HTML",
+				"CSS",
+				"JavaScript",
+				"Python"
+			],
+			"recruiterEmail": null,
+			"applyLink": null
+		},
+		"expected": null,
+		"correctedFields": [],
+		"model": "gemma3:4b",
+		"promptVersion": "817be77ff2a8"
 	}
 ]

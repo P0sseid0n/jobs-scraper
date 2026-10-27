@@ -5,7 +5,7 @@ import { caseToRawPost } from './extraction-eval'
 import { AiJobOutputSchema } from './extraction-output'
 import { readCaseImages, readFixtures } from './feedback-fixtures'
 import { classifiesByText } from './extraction-prompt'
-import { buildProcessedJob, extractJobFromPost } from './job-extraction'
+import { buildProcessedJob, extractJobFromPost, withoutTrailingHashtags } from './job-extraction'
 
 // Post de verdade no formato "detalhes na imagem": o texto não tem nenhum dado da vaga, a arte tem todos
 const item = (await readFixtures()).find(fixture => fixture.postId === 'caso-imagem-front-end')!
@@ -122,4 +122,37 @@ test('as palavras que contam para o texto classificar o post: sem hashtags, link
 	expect(classifiesByText('🚀 Vaga aberta! Todos os detalhes estão na imagem 👇')).toBe(true)
 	expect(classifiesByText('Front-End Developer #vagas #frontend #remoto #clt #pj #react #vue @Empresa https://exemplo.com')).toBe(false)
 	expect(classifiesByText('Vaga de dev, detalhes na imagem')).toBe(false)
+})
+
+describe('bloco de hashtags no fim do post', () => {
+	test('sai do texto, com as linhas em branco antes dele', () => {
+		expect(withoutTrailingHashtags('Você faria uma entrevista em inglês hoje?\n\n#job #jobalert #developer\n#frontend, #webdev\n')).toBe(
+			'Você faria uma entrevista em inglês hoje?',
+		)
+	})
+
+	test('hashtag no meio do texto ou numa linha com outras palavras fica', () => {
+		const text = 'Vaga #remoto para dev\nStack: #React #Node e TypeScript'
+		expect(withoutTrailingHashtags(text)).toBe(text)
+	})
+
+	test('post só de hashtags fica como está', () => {
+		expect(withoutTrailingHashtags('#vagas #frontend')).toBe('#vagas #frontend')
+	})
+
+	test('o bloco não vai ao modelo, mas continua no texto das regras da vaga', async () => {
+		const requests: { messages: { content: string }[] }[] = []
+		const ollama = {
+			chat: async (request: (typeof requests)[number]) => {
+				requests.push(request)
+				return { message: { content: JSON.stringify(answer) } }
+			},
+		} as unknown as Ollama
+		const post = caseToRawPost(item)
+
+		await extractJobFromPost(ollama, 'gemma3:4b', post, null)
+		expect(requests[0]?.messages.at(-1)?.content).not.toContain('#vuejs')
+		// O Vue.js continua valendo pela hashtag (ver "sem a imagem, o que não está no texto é descartado como antes")
+		expect(buildProcessedJob(post, answer, 'pt').necessaryKnowledge).toEqual(['Vue.js'])
+	})
 })

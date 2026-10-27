@@ -28,7 +28,9 @@ export async function extractJobFromPost(
 	post: RawPost,
 	targetRole: string | null,
 ): Promise<AiJobOutput | null> {
-	const text = normalizePostText(post.text)
+	// Sem o bloco de hashtags do fim: dezenas de tags (#job #jobalert #developer) faziam o modelo ver vaga num post
+	// que não é. Só o texto enviado ao modelo: as regras do texto em `buildProcessedJob` leem o post inteiro
+	const text = withoutTrailingHashtags(normalizePostText(post.text))
 
 	if (post.images.length > 0 && classifiesByText(text)) {
 		const byText = await chatExtraction(ollama, model, { text, author: post.author, images: [] }, targetRole)
@@ -101,4 +103,16 @@ export function buildProcessedJob(post: RawPost, aiJob: AiJobOutput, language: s
 /** Aplica NFKC: o "negrito" Unicode comum no LinkedIn (𝐕𝐮𝐞.𝐣𝐬) vira texto que o modelo entende. */
 function normalizePostText(text: string) {
 	return text.normalize('NFKC')
+}
+
+/** Uma linha só de hashtags (ou em branco, contando o "⠀" braille e os caracteres invisíveis). */
+const HASHTAG_LINE = /^[\s⠀​-‍﻿]*(#[\p{L}\p{N}_]+[\s⠀,.;|·•]*)*$/u
+
+/** Tira do fim do post as linhas só de hashtags. Um post que é só hashtags fica como está. */
+export function withoutTrailingHashtags(text: string) {
+	const lines = text.split('\n')
+	let end = lines.length
+	while (end > 0 && HASHTAG_LINE.test(lines[end - 1]!)) end--
+
+	return end === 0 ? text : lines.slice(0, end).join('\n')
 }
