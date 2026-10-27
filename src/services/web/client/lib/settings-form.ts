@@ -96,3 +96,20 @@ function isIntIn(value: number, [min, max]: readonly [number, number]) {
 export function errorFor(errors: Record<string, string>, field: string) {
 	return errors[field] ?? Object.entries(errors).find(([path]) => path.startsWith(`${field}.`))?.[1] ?? null
 }
+
+/**
+ * O que a semelhança mínima para agrupar repostagens faz na prática, pela faixa escolhida. As faixas vêm dos pares de
+ * posts dos testes de `job-duplicates.ts`: uma repostagem com outra abertura, emojis, hashtags e uma linha a mais fica
+ * por volta de 80%; outra vaga da mesma empresa escrita no mesmo modelo de post, por volta de 40%.
+ */
+export function duplicateSimilarityHint(percent: number) {
+	if (percent < 30)
+		return 'Muito solto: basta dividirem trechos do texto, como a apresentação da empresa. Vagas diferentes da mesma empresa podem sumir dentro de outra.'
+	if (percent < 50)
+		return 'Solto: agrupa até repostagens bem reescritas, mas pode juntar vagas diferentes da mesma empresa que usam o mesmo modelo de post.'
+	if (percent < 70)
+		return 'Equilibrado (recomendado): agrupa repostagens com outra abertura, emojis, hashtags ou uma linha a mais, e mantém separadas as vagas diferentes.'
+	if (percent < 90)
+		return 'Rígido: só agrupa repostagens com poucas mudanças; as que reescrevem parte do texto aparecem como vagas separadas.'
+	return 'Muito rígido: só agrupa textos praticamente iguais; quase toda repostagem aparece como vaga separada.'
+}

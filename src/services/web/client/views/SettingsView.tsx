@@ -33,7 +33,14 @@ import { SECTION_TITLE } from '../components/ui/text'
 import { cx } from '../lib/cx'
 import { formatInterval, LANGUAGE_NAMES, languageLabel } from '../lib/format'
 import { shakeInvalid } from '../lib/motion'
-import { LIMITS, profileDraftOf, validateDraft, validateProfile, type SettingsDraft } from '../lib/settings-form'
+import {
+	duplicateSimilarityHint,
+	LIMITS,
+	profileDraftOf,
+	validateDraft,
+	validateProfile,
+	type SettingsDraft,
+} from '../lib/settings-form'
 import { useFlash } from '../lib/use-flash'
 import { notify } from '../stores/toast'
 
@@ -586,7 +593,9 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 							}}
 						/>
 						<FieldHelp id="duplicateSimilarityPercent-help">
-							Texto em comum entre dois posts da mesma empresa e cargo para virarem uma vaga só. Mais alto agrupa menos.
+							{duplicateSimilarityHint(p.duplicateSimilarityPercent)} Vale para posts da mesma empresa e cargo: a porcentagem é
+							quanto do texto os dois têm em comum (trechos de três palavras seguidas, sem emojis, links e hashtags). Com o
+							mesmo link de candidatura, o texto não importa.
 						</FieldHelp>
 					</div>
 					<div className="flex flex-col gap-1.5">
