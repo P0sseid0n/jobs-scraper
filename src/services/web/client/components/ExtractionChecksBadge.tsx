@@ -80,15 +80,7 @@ export function ExtractionChecksBadge({
 					<Icon name="alert" size={16} />
 				</span>
 			) : (
-				<Badge
-					tone={review ? 'danger' : 'plain'}
-					bordered={!review}
-					className={cx(
-						'border-current',
-						// 1 check: preenchido de amarelo, que como texto ficaria mostarda para ter contraste no branco
-						!review && count === 1 ? 'border-transparent bg-check-fill text-check-fill-ink' : color,
-					)}
-				>
+				<Badge tone={review ? 'danger' : 'plain'} bordered={!review} className={cx('border-current', color)}>
 					<Icon name="alert" size={13} />
 					<span aria-hidden="true">
 						{count}/{total}
