@@ -181,6 +181,34 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 				</Notice>
 			)}
 
+			<section className="flex flex-col gap-2.5" aria-label={fromList ? 'Página da vaga' : 'Post original'}>
+				<div className="flex items-center justify-between gap-3">
+					<h3 className={LABEL}>{fromList ? 'página da vaga' : 'post original'}</h3>
+					{/* Sempre aparece, mesmo repetindo o botão de candidatura pelo post: é o lugar onde se procura o post */}
+					{postLink && (
+						<TextLink className="text-xs font-mono" href={postLink} external>
+							{fromList ? 'ver post com a lista' : 'ir para o post'}
+						</TextLink>
+					)}
+				</div>
+				{/* Muitos posts põem a vaga numa arte e deixam o texto curto: as imagens vêm antes dele */}
+				<PostImages job={job} />
+				<div
+					className={cx(
+						'text-sm leading-relaxed whitespace-pre-line wrap-anywhere',
+						isLong && !expanded && 'max-h-34 overflow-hidden mask-b-from-60%',
+					)}
+				>
+					{content}
+				</div>
+				{isLong && (
+					<TextLink className="text-sm" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
+						{expanded ? `recolher ${contentNoun}` : `mostrar ${contentNoun} completo`}
+					</TextLink>
+				)}
+			</section>
+
+			{/* Depois do post: primeiro se lê a vaga, depois se escreve para o recrutador */}
 			{job.recruiterEmail && (
 				<section className="flex flex-col gap-2.5" aria-label="Contato">
 					<h3 className={LABEL}>contato</h3>
@@ -219,33 +247,6 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 					</div>
 				</section>
 			)}
-
-			<section className="flex flex-col gap-2.5" aria-label={fromList ? 'Página da vaga' : 'Post original'}>
-				<div className="flex items-center justify-between gap-3">
-					<h3 className={LABEL}>{fromList ? 'página da vaga' : 'post original'}</h3>
-					{/* Sempre aparece, mesmo repetindo o botão de candidatura pelo post: é o lugar onde se procura o post */}
-					{postLink && (
-						<TextLink className="text-xs font-mono" href={postLink} external>
-							{fromList ? 'ver post com a lista' : 'ir para o post'}
-						</TextLink>
-					)}
-				</div>
-				{/* Muitos posts põem a vaga numa arte e deixam o texto curto: as imagens vêm antes dele */}
-				<PostImages job={job} />
-				<div
-					className={cx(
-						'text-sm leading-relaxed whitespace-pre-line wrap-anywhere',
-						isLong && !expanded && 'max-h-34 overflow-hidden mask-b-from-60%',
-					)}
-				>
-					{content}
-				</div>
-				{isLong && (
-					<TextLink className="text-sm" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
-						{expanded ? `recolher ${contentNoun}` : `mostrar ${contentNoun} completo`}
-					</TextLink>
-				)}
-			</section>
 
 			<JobReposts
 				job={job}
