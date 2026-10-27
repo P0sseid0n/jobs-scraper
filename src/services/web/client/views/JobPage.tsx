@@ -3,12 +3,11 @@ import type { ReactNode } from 'react'
 
 import type { WebJob } from '../../api-types'
 import { Icon } from '../components/Icon'
-import { JobDetail } from '../components/JobDetail'
+import { JobDetail, JobDetailSkeleton } from '../components/JobDetail'
 import { ButtonLink } from '../components/ui/Button'
 import { card } from '../components/ui/Card'
 import { EmptyState } from '../components/ui/EmptyState'
 import { Page } from '../components/ui/Page'
-import { Skeleton } from '../components/ui/Skeleton'
 import { jobsStore } from '../stores/jobs'
 
 /**
@@ -36,7 +35,11 @@ export function JobPage({ job, error }: { job?: WebJob; error?: string }) {
 			/>
 		)
 	} else {
-		content = <Skeleton className={card({ className: 'min-h-60' })} aria-busy="true" />
+		content = (
+			<div className={card({ size: 'lg' })}>
+				<JobDetailSkeleton />
+			</div>
+		)
 	}
 
 	return (

@@ -33,7 +33,7 @@ export type ScraperRunTerm = {
 	/** Posts da busca que já tinham passado pela IA numa coleta anterior (não são enviados de novo). */
 	skipped: number
 
-	/** Posts novos em um idioma fora dos aceitos: ignorados já na coleta, sem contar no limite de posts. */
+	/** Posts novos em um idioma fora dos aceitos: ignorados já na coleta, sem contar no mínimo de vagas. */
 	otherLanguage: number
 
 	/** Ids dos posts enviados, para contar as vagas que saíram da coleta; ausente nas coletas antigas. */
@@ -53,6 +53,16 @@ type ScraperRunDocument = {
 	status: ScraperRunStatus
 	startedAt: Date
 	finishedAt: Date | null
+	/** Os termos que a coleta vai buscar, na ordem; ausente nas coletas antigas. */
+	plannedTerms: string[]
+	/** O mínimo de vagas que a coleta procurou; `null` nas coletas antigas. */
+	minJobs: number | null
+	/**
+	 * Listas de vagas da coleta que não foram abertas porque o mínimo já estava completo: saíram de `seen_posts` e
+	 * podem aparecer de novo em outra busca.
+	 */
+	deferredLists: string[]
+	/** O resultado de cada termo, gravado assim que ele termina (o site acompanha a coleta em andamento). */
 	terms: ScraperRunTerm[]
 	sent: number
 	error: string | null
@@ -69,6 +79,9 @@ const scraperRunSchema = new Schema<ScraperRunDocument>(
 		status: { type: String, enum: SCRAPER_RUN_STATUSES, required: true },
 		startedAt: { type: Date, required: true },
 		finishedAt: { type: Date, default: null },
+		plannedTerms: { type: [String], default: [] },
+		minJobs: { type: Number, default: null },
+		deferredLists: { type: [String], default: [] },
 		terms: {
 			type: [
 				{

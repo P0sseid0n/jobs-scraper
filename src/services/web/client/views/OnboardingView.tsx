@@ -11,6 +11,7 @@ import { Rise, StepBar, useCurrentSubSteps, useStepBar, type SubStepsState } fro
 import { defaultProfilePart, ProfileStep, type ProfilePart, type ProfileStepData } from '../components/onboarding/ProfileStep'
 import { ReviewStep } from '../components/onboarding/ReviewStep'
 import { NUMBERED_STEPS, ONBOARDING_STEPS, stepDone, type OnboardingStep } from '../components/onboarding/steps'
+import { WelcomeDemo } from '../components/onboarding/WelcomeDemo'
 import { IconButton } from '../components/ui/IconButton'
 import { cx } from '../lib/cx'
 import { loadSetup } from '../stores/setup'
@@ -162,10 +163,17 @@ export function OnboardingView({
 					label="Alternar tema claro/escuro"
 					bordered
 					className="absolute top-6 right-8 max-lg:top-3 max-lg:right-4"
-					onClick={toggleTheme}
+					onClick={event => toggleTheme(event.currentTarget)}
 				>
-					<Icon name="moon" className="dark:hidden" />
-					<Icon name="sun" className="hidden dark:block" />
+					{/* Os dois ícones no mesmo lugar: um gira e encolhe enquanto o outro cresce */}
+					<Icon
+						name="moon"
+						className="col-start-1 row-start-1 transition duration-500 ease-spring dark:scale-0 dark:rotate-90 dark:opacity-0"
+					/>
+					<Icon
+						name="sun"
+						className="col-start-1 row-start-1 scale-0 -rotate-90 opacity-0 transition duration-500 ease-spring dark:scale-100 dark:rotate-0 dark:opacity-100"
+					/>
 				</IconButton>
 				{/* Sem espaço para as etapas ao lado do formulário: a barra de progresso no lugar delas */}
 				{numbered >= 0 && (
@@ -185,7 +193,8 @@ export function OnboardingView({
 
 			{/* O formulário e as etapas, juntos no meio da tela, na horizontal e na vertical (o logo fica sobreposto, em cima) */}
 			<div className="flex grow items-center justify-center gap-16 px-8 py-24 max-lg:py-12 max-md:px-4 max-md:pt-6 max-md:pb-6">
-				<main id="main" className="w-full max-w-240 min-w-0">
+				{/* Na abertura, mais larga: a demonstração ao lado não aperta o título */}
+				<main id="main" className={cx('w-full min-w-0', numbered >= 0 ? 'max-w-240' : 'max-w-280')}>
 					<div
 						key={step}
 						className={cx(direction === 'next' ? 'animate-step-next' : 'animate-step-back', 'motion-reduce:animate-none')}
@@ -196,10 +205,13 @@ export function OnboardingView({
 					<StepBar />
 				</main>
 
-				<aside className="flex w-48 shrink-0 flex-col gap-8 max-lg:hidden">
-					<Stepper current={step} setup={setup} onSelect={goTo} />
-					<p className="text-xs text-muted">Pode parar quando quiser: a gente volta para o passo em que você parou.</p>
-				</aside>
+				{/* Na abertura, os passos já estão nos cartões dela: a lista só aparece depois de começar */}
+				{numbered >= 0 && (
+					<aside className="flex w-48 shrink-0 flex-col gap-8 max-lg:hidden">
+						<Stepper current={step} setup={setup} onSelect={goTo} />
+						<p className="text-xs text-muted">Pode parar quando quiser: a gente volta para o passo em que você parou.</p>
+					</aside>
+				)}
 			</div>
 		</div>
 	)
@@ -333,47 +345,61 @@ const WELCOME_ITEMS = [
 	{ title: 'Monte o seu currículo', text: 'Ele vira um currículo ajustado para cada vaga.' },
 ]
 
-/** A abertura: o que o onboarding vai pedir, em três linhas que chegam pelo lado, e o "começar". */
+/**
+ * A abertura: o que o onboarding vai pedir, em três linhas que chegam pelo lado, e o "começar". Ao lado (só no desktop),
+ * a demonstração do que a pessoa ganha: um post que vira vaga.
+ */
 function Welcome({ onStart }: { onStart: () => void }) {
-	useStepBar({ hint: 'leva uns 5 minutos', primary: { label: 'começar', trailingIcon: 'back', onClick: onStart } })
+	useStepBar({
+		hint: 'leva uns 5 minutos, e dá para parar e continuar depois',
+		primary: { label: 'começar', trailingIcon: 'back', onClick: onStart },
+	})
 
 	return (
-		<div className="flex flex-col gap-10 md:pt-8">
-			<div className="flex flex-col gap-4">
-				<Rise>
-					<p className="font-mono text-sm text-lime-text">oi! que bom ter você aqui_</p>
-				</Rise>
-				<Rise order={1}>
-					<h1 className="text-4xl font-bold tracking-tight text-balance md:text-6xl">
-						Vamos achar vagas <span className="font-mono font-normal">para você.</span>
-					</h1>
-				</Rise>
-				<Rise order={2}>
-					<p className="max-w-130 text-lg text-pretty text-muted">
-						Em poucos passos você conta o que procura e a gente passa a buscar vagas no LinkedIn sozinho, todos os dias.
-					</p>
-				</Rise>
-			</div>
+		<div className="flex items-center gap-30 md:pt-8">
+			<div className="flex min-w-0 flex-1 flex-col gap-10">
+				<div className="flex flex-col gap-4">
+					<Rise>
+						<p className="font-mono text-sm text-lime-text">oi! que bom ter você aqui</p>
+					</Rise>
+					<Rise order={1}>
+						<h1 className="text-4xl font-bold tracking-tight text-balance md:text-6xl">
+							Vamos achar vagas <span className="font-mono font-normal">para você.</span>
+						</h1>
+					</Rise>
+					<Rise order={2}>
+						<p className="max-w-130 text-lg text-pretty text-muted">
+							Em poucos passos você conta o que procura e a gente passa a buscar vagas no LinkedIn sozinho, todos os dias.
+						</p>
+					</Rise>
+				</div>
 
-			<ol className="m-0 flex list-none flex-col gap-3 p-0">
-				{WELCOME_ITEMS.map((item, index) => (
-					<li
-						key={item.title}
-						className={cx(
-							'flex items-center gap-4 rounded-lg border border-line bg-surface px-5 py-4 animate-step-back motion-reduce:animate-none',
-							WELCOME_STAGGER[index],
-						)}
-					>
-						<span className="grid size-9 shrink-0 place-items-center rounded-full bg-lime font-mono text-sm font-semibold text-lime-ink">
-							{index + 1}
-						</span>
-						<span>
-							<span className="block font-semibold">{item.title}</span>
-							<span className="block text-sm text-muted">{item.text}</span>
-						</span>
-					</li>
-				))}
-			</ol>
+				<ol className="m-0 flex list-none flex-col gap-3 p-0">
+					{WELCOME_ITEMS.map((item, index) => (
+						<li
+							key={item.title}
+							className={cx(
+								'flex items-center gap-4 rounded-lg border border-line bg-surface px-5 py-4 animate-step-back motion-reduce:animate-none',
+								WELCOME_STAGGER[index],
+							)}
+						>
+							<span className="grid size-9 shrink-0 place-items-center rounded-full bg-lime font-mono text-sm font-semibold text-lime-ink">
+								{index + 1}
+							</span>
+							<span>
+								<span className="block font-semibold">{item.title}</span>
+								<span className="block text-sm text-muted">{item.text}</span>
+							</span>
+						</li>
+					))}
+				</ol>
+				<p className="-mt-4 animate-rise-in text-sm text-muted motion-reduce:animate-none stagger-6">
+					Dá para mudar tudo depois, nas configurações.
+				</p>
+			</div>
+			<div className="w-80 shrink-0 max-lg:hidden">
+				<WelcomeDemo />
+			</div>
 		</div>
 	)
 }

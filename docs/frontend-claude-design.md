@@ -105,7 +105,7 @@ Atenção ao funil: `sent` é quantos posts foram para a IA, não quantas vagas 
 | ----------------- | -------------------------------------------------------------------------------------- | ---------------------- |
 | `searchTerms`     | lista de `{ term, enabled }`, até 10 termos, até 100 caracteres, sem repetidos; sem nenhum ativo, o scraper fica em espera | nenhum termo           |
 | `datePosted`      | `past-24h` \| `past-week` \| `past-month` \| `any` ("Últimas 24h", "Última semana"...) | `past-24h`             |
-| `maxPostsPerRun`  | inteiro 1–200 (dividido entre os termos ativos)                                        | 50                     |
+| `minJobsPerRun`   | inteiro 1–50: vagas novas que a coleta procura (divididas entre os termos ativos; descartados e listas de vagas não contam) | 10                     |
 | `intervalMinutes` | inteiro de 1 a 10.080 (7 dias)                                                         | 240                    |
 | `paused`          | booleano: pausa as coletas automáticas ("coletar agora" continua funcionando)          | false                  |
 

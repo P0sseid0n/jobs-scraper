@@ -25,8 +25,11 @@ export const ScraperSettingsSchema = z
 
 		datePosted: z.enum(DATE_POSTED_FILTERS).default('past-24h'),
 
-		/** Limite de posts por coleta (somando todos os termos), para reduzir o risco de bloqueio da conta. */
-		maxPostsPerRun: z.number().int().min(1).max(200).default(50),
+		/**
+		 * Vagas novas que a coleta procura (somando todos os termos): ela só para antes disso quando as buscas não têm
+		 * mais o que trazer. Posts descartados pela IA e listas de vagas não contam.
+		 */
+		minJobsPerRun: z.number().int().min(1).max(50).default(10),
 
 		/** Intervalo entre coletas automáticas, contado a partir do início da última. */
 		intervalMinutes: z

@@ -7,6 +7,7 @@ import type {
 	ContractType,
 	CredentialGroup,
 	CredentialsStatus,
+	CvChanges,
 	CvForm,
 	PostProcessingSettings,
 	ProcessedJob,
@@ -66,6 +67,13 @@ export type WebCvRequest = {
 	error: string | null
 	/** E-mail de candidatura gerado pela IA para a vaga (só com e-mail de contato e resposta válida da IA). */
 	message: ApplicationMessage | null
+	/** O que o currículo mudou para a vaga (só nos prontos; pedidos de antes do campo não o têm). */
+	changes: CvChanges | null
+	/**
+	 * De qual currículo base o PDF saiu: `versionId` da versão do site, ou `null` para o arquivo `data/cv/cv.tex`. É
+	 * `null` nos pendentes, nos falhos e nos pedidos de antes do campo.
+	 */
+	base: { versionId: string | null } | null
 	requestedAt: string
 	finishedAt: string | null
 }
@@ -107,7 +115,7 @@ export type WebScraperRun = {
 	sent: number
 	/** Posts da busca que já tinham passado pela IA (não enviados de novo). */
 	skipped: number
-	/** Posts novos em um idioma fora dos aceitos, ignorados na coleta (não vão para a IA nem contam no limite). */
+	/** Posts novos em um idioma fora dos aceitos, ignorados na coleta (não vão para a IA nem contam no mínimo). */
 	otherLanguage: number
 	/**
 	 * Vagas salvas a partir dos posts da coleta (cresce enquanto a IA processa a fila); `null` nas coletas antigas,
@@ -118,7 +126,12 @@ export type WebScraperRun = {
 	 * O que o post-processing fez com os posts enviados (vaga salva ou o motivo do descarte) e quantos ainda estão na
 	 * fila; `null` nas coletas antigas.
 	 */
-	outcomes: { counts: Partial<Record<SeenPostOutcome | 'unknown', number>>; pending: number } | null
+	outcomes: { counts: Partial<Record<SeenPostOutcome | 'unknown' | 'deferred-list', number>>; pending: number } | null
+	/** Os termos que a coleta vai buscar, na ordem (os que faltam são os depois de `terms`); vazio nas coletas antigas. */
+	plannedTerms: string[]
+	/** O mínimo de vagas que a coleta procurou; `null` nas coletas antigas. */
+	minJobs: number | null
+	/** O resultado de cada termo terminado (na coleta em andamento, só os que já terminaram). */
 	terms: WebScraperRunTerm[]
 	error: string | null
 	/** Por que o login parou a coleta; `null` nas outras falhas. Nas coletas antigas, `other` se o erro fala de login. */

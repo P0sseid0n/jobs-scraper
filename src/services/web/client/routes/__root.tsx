@@ -1,5 +1,5 @@
 import { createRootRoute, Link, Outlet, redirect, useMatches, useRouterState } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { REQUIRED_SETUP_STEPS, type ScraperStatus, type SetupStatus } from '../../api-types'
 import { api } from '../api'
@@ -7,6 +7,7 @@ import { CvTray } from '../components/CvTray'
 import { Icon, type IconName } from '../components/Icon'
 import { LinkedinVerificationDialog } from '../components/LinkedinVerificationDialog'
 import { Logo } from '../components/Logo'
+import { Toasts } from '../components/Toasts'
 import { Badge, badge } from '../components/ui/Badge'
 import { ButtonLink } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
@@ -16,12 +17,13 @@ import { useSlidingIndicator } from '../components/ui/sliding-indicator'
 import { StatusDot, type StatusDotTone } from '../components/ui/StatusDot'
 import { cx } from '../lib/cx'
 import { formatDuration } from '../lib/format'
+import { reducedMotion } from '../lib/motion'
 import { useTrayRequests } from '../stores/cv'
 import { jobsStore } from '../stores/jobs'
 import { useConnected } from '../stores/live'
 import { loadSetup, needsOnboarding, useSetup } from '../stores/setup'
 import { toggleTheme } from '../stores/theme'
-import { dismissToast, useToasts } from '../stores/toast'
+import { useToasts } from '../stores/toast'
 
 /**
  * A moldura de todas as telas: cabeçalho, navegação, bandeja de currículos e avisos. Enquanto falta o mínimo (perfil,
@@ -111,6 +113,7 @@ function NotFound() {
 	return (
 		<Page width="narrow">
 			<EmptyState
+				illustration="lost"
 				title="Página não encontrada"
 				action={
 					<ButtonLink variant="lime" to="/">
@@ -131,10 +134,12 @@ function RootLayout() {
 	const toasts = useToasts()
 	const pendingCvs = useTrayRequests().filter(request => request.status === 'pending').length
 	const nav = useSlidingIndicator<HTMLElement>('[aria-current="page"]', path)
+	const navPill = useJellyOnSlide(nav.box)
 	const missing = missingSetup(useSetup())
 
 	// "vagas" também fica marcado com uma vaga aberta (`/vagas/$id`)
 	const isActive = (item: string) => (item === '/' ? path === '/' || path.startsWith('/vagas/') : path.startsWith(item))
+	const page = usePageTransition(NAV.findIndex(item => isActive(item.path)))
 
 	useEffect(() => {
 		document.title = `${title ?? 'Jobs Scraper'} · jobs/scraper`
@@ -151,7 +156,9 @@ function RootLayout() {
 	}
 
 	return (
-		<div className="flex min-h-dvh flex-col">
+		<div className="relative isolate flex min-h-dvh flex-col">
+			{/* O degradê do topo, mais ao fundo: desce mais devagar que a rolagem e some (`parallax-glow`) */}
+			<div aria-hidden="true" className="parallax-glow pointer-events-none absolute inset-x-0 top-0 -z-10 h-120" />
 			<a className="absolute -top-15 left-3 z-50 rounded-pill bg-lime px-3.5 py-2.5 text-lime-ink focus:top-3" href="#main">
 				pular para o conteúdo
 			</a>
@@ -164,6 +171,7 @@ function RootLayout() {
 						{/* O fundo da tela atual, que desliza até a nova */}
 						{nav.box && (
 							<span
+								ref={navPill}
 								aria-hidden="true"
 								className={cx(
 									'pointer-events-none absolute inset-y-0 left-0 rounded-pill bg-surface-2',
@@ -207,7 +215,7 @@ function RootLayout() {
 								offline
 							</Badge>
 						)}
-						<IconButton label="Alternar tema claro/escuro" bordered onClick={toggleTheme}>
+						<IconButton label="Alternar tema claro/escuro" bordered onClick={event => toggleTheme(event.currentTarget)}>
 							{/* Os dois ícones no mesmo lugar: um gira e encolhe enquanto o outro cresce */}
 							<Icon
 								name="moon"
@@ -235,8 +243,21 @@ function RootLayout() {
 				</div>
 			)}
 
-			<main id="main" className="flex-1 outline-none" tabIndex={-1}>
-				<Outlet />
+			{/* `clip` (e não `hidden`): a tela entrando de lado não abre rolagem horizontal, e o `sticky` continua funcionando */}
+			<main id="main" className="flex-1 overflow-x-clip outline-none" tabIndex={-1}>
+				{/* Trocando de aba no menu, a tela nova entra pelo lado dela (a chave remonta só entre abas, não entre vagas) */}
+				<div
+					key={page.section}
+					className={cx(
+						page.direction === 'next' && 'animate-page-next',
+						page.direction === 'back' && 'animate-page-back',
+						'motion-reduce:animate-none',
+					)}
+					// Terminada, a animação sai: um `transform` parado no fim prenderia os `fixed` da tela (a barra de salvar) nela
+					onAnimationEnd={event => event.target === event.currentTarget && page.settle()}
+				>
+					<Outlet />
+				</div>
 			</main>
 
 			<nav
@@ -275,28 +296,39 @@ function RootLayout() {
 	)
 }
 
-/** Os avisos que chegam embaixo da tela. */
-function Toasts({ toasts }: { toasts: ReturnType<typeof useToasts> }) {
-	return (
-		<div
-			className="pointer-events-none fixed inset-x-4 bottom-6 z-40 mx-auto flex max-w-115 flex-col gap-2 max-md:bottom-safe-21"
-			aria-live="polite"
-		>
-			{toasts.map(toast => (
-				<div
-					key={toast.id}
-					className={cx(
-						'pointer-events-auto flex items-center gap-2.5 rounded-md bg-ink py-2 pr-2 pl-3.5 text-sm text-bg shadow-float animate-toast-in motion-reduce:animate-none',
-						toast.tone === 'error' && 'border border-danger bg-danger-bg text-danger',
-					)}
-					role={toast.tone === 'error' ? 'alert' : 'status'}
-				>
-					<span className="grow">{toast.message}</span>
-					<IconButton label="Fechar aviso" size="sm" onClick={() => dismissToast(toast.id)}>
-						<Icon name="close" size={14} />
-					</IconButton>
-				</div>
-			))}
-		</div>
-	)
+/**
+ * O fundo da aba do menu, enquanto desliza até a nova: estica na direção do movimento e, ao chegar, se acomoda com
+ * mola (como geleia), em vez de só deslizar.
+ */
+function useJellyOnSlide(box: { left: number; slide: boolean } | null) {
+	const pill = useRef<HTMLSpanElement>(null)
+	const lastLeft = useRef(box?.left)
+
+	useEffect(() => {
+		const from = lastLeft.current
+		lastLeft.current = box?.left
+		if (!box?.slide || from === undefined || from === box.left || !pill.current || reducedMotion()) return
+
+		pill.current.animate(
+			[{ scale: '1 1' }, { scale: '1.25 0.85', offset: 0.35 }, { scale: '0.94 1.06', offset: 0.7 }, { scale: '1 1' }],
+			{
+				duration: 600,
+				easing: 'ease-out',
+			},
+		)
+	}, [box?.left, box?.slide])
+
+	return pill
+}
+
+/**
+ * A aba do menu na tela (`section`, o índice em `NAV`; -1 fora dele) e de que lado a tela nova entra: pela direita
+ * vindo de uma aba à esquerda, e ao contrário. Na primeira tela, sem animação.
+ */
+function usePageTransition(section: number) {
+	const [page, setPage] = useState<{ section: number; direction: 'next' | 'back' | null }>({ section, direction: null })
+	// Guardado no estado (e não calculado a cada render): outro render no meio não corta a animação
+	if (page.section !== section) setPage({ section, direction: section > page.section ? 'next' : 'back' })
+
+	return { ...page, settle: () => setPage(current => ({ ...current, direction: null })) }
 }

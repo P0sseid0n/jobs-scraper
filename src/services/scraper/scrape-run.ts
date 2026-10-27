@@ -1,7 +1,7 @@
 import { TimeoutError, type Page } from 'puppeteer'
 
 import { activeSearchTerms, type CredentialsOf, type RawPost, type ScraperSettings } from '@shared/contracts'
-import { SeenPost, type ScraperRunTerm, type ScraperTermErrorKind } from '@shared/database'
+import { SeenPost, type ScraperRunTerm, type ScraperTermErrorKind, type SeenPostOutcome } from '@shared/database'
 import { checkPostLanguage } from '@shared/language'
 import type { Logger } from '@shared/logging'
 import { QUEUES, type QueueClient } from '@shared/messaging'
@@ -18,9 +18,17 @@ import { buildSearchUrl, externalLink, LOGIN_URL } from './linkedin/urls'
 import { ensureLoggedIn, LoginError, loginOptionsFrom, NO_LINKEDIN_ACCOUNT } from './login'
 import { hashPost } from './post-id'
 import { downloadPostImages } from './post-images'
-import { postsPerTerm } from './schedule'
+import type { TermProgress } from './run-history'
+import { jobsPerTerm } from './schedule'
 
-type ScrapeOptions = { config: ScraperConfig; settings: ScraperSettings; queue: QueueClient; logger: Logger }
+type ScrapeOptions = {
+	config: ScraperConfig
+	settings: ScraperSettings
+	queue: QueueClient
+	logger: Logger
+	/** Chamado a cada termo terminado, com os resultados até ali. */
+	onTerm?: TermProgress
+}
 
 /** As opções da coleta com a conta do LinkedIn, lida no começo de cada uma. */
 type RunOptions = ScrapeOptions & { account: CredentialsOf<'linkedin'> }
@@ -28,10 +36,26 @@ type RunOptions = ScrapeOptions & { account: CredentialsOf<'linkedin'> }
 const RESULTS_TIMEOUT_MS = 30_000
 
 /**
- * Rolagens seguidas sem nenhum post enviado (só posts já vistos ou em outro idioma) antes de desistir do termo.
+ * Rolagens seguidas sem nenhum post enviado (só posts já vistos ou em outro idioma) antes de desistir do termo, mesmo
+ * sem completar o mínimo de vagas.
  * Rolar sem fim por uma busca que não traz nada aproveitável aumenta o risco de bloqueio da conta.
  */
 const MAX_FRUITLESS_SCROLLS = 15
+
+/**
+ * Destinos do post-processing que contam no mínimo de vagas. Uma lista de vagas (`multi-job`) não conta: as vagas dela
+ * só são abertas depois da coleta, que usa o mesmo navegador, e podem não virar nenhuma vaga nova.
+ */
+const JOB_OUTCOMES: ReadonlySet<SeenPostOutcome> = new Set(['saved'])
+
+/** Intervalo entre as consultas do destino dos posts enviados, enquanto a coleta espera a IA. */
+const OUTCOME_POLL_MS = 5_000
+
+/**
+ * Tempo sem nenhum destino novo até a coleta parar de esperar a IA (post-processing parado ou fila travada).
+ * Os posts sem destino contam como vagas, para os termos seguintes não ficarem esperando a IA parada.
+ */
+const OUTCOME_STALL_MS = 10 * 60_000
 
 /** Navegador da coleta em andamento, para ser fechado se o serviço for encerrado no meio. */
 let activeSession: BrowserSession | undefined
@@ -40,15 +64,21 @@ export function closeActiveBrowser() {
 	return activeSession?.close()
 }
 
+/** O resultado de cada termo e as listas de vagas deixadas para outra coleta (`deferLists`). */
+export type ScrapeResult = { terms: ScraperRunTerm[]; deferredLists: string[] }
+
 /**
- * Faz uma coleta: busca cada termo ativo em sequência e envia os posts novos para a fila.
- * @returns O resultado de cada termo; um termo que falhar não impede os outros.
+ * Faz uma coleta: busca cada termo ativo em sequência e envia os posts novos para a fila. Com o mínimo de vagas
+ * completo, as listas de vagas da coleta ficam para outra (ver `deferLists`).
+ * @returns O resultado de cada termo (um termo que falhar não impede os outros) e as listas deixadas para depois.
  */
-export async function scrapeOnce(options: ScrapeOptions): Promise<ScraperRunTerm[]> {
+export async function scrapeOnce(options: ScrapeOptions): Promise<ScrapeResult> {
 	const { config, settings, logger } = options
 
 	const terms = activeSearchTerms(settings)
-	const limits = postsPerTerm(settings.maxPostsPerRun, terms.length)
+
+	// O que falta do mínimo, dividido entre os termos que faltam: o que um termo não completar passa para os seguintes
+	let remaining = settings.minJobsPerRun
 
 	// Compartilhado entre os termos: um post que aparece em duas buscas só é enviado uma vez
 	const seen = new Set<string>()
@@ -58,7 +88,7 @@ export async function scrapeOnce(options: ScrapeOptions): Promise<ScraperRunTerm
 	if (!account) throw new LoginError(NO_LINKEDIN_ACCOUNT, 'no-account')
 	const runOptions: RunOptions = { ...options, account }
 
-	// O filtro de idioma do post-processing, aplicado já aqui para que esses posts não gastem o limite da coleta
+	// O filtro de idioma do post-processing, aplicado já aqui para que a coleta não espere a IA descartar esses posts
 	const { allowedLanguages } = await readSettings('post-processing')
 
 	const session = await BrowserSession.launch(browserOptionsFrom(config, account.liAt, logger))
@@ -68,33 +98,44 @@ export async function scrapeOnce(options: ScrapeOptions): Promise<ScraperRunTerm
 		const results: ScraperRunTerm[] = []
 
 		for (const [index, term] of terms.entries()) {
-			const limit = limits[index] ?? 0
+			const target = jobsPerTerm(remaining, terms.length - index)[0] ?? 0
 
-			// Mais termos que posts no limite: os últimos ficam sem busca, mas aparecem no histórico
-			if (limit === 0) {
-				logger.info({ term }, 'Termo pulado: o limite de posts da coleta já foi distribuído')
+			// Mínimo já completado pelos termos anteriores: a coleta para, e os termos seguintes ficam sem busca, mas
+			// aparecem no histórico
+			if (target === 0) {
+				logger.info({ term }, 'Termo pulado: o mínimo de vagas da coleta já foi completado')
 				results.push({ term, sent: 0, skipped: 0, otherLanguage: 0, postIds: [], error: null, errorKind: null, searchUrl: null })
+				await options.onTerm?.([...results])
 				continue
 			}
 
 			if (results.length > 0) await humanPause()
-			results.push(await scrapeTerm(session, { term, limit, seen, allowedLanguages }, runOptions))
+			const { jobs, ...result } = await scrapeTerm(session, { term, target, seen, allowedLanguages }, runOptions)
+			results.push(result)
+			remaining -= jobs
+			await options.onTerm?.([...results])
 		}
 
 		// Renova a sessão salva (o LinkedIn atualiza os cookies durante a navegação)
 		await session.saveCookies()
 
 		const sent = results.reduce((total, result) => total + result.sent, 0)
+		if (remaining > 0) logger.info({ missing: remaining }, 'As buscas acabaram antes de completar o mínimo de vagas')
+
+		const deferredLists = remaining > 0 ? [] : await deferLists(results.flatMap(result => result.postIds))
+		if (deferredLists.length > 0) {
+			logger.info({ lists: deferredLists.length }, 'Mínimo completo: as listas de vagas da coleta ficam para outra')
+		}
 		logger.info({ sent, terms: results.length }, '✅ Coleta finalizada')
 
-		return results
+		return { terms: results, deferredLists }
 	} finally {
 		activeSession = undefined
 		await session.close()
 	}
 }
 
-type TermSearch = { term: string; limit: number; seen: Set<string>; allowedLanguages: string[] }
+type TermSearch = { term: string; target: number; seen: Set<string>; allowedLanguages: string[] }
 
 /** A busca de um termo não trouxe posts; `kind` diz o motivo para o histórico. */
 class SearchError extends Error {
@@ -107,15 +148,20 @@ class SearchError extends Error {
 	}
 }
 
-async function scrapeTerm(session: BrowserSession, search: TermSearch, options: RunOptions): Promise<ScraperRunTerm> {
+/** O resultado do termo para o histórico e quantos dos posts enviados viraram vaga (`jobs`). */
+async function scrapeTerm(
+	session: BrowserSession,
+	search: TermSearch,
+	options: RunOptions,
+): Promise<ScraperRunTerm & { jobs: number }> {
 	const logger = options.logger.child({ term: search.term })
 	const searchUrl = buildSearchUrl({ keywords: search.term, datePosted: options.settings.datePosted })
 
 	try {
 		const page = await openSearchResults(session, searchUrl, { ...options, logger })
-		const { sent, skipped, otherLanguage, postIds } = await publishNewPosts(page, search, { ...options, logger })
+		const { sent, jobs, skipped, otherLanguage, postIds } = await publishNewPosts(page, search, { ...options, logger })
 
-		return { term: search.term, sent, skipped, otherLanguage, postIds, error: null, errorKind: null, searchUrl }
+		return { term: search.term, sent, jobs, skipped, otherLanguage, postIds, error: null, errorKind: null, searchUrl }
 	} catch (error) {
 		if (error instanceof LoginError) throw error
 
@@ -126,6 +172,7 @@ async function scrapeTerm(session: BrowserSession, search: TermSearch, options: 
 		return {
 			term: search.term,
 			sent: 0,
+			jobs: 0,
 			skipped: 0,
 			otherLanguage: 0,
 			postIds: [],
@@ -187,99 +234,214 @@ async function openSearchResults(session: BrowserSession, searchUrl: string, { c
 }
 
 /**
- * Rola a busca enviando cada post novo para a fila, até o limite do termo, o fim dos resultados ou muitas rolagens
- * seguidas sem nada para enviar. Posts que já passaram pela IA e posts em outro idioma não são enviados nem contam
- * no limite. Posts já vistos não param a busca: a coleta anterior pode ter parado no limite antes dos mais antigos.
+ * Rola a busca enviando cada post novo para a fila até o termo completar a parte dele do mínimo de vagas. Só para antes
+ * no fim dos resultados ou depois de muitas rolagens seguidas sem nada para enviar (risco de bloqueio da conta). Só
+ * contam os posts que viram vaga: com posts na fila suficientes para completar o mínimo, a busca espera o destino
+ * deles, e cada um que não vira vaga abre lugar para mais um. Posts que já passaram pela IA e posts em outro idioma não
+ * são enviados nem contam. Posts já vistos não param a busca: a coleta anterior pode ter parado no mínimo antes dos
+ * mais antigos.
  */
-async function publishNewPosts(page: Page, { limit, seen, allowedLanguages }: TermSearch, { config, queue, logger }: ScrapeOptions) {
+async function publishNewPosts(page: Page, { target, seen, allowedLanguages }: TermSearch, { config, queue, logger }: ScrapeOptions) {
 	let sent = 0
+	let jobs = 0
 	let skipped = 0
 	let otherLanguage = 0
 	const postIds: string[] = []
+	/** Enviados que o post-processing ainda não terminou. */
+	const pending = new Set<string>()
+	/** Posts lidos ainda não enviados, à espera de a IA mostrar que os da fila não completam o mínimo. */
+	const backlog: RawPost[] = []
+	/** URLs das imagens de cada post do backlog, baixadas só no envio: os pulados não gastam download. */
+	const imageUrls = new Map<string, string[][]>()
 	let hasMore = true
 	let fruitlessScrolls = 0
+	let readOnce = false
+	const canRead = () => hasMore && fruitlessScrolls < MAX_FRUITLESS_SCROLLS
 
-	// Limite de posts por coleta (dividido entre os termos) para reduzir o risco de bloqueio da conta
-	while (sent < limit) {
-		const posts = await collectNewPosts(page)
-		const candidates: RawPost[] = []
-		// Baixadas só para os posts enviados: os já vistos e os de outro idioma não gastam download
-		const imageUrls = new Map<string, string[][]>()
-
-		for (const scraped of posts) {
-			const post = toRawPost(scraped)
-
-			// Sem o id não há link do post: a vaga não serviria. O aviso mostra um formato novo do LinkedIn na hora.
-			if (!post) {
-				const text = cleanPostText(scraped.text)
-				if (!seen.has(hashPost(text))) {
-					seen.add(hashPost(text))
-					logger.warn(
-						{ candidates: scraped.urnCandidates.length, text: text.slice(0, 80) },
-						'Post sem id reconhecível ignorado (ver resolvePostUrn em linkedin/post-urn.ts)',
-					)
-				}
-				continue
+	while (jobs < target) {
+		// Só rola quando não sobrou post lido para enviar
+		if (backlog.length === 0 && canRead()) {
+			if (readOnce) {
+				await humanPause()
+				hasMore = await loadMorePosts(page, config.SCRAPER_SCROLL_DELAY_MS)
 			}
+			readOnce = true
 
-			const textHash = hashPost(post.text)
-			if (seen.has(post.postId) || seen.has(textHash)) continue
+			// Quando nada novo carregou, esta leitura é a última (pega posts que renderizaram depois)
+			const read = await readNewPosts(page, { seen, allowedLanguages, imageUrls, logger })
+			skipped += read.skipped
+			otherLanguage += read.otherLanguage
+			backlog.push(...read.usable)
 
-			seen.add(post.postId).add(textHash)
-			candidates.push(post)
-			imageUrls.set(post.postId, postImageUrls(scraped.images))
+			fruitlessScrolls = read.usable.length > 0 ? 0 : fruitlessScrolls + 1
+			if (fruitlessScrolls >= MAX_FRUITLESS_SCROLLS) {
+				logger.info({ scrolls: fruitlessScrolls }, 'Rolagens seguidas sem nenhum post para enviar: a busca do termo para')
+			}
 		}
 
-		const processed = await alreadyProcessed(candidates.map(post => post.postId))
-		let sentNow = 0
-		let unseenNow = 0
-
-		for (const post of candidates) {
-			if (sent >= limit) break
-
-			if (processed.has(post.postId)) {
-				skipped++
-				continue
-			}
-
-			unseenNow++
-
-			const { rejection } = checkPostLanguage(post.text, allowedLanguages)
-			if (rejection) {
-				await markAsOtherLanguage(post.postId)
-				otherLanguage++
-				logger.debug({ postId: post.postId, reason: rejection }, 'Post em outro idioma ignorado')
-				continue
-			}
-
+		while (backlog.length > 0 && jobs + pending.size < target) {
+			const post = backlog.shift()!
 			const images = await downloadPostImages(imageUrls.get(post.postId) ?? [], logger)
+			imageUrls.delete(post.postId)
 			await queue.publish(QUEUES.postProcessing, { ...post, images })
 			postIds.push(post.postId)
+			pending.add(post.postId)
 			sent++
-			sentNow++
 
 			logger.debug({ postId: post.postId, url: post.url, images: images.length }, '📨 Post enviado para a fila')
 		}
 
-		logger.info(
-			{ found: candidates.length, sent: sentNow, otherLanguage: unseenNow - sentNow, skipped: candidates.length - unseenNow },
-			'Posts nesta rolagem',
-		)
+		jobs += await settleOutcomes(pending)
+		if (jobs >= target) break
 
-		// Quando nada novo carregou, a coleta acima foi a última (pega posts que renderizaram depois)
-		if (sent >= limit || !hasMore) break
-
-		fruitlessScrolls = sentNow > 0 ? 0 : fruitlessScrolls + 1
-		if (fruitlessScrolls >= MAX_FRUITLESS_SCROLLS) {
-			logger.info({ scrolls: fruitlessScrolls }, 'Rolagens seguidas sem nenhum post para enviar: a busca do termo para')
+		// Sem mais posts para ler: espera o destino de todos, e o que faltar do mínimo passa para o próximo termo
+		if (backlog.length === 0 && !canRead()) {
+			jobs += (await waitForOutcomes(pending, { all: true, logger })).jobs
 			break
 		}
 
-		await humanPause()
-		hasMore = await loadMorePosts(page, config.SCRAPER_SCROLL_DELAY_MS)
+		// Posts na IA suficientes para completar o mínimo: basta um destino para saber se ainda falta
+		if (jobs + pending.size >= target) {
+			const settled = await waitForOutcomes(pending, { all: false, logger })
+			jobs += settled.jobs
+			if (settled.stalled) break
+		}
 	}
 
-	return { sent, skipped, otherLanguage, postIds }
+	return { sent, jobs, skipped, otherLanguage, postIds }
+}
+
+/**
+ * Lê os posts novos da busca: os que podem ir para a IA e quantos foram pulados (já processados em coletas
+ * anteriores) ou estão em outro idioma. As URLs das imagens dos que podem ir ficam em `imageUrls`.
+ */
+async function readNewPosts(
+	page: Page,
+	{
+		seen,
+		allowedLanguages,
+		imageUrls,
+		logger,
+	}: Pick<TermSearch, 'seen' | 'allowedLanguages'> & { imageUrls: Map<string, string[][]>; logger: Logger },
+) {
+	const candidates: RawPost[] = []
+	const candidateImages = new Map<string, string[][]>()
+
+	for (const scraped of await collectNewPosts(page)) {
+		const post = toRawPost(scraped)
+
+		// Sem o id não há link do post: a vaga não serviria. O aviso mostra um formato novo do LinkedIn na hora.
+		if (!post) {
+			const text = cleanPostText(scraped.text)
+			if (!seen.has(hashPost(text))) {
+				seen.add(hashPost(text))
+				logger.warn(
+					{ candidates: scraped.urnCandidates.length, text: text.slice(0, 80) },
+					'Post sem id reconhecível ignorado (ver resolvePostUrn em linkedin/post-urn.ts)',
+				)
+			}
+			continue
+		}
+
+		const textHash = hashPost(post.text)
+		if (seen.has(post.postId) || seen.has(textHash)) continue
+
+		seen.add(post.postId).add(textHash)
+		candidates.push(post)
+		candidateImages.set(post.postId, postImageUrls(scraped.images))
+	}
+
+	const processed = await alreadyProcessed(candidates.map(post => post.postId))
+	const usable: RawPost[] = []
+	let otherLanguage = 0
+
+	for (const post of candidates) {
+		if (processed.has(post.postId)) continue
+
+		const { rejection } = checkPostLanguage(post.text, allowedLanguages)
+		if (rejection) {
+			await markAsOtherLanguage(post.postId)
+			otherLanguage++
+			logger.debug({ postId: post.postId, reason: rejection }, 'Post em outro idioma ignorado')
+			continue
+		}
+
+		usable.push(post)
+		imageUrls.set(post.postId, candidateImages.get(post.postId) ?? [])
+	}
+
+	const skipped = processed.size
+	logger.info({ found: candidates.length, usable: usable.length, otherLanguage, skipped }, 'Posts nesta rolagem')
+
+	return { usable, skipped, otherLanguage }
+}
+
+/**
+ * Tira de `pending` os posts que o post-processing já terminou.
+ * @returns Quantos deles viraram vaga.
+ */
+async function settleOutcomes(pending: Set<string>) {
+	if (pending.size === 0) return 0
+
+	const docs = await SeenPost.find({ postId: { $in: [...pending] } }, { postId: 1, isJob: 1, outcome: 1 }).lean()
+	let jobs = 0
+
+	for (const doc of docs) {
+		pending.delete(doc.postId)
+		if (doc.outcome ? JOB_OUTCOMES.has(doc.outcome) : doc.isJob) jobs++
+	}
+
+	return jobs
+}
+
+/**
+ * Espera o post-processing terminar um dos posts em `pending` (ou todos, com `all`). Se nenhum destino chegar em
+ * `OUTCOME_STALL_MS`, desiste (`stalled`) e conta os que faltam como vagas.
+ */
+async function waitForOutcomes(pending: Set<string>, { all, logger }: { all: boolean; logger: Logger }) {
+	let jobs = 0
+	if (pending.size === 0) return { jobs, stalled: false }
+
+	logger.info({ pending: pending.size }, '⏳ Esperando a IA: cada post que não vira vaga abre lugar para mais um')
+	let lastProgress = Date.now()
+
+	while (pending.size > 0) {
+		await Bun.sleep(OUTCOME_POLL_MS)
+
+		const before = pending.size
+		jobs += await settleOutcomes(pending)
+
+		if (pending.size < before) {
+			if (!all) break
+			lastProgress = Date.now()
+		} else if (Date.now() - lastProgress >= OUTCOME_STALL_MS) {
+			logger.warn(
+				{ pending: pending.size },
+				'A IA não terminou os posts enviados a tempo: eles contam como vagas e a busca do termo para',
+			)
+			jobs += pending.size
+			pending.clear()
+			return { jobs, stalled: true }
+		}
+	}
+
+	return { jobs, stalled: false }
+}
+
+/**
+ * Tira de `seen_posts` as listas de vagas entre os posts enviados, para elas aparecerem de novo em outra busca. As
+ * vagas delas já pedidas ao scraper não são abertas: o pedido de uma lista que não está mais em `seen_posts` é
+ * ignorado (ver `JobLookupWorker`).
+ * @returns Os ids das listas.
+ */
+async function deferLists(postIds: string[]) {
+	if (postIds.length === 0) return []
+
+	const lists = await SeenPost.find({ postId: { $in: postIds }, outcome: 'multi-job' }, { postId: 1 }).lean()
+	const ids = lists.map(list => list.postId)
+	if (ids.length > 0) await SeenPost.deleteMany({ postId: { $in: ids }, outcome: 'multi-job' })
+
+	return ids
 }
 
 /** Registra o post como visto, para as próximas coletas o pularem como fariam com um descartado pelo post-processing. */

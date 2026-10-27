@@ -28,12 +28,12 @@ export function waitingReason(options: {
 }
 
 /**
- * Divide o limite da coleta entre os termos sem ultrapassá-lo; o resto vai para os primeiros (50 em 3 → 17, 17, 16).
- * Com mais termos que posts, os últimos ficam com 0.
+ * Divide o mínimo de vagas da coleta entre os termos; o resto vai para os primeiros (10 em 3 → 4, 3, 3).
+ * Com mais termos que vagas, os últimos ficam com 0.
  */
-export function postsPerTerm(maxPostsPerRun: number, termCount: number) {
-	const base = Math.floor(maxPostsPerRun / termCount)
-	const remainder = maxPostsPerRun % termCount
+export function jobsPerTerm(minJobsPerRun: number, termCount: number) {
+	const base = Math.floor(minJobsPerRun / termCount)
+	const remainder = minJobsPerRun % termCount
 
 	return Array.from({ length: termCount }, (_, index) => base + (index < remainder ? 1 : 0))
 }

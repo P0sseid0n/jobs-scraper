@@ -6,21 +6,24 @@ import type { ParsedResume, TailoredResume } from './resume/resume.types'
 
 /**
  * Gera o PDF do currículo garantindo uma página.
- * Se transbordar, tira projetos (até sobrar 1) e depois volta à apresentação original.
+ * Se transbordar, tira projetos (até sobrar 1) e depois volta à apresentação original. Devolve também a versão que
+ * entrou no PDF (`resume`).
  */
 export async function renderOnePagePdf(base: ParsedResume, tailored: TailoredResume, compileOptions: CompileOptions, log: Logger) {
 	const attempts = simplifications(base, tailored)
 
-	let result = await compileLatex(writeResumeTex(base, attempts[0]!), compileOptions)
+	let resume = attempts[0]!
+	let result = await compileLatex(writeResumeTex(base, resume), compileOptions)
 
 	for (const attempt of attempts.slice(1)) {
 		if (result.pages === null || result.pages <= 1) break
 
 		log.info({ pages: result.pages, projects: attempt.projects.length }, 'Currículo passou de uma página, simplificando')
-		result = await compileLatex(writeResumeTex(base, attempt), compileOptions)
+		resume = attempt
+		result = await compileLatex(writeResumeTex(base, resume), compileOptions)
 	}
 
-	return result.pdf
+	return { pdf: result.pdf, resume }
 }
 
 /** Monta o nome do arquivo ("Curriculo-Empresa-Cargo.pdf"), sem acentos nem caracteres especiais. */

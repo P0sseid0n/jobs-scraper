@@ -3,8 +3,10 @@ import { useState } from 'react'
 import type { CredentialCheck, CredentialGroup, WebCredentials } from '../../api-types'
 import { api, RequestError } from '../api'
 import { cx } from '../lib/cx'
+import { shakeInvalid } from '../lib/motion'
+import { useFlash } from '../lib/use-flash'
 import { notify } from '../stores/toast'
-import { Icon } from './Icon'
+import { DrawnCheck, Icon } from './Icon'
 import { LinkedinLoginStatus, useLinkedinLogin } from './LinkedinLogin'
 import { Badge } from './ui/Badge'
 import { Button } from './ui/Button'
@@ -182,6 +184,7 @@ export function AccountGroup({
 	const [busy, setBusy] = useState<'save' | 'test' | 'delete' | null>(null)
 	const [check, setCheck] = useState<CredentialCheck | null>(null)
 	const [confirmDelete, setConfirmDelete] = useState(false)
+	const [savedFlash, flashSaved] = useFlash()
 
 	const saved = draftOf(group, status)
 	const dirty = removed.length > 0 || config.fields.some(field => draft[field.name] !== saved[field.name])
@@ -213,10 +216,12 @@ export function AccountGroup({
 				const next = action === 'save' ? await api.saveCredentials(group, patch()) : await api.deleteCredentials(group)
 				onSaved(next)
 				reset(next)
+				if (action === 'save') flashSaved()
 				notify(action === 'save' ? `Conta do ${config.title} salva` : `Conta do ${config.title} apagada do site`)
 			}
 		} catch (error) {
 			setErrors(error instanceof RequestError ? error.fields : {})
+			shakeInvalid(() => document.getElementById('main'))
 			if (action === 'test') setCheck(null)
 			if (!(error instanceof RequestError && Object.keys(error.fields).length > 0)) {
 				notify(
@@ -318,8 +323,25 @@ export function AccountGroup({
 			</div>
 
 			<div className="flex flex-wrap items-center gap-3">
-				<Button variant="lime" disabled={!dirty || busy !== null} onClick={() => run('save')}>
-					{busy === 'save' ? 'salvando…' : 'salvar'}
+				{/* Salvo, o check desenhado aparece no botão por um instante */}
+				<Button
+					variant="lime"
+					disabled={(!dirty && !savedFlash) || busy !== null}
+					onClick={savedFlash ? undefined : () => run('save')}
+				>
+					{busy === 'save' ? (
+						<>
+							<Icon name="spinner" />
+							salvando…
+						</>
+					) : savedFlash ? (
+						<>
+							<DrawnCheck />
+							salvo
+						</>
+					) : (
+						'salvar'
+					)}
 				</Button>
 				{config.testable && (
 					<Button variant="ghost" disabled={busy !== null || (current.source === null && !dirty)} onClick={() => run('test')}>

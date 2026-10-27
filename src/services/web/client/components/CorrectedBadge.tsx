@@ -10,8 +10,7 @@ export function CorrectedBadge({ job }: { job: Pick<WebJob, 'correctedAt'> }) {
 		<Badge
 			tone="plain"
 			bordered="dashed"
-			// Numa superfície escura (card selecionado), o lime escuro do tema claro sumiria
-			className="border-lime-text text-lime-text in-[.inverted]:border-lime in-[.inverted]:text-lime"
+			className="border-lime-text text-lime-text"
 			title={`corrigida ${timeAgo(job.correctedAt)}`}
 		>
 			corrigida

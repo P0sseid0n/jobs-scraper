@@ -1,4 +1,4 @@
-// O desenho do ícone (viewBox 32×32): o fundo e o "cursor" do `jobs/scraper_`. Fonte única do header e do favicon.
+// O desenho do ícone (viewBox 32×32): o fundo escuro e a barra lime. Fonte única do header e do favicon.
 const BACKGROUND = { width: 32, height: 32, rx: 8 }
 const CURSOR = { x: 8, y: 20, width: 16, height: 4, rx: 1 }
 

@@ -56,7 +56,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export type { JobFilters }
 
-export function jobsQueryString(filters: JobFilters, cursor?: string | null) {
+/** `until`: o id da vaga aberta na URL, para a primeira página vir do topo até ela (ver `listJobs`). */
+export function jobsQueryString(filters: JobFilters, cursor?: string | null, until?: string | null) {
 	const params = new URLSearchParams()
 
 	if (filters.q.trim()) params.set('q', filters.q.trim())
@@ -68,12 +69,14 @@ export function jobsQueryString(filters: JobFilters, cursor?: string | null) {
 	if (filters.unviewed) params.set('viewed', 'false')
 	if (filters.language) params.set('language', filters.language)
 	if (cursor) params.set('cursor', cursor)
+	if (until) params.set('until', until)
 
 	return params.toString()
 }
 
 export const api = {
-	jobs: (filters: JobFilters, cursor?: string | null) => request<JobsPage>(`/api/jobs?${jobsQueryString(filters, cursor)}`),
+	jobs: (filters: JobFilters, cursor?: string | null, until?: string | null) =>
+		request<JobsPage>(`/api/jobs?${jobsQueryString(filters, cursor, until)}`),
 	facets: () => request<JobFacets>('/api/jobs/facets'),
 	job: (postId: string) => request<WebJob>(`/api/jobs/${encodeURIComponent(postId)}`),
 	/** Corrige campos da vaga ou a marca como "não é vaga"; devolve a vaga atualizada. */

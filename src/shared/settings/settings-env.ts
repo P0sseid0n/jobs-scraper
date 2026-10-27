@@ -12,7 +12,7 @@ export const settingsEnv = {
 	/** Termos de busca separados por vírgula; cada um vira uma busca na mesma coleta. Vazio: o onboarding preenche. */
 	SEARCH_KEYWORDS: z.string().trim().default(''),
 	SCRAPER_DATE_POSTED: z.enum(DATE_POSTED_FILTERS).default('past-24h'),
-	SCRAPER_MAX_POSTS: z.coerce.number().int().positive().default(50),
+	SCRAPER_MIN_JOBS: z.coerce.number().int().positive().default(10),
 	/**
 	 * 0 = o scraper roda uma coleta e termina. > 0 = fica rodando: coleta a cada N minutos e atende o "coletar agora"
 	 * (fila `scraper`). Com o serviço rodando, o intervalo passa a ser o da coleção `settings`.
@@ -55,7 +55,7 @@ export function settingsSeedsFromEnv(env: SettingsEnv): SettingsSeeds {
 		scraper: {
 			searchTerms: terms.map(term => ({ term, enabled: true })),
 			datePosted: env.SCRAPER_DATE_POSTED,
-			maxPostsPerRun: env.SCRAPER_MAX_POSTS,
+			minJobsPerRun: env.SCRAPER_MIN_JOBS,
 			// Com 0 (execução única) o intervalo não é usado: fica o padrão para quando o serviço rodar continuamente
 			...(env.SCRAPER_INTERVAL_MINUTES > 0 ? { intervalMinutes: env.SCRAPER_INTERVAL_MINUTES } : {}),
 			paused: env.SCRAPER_PAUSED,

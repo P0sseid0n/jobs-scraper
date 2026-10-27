@@ -34,10 +34,10 @@ describe('validateDraft (as mesmas regras do servidor)', () => {
 
 	test('limites numéricos', () => {
 		const value = draft()
-		value.scraper.maxPostsPerRun = 201
+		value.scraper.minJobsPerRun = 51
 		value.scraper.intervalMinutes = Number.NaN
 
-		expect(Object.keys(validateDraft(value))).toEqual(['maxPostsPerRun', 'intervalMinutes'])
+		expect(Object.keys(validateDraft(value))).toEqual(['minJobsPerRun', 'intervalMinutes'])
 	})
 
 	test('o resultado aceito pelo cliente também passa no schema do servidor', () => {
@@ -73,5 +73,5 @@ describe('validateProfile', () => {
 
 test('errorFor: o erro do campo ou de um campo dentro dele', () => {
 	expect(errorFor({ 'searchTerms.2.term': 'Termo repetido' }, 'searchTerms')).toBe('Termo repetido')
-	expect(errorFor({ maxPostsPerRun: 'x' }, 'searchTerms')).toBeNull()
+	expect(errorFor({ minJobsPerRun: 'x' }, 'searchTerms')).toBeNull()
 })

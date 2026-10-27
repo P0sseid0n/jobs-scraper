@@ -2,7 +2,7 @@ import { tv } from '../../lib/cx'
 
 /** A caixa com borda das telas (`<section className={card({ size: 'lg' })}>`); o espaçamento interno vem de `size`. */
 export const card = tv({
-	base: 'rounded-lg border border-line bg-surface',
+	base: 'rounded-lg border border-line bg-surface shadow-soft',
 	variants: {
 		/**
 		 * `lg`: seções com formulário e a vaga aberta. `md`: faixas de destaque e os cards da lista de vagas. `sm`: itens de

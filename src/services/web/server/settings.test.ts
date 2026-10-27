@@ -130,7 +130,7 @@ describe('valores do .env', () => {
 	test('valor do .env que os schemas recusam impede a subida, sem gravar nada', async () => {
 		stored.clear()
 
-		await expect(seedFrom({ SCRAPER_MAX_POSTS: '500' })).rejects.toThrow('Valores do .env inválidos para as configurações "scraper"')
+		await expect(seedFrom({ SCRAPER_MIN_JOBS: '500' })).rejects.toThrow('Valores do .env inválidos para as configurações "scraper"')
 		expect(stored.size).toBe(0)
 	})
 })

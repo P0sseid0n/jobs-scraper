@@ -8,12 +8,12 @@ Busca posts de vagas no LinkedIn com o Puppeteer e envia cada um para a fila `po
 
 ## Coletas
 
-- Cada coleta busca cada termo ativo das configurações (`settings`, editáveis pelo site). O limite de posts é dividido entre os termos.
+- Cada coleta busca cada termo ativo das configurações (`settings`, editáveis pelo site). O mínimo de vagas é dividido entre os termos; o que um termo não completar passa para os seguintes, e com o mínimo completo os termos que faltam são pulados.
 - **Sem termos:** o `.env.example` e as configurações nascem sem termos de busca (o `.env` ou o onboarding do site preenchem). Sem nenhum termo ativo, o scraper não coleta: fica em espera, registra o motivo no log e volta a coletar quando um termo for ativado. A tela de Coletas mostra o que falta.
 - **Sem conta do LinkedIn:** o scraper sobe mesmo assim e fica em espera do mesmo jeito: sem conta no site nem no `.env`, não coleta, registra o motivo no log, e a tela de Coletas pede para conectar a conta. Ela é relida antes de cada coleta, então salvar a conta pelo site já inicia as coletas, sem reiniciar.
 - **Primeira coleta:** numa instalação nova (nenhuma coleta no histórico nem vaga salva), a agenda não começa sozinha quando os termos e a conta ficam prontos, no meio do onboarding: espera o "fazer a primeira coleta" da revisão (ou o "coletar agora"), com o currículo e o resto já configurados. Depois dela, segue o intervalo. Com `SKIP_ONBOARDING=true` (configuração pelo `.env`), a primeira coleta começa sozinha; a coleta única (`SCRAPER_INTERVAL_MINUTES=0`) também não espera.
 - **Falha no login:** a coleta para e o histórico guarda o motivo (`loginFailure`: verificação não resolvida a tempo, captcha, e-mail ou senha recusados, sem conta, ou outro), para o site explicar sem os detalhes técnicos da mensagem.
-- **O que conta no limite:** só os posts enviados para a IA. Posts já processados em coletas anteriores e posts em um idioma fora dos aceitos (`allowedLanguages` do post-processing) são pulados, e a busca continua rolando até completar o limite. Ela só para antes no fim dos resultados ou depois de 15 rolagens seguidas sem nenhum post enviado, para não rolar sem fim (cada rolagem espera os posts carregarem, então um termo assim leva alguns minutos).
+- **O que conta no mínimo:** só os posts que viraram vaga salva. Com posts na fila suficientes para completar o mínimo, a busca espera o destino deles (`seen_posts`), e cada um que não vira vaga (descartado ou lista de vagas) abre lugar para mais um post. Se a IA não terminar nenhum post em 10 minutos (post-processing parado), os que faltam contam como vagas e o termo para. Posts já processados em coletas anteriores e posts em um idioma fora dos aceitos (`allowedLanguages` do post-processing) são pulados sem ir para a IA, e a busca continua rolando até completar o mínimo. Ela só para antes no fim dos resultados ou depois de 15 rolagens seguidas sem nenhum post enviado, para não rolar sem fim (cada rolagem espera os posts carregarem, então um termo assim leva alguns minutos). O histórico mostra quando a coleta terminou abaixo do mínimo.
 - **Coleta periódica ou única:** com um intervalo (o `.env.example` traz `SCRAPER_INTERVAL_MINUTES=240`), o scraper fica rodando, coleta na agenda (o intervalo das configurações, editável pelo site), atende o "coletar agora" e relê as configurações a cada 30 segundos, sem reiniciar. Com `SCRAPER_INTERVAL_MINUTES=0` (ou sem a variável), ele coleta uma vez e encerra (sem termos de busca ativos ou sem conta do LinkedIn, antes espera a configuração ser salva pelo site, relendo a cada 30 segundos); no Docker, o container para e o "coletar agora" fica na fila até ele subir de novo.
 - **Coletar agora:** `bun scraper:run`, ou o botão no site, publica uma mensagem `ScraperCommand` na fila `scraper`. Funciona mesmo com as coletas pausadas.
 - **Histórico:** cada coleta fica em `scraper_runs` por 90 dias, com o status e os posts enviados por termo.
@@ -21,6 +21,8 @@ Busca posts de vagas no LinkedIn com o Puppeteer e envia cada um para a fila `po
 ## Posts com várias vagas
 
 O post-processing divide os posts de agregadores ("📄 Cargo" + "🔗 Candidate-se: https://lnkd.in/...") e manda cada vaga relevante para a fila `scraper-lookup`. O scraper abre o link de cada uma no navegador logado, uma por vez, com pausa (`SCRAPER_LOOKUP_DELAY_MS`) e nunca durante uma coleta. O texto da página volta para a fila `post-processing` como um post comum, com `sourcePostId` apontando para o post original.
+
+Quando a coleta completa o mínimo de vagas, as listas dela não são abertas: saem de `seen_posts` (e ficam em `deferredLists` no histórico), para aparecerem de novo numa próxima busca, e os pedidos de vaga delas já na fila são ignorados.
 
 ## Login e verificação
 
@@ -35,7 +37,7 @@ A sessão fica salva em `data/scraper/linkedin-cookies.json` (no Docker, no volu
 
 ## Variáveis
 
-`LINKEDIN_EMAIL`, `LINKEDIN_PASSWORD` e `LINKEDIN_LI_AT` (ou a conta salva em Configurações › Contas, que vale no lugar delas e é relida a cada coleta; ver [credenciais](../../shared/README.md#credenciais)), `LINKEDIN_COOKIES_FILE`, `HEADLESS`, `BROWSER_NO_SANDBOX`, `SCRAPER_SCROLL_DELAY_MS` e `SCRAPER_LOOKUP_DELAY_MS`. `SEARCH_KEYWORDS`, `SCRAPER_DATE_POSTED`, `SCRAPER_MAX_POSTS`, `SCRAPER_INTERVAL_MINUTES` e `SCRAPER_PAUSED` só preenchem as configurações que ainda não existem (ver [shared](../../shared/README.md#configurações-em-tempo-de-execução)); `SCRAPER_INTERVAL_MINUTES` também decide se o scraper roda uma vez (0) ou fica rodando. Todas estão documentadas no `.env.example`.
+`LINKEDIN_EMAIL`, `LINKEDIN_PASSWORD` e `LINKEDIN_LI_AT` (ou a conta salva em Configurações › Contas, que vale no lugar delas e é relida a cada coleta; ver [credenciais](../../shared/README.md#credenciais)), `LINKEDIN_COOKIES_FILE`, `HEADLESS`, `BROWSER_NO_SANDBOX`, `SCRAPER_SCROLL_DELAY_MS` e `SCRAPER_LOOKUP_DELAY_MS`. `SEARCH_KEYWORDS`, `SCRAPER_DATE_POSTED`, `SCRAPER_MIN_JOBS`, `SCRAPER_INTERVAL_MINUTES` e `SCRAPER_PAUSED` só preenchem as configurações que ainda não existem (ver [shared](../../shared/README.md#configurações-em-tempo-de-execução)); `SCRAPER_INTERVAL_MINUTES` também decide se o scraper roda uma vez (0) ou fica rodando. Todas estão documentadas no `.env.example`.
 
 ## Arquivos
 

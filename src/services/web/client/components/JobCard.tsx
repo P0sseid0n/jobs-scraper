@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router'
 import type { WebJob } from '../../api-types'
 import { cx } from '../lib/cx'
 import { jobDate, jobSubtitle, safeLink, timeAgo } from '../lib/format'
+import { openJobFromCard } from '../lib/job-opening'
 import { jobParams } from '../router'
 import { filtersOpen } from '../stores/filters-panel'
 import { setViewed, useViewed } from '../stores/viewed'
@@ -40,7 +41,18 @@ export function JobCard({
 
 	return (
 		<article
-			className={cx(JOB_CARD, DOT_GUTTER, 'group/card relative', selected ? 'inverted border-inv-bg' : 'hover:border-line-strong')}
+			data-flip-key={job.postId}
+			className={cx(
+				JOB_CARD,
+				DOT_GUTTER,
+				// A margem do cabeçalho fixo, para a lista rolar até a vaga da URL (`JobList`)
+				'group/card relative scroll-mt-20',
+				// Como papel na mesa: sobe um pouco no hover, com a sombra crescendo, e afunda no clique; o reflexo segue o mouse
+				'pointer-glow transition duration-300 ease-glide hover:-translate-y-0.5 hover:shadow-float active:translate-y-0 active:scale-99 active:duration-100',
+				'motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100',
+				selected ? 'border-lime-accent ring-1 ring-lime-accent' : 'hover:border-line-strong',
+			)}
+			data-pointer-glow
 			aria-current={selected ? 'true' : undefined}
 		>
 			<ViewedDot job={job} viewed={viewed} />
@@ -54,13 +66,19 @@ export function JobCard({
 					// Os filtros da lista continuam na URL
 					search
 					resetScroll={!keepScroll}
-					// Escolhida a vaga, os filtros saem do caminho (a vaga ganha o espaço deles)
-					onClick={() => filtersOpen.set(false)}
+					onClick={event => {
+						// Escolhida a vaga, os filtros saem do caminho (a vaga ganha o espaço deles)
+						filtersOpen.set(false)
+						// Uma faixa liga o card ao painel do detalhe, que acende (`lib/job-opening.ts`)
+						const plainClick = event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey
+						const card = event.currentTarget.closest('article')
+						if (!selected && plainClick && card) openJobFromCard(card)
+					}}
 				>
 					{/* Já vista: o cargo perde o contraste; não vista: a bolinha (fora do link, na margem do card) */}
 					<span
 						className={cx(
-							'text-base leading-snug font-semibold wrap-break-word group-hover:underline group-hover:underline-offset-3',
+							'text-base leading-snug font-semibold wrap-break-word transition-colors duration-500 group-hover:underline group-hover:underline-offset-3',
 							viewed && 'text-muted',
 						)}
 					>
@@ -147,32 +165,63 @@ function ViewedDot({ job, viewed }: { job: WebJob; viewed: boolean }) {
 			)}
 			onClick={() => void setViewed(job, !viewed)}
 		>
-			{viewed ? (
+			{/* As duas no mesmo lugar: vista, a bolinha lime encolhe e some enquanto o anel cresce (e o contrário) */}
+			<span
+				aria-hidden="true"
+				className="grid place-items-center transition duration-300 ease-spring group-hover/dot:scale-125 group-active/dot:scale-90 group-active/dot:duration-75"
+			>
 				<span
-					aria-hidden="true"
-					className="size-2.5 rounded-full border border-current text-muted transition duration-300 ease-spring group-hover/dot:scale-125 group-hover/dot:text-ink group-active/dot:scale-90 group-active/dot:duration-75"
+					className={cx(
+						'col-start-1 row-start-1 size-2.5 rounded-full border border-current text-muted transition duration-500 ease-spring group-hover/dot:text-ink motion-reduce:transition-none',
+						!viewed && 'scale-0 opacity-0',
+					)}
 				/>
-			) : (
 				<StatusDot
 					tone="lime"
 					glow
-					className="size-2.5 transition duration-300 ease-spring group-hover/dot:scale-125 group-active/dot:scale-90 group-active/dot:duration-75"
+					className={cx(
+						'col-start-1 row-start-1 size-2.5 transition duration-500 ease-spring motion-reduce:transition-none',
+						viewed && 'scale-0 opacity-0',
+					)}
 				/>
-			)}
+			</span>
 		</button>
 	)
 }
 
-export function JobCardSkeleton() {
+/** Larguras do cargo, da empresa e das tecnologias, diferentes de um esqueleto para o outro como numa lista de verdade. */
+const SKELETON_SHAPES = [
+	{ title: 'w-2/3', subtitle: 'w-2/5', skills: ['w-14', 'w-18', 'w-12'] },
+	{ title: 'w-1/2', subtitle: 'w-1/3', skills: ['w-16', 'w-12', 'w-20', 'w-14'] },
+	{ title: 'w-3/4', subtitle: 'w-1/2', skills: ['w-12', 'w-16'] },
+	{ title: 'w-3/5', subtitle: 'w-1/4', skills: ['w-18', 'w-14', 'w-12'] },
+]
+
+/** O card carregando, no formato do `JobCard`: cargo e empresa, selos e data, tecnologias e o canal da candidatura. */
+export function JobCardSkeleton({ index = 0 }: { index?: number }) {
+	const shape = SKELETON_SHAPES[index % SKELETON_SHAPES.length]!
+
 	return (
 		<div className={cx(JOB_CARD, DOT_GUTTER)} aria-hidden="true">
-			<Skeleton className="h-3.5 w-2/3 rounded-xs bg-surface-2" />
-			<Skeleton className="h-2.5 w-2/5 rounded-xs bg-surface-2" />
+			<div className="flex items-start gap-3 max-md:flex-col max-md:gap-2">
+				<div className="flex min-w-0 flex-1 flex-col gap-2 pt-1">
+					<Skeleton className={cx('h-4 rounded-xs bg-surface-2', shape.title)} />
+					<Skeleton className={cx('h-3 rounded-xs bg-surface-2', shape.subtitle)} />
+				</div>
+				<div className="flex shrink-0 flex-col items-end gap-2 max-md:flex-row max-md:items-center">
+					<div className="flex gap-1.5">
+						<Skeleton className="h-6 w-16 rounded-pill bg-surface-2" />
+						<Skeleton className="h-6 w-12 rounded-pill bg-surface-2" />
+					</div>
+					<Skeleton className="h-3 w-12 rounded-xs bg-surface-2" />
+				</div>
+			</div>
 			<div className="flex gap-1.5">
-				{[1, 2, 3].map(key => (
-					<Skeleton key={key} className="h-5 w-16 rounded-pill bg-surface-2" />
+				{shape.skills.map((width, key) => (
+					<Skeleton key={key} className={cx('h-6 rounded-pill bg-surface-2', width)} />
 				))}
 			</div>
+			<Skeleton className="h-3 w-40 rounded-xs bg-surface-2" />
 		</div>
 	)
 }

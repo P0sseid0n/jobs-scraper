@@ -1,4 +1,5 @@
 import type { JobFacets, WebJob } from '../../api-types'
+import { isJobRouteId } from '../../job-route-id'
 import { api, type JobFilters } from '../api'
 import { DEFAULT_FILTERS, matchesFilters } from '../lib/job-filters'
 import { createStore, useStore } from '../lib/store'
@@ -43,12 +44,13 @@ let following = false
 let filtersTimer: ReturnType<typeof setTimeout> | undefined
 let facetsTimer: ReturnType<typeof setTimeout> | undefined
 
-export async function loadJobs() {
+/** @param until O id da vaga aberta na URL: a primeira página vem do topo até ela (ver `listJobs` no servidor). */
+export async function loadJobs(until?: string) {
 	const id = ++requestId
 	update({ status: 'loading', error: null })
 
 	try {
-		const page = await api.jobs(jobsStore.get().filters)
+		const page = await api.jobs(jobsStore.get().filters, null, until)
 		if (id !== requestId) return
 
 		update({ jobs: page.jobs, nextCursor: page.nextCursor, incoming: [], status: 'ready' })
@@ -125,24 +127,31 @@ export function removeJob(postId: string) {
 }
 
 /** Muda os filtros; a lista recarrega 250 ms depois da última mudança (a busca por texto não recarrega a cada letra). */
-function setFilters(filters: JobFilters) {
+function setFilters(filters: JobFilters, until?: string) {
 	if (JSON.stringify(filters) === JSON.stringify(jobsStore.get().filters)) return
 
 	update({ filters })
 	clearTimeout(filtersTimer)
-	filtersTimer = setTimeout(loadJobs, 250)
+	filtersTimer = setTimeout(() => loadJobs(until), 250)
 }
 
 /**
  * O loader da lista chama a cada mudança nos filtros da URL. Na primeira vez, espera a primeira página: se ela falhar,
  * o erro vai para o `errorComponent` da rota (e a próxima tentativa carrega de novo). Depois, a lista recarrega no lugar,
  * com os filtros na tela.
+ * @param until O id da vaga, quando se chega à lista por `/vagas/$id`: a lista vem até ela, para mostrá-la.
  */
-export async function loadJobsFor(filters: JobFilters) {
-	if (loaded) return setFilters(filters)
+export async function loadJobsFor(filters: JobFilters, until?: string) {
+	if (loaded) {
+		const { jobs, status, filters: current } = jobsStore.get()
+		if (JSON.stringify(filters) !== JSON.stringify(current)) return setFilters(filters, until)
+		// Vindo de outra tela para uma vaga que a lista carregada não tem: recarrega até ela
+		if (until && status === 'ready' && !jobs.some(job => isJobRouteId(job.postId, until))) void loadJobs(until)
+		return
+	}
 
 	update({ filters })
-	await loadJobs()
+	await loadJobs(until)
 	const { status, error } = jobsStore.get()
 	if (status === 'error') throw new Error(error ?? 'Não consegui carregar as vagas')
 

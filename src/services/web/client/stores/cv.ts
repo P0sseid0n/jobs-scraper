@@ -14,6 +14,21 @@ const state = createStore({
 	loaded: false,
 })
 
+/**
+ * Pedidos que ficaram prontos com o site aberto e cujo ajuste ainda não foi mostrado: o detalhe da vaga anima o
+ * currículo sendo ajustado na primeira vez que o mostra (`isJustReady`, `markShown`).
+ */
+const justReady = new Set<string>()
+
+/** O pedido ficou pronto com o site aberto e o ajuste dele ainda não foi mostrado. */
+export function isJustReady(requestId: string) {
+	return justReady.has(requestId)
+}
+
+export function markShown(requestId: string) {
+	justReady.delete(requestId)
+}
+
 function sorted(requests: Map<string, WebCvRequest>) {
 	return [...requests.values()].sort((a, b) => b.requestedAt.localeCompare(a.requestedAt))
 }
@@ -61,6 +76,9 @@ export function useGeneratedMessage(postId: string) {
 }
 
 function upsert(request: WebCvRequest, { track = false } = {}) {
+	if (request.status === 'ready' && state.get().requests.get(request.requestId)?.status === 'pending') {
+		justReady.add(request.requestId)
+	}
 	state.set(current => ({
 		...current,
 		requests: new Map(current.requests).set(request.requestId, request),

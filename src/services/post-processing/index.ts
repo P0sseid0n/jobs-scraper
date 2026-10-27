@@ -12,7 +12,7 @@ import { buildProcessedJob, extractJobFromPost } from './job-extraction'
 import { relevanceRejection } from './job-relevance'
 import { resumeSavedJob, saveJob } from './job-store'
 import { rejectionReason } from './model-response'
-import { listingPostId, splitMultiJobPost, type JobListing } from './multi-job-post'
+import { listingKeywordText, listingPostId, splitMultiJobPost, type JobListing } from './multi-job-post'
 import { checkLanguage } from './post-language'
 
 const { config, logger, queue } = await startService({
@@ -106,15 +106,15 @@ async function processPost(post: RawPost) {
 }
 
 /**
- * Pede ao scraper para abrir o link de cada vaga relevante da lista. O filtro de palavras-chave olha só o cargo
- * (é o que a lista mostra), para não abrir no LinkedIn páginas de vagas que seriam descartadas.
+ * Pede ao scraper para abrir o link de cada vaga relevante da lista. O filtro de palavras-chave olha o texto da vaga
+ * na lista (cargo e linhas até o link), para não abrir no LinkedIn páginas de vagas que seriam descartadas.
  */
 async function requestLookups(post: RawPost, listings: JobListing[], settings: KeywordSettings) {
 	const log = logger.child({ postId: post.postId })
 	let requested = 0
 
 	for (const listing of listings) {
-		const irrelevant = relevanceRejection({ title: listing.title, necessaryKnowledge: null }, settings)
+		const irrelevant = relevanceRejection({ title: listingKeywordText(listing), necessaryKnowledge: null }, settings)
 		if (irrelevant) {
 			log.debug({ title: listing.title, reason: irrelevant }, 'Vaga da lista descartada')
 			continue

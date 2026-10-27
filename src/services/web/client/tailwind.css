@@ -85,6 +85,7 @@
 
 	/* Sombra dos elementos flutuantes (toast, bandeja, modal); `--elevation` troca com o tema */
 	--shadow-float: var(--elevation);
+	--shadow-soft: var(--elevation-soft);
 	/* Brilho do botão lime no hover */
 	--shadow-glow: 0 6px 18px -6px var(--color-lime-accent);
 
@@ -181,6 +182,65 @@
 	--animate-rise-in: rise-in 700ms var(--ease-glide) both;
 	--animate-step-next: step-next 520ms var(--ease-glide) both;
 	--animate-step-back: step-back 520ms var(--ease-glide) both;
+	/* O marca-texto da demonstração da abertura: o fundo cresce da esquerda para a direita */
+	--animate-mark-in: mark-in 600ms var(--ease-glide) both;
+	/* A faixa de leitura da IA, que desce pelo texto do post antes do marca-texto */
+	--animate-scan: scan 1100ms ease-in-out both;
+	/* O cursor que chega no botão da vaga, clica e some; o botão afunda no clique */
+	--animate-cursor-click: cursor-click 1600ms var(--ease-glide) both;
+	--animate-press-once: press-once 240ms ease-out both;
+
+	@keyframes cursor-click {
+		0% {
+			opacity: 0;
+			transform: translate(3rem, 2rem);
+		}
+		35% {
+			opacity: 1;
+			transform: translate(0, 0);
+		}
+		45% {
+			transform: scale(0.8);
+		}
+		55%,
+		85% {
+			opacity: 1;
+			transform: scale(1);
+		}
+		100% {
+			opacity: 0;
+		}
+	}
+
+	@keyframes press-once {
+		50% {
+			transform: scale(0.94);
+		}
+	}
+
+	@keyframes scan {
+		0% {
+			top: -1.5rem;
+			opacity: 0;
+		}
+		15%,
+		85% {
+			opacity: 1;
+		}
+		100% {
+			top: 100%;
+			opacity: 0;
+		}
+	}
+
+	@keyframes mark-in {
+		from {
+			background-size: 0% 100%;
+		}
+		to {
+			background-size: 100% 100%;
+		}
+	}
 
 	@keyframes rise-in {
 		from {
@@ -203,11 +263,304 @@
 			transform: translateX(-56px);
 		}
 	}
+
+	/* O brilho que atravessa os esqueletos (`shimmer`, abaixo) */
+	--animate-shimmer: shimmer 1600ms ease-in-out infinite;
+	/*
+	 * O currículo ajustado para a vaga: a habilidade que saiu ganha um risco da esquerda para a direita
+	 * (`strike-through`, abaixo); a apresentação antiga se desfaz desfocando e a nova chega palavra por palavra; um
+	 * brilho atravessa a caixa uma vez.
+	 */
+	--animate-strike-in: strike-in 500ms var(--ease-glide) both;
+	--animate-dissolve: dissolve 600ms ease-in both;
+	--animate-word-in: word-in 520ms var(--ease-glide) both;
+	--animate-sheen: sheen 1400ms ease-in-out both;
+	/* Login do LinkedIn: o código recusado treme; o check do sucesso é desenhado (no `<path pathLength="1">`) */
+	--animate-shake: shake 420ms ease-in-out;
+	--animate-draw: draw 600ms var(--ease-glide) both;
+
+	@keyframes shimmer {
+		from {
+			translate: -100% 0;
+		}
+		to {
+			translate: 100% 0;
+		}
+	}
+
+	@keyframes strike-in {
+		from {
+			background-size: 0% 1.5px;
+		}
+	}
+
+	@keyframes dissolve {
+		to {
+			opacity: 0;
+			filter: blur(6px);
+			transform: translateY(-4px);
+		}
+	}
+
+	@keyframes word-in {
+		from {
+			opacity: 0;
+			filter: blur(4px);
+			transform: translateY(6px);
+		}
+	}
+
+	@keyframes sheen {
+		from {
+			translate: -100% 0;
+		}
+		to {
+			translate: 300% 0;
+		}
+	}
+
+	@keyframes shake {
+		20%,
+		60% {
+			translate: -6px 0;
+		}
+		40%,
+		80% {
+			translate: 6px 0;
+		}
+	}
+
+	@keyframes draw {
+		from {
+			stroke-dasharray: 1;
+			stroke-dashoffset: 1;
+		}
+		to {
+			stroke-dasharray: 1;
+			stroke-dashoffset: 0;
+		}
+	}
+
+	/* A tela nova entra pelo lado da aba escolhida no menu (à direita das outras, entra pela direita) */
+	--animate-page-next: page-next 380ms var(--ease-glide) both;
+	--animate-page-back: page-back 380ms var(--ease-glide) both;
+	/* A pílula das vagas novas cai do topo */
+	--animate-drop-in: drop-in 500ms var(--ease-spring) both;
+	/* A barra do tempo do aviso, que esvazia (a duração vem no `style`) */
+	--animate-drain: drain linear both;
+	/* O currículo pronto sai da fenda da "impressora" */
+	--animate-print-out: print-out 900ms var(--ease-glide) both;
+	/* O termo sendo coletado: a barra respira, clareando e escurecendo devagar */
+	--animate-breathe: breathe 2200ms ease-in-out infinite;
+	/*
+	 * Os desenhos dos estados vazios mexem uma vez ao aparecer: a lupa passeia, a placa balança, o ponteiro anda, a
+	 * bolinha cai na caixa, o selo pula e a folha rasgada se separa.
+	 */
+	--animate-wander: wander 2600ms ease-in-out 300ms both;
+	--animate-swing: swing 1600ms var(--ease-glide) 200ms both;
+	--animate-tick: tick 1800ms var(--ease-glide) 300ms both;
+	--animate-drop: drop 900ms var(--ease-spring) 300ms both;
+	--animate-tear: tear 900ms var(--ease-glide) 300ms both;
+
+	@keyframes page-next {
+		from {
+			opacity: 0;
+			transform: translateX(24px);
+		}
+	}
+
+	@keyframes page-back {
+		from {
+			opacity: 0;
+			transform: translateX(-24px);
+		}
+	}
+
+	@keyframes drop-in {
+		from {
+			opacity: 0;
+			transform: translateY(-16px) scale(0.9);
+		}
+	}
+
+	@keyframes drain {
+		from {
+			transform: scaleX(1);
+		}
+		to {
+			transform: scaleX(0);
+		}
+	}
+
+	@keyframes print-out {
+		from {
+			transform: translateY(-100%);
+		}
+	}
+
+	@keyframes breathe {
+		0%,
+		100% {
+			opacity: 0.35;
+		}
+		50% {
+			opacity: 0.9;
+		}
+	}
+
+	@keyframes wander {
+		0%,
+		100% {
+			translate: 0 0;
+		}
+		30% {
+			translate: -14px -4px;
+		}
+		65% {
+			translate: 6px 4px;
+		}
+	}
+
+	@keyframes swing {
+		0% {
+			rotate: -14deg;
+		}
+		40% {
+			rotate: 8deg;
+		}
+		70% {
+			rotate: -3deg;
+		}
+		100% {
+			rotate: 0deg;
+		}
+	}
+
+	@keyframes tick {
+		from {
+			rotate: -120deg;
+		}
+	}
+
+	@keyframes drop {
+		from {
+			opacity: 0;
+			translate: 0 -18px;
+		}
+	}
+
+	@keyframes tear {
+		from {
+			translate: 0 5px;
+		}
+	}
+}
+
+/*
+ * Os avisos empilhados (`Toasts`): cada um mais antigo (`--depth`, no `style`) encolhe e apaga um pouco, como se ficasse
+ * atrás; com o mouse em cima da pilha, todos voltam ao tamanho normal.
+ */
+@utility toast-stack {
+	scale: calc(1 - var(--depth, 0) * 0.04);
+	opacity: calc(1 - var(--depth, 0) * 0.18);
+	transition:
+		scale 300ms var(--ease-spring),
+		opacity 300ms ease-out;
+
+	:where(.group\/toasts:hover) & {
+		scale: 1;
+		opacity: 1;
+	}
+}
+
+/*
+ * Um reflexo muito leve que acompanha o mouse sobre a superfície (cards e o painel da vaga). As coordenadas (`--mx`,
+ * `--my`) vêm do `lib/pointer-glow.ts`; a força (`--glow-strength`) sobe com o mouse em cima e desce ao sair. Sem
+ * transição própria, que trocaria a do elemento: com o `transition-all` dele (o painel), a força sobe devagar.
+ */
+@property --glow-strength {
+	syntax: '<percentage>';
+	inherits: false;
+	initial-value: 0%;
+}
+
+@utility pointer-glow {
+	background-image: radial-gradient(
+		360px circle at var(--mx, 50%) var(--my, 50%),
+		color-mix(in srgb, var(--color-lime) var(--glow-strength), transparent),
+		transparent 70%
+	);
+
+	&:hover {
+		--glow-strength: 9%;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		background-image: none;
+	}
+}
+
+/*
+ * O degradê do topo das telas, que desce mais devagar que a rolagem (como se ficasse mais ao fundo). Só nos
+ * navegadores com animação presa à rolagem; nos outros, fica parado.
+ */
+@utility parallax-glow {
+	background-image:
+		radial-gradient(60% 100% at 15% 0%, color-mix(in srgb, var(--color-lime) 14%, transparent), transparent 70%),
+		radial-gradient(50% 90% at 85% 10%, color-mix(in srgb, var(--color-surface-2) 90%, transparent), transparent 70%);
+
+	@supports (animation-timeline: scroll()) {
+		animation: parallax linear both;
+		animation-timeline: scroll(root);
+		animation-range: 0 900px;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		animation: none;
+	}
+}
+
+@keyframes parallax {
+	to {
+		translate: 0 450px;
+		opacity: 0;
+	}
+}
+
+/* Animação parada (a barra do tempo do aviso, com o mouse em cima) */
+@utility paused {
+	animation-play-state: paused;
 }
 
 /* Atraso da animação em degraus de 90 ms, para os blocos chegarem um depois do outro: `stagger-2` espera 180 ms */
 @utility stagger-* {
 	animation-delay: calc(--value(integer) * 90ms);
+}
+
+/* Brilho que atravessa o esqueleto (o `Skeleton`): um `::after` com o degradê, que some com o movimento reduzido */
+@utility shimmer {
+	position: relative;
+	overflow: hidden;
+
+	&::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		translate: -100% 0;
+		background: linear-gradient(90deg, transparent, var(--shimmer), transparent);
+		animation: var(--animate-shimmer);
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		&::after {
+			display: none;
+		}
+	}
+}
+
+/* Risco na cor do texto, que pode crescer da esquerda para a direita com o `animate-strike-in` */
+@utility strike-through {
+	background: linear-gradient(currentColor, currentColor) no-repeat 0 55% / 100% 1.5px;
 }
 
 /* Repete o `gap` do pai: o conteúdo do botão, embrulhado para animar, fica com o mesmo espaço entre ícone e texto */
@@ -227,22 +580,23 @@
 
 /* Os tokens (tema claro). `static` gera todas as variáveis, também as usadas só aqui (ex.: no `inverted`) */
 @theme static {
-	--color-bg: #f5f6ef;
+	/* Neutros quentes (creme e pedra): o lime fica só para o destaque */
+	--color-bg: #f7f5f0;
 	--color-surface: #ffffff;
-	--color-surface-2: #eceee4;
-	--color-ink: #141613;
-	--color-muted: #585c52;
-	--color-line: #dcdfd2;
+	--color-surface-2: #efebe4;
+	--color-ink: #1d1b18;
+	--color-muted: #5e5850;
+	--color-line: #e4ded4;
 	--color-lime: #c8f542;
-	--color-lime-ink: #141613;
-	--color-lime-soft: #eefbc4;
+	--color-lime-ink: #1d1b18;
+	--color-lime-soft: #f1f9d2;
 	--color-lime-text: #3b6400;
 	--color-lime-hover: #b9e632;
 	--color-lime-accent: #8fc20c;
 	--color-lime-glow: rgb(200 245 66 / 0.35);
-	--color-inv-bg: #141613;
-	--color-inv-ink: #f5f6ef;
-	--color-inv-muted: #b4b9ac;
+	--color-inv-bg: #1d1b18;
+	--color-inv-ink: #f7f5f0;
+	--color-inv-muted: #bdb6ab;
 	--color-inv-line: rgb(255 255 255 / 0.16);
 	--color-inv-surface-2: rgb(255 255 255 / 0.1);
 	--color-warn: #7a4300;
@@ -261,9 +615,9 @@
 	/* Contorno de foco: o lime de texto, com contraste de pelo menos 3:1 com o fundo nos dois temas */
 	--color-focus: var(--color-lime-text);
 	--color-switch-knob: #ffffff;
-	--color-backdrop: rgb(20 22 19 / 0.45);
+	--color-backdrop: rgb(29 27 24 / 0.45);
 	/* Fundo do CodeBlock: no escuro, preto translúcido, que escurece o fundo de baixo sem trazer outra cor */
-	--color-code-bg: #141613;
+	--color-code-bg: #1d1b18;
 
 	/* Pontos de status: as mesmas cores nos dois temas */
 	--color-ok-dot: #2ecc71;
@@ -275,11 +629,11 @@
 	--font-sans: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
 	--font-mono: 'Geist Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
 
-	--radius-xs: 6px;
-	--radius-sm: 10px;
-	--radius-md: 12px;
-	--radius-lg: 14px;
-	--radius-xl: 18px;
+	--radius-xs: 8px;
+	--radius-sm: 12px;
+	--radius-md: 14px;
+	--radius-lg: 18px;
+	--radius-xl: 22px;
 	--radius-pill: 999px;
 }
 
@@ -298,7 +652,7 @@
 }
 
 /*
- * Superfície escura nos dois temas (card de vaga selecionado, card da coleta, bandeja de currículos). Redefine os
+ * Superfície escura nos dois temas (o bloco de código). Redefine os
  * tokens, então `bg-surface-2`, `text-muted`, `border-line` etc. dentro dela já saem na versão escura.
  */
 @utility inverted {
@@ -314,6 +668,7 @@
 	--color-check-low: var(--color-inv-check-low);
 	--color-check-high: var(--color-inv-check-high);
 	--placeholder-mix: 85%;
+	--shimmer: rgb(255 255 255 / 0.07);
 	/* O lime escuro do tema claro sumiria no fundo escuro */
 	--color-focus: var(--color-lime);
 }
@@ -321,9 +676,13 @@
 @layer base {
 	:root {
 		/* Sombra dos elementos flutuantes; fora do @theme para trocar com o tema (use `shadow-(--elevation)`) */
-		--elevation: 0 18px 40px rgb(20 22 19 / 0.18);
+		--elevation: 0 2px 6px rgb(29 27 24 / 0.06), 0 16px 36px -8px rgb(29 27 24 / 0.16);
+		/* Sombra leve dos cards: separa do fundo sem pesar */
+		--elevation-soft: 0 1px 2px rgb(29 27 24 / 0.04), 0 6px 16px -8px rgb(29 27 24 / 0.1);
 		/* Quanto do `muted` vai no placeholder: no fundo escuro a mistura com o transparente escurece demais */
 		--placeholder-mix: 60%;
+		/* O brilho que passa pelos esqueletos: no escuro, bem mais fraco */
+		--shimmer: rgb(255 255 255 / 0.6);
 
 		color-scheme: light;
 		/* Reserva o espaço da barra de rolagem: sem isso, ao trocar de uma tela longa para uma curta, o conteúdo centralizado pula */
@@ -332,17 +691,17 @@
 		/* Tema escuro: os mesmos tokens com outros valores, na mesma variante do `dark:` */
 		@variant dark {
 			& {
-				--color-bg: #0e100c;
-				--color-surface: #161913;
-				--color-surface-2: #1f231b;
-				--color-ink: #eceee4;
-				--color-muted: #a0a698;
-				--color-line: #2b3026;
-				--color-lime-soft: #26300f;
+				--color-bg: #131210;
+				--color-surface: #1b1a17;
+				--color-surface-2: #25231f;
+				--color-ink: #eeebe5;
+				--color-muted: #a9a399;
+				--color-line: #302d28;
+				--color-lime-soft: #283010;
 				--color-lime-text: #c8f542;
-				--color-inv-bg: #232a18;
-				--color-inv-ink: #f2f5ea;
-				--color-inv-muted: #b9c0ae;
+				--color-inv-bg: #2a2723;
+				--color-inv-ink: #f4f1eb;
+				--color-inv-muted: #bfb8ad;
 				--color-warn: #ffc37a;
 				--color-warn-bg: #3a2a12;
 				--color-danger: #ff9c90;
@@ -351,8 +710,10 @@
 				--color-check-low: var(--color-inv-check-low);
 				--color-check-high: var(--color-inv-check-high);
 				--color-code-bg: rgb(0 0 0 / 0.35);
-				--elevation: 0 18px 40px rgb(0 0 0 / 0.5);
+				--elevation: 0 2px 6px rgb(0 0 0 / 0.3), 0 16px 36px -8px rgb(0 0 0 / 0.5);
+				--elevation-soft: 0 1px 2px rgb(0 0 0 / 0.25);
 				--placeholder-mix: 85%;
+				--shimmer: rgb(255 255 255 / 0.05);
 
 				color-scheme: dark;
 			}
@@ -384,6 +745,13 @@
 
 	button:disabled {
 		cursor: not-allowed;
+	}
+
+	/* A troca de tema (`toggleTheme`): sem o esmaecer padrão, a tela nova aparece num círculo que cresce do botão */
+	::view-transition-old(root),
+	::view-transition-new(root) {
+		animation: none;
+		mix-blend-mode: normal;
 	}
 
 	/* Sem isso, um grupo de opções não encolhe abaixo da largura do conteúdo (os filtros num painel estreito) */

@@ -31,3 +31,15 @@ test('mensagem gerada pela IA vai junto; pedidos antigos, sem o campo, ficam sem
 	expect(toWebCvRequest({ ...doc, status: 'ready', message }).message).toEqual(message)
 	expect(toWebCvRequest(doc).message).toBeNull()
 })
+
+test('o ajuste feito para a vaga vai junto; pedidos antigos, sem o campo, ficam sem ele', () => {
+	const changes = {
+		addedSkills: ['Angular'],
+		removedSkills: ['jQuery'],
+		summary: { before: 'Antes.', after: 'Depois.' },
+		projects: ['Painel'],
+	}
+
+	expect(toWebCvRequest({ ...doc, status: 'ready', changes }).changes).toEqual(changes)
+	expect(toWebCvRequest(doc).changes).toBeNull()
+})

@@ -297,6 +297,6 @@ O que sobra depois das fases anteriores é o layout de cada tela. Migrar seção
 
 ## Detalhes de texto 🟢
 
-- [ ] Rótulos `.label` terminam com `_` ("contato_", "agenda_"); faltam em `components/JobDetail.tsx:156` e `:219`
+- [x] Rótulos `.label` sem o `_` no fim ("contato", "agenda"): o site não imita um terminal
 - [ ] O sufixo mono do `.section-title` às vezes é `muted xsmall` (`views/SettingsView.tsx:179`, `:313`) e às vezes não (`views/RunsView.tsx:362`); escolher um
 - [ ] Maiúscula nos `label` dos `IconButton`: "Fechar", "Dispensar", "Alternar tema…" contra "reportar problema na vaga" (`components/JobDetail.tsx:78`); padronizar com inicial maiúscula, já que vira `aria-label` e dica do mouse

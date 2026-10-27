@@ -1,10 +1,10 @@
 import { createFileRoute, Outlet, stripSearchParams, useParams } from '@tanstack/react-router'
 
-import { routeError, RoutePending } from '../components/RouteStatus'
+import { routeError } from '../components/RouteStatus'
 import { DEFAULT_FILTERS, jobFiltersSearch } from '../lib/job-filters'
 import { useWideLayout } from '../lib/media'
 import { loadJobsFor } from '../stores/jobs'
-import { JobsView } from '../views/JobsView'
+import { JobsPending, JobsView } from '../views/JobsView'
 
 /**
  * A lista de vagas (`/`) e a vaga aberta (`/vagas/$id`). Os filtros ficam na URL e valem para as duas. No desktop é a
@@ -16,11 +16,18 @@ export const Route = createFileRoute('/_vagas')({
 	// Os valores padrão não aparecem na URL
 	search: { middlewares: [stripSearchParams(DEFAULT_FILTERS)] },
 	loaderDeps: ({ search }) => search,
-	loader: ({ deps }) => loadJobsFor(deps),
-	pendingComponent: () => <RoutePending />,
+	// Chegando por `/vagas/$id` (link, recarregar, outra tela), a lista vem até a vaga. O `$id` é da rota filha e o
+	// loader do layout só recebe os próprios parâmetros: o id sai do caminho da URL
+	loader: ({ deps, cause, location }) => loadJobsFor(deps, cause === 'enter' ? openJobId(location.pathname) : undefined),
+	pendingComponent: JobsPending,
 	errorComponent: routeError('Não consegui carregar as vagas'),
 	component: JobsLayout,
 })
+
+function openJobId(pathname: string) {
+	const id = /^\/vagas\/([^/]+)/.exec(pathname)?.[1]
+	return id && decodeURIComponent(id)
+}
 
 function JobsLayout() {
 	const { id } = useParams({ strict: false })

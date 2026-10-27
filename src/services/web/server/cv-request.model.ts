@@ -1,6 +1,6 @@
 import mongoose, { Schema } from 'mongoose'
 
-import type { ApplicationMessage } from '@shared/contracts'
+import type { ApplicationMessage, CvChanges } from '@shared/contracts'
 
 import { CV_STATUSES, type CvStatus, type WebCvRequest } from '../api-types'
 
@@ -15,6 +15,10 @@ type CvRequestDocument = {
 	error: string | null
 	/** E-mail de candidatura gerado pela IA; pedidos de antes do campo não o têm. */
 	message?: ApplicationMessage | null
+	/** O ajuste feito para a vaga; pedidos de antes do campo não o têm. */
+	changes?: CvChanges | null
+	/** De qual currículo base o PDF saiu (`versionId` `null`: o arquivo); `null` na falha e nos pedidos de antes do campo. */
+	base?: { versionId: string | null } | null
 	requestedAt: Date
 	finishedAt: Date | null
 }
@@ -36,6 +40,19 @@ const cvRequestSchema = new Schema<CvRequestDocument>(
 			type: new Schema({ subject: { type: String, required: true }, body: { type: String, required: true } }, { _id: false }),
 			default: null,
 		},
+		changes: {
+			type: new Schema(
+				{
+					addedSkills: { type: [String], default: [] },
+					removedSkills: { type: [String], default: [] },
+					summary: { type: new Schema({ before: String, after: String }, { _id: false }), default: null },
+					projects: { type: [String], default: [] },
+				},
+				{ _id: false },
+			),
+			default: null,
+		},
+		base: { type: new Schema({ versionId: { type: String, default: null } }, { _id: false }), default: null },
 		requestedAt: { type: Date, required: true },
 		finishedAt: { type: Date, default: null },
 	},
@@ -65,6 +82,15 @@ export function toWebCvRequest(doc: Omit<CvRequestDocument, 'pdf'>, now = new Da
 		fileName: doc.fileName,
 		error: timedOut ? CV_TIMEOUT_ERROR : doc.error,
 		message: doc.message ? { subject: doc.message.subject, body: doc.message.body } : null,
+		changes: doc.changes
+			? {
+					addedSkills: [...doc.changes.addedSkills],
+					removedSkills: [...doc.changes.removedSkills],
+					summary: doc.changes.summary ? { before: doc.changes.summary.before, after: doc.changes.summary.after } : null,
+					projects: [...doc.changes.projects],
+				}
+			: null,
+		base: doc.base ? { versionId: doc.base.versionId ?? null } : null,
 		requestedAt: doc.requestedAt.toISOString(),
 		finishedAt: doc.finishedAt?.toISOString() ?? null,
 	}

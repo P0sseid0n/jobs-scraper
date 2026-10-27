@@ -3,9 +3,10 @@ import { useEffect, useState } from 'react'
 import type { LinkedinLoginState } from '../../api-types'
 import { api } from '../api'
 import { cx } from '../lib/cx'
+import { LOGIN_STEPS, loginProgress, loginStep, type LoginReached, type LoginStepState } from '../lib/login-steps'
 import { reopenLinkedinVerification } from '../stores/linkedin-verification'
 import { notify } from '../stores/toast'
-import { Icon } from './Icon'
+import { DrawnCheck, Icon } from './Icon'
 import { Button } from './ui/Button'
 import { FieldHelp } from './ui/Field'
 import { Notice } from './ui/Notice'
@@ -26,8 +27,19 @@ export function useLinkedinLogin() {
 	const [state, setState] = useState<LinkedinLoginState | null>(null)
 	const [startedAt, setStartedAt] = useState<number | null>(null)
 	const [starting, setStarting] = useState(false)
+	const [reached, setReached] = useState<LoginReached>({ step: 0, verification: false })
 
 	const active = starting || (!!state && ACTIVE.has(state.status))
+	const status = state?.status
+
+	// A linha do tempo lembra até onde o login chegou (a falha fica nessa etapa) e se a confirmação foi pedida
+	useEffect(() => {
+		if (!status) return
+		setReached(current => ({
+			step: Math.max(current.step, loginStep(status, current)),
+			verification: current.verification || status === 'verification',
+		}))
+	}, [status])
 
 	useEffect(() => {
 		let alive = true
@@ -49,6 +61,7 @@ export function useLinkedinLogin() {
 	async function start() {
 		setStarting(true)
 		setStartedAt(Date.now())
+		setReached({ step: 0, verification: false })
 		try {
 			setState(await api.testLinkedinLogin())
 		} catch (error) {
@@ -63,17 +76,104 @@ export function useLinkedinLogin() {
 		!!state && (ACTIVE.has(state.status) || (startedAt !== null && updatedAt >= startedAt) || Date.now() - updatedAt < RECENT_MS)
 	const stalled = state?.status === 'pending' && !!state.requestedAt && Date.now() - Date.parse(state.requestedAt) > STALLED_MS
 
-	return { state: visible ? state : null, active, stalled, start }
+	return { state: visible ? state : null, reached, active, stalled, start }
 }
 
-/** O andamento do login: esperando, entrando, a verificação pedida (QR, código, app), o sucesso ou a falha. */
+/**
+ * O andamento do login: a linha do tempo (pedido, entrando, confirmação, conectado) e, embaixo, o que está acontecendo:
+ * esperando, entrando, a verificação pedida (QR, código, app), o sucesso ou a falha.
+ */
 export function LinkedinLoginStatus({ login }: { login: ReturnType<typeof useLinkedinLogin> }) {
+	const { state, reached } = login
+	if (!state) return null
+
+	return (
+		<div className="flex flex-col gap-4 animate-panel-in motion-reduce:animate-none">
+			<LoginTimeline {...loginProgress(state.status, reached)} />
+			<LoginDetails login={login} />
+		</div>
+	)
+}
+
+const STEP_STATE_TEXT: Record<LoginStepState, string> = {
+	done: 'concluída',
+	current: 'em andamento',
+	failed: 'falhou',
+	skipped: 'não foi pedida',
+	upcoming: 'a seguir',
+}
+
+/** As etapas ligadas por uma linha que se preenche até a atual; cada bolinha muda com a etapa. */
+function LoginTimeline({ states, fill }: ReturnType<typeof loginProgress>) {
+	return (
+		<ol className="relative m-0 grid list-none grid-cols-4 p-0" aria-label="Andamento do login">
+			{/* A linha vai do centro da primeira bolinha ao da última (cada coluna tem 1/4 da largura) */}
+			<span aria-hidden="true" className="absolute inset-x-1/8 top-3 h-0.5 -translate-y-1/2 rounded-pill bg-line">
+				<span
+					className="block h-full rounded-pill bg-lime-accent transition-all duration-700 ease-glide motion-reduce:transition-none"
+					style={{ width: `${fill * 100}%` }}
+				/>
+			</span>
+			{LOGIN_STEPS.map((step, index) => {
+				const state = states[index]!
+
+				return (
+					<li key={step} className="relative flex flex-col items-center gap-1.5 text-center">
+						<StepDot state={state} />
+						<span
+							className={cx(
+								'font-mono text-xs',
+								state === 'failed' ? 'text-danger' : state === 'current' ? 'text-ink' : 'text-muted',
+							)}
+						>
+							{step}
+							<span className="sr-only">: {STEP_STATE_TEXT[state]}</span>
+						</span>
+					</li>
+				)
+			})}
+		</ol>
+	)
+}
+
+/** A bolinha da etapa: concluída (check desenhado), atual (pulsando), falhou (treme), pulada (tracejada) ou a seguir. */
+function StepDot({ state }: { state: LoginStepState }) {
+	const base = 'relative grid size-6 place-items-center rounded-full'
+
+	switch (state) {
+		case 'done':
+			return (
+				<span className={cx(base, 'bg-lime text-lime-ink animate-pop motion-reduce:animate-none')}>
+					<DrawnCheck size={14} />
+				</span>
+			)
+		case 'current':
+			return (
+				<span className={cx(base, 'border-2 border-lime-accent bg-surface')}>
+					<span className="absolute -inset-0.5 rounded-full border-2 border-lime-accent animate-ping motion-reduce:hidden" />
+					<span className="size-2 rounded-full bg-lime-accent" />
+				</span>
+			)
+		case 'failed':
+			return (
+				<span className={cx(base, 'bg-danger-bg text-danger animate-shake motion-reduce:animate-none')}>
+					<Icon name="close" size={14} />
+				</span>
+			)
+		case 'skipped':
+			return <span className={cx(base, 'border border-dashed border-control bg-surface')} />
+		case 'upcoming':
+			return <span className={cx(base, 'border-2 border-control bg-surface')} />
+	}
+}
+
+function LoginDetails({ login }: { login: ReturnType<typeof useLinkedinLogin> }) {
 	const { state, stalled } = login
 	if (!state) return null
 
 	if (state.status === 'pending' || state.status === 'running') {
 		return (
-			<div className="flex flex-col gap-2 animate-panel-in motion-reduce:animate-none" role="status">
+			<div className="flex flex-col gap-2" role="status">
 				<p className="flex items-center gap-2 text-sm">
 					<Icon name="spinner" />
 					{state.status === 'pending' ? 'Esperando o scraper começar o teste…' : 'Entrando no LinkedIn…'}
@@ -102,7 +202,7 @@ export function LinkedinLoginStatus({ login }: { login: ReturnType<typeof useLin
 				state.status === 'success' ? 'text-ok' : 'text-danger',
 			)}
 		>
-			<Icon name={state.status === 'success' ? 'check' : 'alert'} className="mt-0.5" />
+			{state.status === 'success' ? <DrawnCheck className="mt-0.5" /> : <Icon name="alert" className="mt-0.5" />}
 			<span>
 				{state.status === 'success'
 					? 'Tudo certo: conseguimos entrar no LinkedIn com a sua conta.'
