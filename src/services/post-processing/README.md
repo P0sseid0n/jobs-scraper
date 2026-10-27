@@ -35,7 +35,7 @@ O limite dos checks, os idiomas e as palavras-chave ficam nas [configurações](
 
 ## Avaliar a extração
 
-Cada vaga salva guarda o modelo (`extractionModel`) e a versão do prompt (`promptVersion`, um hash do prompt e do formato pedidos ao modelo, que muda sozinho a cada edição). O cargo-alvo do perfil fica fora do hash: ele entra no prompt como dado, como o post, e trocá-lo não cria uma versão nova. Quando uma vaga é corrigida pelo site, a correção vai para a coleção `extraction_feedback` com o texto do post, a saída da IA, os valores certos, o modelo e a versão do prompt.
+Cada vaga salva guarda o modelo (`extractionModel`) e a versão do prompt (`promptVersion`, um hash do prompt e do formato pedidos ao modelo e do corte das hashtags do fim do post, que muda sozinho a cada edição deles). O cargo-alvo do perfil fica fora do hash: ele entra no prompt como dado, como o post, e trocá-lo não cria uma versão nova. Quando uma vaga é corrigida pelo site, a correção vai para a coleção `extraction_feedback` com o texto do post, a saída da IA, os valores certos, o modelo e a versão do prompt.
 
 `bun eval:extraction` roda o prompt e o modelo atuais sobre esses casos (a correção mais recente de cada post), com as mesmas regras do post-processing (idioma, classificação e regras do texto), e mostra o acerto por campo ao lado do acerto da extração original. Exemplo de saída:
 

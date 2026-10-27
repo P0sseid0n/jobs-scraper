@@ -77,6 +77,21 @@ const SEVERAL_OPENINGS = {
 	withoutTargetRole: 'the first one',
 }
 
+/** Uma linha só de hashtags (ou em branco, contando o "\u2800" braille (U+2800) e os caracteres invisíveis). */
+const HASHTAG_LINE = /^[\s\u2800\u200b-\u200d\ufeff]*(#[\p{L}\p{N}_]+[\s\u2800,.;|·•]*)*$/u
+
+/**
+ * Tira do fim do post as linhas só de hashtags, antes de ele ir ao modelo: dezenas de tags (#job #jobalert
+ * #developer) faziam o modelo ver vaga num post que não é. Um post que é só hashtags fica como está.
+ */
+export function withoutTrailingHashtags(text: string) {
+	const lines = text.split('\n')
+	let end = lines.length
+	while (end > 0 && HASHTAG_LINE.test(lines[end - 1]!)) end--
+
+	return end === 0 ? text : lines.slice(0, end).join('\n')
+}
+
 /**
  * Versão do prompt: hash do texto e do formato pedidos ao modelo. Muda sozinha a cada edição do prompt, e é salva
  * em cada vaga para comparar os erros corrigidos pelo site entre versões. O cargo-alvo fica fora: é um dado, como o
@@ -86,6 +101,9 @@ export const EXTRACTION_PROMPT_VERSION = new Bun.CryptoHasher('sha256')
 	.update(SYSTEM_PROMPT_TEMPLATE)
 	.update(JSON.stringify(SEVERAL_OPENINGS))
 	.update(JSON.stringify(EXTRACTION_OUTPUT_FORMAT))
+	// O corte das hashtags muda o post que o modelo recebe: entra na versão como o prompt
+	.update(HASHTAG_LINE.source)
+	.update(withoutTrailingHashtags.toString())
 	.digest('hex')
 	.slice(0, 12)
 

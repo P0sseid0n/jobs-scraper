@@ -4,8 +4,8 @@ import type { Ollama } from 'ollama'
 import { caseToRawPost } from './extraction-eval'
 import { AiJobOutputSchema } from './extraction-output'
 import { readCaseImages, readFixtures } from './feedback-fixtures'
-import { classifiesByText } from './extraction-prompt'
-import { buildProcessedJob, extractJobFromPost, withoutTrailingHashtags } from './job-extraction'
+import { classifiesByText, withoutTrailingHashtags } from './extraction-prompt'
+import { buildProcessedJob, extractJobFromPost } from './job-extraction'
 
 // Post de verdade no formato "detalhes na imagem": o texto não tem nenhum dado da vaga, a arte tem todos
 const item = (await readFixtures()).find(fixture => fixture.postId === 'caso-imagem-front-end')!
