@@ -130,5 +130,15 @@ export function safeLink(link: string | null) {
  * IA (o cargo e o link já aparecem no detalhe).
  */
 export function listingPageText(rawContent: string) {
-	return rawContent.replace(/^Vaga: .*\nLink: .*\n\n/, '')
+	return rawContent.replace(LISTING_PAGE_HEADER, '')
 }
+
+/**
+ * Se o texto da vaga de um post com várias é o da página aberta pelo link dela. A vaga de uma lista sem links não tem
+ * página: o texto é o do post, sem as linhas das outras vagas.
+ */
+export function isListingPageText(rawContent: string) {
+	return LISTING_PAGE_HEADER.test(rawContent)
+}
+
+const LISTING_PAGE_HEADER = /^Vaga: .*\nLink: .*\n\n/

@@ -42,15 +42,7 @@ const HIRING_SIGNAL =
  * @returns As vagas (sem repetir link nem cargo), ou `null` se o post não seguir esse formato ou não falar de vagas.
  */
 export function splitMultiJobPost(text: string): JobListing[] | null {
-	if (
-		!HIRING_SIGNAL.test(
-			text
-				.replace(URL_PATTERN, ' ')
-				.normalize('NFKD')
-				.replace(/\p{Diacritic}/gu, ''),
-		)
-	)
-		return null
+	if (!talksAboutJobs(text)) return null
 
 	const lines = text.split('\n').map(line => (line.replace(INVISIBLE, '').trim() ? line.trim() : ''))
 	const listings: JobListing[] = []
@@ -92,6 +84,82 @@ export function splitMultiJobPost(text: string): JobListing[] | null {
 	// "JavaScript é sua praia? Entre no grupo..." antes do convite do WhatsApp), não uma lista de vagas
 	const prose = unique.filter(listing => isProse(listing.title)).length
 	return prose * 2 > unique.length ? null : unique
+}
+
+/**
+ * Uma vaga de um post que lista várias com um link só para todas: o cargo (a linha dela, ex.: "Desenvolvedor(a)
+ * Front-end React Sênior – Remoto") e o post sem as linhas das outras vagas, para a IA não misturar os dados delas.
+ */
+export type RoleLine = { title: string; text: string }
+
+/** A modalidade depois de um separador, como as listas de vagas a escrevem: "Cargo – Remoto", "Cargo - Híbrido | SP". */
+const ROLE_LINE_WORK_MODE = /[-–—|(]\s*(100\s?%\s*)?(remot[oa]|remote|home office|hibrid[oa]|hybrid|presencial|on-?site)\b/i
+
+/**
+ * Reconhece posts que listam várias vagas sem link próprio ("Vagas em destaque: Cargo – Remoto. Cargo – Híbrido |
+ * São Paulo. ... Link para inscrição: https://..."): a linha de cada vaga tem a modalidade depois de um separador,
+ * o que separa a lista de uma de requisitos ("React – avançado").
+ * @returns As vagas (sem repetir cargo), ou `null` se o post tiver menos de 3 ou não falar de vagas.
+ */
+export function splitRoleListPost(text: string): RoleLine[] | null {
+	if (!talksAboutJobs(text)) return null
+
+	const lines = text.split('\n')
+	const seen = new Set<string>()
+	const roles = lines.flatMap((line, index) => {
+		const title = roleLineTitle(line)
+		if (!title) return []
+
+		// O mesmo cargo escrito duas vezes ("Vaga: Dev Pleno - Acme - Home Office" e "Dev Pleno – Acme – Home Office"),
+		// numa página de vaga, é uma vaga só
+		const key = roleKey(title)
+		if (seen.has(key)) return []
+
+		seen.add(key)
+		return [{ index, title }]
+	})
+	if (roles.length < MIN_LISTINGS) return null
+
+	const roleIndexes = new Set(roles.map(role => role.index))
+	return roles.map(role => ({
+		title: role.title,
+		text: lines
+			.filter((_, index) => index === role.index || !roleIndexes.has(index))
+			.join('\n')
+			.replace(/\n{3,}/g, '\n\n')
+			.trim(),
+	}))
+}
+
+/** O cargo de uma linha da lista sem links, ou `null` se a linha não for de uma vaga. */
+function roleLineTitle(line: string) {
+	if (/https?:\/\//i.test(line)) return null
+
+	const title = cleanTitle(line).replace(/\.$/, '')
+	if (!title || title.length > MAX_TITLE_LENGTH || /[?!]/.test(title)) return null
+	return ROLE_LINE_WORK_MODE.test(withoutAccents(title)) ? title : null
+}
+
+/** O cargo antes da modalidade, só letras e números e sem o rótulo "Vaga:", para achar o mesmo cargo repetido. */
+function roleKey(title: string) {
+	const normalized = withoutAccents(title).toLowerCase()
+	return normalized
+		.slice(0, normalized.search(ROLE_LINE_WORK_MODE))
+		.replace(/^\s*vagas?\s*:/, '')
+		.replace(/[^a-z0-9]+/g, '')
+}
+
+/** ID estável da vaga de uma lista sem links: o post de origem e o cargo (o link é o mesmo para todas). */
+export function roleLinePostId(sourcePostId: string, title: string) {
+	return createHash('sha256').update(`${sourcePostId}\n${title}`).digest('hex')
+}
+
+function talksAboutJobs(text: string) {
+	return HIRING_SIGNAL.test(withoutAccents(text.replace(URL_PATTERN, ' ')))
+}
+
+function withoutAccents(text: string) {
+	return text.normalize('NFKD').replace(/\p{Diacritic}/gu, '')
 }
 
 /** Frase, e não cargo: pergunta, exclamação, ponto final ou palavras demais. */

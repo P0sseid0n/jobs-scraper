@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { listingKeywordText, splitMultiJobPost } from './multi-job-post'
+import { listingKeywordText, roleLinePostId, splitMultiJobPost, splitRoleListPost } from './multi-job-post'
 
 // Post real de agregador (resumido)
 const AGGREGATOR_POST = `🚨 10 VAGAS EM TODO BRASIL:
@@ -185,5 +185,73 @@ Outros: https://c.com https://d.com
 Mais: https://e.com https://f.com`
 
 		expect(splitMultiJobPost(post)).toBeNull()
+	})
+})
+
+// Post real de uma empresa (resumido): várias vagas e um link só para todas
+const ROLE_LIST_POST = `Toda grande jornada começa com uma oportunidade. Que tal começar a sua com a Cadmus?
+
+Vagas em destaque da semana:
+
+Desenvolvedor(a) Front-end React Sênior – Remoto.
+
+Analista Funcional de Dynamics 365 CRM -Sênior - Híbrido | São Bernardo do Campo.
+
+Mais vagas:
+
+💼 Engenheiro(a) de Software Full Stack Sênior - Híbrido | Rio de Janeiro.
+💼 Analista Funcional de Dynamics 365 CRM – Pleno - Híbrido | São Bernardo do Campo.
+
+🔗 Link para inscrição:
+https://lnkd.in/dMuf4Zq
+
+#vagasti #vagasremotas #vagashibridas`
+
+describe('splitRoleListPost', () => {
+	test('divide a lista de vagas sem link próprio, cada uma com o post sem as linhas das outras', () => {
+		const roles = splitRoleListPost(ROLE_LIST_POST)
+
+		expect(roles?.map(role => role.title)).toEqual([
+			'Desenvolvedor(a) Front-end React Sênior – Remoto',
+			'Analista Funcional de Dynamics 365 CRM -Sênior - Híbrido | São Bernardo do Campo',
+			'Engenheiro(a) de Software Full Stack Sênior - Híbrido | Rio de Janeiro',
+			'Analista Funcional de Dynamics 365 CRM – Pleno - Híbrido | São Bernardo do Campo',
+		])
+		expect(roles?.[0]?.text).toBe(`Toda grande jornada começa com uma oportunidade. Que tal começar a sua com a Cadmus?
+
+Vagas em destaque da semana:
+
+Desenvolvedor(a) Front-end React Sênior – Remoto.
+
+Mais vagas:
+
+🔗 Link para inscrição:
+https://lnkd.in/dMuf4Zq
+
+#vagasti #vagasremotas #vagashibridas`)
+	})
+
+	test('ids estáveis e diferentes para cada vaga do mesmo post', () => {
+		const [first, second] = splitRoleListPost(ROLE_LIST_POST) ?? []
+
+		expect(roleLinePostId('urn:li:activity:1', first?.title ?? '')).toBe(roleLinePostId('urn:li:activity:1', first?.title ?? ''))
+		expect(roleLinePostId('urn:li:activity:1', first?.title ?? '')).not.toBe(roleLinePostId('urn:li:activity:1', second?.title ?? ''))
+	})
+
+	test('não divide a vaga com a modalidade e o local em linhas próprias, nem o mesmo cargo repetido', () => {
+		const post = `Vaga: Desenvolvedor Front-End Pleno - Nuvia Sistemas - Home Office
+
+Desenvolvedor Front-End Pleno – Nuvia Sistemas – Home Office
+Rio de Janeiro (Remote)
+Requisitos: Vue.js – avançado, TypeScript – intermediário`
+
+		expect(splitRoleListPost(post)).toBeNull()
+	})
+
+	test('não divide lista de requisitos nem post que não fala de vagas', () => {
+		expect(splitRoleListPost('Estamos contratando!\nReact – avançado\nNode – intermediário\nSQL – básico')).toBeNull()
+		expect(
+			splitRoleListPost('Minha rotina:\nSegunda - Remoto\nTerça - Presencial\nQuarta - Remoto\nQuinta - Híbrido'),
+		).toBeNull()
 	})
 })

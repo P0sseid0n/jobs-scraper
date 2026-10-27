@@ -6,7 +6,7 @@ import { applicationMessage, formatApplicationMessage } from '@shared/templates'
 import type { WebJob } from '../../api-types'
 import { api, RequestError } from '../api'
 import { cx } from '../lib/cx'
-import { jobDate, jobSubtitle, languageLabel, listingPageText, safeLink, timeAgo } from '../lib/format'
+import { isListingPageText, jobDate, jobSubtitle, languageLabel, listingPageText, safeLink, timeAgo } from '../lib/format'
 import { revealJobDetail } from '../lib/job-opening'
 import { useCvFor, useGeneratedMessage } from '../stores/cv'
 import { removeJob, replaceJob } from '../stores/jobs'
@@ -75,8 +75,9 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 	const message = generated && showGenerated ? formatApplicationMessage(generated) : applicationMessage(job.title)
 	// Vaga de um post com várias: o texto é o da página aberta pelo link dela, não o do post
 	const fromList = !!job.sourcePostId
-	const content = fromList ? listingPageText(job.rawContent) : job.rawContent
-	const contentNoun = fromList ? 'texto' : 'post'
+	const fromPage = fromList && isListingPageText(job.rawContent)
+	const content = fromPage ? listingPageText(job.rawContent) : job.rawContent
+	const contentNoun = fromPage ? 'texto' : 'post'
 	const isLong = content.length > LONG_POST_CHARS
 
 	// Aberta pelo card da lista, os blocos entram um depois do outro (a chave remonta este componente a cada vaga)
@@ -181,9 +182,9 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 				</Notice>
 			)}
 
-			<section className="flex flex-col gap-2.5" aria-label={fromList ? 'Página da vaga' : 'Post original'}>
+			<section className="flex flex-col gap-2.5" aria-label={fromPage ? 'Página da vaga' : 'Post original'}>
 				<div className="flex items-center justify-between gap-3">
-					<h3 className={LABEL}>{fromList ? 'página da vaga' : 'post original'}</h3>
+					<h3 className={LABEL}>{fromPage ? 'página da vaga' : 'post original'}</h3>
 					{/* Sempre aparece, mesmo repetindo o botão de candidatura pelo post: é o lugar onde se procura o post */}
 					{postLink && (
 						<TextLink className="text-xs font-mono" href={postLink} external>

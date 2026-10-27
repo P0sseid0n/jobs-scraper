@@ -12,7 +12,15 @@ import { buildProcessedJob, extractJobFromPost } from './job-extraction'
 import { relevanceRejection } from './job-relevance'
 import { resumeSavedJob, saveJob } from './job-store'
 import { rejectionReason } from './model-response'
-import { listingKeywordText, listingPostId, splitMultiJobPost, type JobListing } from './multi-job-post'
+import {
+	listingKeywordText,
+	listingPostId,
+	roleLinePostId,
+	splitMultiJobPost,
+	splitRoleListPost,
+	type JobListing,
+	type RoleLine,
+} from './multi-job-post'
 import { checkLanguage } from './post-language'
 
 const { config, logger, queue } = await startService({
@@ -38,7 +46,8 @@ await queue.consume(
 )
 
 /**
- * Post que lista várias vagas: pede ao scraper para abrir o link de cada uma. Senão, descarta o post se ele estiver
+ * Post que lista várias vagas: pede ao scraper para abrir o link de cada uma ou, com um link só para todas, processa
+ * cada vaga relevante à parte (`processRoleList`). Senão, descarta o post se ele estiver
  * fora dos idiomas aceitos (antes da extração; em texto curto, o idioma é perguntado ao modelo), extrai a vaga e, se
  * for uma vaga relevante (palavras-chave), salva no MongoDB e anuncia para os canais. Cada post é processado uma
  * única vez.
@@ -63,6 +72,12 @@ async function processPost(post: RawPost) {
 	if (listings) {
 		await requestLookups(post, listings, settings)
 		await markAsSeen(post, 'multi-job')
+		return
+	}
+
+	const roles = post.sourcePostId ? null : splitRoleListPost(post.text)
+	if (roles) {
+		await markAsSeen(post, await processRoleList(post, roles, settings))
 		return
 	}
 
@@ -138,6 +153,31 @@ async function requestLookups(post: RawPost, listings: JobListing[], settings: K
 	}
 
 	log.info({ listings: listings.length, requested }, '📋 Post com várias vagas: links enviados para o scraper abrir')
+}
+
+/**
+ * Post que lista várias vagas com um link só: cada vaga relevante (palavras-chave na linha dela) é processada aqui
+ * como um post à parte, com o texto sem as linhas das outras vagas. Não há página para abrir: o post já traz tudo.
+ * @returns O destino do post: `saved` se alguma vaga foi salva; senão o da primeira vaga, ou `keywords` sem nenhuma.
+ */
+async function processRoleList(post: RawPost, roles: RoleLine[], settings: KeywordSettings): Promise<SeenPostOutcome> {
+	const relevant = roles.filter(role => !relevanceRejection({ title: role.title, necessaryKnowledge: null }, settings))
+	logger.info(
+		{ postId: post.postId, roles: roles.length, relevant: relevant.length },
+		'📋 Post com várias vagas e um link só: cada vaga relevante é processada à parte',
+	)
+
+	const outcomes: SeenPostOutcome[] = []
+	for (const role of relevant) {
+		const postId = roleLinePostId(post.postId, role.title)
+		// Imagens ficam de fora: elas são do post inteiro, não desta vaga
+		await processPost({ ...post, postId, text: role.text, sourcePostId: post.postId, jobLink: null, images: [] })
+
+		const seen = await SeenPost.findOne({ postId }, { outcome: 1 }).lean()
+		if (seen?.outcome) outcomes.push(seen.outcome)
+	}
+
+	return outcomes.includes('saved') ? 'saved' : (outcomes[0] ?? 'keywords')
 }
 
 type KeywordSettings = { requiredKeywords: string[]; excludedKeywords: string[] }
