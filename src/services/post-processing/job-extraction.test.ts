@@ -3,8 +3,8 @@ import type { Ollama } from 'ollama'
 
 import { caseToRawPost } from './extraction-eval'
 import { AiJobOutputSchema } from './extraction-output'
-import { readCaseImages, readFixtures } from './feedback-fixtures'
 import { classifiesByText, withoutTrailingHashtags } from './extraction-prompt'
+import { readCaseImages, readFixtures } from './feedback-fixtures'
 import { buildProcessedJob, extractJobFromPost } from './job-extraction'
 
 // Post de verdade no formato "detalhes na imagem": o texto não tem nenhum dado da vaga, a arte tem todos
@@ -98,7 +98,9 @@ describe('post com imagens: o texto decide se é vaga', () => {
 	test('texto que é vaga: a chamada com as imagens completa os dados e tem a palavra final', async () => {
 		const { ollama, calls } = fakeOllama('job_opening', 'job_opening')
 
-		expect(await extractJobFromPost(ollama, 'gemma3:4b', caseToRawPost(item, images), null)).toMatchObject({ imageText: answer.imageText })
+		expect(await extractJobFromPost(ollama, 'gemma3:4b', caseToRawPost(item, images), null)).toMatchObject({
+			imageText: answer.imageText,
+		})
 		expect(calls).toEqual([0, 1])
 	})
 
@@ -120,15 +122,17 @@ describe('post com imagens: o texto decide se é vaga', () => {
 
 test('as palavras que contam para o texto classificar o post: sem hashtags, links e menções', () => {
 	expect(classifiesByText('🚀 Vaga aberta! Todos os detalhes estão na imagem 👇')).toBe(true)
-	expect(classifiesByText('Front-End Developer #vagas #frontend #remoto #clt #pj #react #vue @Empresa https://exemplo.com')).toBe(false)
+	expect(classifiesByText('Front-End Developer #vagas #frontend #remoto #clt #pj #react #vue @Empresa https://exemplo.com')).toBe(
+		false,
+	)
 	expect(classifiesByText('Vaga de dev, detalhes na imagem')).toBe(false)
 })
 
 describe('bloco de hashtags no fim do post', () => {
 	test('sai do texto, com as linhas em branco antes dele', () => {
-		expect(withoutTrailingHashtags('Você faria uma entrevista em inglês hoje?\n\n#job #jobalert #developer\n#frontend, #webdev\n')).toBe(
-			'Você faria uma entrevista em inglês hoje?',
-		)
+		expect(
+			withoutTrailingHashtags('Você faria uma entrevista em inglês hoje?\n\n#job #jobalert #developer\n#frontend, #webdev\n'),
+		).toBe('Você faria uma entrevista em inglês hoje?')
 	})
 
 	test('hashtag no meio do texto ou numa linha com outras palavras fica', () => {
