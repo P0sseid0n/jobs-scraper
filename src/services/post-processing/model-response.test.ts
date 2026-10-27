@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
 import {
+	chooseCompany,
 	keepCompanyIfInPost,
 	keepContractTypesInPost,
 	keepLinkIfInPost,
@@ -146,6 +147,40 @@ describe('keepCompanyIfInPost', () => {
 		expect(keepCompanyIfInPost('Acmetech', text)).toBeNull()
 		expect(keepCompanyIfInPost('Orbis', text)).toBeNull()
 		expect(keepCompanyIfInPost(null, text)).toBeNull()
+	})
+})
+
+describe('chooseCompany', () => {
+	const cadmus =
+		'Que tal começar a sua jornada com a Cadmus? Desenvolvedor(a) Front-end React Sênior – Remoto. Vem ser Cadmus!'
+	const page = { author: 'Cadmus Soluções em TI', authorIsCompany: true }
+	const person = { author: 'Ana Souza', authorIsCompany: false }
+
+	test('a página da empresa que postou é a empresa, citada ou não no texto', () => {
+		// A IA cita a empresa pelo nome curto: fica o nome da página
+		expect(chooseCompany({ aiCompany: 'Cadmus Soluções em TI', ...page }, cadmus)).toBe('Cadmus Soluções em TI')
+		expect(chooseCompany({ aiCompany: 'Cadmus', ...page }, cadmus)).toBe('Cadmus Soluções em TI')
+		expect(chooseCompany({ aiCompany: null, ...page }, 'Vaga de Dev React, remoto')).toBe('Cadmus Soluções em TI')
+	})
+
+	test('postado por uma pessoa, a empresa precisa estar escrita no post', () => {
+		expect(chooseCompany({ aiCompany: 'Cadmus', ...person }, cadmus)).toBe('Cadmus')
+		expect(chooseCompany({ aiCompany: null, ...person }, cadmus)).toBeNull()
+		expect(chooseCompany({ aiCompany: 'Ana Souza', author: 'Ana Souza', authorIsCompany: false }, 'Vaga React')).toBeNull()
+	})
+
+	test('a empresa só no domínio do e-mail não basta, e o e-mail gratuito nem conta', () => {
+		expect(chooseCompany({ aiCompany: 'Acmetech', ...person }, 'Envie o CV para rh@acmetech.com.br')).toBeNull()
+		expect(chooseCompany({ aiCompany: 'Outlook', ...person }, 'Envie o CV para ana@outlook.com')).toBeNull()
+	})
+
+	test('a agência citando o cliente fica com o cliente; o domínio do e-mail desempata', () => {
+		const agency = { author: 'Talentos RH', authorIsCompany: true }
+
+		expect(chooseCompany({ aiCompany: 'Globex', ...agency }, 'Vaga na Globex, remoto')).toBe('Globex')
+		expect(chooseCompany({ aiCompany: 'Globex', ...agency }, 'Vaga na Globex. CV para vagas@talentosrh.com.br')).toBe(
+			'Talentos RH',
+		)
 	})
 })
 

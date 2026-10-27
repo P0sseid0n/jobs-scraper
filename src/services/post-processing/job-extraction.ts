@@ -7,7 +7,7 @@ import { extractionChecks } from './extraction-checks'
 import type { AiJobOutput } from './extraction-output'
 import { buildExtractionMessages, classifiesByText, extractionOutputFormat, withoutTrailingHashtags } from './extraction-prompt'
 import {
-	keepCompanyIfInPost,
+	chooseCompany,
 	keepContractTypesInPost,
 	keepLinkIfInPost,
 	keepSkillsInPost,
@@ -74,8 +74,12 @@ export function buildProcessedJob(post: RawPost, aiJob: AiJobOutput, language: s
 		postId: post.postId,
 		rawContent: post.text,
 		title: aiJob.title,
-		// Só a empresa escrita no post: o modelo às vezes a tira do domínio de um link ou e-mail
-		company: keepCompanyIfInPost(aiJob.company, sourceText),
+		// Pesa a resposta da IA, o texto, o autor e o domínio do e-mail: a IA às vezes tira a empresa de um link ou e-mail,
+		// e a empresa que posta nem sempre escreve o próprio nome
+		company: chooseCompany(
+			{ aiCompany: aiJob.company, author: post.author, authorIsCompany: post.authorIsCompany },
+			sourceText,
+		),
 		location: locationWithoutWorkMode(aiJob.location),
 		// O da lista (vaga de um post com várias) tem prioridade; o da IA só vale se estiver escrito no texto; sem nenhum,
 		// o do cartão anexado (reposts de sites de vagas, com o texto cortado)

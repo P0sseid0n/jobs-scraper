@@ -9,6 +9,8 @@ export type ScrapedPost = {
 
 	text: string
 	author: string | null
+	/** O link do autor é de uma página de empresa (`/company/`), não de uma pessoa (`/in/`). */
+	authorIsCompany: boolean
 
 	/** Links do card fora do texto (o cartão anexado, entre outros); `externalLink` escolhe o que vale. */
 	cardLinks: string[]
@@ -30,6 +32,7 @@ export function collectNewPosts(page: Page): Promise<ScrapedPost[]> {
 				urnCandidates: string[]
 				text: string
 				author: string | null
+				authorIsCompany: boolean
 				cardLinks: string[]
 				images: { src: string; srcset: string }[]
 			}[] = []
@@ -62,9 +65,10 @@ export function collectNewPosts(page: Page): Promise<ScrapedPost[]> {
 					...Array.from(container.querySelectorAll(selectors.postKeySources)).map(el => el.getAttribute('componentkey') ?? ''),
 				].filter(Boolean)
 
-				const author = Array.from(container.querySelectorAll<HTMLElement>(selectors.authorLink))
-					.map(link => link.innerText.trim().split('\n')[0]?.trim())
-					.find(Boolean)
+				const authorLink = Array.from(container.querySelectorAll<HTMLAnchorElement>(selectors.authorLink))
+					.map(link => ({ name: link.innerText.trim().split('\n')[0]?.trim(), href: link.href }))
+					.find(link => link.name)
+				const author = authorLink?.name
 
 				// Os links do texto a IA já lê; os de fora dele incluem o do cartão anexado (pré-visualização de um site)
 				const cardLinks = Array.from(container.querySelectorAll<HTMLAnchorElement>('a[href]'))
@@ -77,7 +81,14 @@ export function collectNewPosts(page: Page): Promise<ScrapedPost[]> {
 					srcset: img.getAttribute('srcset') ?? '',
 				}))
 
-				results.push({ urnCandidates, text, author: author || null, cardLinks, images })
+				results.push({
+					urnCandidates,
+					text,
+					author: author || null,
+					authorIsCompany: !!authorLink?.href.includes('/company/'),
+					cardLinks,
+					images,
+				})
 			}
 
 			return results

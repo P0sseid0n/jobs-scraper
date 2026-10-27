@@ -129,6 +129,7 @@ async function requestLookups(post: RawPost, listings: JobListing[], settings: K
 			sourcePostUrl: post.url,
 			...listing,
 			author: post.author,
+			authorIsCompany: post.authorIsCompany,
 			postedAt: post.postedAt,
 			requestedAt: new Date().toISOString(),
 		}

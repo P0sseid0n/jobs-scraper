@@ -10,6 +10,7 @@ const post: RawPost = {
 	text: 'Estamos contratando Desenvolvedor Front-end Pleno na Acme, CLT. Requisitos: Vue.js e TypeScript. https://acme.com/vagas/1',
 	url: null,
 	author: 'Ana',
+	authorIsCompany: false,
 	postedAt: null,
 	scrapedAt: new Date(0).toISOString(),
 	sourcePostId: null,
@@ -45,6 +46,17 @@ describe('extractionChecks', () => {
 		})
 
 		expect(checks).toEqual(['title', 'company', 'workMode', 'contractTypes', 'necessaryKnowledge', 'applyLink'])
+	})
+
+	test('a empresa da IA que vira o nome da página que postou não conta', () => {
+		const job = buildProcessedJob(
+			{ ...post, author: 'Acme Soluções em TI', authorIsCompany: true },
+			AiJobOutputSchema.parse({ postType: 'job_opening', company: 'Acme' }),
+			'pt',
+		)
+
+		expect(job.company).toBe('Acme Soluções em TI')
+		expect(job.extractionChecks).toEqual([])
 	})
 
 	test('campo que a IA deixou vazio não conta', () => {

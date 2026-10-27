@@ -36,6 +36,7 @@ export function lookupToRawPost(lookup: JobLookup, page: ListingPage | null): Ra
 		// A vaga no LinkedIn com o endereço limpo; fora dele, o link curto do post (o destino pode ter rastreio)
 		jobLink: (page && canonicalJobUrl(page.url)) ?? lookup.link,
 		author: lookup.author,
+		authorIsCompany: lookup.authorIsCompany,
 		postedAt: lookup.postedAt,
 		scrapedAt: new Date().toISOString(),
 		sourcePostId: lookup.sourcePostId,

@@ -70,6 +70,82 @@ export function keepCompanyIfInPost(company: string | null, text: string): strin
 	return compact.length >= 4 && textWithoutLinks.replace(/[^a-z0-9#+&]+/g, '').includes(compact) ? company : null
 }
 
+/** A empresa da IA e o autor do post: os candidatos a empresa da vaga (ver `chooseCompany`). */
+export type CompanySources = { aiCompany: string | null; author: string | null; authorIsCompany: boolean }
+
+/**
+ * Escolhe a empresa somando o peso de cada sinal: escrita no post (2), autor do post que é página de empresa (3),
+ * escolhida pela IA (1) e no domínio de um e-mail do post (1; e-mail gratuito não conta). Fica a de mais pontos, se
+ * chegar a 3: o domínio com a IA não basta (ela tirava "acme" de rh@acme.com), a página da empresa basta (a empresa
+ * nem sempre escreve o próprio nome). No empate fica a da IA: a página de uma agência citando o cliente.
+ * @param text O texto do post (com a transcrição das imagens).
+ */
+export function chooseCompany({ aiCompany, author, authorIsCompany }: CompanySources, text: string): string | null {
+	const domains = emailDomains(text)
+	const score = (name: string) =>
+		(keepCompanyIfInPost(name, text) ? 2 : 0) + (domains.some(domain => companyInDomain(name, domain)) ? 1 : 0)
+
+	const candidates: { name: string; points: number }[] = []
+	const ai = aiCompany?.trim()
+	const pageAuthor = authorIsCompany ? author?.trim() : null
+
+	// A IA citando o próprio autor ("Cadmus" no post da "Cadmus Soluções em TI") é um candidato só, com o nome da página
+	if (ai && pageAuthor && sameCompany(ai, pageAuthor)) candidates.push({ name: pageAuthor, points: 1 + 3 + score(ai) })
+	else {
+		if (ai) candidates.push({ name: ai, points: 1 + score(ai) })
+		if (pageAuthor) candidates.push({ name: pageAuthor, points: 3 + score(pageAuthor) })
+	}
+
+	const best = candidates.reduce<(typeof candidates)[number] | null>(
+		(winner, candidate) => (!winner || candidate.points > winner.points ? candidate : winner),
+		null,
+	)
+	return best && best.points >= 3 ? best.name : null
+}
+
+/** Mesma empresa escrita mais curta ou mais longa: "Cadmus" e "Cadmus Soluções em TI", "Capitani Group" e "CapitaniGroup". */
+export function sameCompany(a: string, b: string) {
+	const [shorter, longer] = [compactName(a), compactName(b)].sort((x, y) => x.length - y.length)
+	return !!shorter && !!longer && shorter.length >= 3 && longer.startsWith(shorter)
+}
+
+/** Domínios dos e-mails do post, menos os de e-mail gratuito (o "Outlook" não é a empresa de quem escreve dele). */
+function emailDomains(text: string) {
+	return [...normalizeForMatch(text.normalize('NFKC')).matchAll(/[\w.+-]+@([\w-]+(?:\.[\w-]+)+)/g)]
+		.map(match => (match[1] ?? '').split('.'))
+		.filter(labels => !labels.some(label => FREE_EMAIL.has(label)))
+}
+
+const FREE_EMAIL = new Set([
+	'aol',
+	'bol',
+	'gmail',
+	'googlemail',
+	'hotmail',
+	'icloud',
+	'live',
+	'msn',
+	'outlook',
+	'proton',
+	'protonmail',
+	'terra',
+	'uol',
+	'yahoo',
+	'ymail',
+])
+
+/** O nome junto bate com uma parte do domínio, numa ponta ou na outra: "Cadmus Soluções" ↔ rh@cadmus.com.br. */
+function companyInDomain(name: string, labels: string[]) {
+	const compact = compactName(name)
+	return labels.some(
+		label => label.length >= 4 && compact.length >= 4 && (compact.startsWith(label) || label.startsWith(compact)),
+	)
+}
+
+function compactName(name: string) {
+	return normalizeForMatch(name.normalize('NFKC')).replace(/[^a-z0-9#+&]+/g, '')
+}
+
 /** Descarta o local quando ele é só a modalidade ("Remoto", "100% home office"), que já tem campo próprio. */
 export function locationWithoutWorkMode(location: string | null): string | null {
 	if (!location) return null

@@ -24,6 +24,8 @@ export const RawPostSchema = z.object({
 	/** Link do post no LinkedIn (numa vaga de lista, o do post de origem). */
 	url: z.url().nullable().default(null),
 	author: z.string().nullable().default(null),
+	/** O autor é uma página de empresa (`/company/`), não uma pessoa: o nome dele conta como a empresa da vaga. */
+	authorIsCompany: z.boolean().default(false),
 	postedAt: z.iso.datetime().nullable().default(null),
 	scrapedAt: z.iso.datetime(),
 	/** Post que listava várias vagas, de onde esta saiu (ver `JobLookupSchema`); `null` num post comum. */

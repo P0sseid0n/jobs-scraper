@@ -14,6 +14,8 @@ export const JobLookupSchema = z.object({
 	/** As linhas do post sobre esta vaga, usadas se a página não abrir. */
 	text: z.string().min(1),
 	author: z.string().nullable(),
+	/** Ver `RawPostSchema`; o padrão aceita mensagens de antes do campo. */
+	authorIsCompany: z.boolean().default(false),
 	postedAt: z.iso.datetime().nullable(),
 	requestedAt: z.iso.datetime(),
 })
