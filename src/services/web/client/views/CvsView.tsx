@@ -227,7 +227,7 @@ function CvItem({ request, outdated, latest }: CvItemProps) {
 				<div id={detailsId} className="flex flex-col gap-3 animate-panel-in motion-reduce:animate-none">
 					{changes && <Changes changes={changes} fresh={false} />}
 					{ready && request.message && <ApplicationMessageBox message={request.message} />}
-					<div className="flex flex-wrap gap-2 border-t border-line pt-3">
+					<div className="flex flex-wrap gap-2">
 						<ButtonLink variant="ghost" size="sm" to="/vagas/$id" params={jobParams(request.postId)}>
 							<Icon name="briefcase" size={14} />
 							ver a vaga
