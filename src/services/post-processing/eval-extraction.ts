@@ -28,8 +28,8 @@ import {
 	type CaseRun,
 	type ExtractionCase,
 } from './extraction-eval'
-import { EXTRACTION_PROMPT_VERSION } from './extraction-prompt'
-import { DEFAULT_FIXTURES_PATH, readFixtures } from './feedback-fixtures'
+import { EXTRACTION_PROMPT_VERSION, EXTRACTION_PROMPT_VERSION_WITH_IMAGES } from './extraction-prompt'
+import { DEFAULT_FIXTURES_PATH, readCaseImages, readFixtures } from './feedback-fixtures'
 import { extractJobFromPost } from './job-extraction'
 import { checkLanguage } from './post-language'
 
@@ -72,8 +72,9 @@ for (const [index, item] of selected.entries()) {
 		// Como no post-processing, o post fora dos idiomas aceitos nem chega à extração
 		const { rejection } = await checkLanguage(ollama, model, item.post.text, settings.allowedLanguages)
 		if (!rejection) {
-			const aiJob = await extractJobFromPost(ollama, model, caseToRawPost(item), item.targetRole ?? targetRole)
-			run = runFromModel(item, aiJob)
+			const images = await readCaseImages(item)
+			const aiJob = await extractJobFromPost(ollama, model, caseToRawPost(item, images), item.targetRole ?? targetRole)
+			run = runFromModel(item, aiJob, images)
 		}
 	} catch (error) {
 		// Conta como erro em todos os campos, mas segue com os outros casos
@@ -86,7 +87,7 @@ for (const [index, item] of selected.entries()) {
 }
 
 console.log(
-	`\nmodelo ${model} · prompt ${EXTRACTION_PROMPT_VERSION} · ${selected.length} casos · idiomas ${settings.allowedLanguages.join(', ') || 'todos'} · cargo-alvo ${targetRole ?? 'nenhum'} (fora os casos com o seu)\n`,
+	`\nmodelo ${model} · prompt ${EXTRACTION_PROMPT_VERSION} (com imagens: ${EXTRACTION_PROMPT_VERSION_WITH_IMAGES}) · ${selected.length} casos · idiomas ${settings.allowedLanguages.join(', ') || 'todos'} · cargo-alvo ${targetRole ?? 'nenhum'} (fora os casos com o seu)\n`,
 )
 console.log(formatReport(scoreCases(results)))
 

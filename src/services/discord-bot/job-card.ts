@@ -1,5 +1,6 @@
 import {
 	ActionRowBuilder,
+	AttachmentBuilder,
 	ButtonBuilder,
 	ButtonStyle,
 	EmbedBuilder,
@@ -9,7 +10,13 @@ import {
 	type MessageActionRowComponentBuilder,
 } from 'discord.js'
 
-import { EXTRACTION_CHECK_LABELS, EXTRACTION_CHECKS, type JobPublished, type ProcessedJob } from '@shared/contracts'
+import {
+	EXTRACTION_CHECK_LABELS,
+	EXTRACTION_CHECKS,
+	type JobPublished,
+	type PostImageType,
+	type ProcessedJob,
+} from '@shared/contracts'
 
 import { CONTACT_BUTTON_PREFIX } from './contact-reply'
 
@@ -30,9 +37,31 @@ const THREAD_NAME_MAX = 100
 const CUSTOM_ID_MAX = 100
 const FORUM_TAGS_MAX = 5
 
-/** Monta a mensagem da vaga: embed com os dados e botões de link e contato/currículo. */
-export function buildJobCard(job: JobPublished) {
-	return { embeds: [buildJobEmbed(job)], components: buildJobComponents(job) }
+/** A primeira imagem do post, guardada pelo post-processing. */
+export type JobCardImage = { mimeType: PostImageType; data: Buffer }
+
+const IMAGE_EXTENSIONS: Record<PostImageType, string> = {
+	'image/jpeg': 'jpg',
+	'image/png': 'png',
+	'image/webp': 'webp',
+	'image/gif': 'gif',
+}
+
+/**
+ * Monta a mensagem da vaga: embed com os dados e botões de link e contato/currículo. A imagem do post vai como anexo
+ * (a URL do LinkedIn expira) e aparece no embed.
+ */
+export function buildJobCard(job: JobPublished, image: JobCardImage | null = null) {
+	const embed = buildJobEmbed(job)
+	const files: AttachmentBuilder[] = []
+
+	if (image) {
+		const name = `vaga.${IMAGE_EXTENSIONS[image.mimeType]}`
+		embed.setImage(`attachment://${name}`)
+		files.push(new AttachmentBuilder(image.data, { name }))
+	}
+
+	return { embeds: [embed], components: buildJobComponents(job), files }
 }
 
 /** Monta o nome do post no fórum: "Cargo · Empresa". */

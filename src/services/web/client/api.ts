@@ -143,6 +143,11 @@ export const api = {
 	searchSuggestions: () => request<SearchSuggestions>('/api/setup/suggestions', { method: 'POST' }),
 }
 
+/** Uma imagem do post da vaga (guardada na coleta), pela posição no post. */
+export function jobImageUrl(postId: string, index: number) {
+	return `/api/jobs/${encodeURIComponent(postId)}/images/${index}`
+}
+
 export function cvPdfUrl(requestId: string, download = false) {
 	return `/api/cv/${requestId}/pdf${download ? '?download=1' : ''}`
 }

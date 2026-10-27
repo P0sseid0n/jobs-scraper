@@ -3,7 +3,7 @@ import { ChannelType, type Client, type ForumChannel, type SendableChannels } fr
 import type { JobPublished } from '@shared/contracts'
 import type { Logger } from '@shared/logging'
 
-import { buildJobCard, buildThreadName, pickForumTags } from './job-card'
+import { buildJobCard, buildThreadName, pickForumTags, type JobCardImage } from './job-card'
 
 export type JobChannel = SendableChannels | ForumChannel
 
@@ -25,8 +25,8 @@ export async function resolveJobChannel(client: Client<true>, channelId: string,
 }
 
 /** Publica a vaga: num fórum, como post próprio com tags; num canal de texto, como mensagem. */
-export async function publishJob(channel: JobChannel, job: JobPublished) {
-	const card = buildJobCard(job)
+export async function publishJob(channel: JobChannel, job: JobPublished, image: JobCardImage | null = null) {
+	const card = buildJobCard(job, image)
 
 	if (channel.type === ChannelType.GuildForum) {
 		await channel.threads.create({

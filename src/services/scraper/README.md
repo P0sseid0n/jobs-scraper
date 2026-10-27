@@ -2,6 +2,8 @@
 
 Busca posts de vagas no LinkedIn com o Puppeteer e envia cada um para a fila `post-processing`. O `postId` de cada post é o URN dele no LinkedIn; posts sem URN são pulados, porque sem ele não há link. Na mesma coleta, um hash do texto evita mandar duas vezes o mesmo post. Junto com o texto vai o link do cartão anexado ao post (pré-visualização de um site), sem o aviso de link externo do LinkedIn (`/safety/go`): em reposts de sites de vagas o texto vem cortado e é esse link que leva à vaga.
 
+**Imagens do post:** muitos posts põem a vaga numa arte ("detalhes na imagem 👇"). As imagens do conteúdo (`media.licdn.com/dms/image/.../feedshare-shrink_<tamanho>/...`; avatares e logos ficam de fora) vão junto no `RawPost`, em base64: as URLs do LinkedIn são assinadas e expiram, então são baixadas na coleta. São no máximo 2 por post, de até 1,5 MB cada (`POST_IMAGE_LIMITS`), no tamanho mais legível disponível (`feedshare-shrink_800`/`_1280` em vez da prévia `_160`, `linkedin/post-images.ts`). O download vem do CDN de imagens, não das páginas do LinkedIn, e só acontece para os posts enviados à fila (os já vistos e os de outro idioma não baixam nada). Uma imagem que não baixar fica de fora sem impedir o post.
+
 [← voltar ao README principal](../../../README.md)
 
 ## Coletas
@@ -47,5 +49,6 @@ A sessão fica salva em `data/scraper/linkedin-cookies.json` (no Docker, no volu
 | `browser-session.ts` | navegador (stealth) e cookies da sessão |
 | `login.ts`, `verification.ts` | login e identificação da verificação pedida |
 | `feed-reader.ts` | leitura dos posts e paginação |
+| `linkedin/post-images.ts`, `post-images.ts` | quais imagens do card são do post, em que tamanho, e o download delas |
 | `job-lookup.ts` | abre os links da fila `scraper-lookup` |
 | `linkedin/` | URLs, seletores, URN do post, cookies e limpeza de texto |

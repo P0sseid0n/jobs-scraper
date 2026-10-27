@@ -10,12 +10,14 @@ import { loadCredentials, readSettings } from '@shared/settings'
 import { browserOptionsFrom, BrowserSession } from './browser-session'
 import type { ScraperConfig } from './config'
 import { collectNewPosts, loadMorePosts, type ScrapedPost } from './feed-reader'
+import { postImageUrls } from './linkedin/post-images'
 import { cleanPostText } from './linkedin/post-text'
 import { postedAtFromUrn, postUrlFromUrn, resolvePostUrn } from './linkedin/post-urn'
 import { SELECTORS } from './linkedin/selectors'
 import { buildSearchUrl, externalLink, LOGIN_URL } from './linkedin/urls'
 import { ensureLoggedIn, LoginError, loginOptionsFrom, NO_LINKEDIN_ACCOUNT } from './login'
 import { hashPost } from './post-id'
+import { downloadPostImages } from './post-images'
 import type { TermProgress } from './run-history'
 import { jobsPerTerm } from './schedule'
 
@@ -249,6 +251,8 @@ async function publishNewPosts(page: Page, { target, seen, allowedLanguages }: T
 	const pending = new Set<string>()
 	/** Posts lidos ainda não enviados, à espera de a IA mostrar que os da fila não completam o mínimo. */
 	const backlog: RawPost[] = []
+	/** URLs das imagens de cada post do backlog, baixadas só no envio: os pulados não gastam download. */
+	const imageUrls = new Map<string, string[][]>()
 	let hasMore = true
 	let fruitlessScrolls = 0
 	let readOnce = false
@@ -264,7 +268,7 @@ async function publishNewPosts(page: Page, { target, seen, allowedLanguages }: T
 			readOnce = true
 
 			// Quando nada novo carregou, esta leitura é a última (pega posts que renderizaram depois)
-			const read = await readNewPosts(page, { seen, allowedLanguages, logger })
+			const read = await readNewPosts(page, { seen, allowedLanguages, imageUrls, logger })
 			skipped += read.skipped
 			otherLanguage += read.otherLanguage
 			backlog.push(...read.usable)
@@ -277,12 +281,14 @@ async function publishNewPosts(page: Page, { target, seen, allowedLanguages }: T
 
 		while (backlog.length > 0 && jobs + pending.size < target) {
 			const post = backlog.shift()!
-			await queue.publish(QUEUES.postProcessing, post)
+			const images = await downloadPostImages(imageUrls.get(post.postId) ?? [], logger)
+			imageUrls.delete(post.postId)
+			await queue.publish(QUEUES.postProcessing, { ...post, images })
 			postIds.push(post.postId)
 			pending.add(post.postId)
 			sent++
 
-			logger.debug({ postId: post.postId, url: post.url }, '📨 Post enviado para a fila')
+			logger.debug({ postId: post.postId, url: post.url, images: images.length }, '📨 Post enviado para a fila')
 		}
 
 		jobs += await settleOutcomes(pending)
@@ -307,13 +313,19 @@ async function publishNewPosts(page: Page, { target, seen, allowedLanguages }: T
 
 /**
  * Lê os posts novos da busca: os que podem ir para a IA e quantos foram pulados (já processados em coletas
- * anteriores) ou estão em outro idioma.
+ * anteriores) ou estão em outro idioma. As URLs das imagens dos que podem ir ficam em `imageUrls`.
  */
 async function readNewPosts(
 	page: Page,
-	{ seen, allowedLanguages, logger }: Pick<TermSearch, 'seen' | 'allowedLanguages'> & { logger: Logger },
+	{
+		seen,
+		allowedLanguages,
+		imageUrls,
+		logger,
+	}: Pick<TermSearch, 'seen' | 'allowedLanguages'> & { imageUrls: Map<string, string[][]>; logger: Logger },
 ) {
 	const candidates: RawPost[] = []
+	const candidateImages = new Map<string, string[][]>()
 
 	for (const scraped of await collectNewPosts(page)) {
 		const post = toRawPost(scraped)
@@ -336,6 +348,7 @@ async function readNewPosts(
 
 		seen.add(post.postId).add(textHash)
 		candidates.push(post)
+		candidateImages.set(post.postId, postImageUrls(scraped.images))
 	}
 
 	const processed = await alreadyProcessed(candidates.map(post => post.postId))
@@ -354,6 +367,7 @@ async function readNewPosts(
 		}
 
 		usable.push(post)
+		imageUrls.set(post.postId, candidateImages.get(post.postId) ?? [])
 	}
 
 	const skipped = processed.size
@@ -458,6 +472,7 @@ function toRawPost(post: ScrapedPost): RawPost | null {
 		sourcePostId: null,
 		jobLink: null,
 		attachedLink: externalLink(post.cardLinks),
+		images: [],
 	}
 }
 

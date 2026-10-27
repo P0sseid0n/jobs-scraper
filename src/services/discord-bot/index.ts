@@ -1,4 +1,5 @@
 import { CvResultSchema, JobPublishedSchema } from '@shared/contracts'
+import { findJobImage } from '@shared/database'
 import { onShutdown } from '@shared/lifecycle'
 import { EXCHANGES, QUEUES } from '@shared/messaging'
 import { startService } from '@shared/service'
@@ -53,8 +54,11 @@ await queue.consume(
 			return
 		}
 
+		// Só a primeira imagem do post: o embed mostra uma
+		const image = job.imageCount > 0 ? await findJobImage(job.postId, 0) : null
+
 		try {
-			await publishJob(link.channel, job)
+			await publishJob(link.channel, job, image && { mimeType: image.mimeType, data: image.data })
 		} catch (error) {
 			throw toQueueError(error)
 		}

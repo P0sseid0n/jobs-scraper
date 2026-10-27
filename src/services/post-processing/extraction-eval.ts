@@ -7,6 +7,7 @@ import {
 	WORK_MODES,
 	type CorrectableField,
 	type JobFields,
+	type PostImage,
 	type RawPost,
 } from '@shared/contracts'
 import { FEEDBACK_KINDS } from '@shared/database'
@@ -48,6 +49,8 @@ export const ExtractionCaseSchema = z.object({
 		url: z.string().nullable(),
 		postedAt: z.string().nullable(),
 		sourcePostId: z.string().nullable(),
+		// Imagens do post, arquivos em `fixtures/images` (só nas fixtures: as correções do site não guardam imagens)
+		images: z.array(z.string().min(1)).optional(),
 	}),
 	aiOutput: FieldsSchema,
 	expected: FieldsSchema.nullable(),
@@ -66,7 +69,7 @@ export function latestPerPost<T extends { postId: string }>(cases: T[]) {
  * O post como o scraper o mandou, para rodar a extração de novo. O link de candidatura que não está no texto veio
  * de fora dele: da lista de vagas (`jobLink`, vaga com `sourcePostId`) ou do cartão anexado (`attachedLink`).
  */
-export function caseToRawPost(item: ExtractionCase): RawPost {
+export function caseToRawPost(item: ExtractionCase, images: PostImage[] = []): RawPost {
 	const link = item.aiOutput.applyLink
 	const outsideText = link && !item.post.text.normalize('NFKC').includes(link) ? link : null
 
@@ -80,17 +83,18 @@ export function caseToRawPost(item: ExtractionCase): RawPost {
 		sourcePostId: item.post.sourcePostId,
 		jobLink: item.post.sourcePostId ? outsideText : null,
 		attachedLink: item.post.sourcePostId ? null : outsideText,
+		images,
 	}
 }
 
 /** Resultado da extração de um caso: se o post passaria como vaga e os campos que sairiam. */
 export type CaseRun = { isJob: boolean; fields: JobFields | null }
 
-/** Aplica à resposta do modelo as mesmas regras do post-processing (classificação e regras do texto). */
-export function runFromModel(item: ExtractionCase, aiJob: AiJobOutput | null): CaseRun {
+/** Aplica à resposta do modelo as mesmas regras do post-processing (classificação e regras do texto e das imagens). */
+export function runFromModel(item: ExtractionCase, aiJob: AiJobOutput | null, images: PostImage[] = []): CaseRun {
 	return {
 		isJob: rejectionReason(aiJob) === null,
-		fields: aiJob ? jobFields(buildProcessedJob(caseToRawPost(item), aiJob, null)) : null,
+		fields: aiJob ? jobFields(buildProcessedJob(caseToRawPost(item, images), aiJob, null)) : null,
 	}
 }
 

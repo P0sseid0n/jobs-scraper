@@ -37,6 +37,8 @@ export function lookupToRawPost(lookup: JobLookup, page: ListingPage | null): Ra
 		scrapedAt: new Date().toISOString(),
 		sourcePostId: lookup.sourcePostId,
 		attachedLink: null,
+		// A página da vaga já traz a descrição em texto
+		images: [],
 	}
 }
 

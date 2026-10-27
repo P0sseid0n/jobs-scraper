@@ -1,5 +1,22 @@
 import { z } from 'zod'
 
+/**
+ * Limites das imagens de um post: a extração fica mais lenta a cada imagem, e elas vão em base64 dentro da mensagem
+ * da fila e ficam guardadas no MongoDB (as URLs do LinkedIn expiram).
+ */
+export const POST_IMAGE_LIMITS = { maxImages: 2, maxBytes: 1_500_000 } as const
+
+export const POST_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'] as const
+export type PostImageType = (typeof POST_IMAGE_TYPES)[number]
+
+/** Imagem do conteúdo de um post, baixada na coleta. */
+export const PostImageSchema = z.object({
+	mimeType: z.enum(POST_IMAGE_TYPES),
+	/** O arquivo em base64 (sem o prefixo `data:`). */
+	data: z.base64().max(Math.ceil(POST_IMAGE_LIMITS.maxBytes / 3) * 4, 'Imagem maior que o limite'),
+})
+export type PostImage = z.infer<typeof PostImageSchema>
+
 /** Mensagem da fila `post-processing`: post bruto vindo do scraper. */
 export const RawPostSchema = z.object({
 	postId: z.string().min(1),
@@ -18,5 +35,7 @@ export const RawPostSchema = z.object({
 	 * vem cortado e é ele que leva à vaga; vale como candidatura quando o texto não tem link.
 	 */
 	attachedLink: z.url().nullable().default(null),
+	/** Imagens do conteúdo do post (artes com requisitos, contato...); o padrão aceita mensagens de antes do campo. */
+	images: z.array(PostImageSchema).max(POST_IMAGE_LIMITS.maxImages).default([]),
 })
 export type RawPost = z.infer<typeof RawPostSchema>

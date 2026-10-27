@@ -12,6 +12,7 @@ import { CorrectedBadge } from './CorrectedBadge'
 import { ExtractionChecksBadge } from './ExtractionChecksBadge'
 import { Icon } from './Icon'
 import { ListingBadge } from './ListingBadge'
+import { PostImagesBadge } from './PostImages'
 import { badge, BadgeList } from './ui/Badge'
 import { card } from './ui/Card'
 import { Skeleton } from './ui/Skeleton'
@@ -117,18 +118,21 @@ export function JobCard({
 			)}
 
 			{/* Só o canal da candidatura: os botões ficam no detalhe, para a pessoa ler a vaga antes de se candidatar */}
-			<span className="font-mono text-muted inline-flex items-center gap-1.5 text-xs">
-				{job.recruiterEmail ? (
-					<>
-						<Icon name="mail" size={14} />
-						com e-mail de contato
-					</>
-				) : safeLink(job.applyLink) ? (
-					'candidatura pelo site da vaga'
-				) : (
-					'candidatura pelo post'
-				)}
-			</span>
+			<div className="flex items-center justify-between gap-3">
+				<span className="font-mono text-muted inline-flex items-center gap-1.5 text-xs">
+					{job.recruiterEmail ? (
+						<>
+							<Icon name="mail" size={14} />
+							com e-mail de contato
+						</>
+					) : safeLink(job.applyLink) ? (
+						'candidatura pelo site da vaga'
+					) : (
+						'candidatura pelo post'
+					)}
+				</span>
+				<PostImagesBadge job={job} />
+			</div>
 		</article>
 	)
 }

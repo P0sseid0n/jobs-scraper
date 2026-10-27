@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { nextRunAt, jobsPerTerm, waitingReason } from './schedule'
+import { jobsPerTerm, nextRunAt, waitingReason } from './schedule'
 
 describe('jobsPerTerm', () => {
 	test('divide o limite exato entre os termos, com o resto nos primeiros', () => {

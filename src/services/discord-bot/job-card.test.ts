@@ -23,9 +23,26 @@ const job: JobPublished = {
 	language: 'pt',
 	sourcePostId: null,
 	postLink: 'https://www.linkedin.com/feed/update/urn:li:share:7513649051440021505/',
+	imageCount: 0,
+	imageText: null,
 }
 
 describe('buildJobCard', () => {
+	test('a imagem do post vai como anexo e aparece no embed', async () => {
+		const data = await Bun.file(new URL('../post-processing/fixtures/images/vaga-detalhes-na-imagem.jpg', import.meta.url)).bytes()
+		const card = buildJobCard({ ...job, imageCount: 1 }, { mimeType: 'image/jpeg', data: Buffer.from(data) })
+
+		expect(card.embeds[0]!.toJSON().image?.url).toBe('attachment://vaga.jpg')
+		expect(card.files.map(file => file.name)).toEqual(['vaga.jpg'])
+	})
+
+	test('sem imagem, não há anexo', () => {
+		const card = buildJobCard(job)
+
+		expect(card.embeds[0]!.toJSON().image).toBeUndefined()
+		expect(card.files).toEqual([])
+	})
+
 	test('monta o embed com título clicável e campos', () => {
 		const embed = buildJobCard(job).embeds[0]!.toJSON()
 

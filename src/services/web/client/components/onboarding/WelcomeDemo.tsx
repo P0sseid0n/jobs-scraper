@@ -19,17 +19,10 @@ const FADE_MS = 500
 function Swap({ working, done, outDelay, inDelay }: { working: ReactNode; done: ReactNode; outDelay: string; inDelay: string }) {
 	return (
 		<span className="grid">
-			<span
-				className={cx(
-					'col-start-1 row-start-1 flex items-center gap-1.5 animate-text-out motion-reduce:hidden',
-					outDelay,
-				)}
-			>
+			<span className={cx('col-start-1 row-start-1 flex items-center gap-1.5 animate-text-out motion-reduce:hidden', outDelay)}>
 				{working}
 			</span>
-			<span
-				className={cx('col-start-1 row-start-1 flex items-center gap-1.5 animate-text-in motion-reduce:animate-none', inDelay)}
-			>
+			<span className={cx('col-start-1 row-start-1 flex items-center gap-1.5 animate-text-in motion-reduce:animate-none', inDelay)}>
 				{done}
 			</span>
 		</span>
@@ -44,12 +37,7 @@ function Cursor() {
 			viewBox="0 0 24 24"
 			className="pointer-events-none absolute top-1/2 left-3/4 size-5 origin-top-left animate-cursor-click motion-reduce:hidden stagger-60"
 		>
-			<path
-				d="M5 3l14 8-6 1.5L10 19z"
-				className="fill-ink stroke-surface"
-				strokeWidth="1.5"
-				strokeLinejoin="round"
-			/>
+			<path d="M5 3l14 8-6 1.5L10 19z" className="fill-ink stroke-surface" strokeWidth="1.5" strokeLinejoin="round" />
 		</svg>
 	)
 }

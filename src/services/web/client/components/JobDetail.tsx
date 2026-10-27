@@ -18,6 +18,7 @@ import { CvReady } from './CvReady'
 import { ExtractionChecksBadge, MissedChecks } from './ExtractionChecksBadge'
 import { Icon } from './Icon'
 import { ListingBadge } from './ListingBadge'
+import { PostImages } from './PostImages'
 import { ReportJobDialog } from './ReportJobDialog'
 import { badge, BadgeList } from './ui/Badge'
 import { Button } from './ui/Button'
@@ -228,6 +229,8 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 						</TextLink>
 					)}
 				</div>
+				{/* Muitos posts põem a vaga numa arte e deixam o texto curto: as imagens vêm antes dele */}
+				<PostImages job={job} />
 				<div
 					className={cx(
 						'text-sm leading-relaxed whitespace-pre-line wrap-anywhere',

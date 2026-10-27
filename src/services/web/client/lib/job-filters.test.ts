@@ -22,6 +22,8 @@ const job: WebJob = {
 	sourcePostId: null,
 	postLink: 'https://www.linkedin.com/x',
 	rawContent: 'Vaga com Nuxt',
+	imageCount: 0,
+	imageText: null,
 	correctedAt: null,
 	viewedAt: null,
 }

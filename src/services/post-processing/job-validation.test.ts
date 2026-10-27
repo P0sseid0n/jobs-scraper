@@ -21,6 +21,8 @@ const job: ProcessedJob = {
 	language: null,
 	sourcePostId: null,
 	postLink: 'https://www.linkedin.com/feed/update/urn:li:share:1/',
+	imageCount: 0,
+	imageText: null,
 }
 
 describe('missingRequiredFields', () => {

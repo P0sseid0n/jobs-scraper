@@ -10,8 +10,8 @@ import { CvStep } from '../components/onboarding/CvStep'
 import { Rise, StepBar, useCurrentSubSteps, useStepBar, type SubStepsState } from '../components/onboarding/parts'
 import { defaultProfilePart, ProfileStep, type ProfilePart, type ProfileStepData } from '../components/onboarding/ProfileStep'
 import { ReviewStep } from '../components/onboarding/ReviewStep'
-import { WelcomeDemo } from '../components/onboarding/WelcomeDemo'
 import { NUMBERED_STEPS, ONBOARDING_STEPS, stepDone, type OnboardingStep } from '../components/onboarding/steps'
+import { WelcomeDemo } from '../components/onboarding/WelcomeDemo'
 import { IconButton } from '../components/ui/IconButton'
 import { cx } from '../lib/cx'
 import { loadSetup } from '../stores/setup'
@@ -350,53 +350,56 @@ const WELCOME_ITEMS = [
  * a demonstração do que a pessoa ganha: um post que vira vaga.
  */
 function Welcome({ onStart }: { onStart: () => void }) {
-	useStepBar({ hint: 'leva uns 5 minutos, e dá para parar e continuar depois', primary: { label: 'começar', trailingIcon: 'back', onClick: onStart } })
+	useStepBar({
+		hint: 'leva uns 5 minutos, e dá para parar e continuar depois',
+		primary: { label: 'começar', trailingIcon: 'back', onClick: onStart },
+	})
 
 	return (
 		<div className="flex items-center gap-30 md:pt-8">
-		<div className="flex min-w-0 flex-1 flex-col gap-10">
-			<div className="flex flex-col gap-4">
-				<Rise>
-					<p className="font-mono text-sm text-lime-text">oi! que bom ter você aqui</p>
-				</Rise>
-				<Rise order={1}>
-					<h1 className="text-4xl font-bold tracking-tight text-balance md:text-6xl">
-						Vamos achar vagas <span className="font-mono font-normal">para você.</span>
-					</h1>
-				</Rise>
-				<Rise order={2}>
-					<p className="max-w-130 text-lg text-pretty text-muted">
-						Em poucos passos você conta o que procura e a gente passa a buscar vagas no LinkedIn sozinho, todos os dias.
-					</p>
-				</Rise>
-			</div>
+			<div className="flex min-w-0 flex-1 flex-col gap-10">
+				<div className="flex flex-col gap-4">
+					<Rise>
+						<p className="font-mono text-sm text-lime-text">oi! que bom ter você aqui</p>
+					</Rise>
+					<Rise order={1}>
+						<h1 className="text-4xl font-bold tracking-tight text-balance md:text-6xl">
+							Vamos achar vagas <span className="font-mono font-normal">para você.</span>
+						</h1>
+					</Rise>
+					<Rise order={2}>
+						<p className="max-w-130 text-lg text-pretty text-muted">
+							Em poucos passos você conta o que procura e a gente passa a buscar vagas no LinkedIn sozinho, todos os dias.
+						</p>
+					</Rise>
+				</div>
 
-			<ol className="m-0 flex list-none flex-col gap-3 p-0">
-				{WELCOME_ITEMS.map((item, index) => (
-					<li
-						key={item.title}
-						className={cx(
-							'flex items-center gap-4 rounded-lg border border-line bg-surface px-5 py-4 animate-step-back motion-reduce:animate-none',
-							WELCOME_STAGGER[index],
-						)}
-					>
-						<span className="grid size-9 shrink-0 place-items-center rounded-full bg-lime font-mono text-sm font-semibold text-lime-ink">
-							{index + 1}
-						</span>
-						<span>
-							<span className="block font-semibold">{item.title}</span>
-							<span className="block text-sm text-muted">{item.text}</span>
-						</span>
-					</li>
-				))}
-			</ol>
-			<p className="-mt-4 animate-rise-in text-sm text-muted motion-reduce:animate-none stagger-6">
-				Dá para mudar tudo depois, nas configurações.
-			</p>
-		</div>
-		<div className="w-80 shrink-0 max-lg:hidden">
-			<WelcomeDemo />
-		</div>
+				<ol className="m-0 flex list-none flex-col gap-3 p-0">
+					{WELCOME_ITEMS.map((item, index) => (
+						<li
+							key={item.title}
+							className={cx(
+								'flex items-center gap-4 rounded-lg border border-line bg-surface px-5 py-4 animate-step-back motion-reduce:animate-none',
+								WELCOME_STAGGER[index],
+							)}
+						>
+							<span className="grid size-9 shrink-0 place-items-center rounded-full bg-lime font-mono text-sm font-semibold text-lime-ink">
+								{index + 1}
+							</span>
+							<span>
+								<span className="block font-semibold">{item.title}</span>
+								<span className="block text-sm text-muted">{item.text}</span>
+							</span>
+						</li>
+					))}
+				</ol>
+				<p className="-mt-4 animate-rise-in text-sm text-muted motion-reduce:animate-none stagger-6">
+					Dá para mudar tudo depois, nas configurações.
+				</p>
+			</div>
+			<div className="w-80 shrink-0 max-lg:hidden">
+				<WelcomeDemo />
+			</div>
 		</div>
 	)
 }

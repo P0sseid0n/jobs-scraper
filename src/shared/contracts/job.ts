@@ -62,6 +62,10 @@ export const ProcessedJobSchema = z.object({
 	sourcePostId: z.string().nullable().default(null),
 	/** Link do post no LinkedIn (numa vaga de lista, o do post de origem); `null` se o scraper não achou o id do post. */
 	postLink: z.string().nullable().default(null),
+	/** Quantas imagens do post estão guardadas (coleção `job_images`); o padrão aceita mensagens de antes do campo. */
+	imageCount: z.number().int().min(0).default(0),
+	/** O texto lido pela IA nas imagens do post; `null` num post sem imagem. */
+	imageText: z.string().nullable().default(null),
 })
 export type ProcessedJob = z.infer<typeof ProcessedJobSchema>
 

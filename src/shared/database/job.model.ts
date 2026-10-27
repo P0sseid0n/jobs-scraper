@@ -43,6 +43,9 @@ const jobSchema = new Schema<JobDocument>(
 		language: { type: String, default: null },
 		sourcePostId: { type: String, default: null },
 		postLink: { type: String, default: null },
+		// Vagas salvas antes destes campos não os têm: ausente é o mesmo que nenhuma imagem
+		imageCount: { type: Number, default: 0 },
+		imageText: { type: String, default: null },
 		// Vagas salvas antes destes campos não os têm: ausente é o mesmo que `null` / `false`
 		extractionModel: { type: String, default: null },
 		promptVersion: { type: String, default: null },

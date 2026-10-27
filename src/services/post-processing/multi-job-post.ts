@@ -40,7 +40,15 @@ const HIRING_SIGNAL =
  * @returns As vagas (sem repetir link nem cargo), ou `null` se o post não seguir esse formato ou não falar de vagas.
  */
 export function splitMultiJobPost(text: string): JobListing[] | null {
-	if (!HIRING_SIGNAL.test(text.replace(URL_PATTERN, ' ').normalize('NFKD').replace(/\p{Diacritic}/gu, ''))) return null
+	if (
+		!HIRING_SIGNAL.test(
+			text
+				.replace(URL_PATTERN, ' ')
+				.normalize('NFKD')
+				.replace(/\p{Diacritic}/gu, ''),
+		)
+	)
+		return null
 
 	const lines = text.split('\n').map(line => (line.replace(INVISIBLE, '').trim() ? line.trim() : ''))
 	const listings: JobListing[] = []

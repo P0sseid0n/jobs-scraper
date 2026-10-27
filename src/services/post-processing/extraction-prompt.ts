@@ -24,6 +24,13 @@ const ModelOutputSchema = z.object({
 
 export const EXTRACTION_OUTPUT_FORMAT = z.toJSONSchema(ModelOutputSchema)
 
+/**
+ * O formato para um post com imagens: o modelo primeiro transcreve o texto delas (`imageText`) e só depois classifica
+ * e extrai, apoiado no que acabou de escrever. A transcrição também entra nas regras que descartam o que não está no
+ * post (ver `buildProcessedJob`).
+ */
+export const EXTRACTION_OUTPUT_FORMAT_WITH_IMAGES = z.toJSONSchema(z.object({ imageText: z.string(), ...ModelOutputSchema.shape }))
+
 // Prompt em inglês: modelos pequenos (ex.: gemma3:4b) seguem instruções em inglês com mais precisão,
 // mesmo quando o post está em português. Os valores extraídos continuam no idioma do post.
 // Sem exemplos few-shot em JSON: nos testes o modelo de 4B copiava empresa/cargo dos exemplos.
@@ -54,6 +61,15 @@ Every field must come from that same opening; never mix the title of one opening
 
 Never guess or invent values; use null when the information is not in the post, never placeholders like "unknown" or "não especificado". Copy emails and URLs exactly.`
 
+// Só em posts com imagens: o prompt dos posts sem imagem (e a versão dele) continua o mesmo
+const IMAGES_PROMPT = `
+
+## Images attached to the post
+The post comes with images. Job posts often put the details in an image (requirements, contract type, salary, contact email) and keep the text short ("details in the image").
+- imageText: first, transcribe all the text written in the images, line by line, exactly as written (copy emails and URLs character by character). "" if the images have no text (a photo, a logo).
+- Then classify and extract using both the post text and imageText. Every rule above that says "the post" or "the post text" also covers imageText: the values must be written in one of them.
+- Use the images only for the same opening as the text. If the images describe other openings, follow the rule for several openings, and never mix fields from different openings.`
+
 /** Qual vaga extrair de um post com várias: a mais próxima do cargo-alvo do perfil ou, sem perfil, a primeira. */
 const SEVERAL_OPENINGS = {
 	withTargetRole:
@@ -64,7 +80,7 @@ const SEVERAL_OPENINGS = {
 /**
  * Versão do prompt: hash do texto e do formato pedidos ao modelo. Muda sozinha a cada edição do prompt, e é salva
  * em cada vaga para comparar os erros corrigidos pelo site entre versões. O cargo-alvo fica fora: é um dado, como o
- * post, e trocá-lo no perfil não cria uma versão nova.
+ * post, e trocá-lo no perfil não cria uma versão nova. Posts com imagens usam `EXTRACTION_PROMPT_VERSION_WITH_IMAGES`.
  */
 export const EXTRACTION_PROMPT_VERSION = new Bun.CryptoHasher('sha256')
 	.update(SYSTEM_PROMPT_TEMPLATE)
@@ -73,15 +89,48 @@ export const EXTRACTION_PROMPT_VERSION = new Bun.CryptoHasher('sha256')
 	.digest('hex')
 	.slice(0, 12)
 
-/** Mensagens da extração; `targetRole` é o cargo-alvo do perfil (`null` sem perfil). */
-export function buildExtractionMessages(post: { text: string; author: string | null }, targetRole: string | null): Message[] {
+/** A versão do prompt usado nos posts com imagens (o de texto mais as instruções das imagens). */
+export const EXTRACTION_PROMPT_VERSION_WITH_IMAGES = new Bun.CryptoHasher('sha256')
+	.update(EXTRACTION_PROMPT_VERSION)
+	.update(IMAGES_PROMPT)
+	.update(JSON.stringify(EXTRACTION_OUTPUT_FORMAT_WITH_IMAGES))
+	.digest('hex')
+	.slice(0, 12)
+
+/** A versão do prompt usado na extração do post, com ou sem imagens. */
+export function extractionPromptVersion(post: { images: readonly unknown[] }) {
+	return post.images.length > 0 ? EXTRACTION_PROMPT_VERSION_WITH_IMAGES : EXTRACTION_PROMPT_VERSION
+}
+
+/** O formato pedido ao modelo na extração do post, com ou sem imagens. */
+export function extractionOutputFormat(post: { images: readonly unknown[] }) {
+	return post.images.length > 0 ? EXTRACTION_OUTPUT_FORMAT_WITH_IMAGES : EXTRACTION_OUTPUT_FORMAT
+}
+
+type ExtractionPost = { text: string; author: string | null; images?: readonly { data: string }[] }
+
+/**
+ * Mensagens da extração; `targetRole` é o cargo-alvo do perfil (`null` sem perfil). As imagens do post (base64) vão
+ * na mensagem do post; sem imagens, as mensagens são as mesmas de antes delas.
+ */
+export function buildExtractionMessages(post: ExtractionPost, targetRole: string | null): Message[] {
 	const severalOpenings = targetRole
 		? SEVERAL_OPENINGS.withTargetRole.replace('{targetRole}', () => JSON.stringify(targetRole))
 		: SEVERAL_OPENINGS.withoutTargetRole
+	// Com função: um "$&" no cargo-alvo não vira o trecho substituído
+	const system = SYSTEM_PROMPT_TEMPLATE.replace('{severalOpenings}', () => severalOpenings)
+	const content = `Post author: ${post.author ?? 'unknown'}\nPost:\n${post.text}`
+	const images = post.images ?? []
+
+	if (images.length === 0) {
+		return [
+			{ role: 'system', content: system },
+			{ role: 'user', content },
+		]
+	}
 
 	return [
-		// Com função: um "$&" no cargo-alvo não vira o trecho substituído
-		{ role: 'system', content: SYSTEM_PROMPT_TEMPLATE.replace('{severalOpenings}', () => severalOpenings) },
-		{ role: 'user', content: `Post author: ${post.author ?? 'unknown'}\nPost:\n${post.text}` },
+		{ role: 'system', content: system + IMAGES_PROMPT },
+		{ role: 'user', content: `${content}\n\nImages attached: ${images.length}`, images: images.map(image => image.data) },
 	]
 }

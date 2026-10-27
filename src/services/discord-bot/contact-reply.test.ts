@@ -23,6 +23,8 @@ const job: JobPublished = {
 	language: 'pt',
 	sourcePostId: null,
 	postLink: 'https://www.linkedin.com/feed/update/urn:li:share:7513649051440021505/',
+	imageCount: 0,
+	imageText: null,
 }
 
 describe('botão de contato', () => {
