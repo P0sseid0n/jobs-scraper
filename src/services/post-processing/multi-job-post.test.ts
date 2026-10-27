@@ -155,6 +155,30 @@ Feedbacks são bem-vindos! #NodeJS #React`
 		expect(splitMultiJobPost(post)).toBeNull()
 	})
 
+	test('post de comunidade com o convite de cada grupo, mesmo falando de vagas, não é dividido', () => {
+		// Post real reescrito: as linhas antes dos links são frases, não cargos
+		const post = `Procurando um grupo da sua área? Temos comunidades para várias tecnologias.
+
+No nosso Discord divulgamos vagas todos os dias!
+https://lnkd.in/disc111
+
+JavaScript é sua praia? Entre no grupo para trocar dicas e tirar dúvidas.
+https://lnkd.in/js222
+
+Desenvolvimento de jogos: converse sobre engines, mecânicas e projetos de games.
+https://lnkd.in/games333
+
+Curte Kotlin? Venha trocar conhecimentos com outros devs.
+https://lnkd.in/kotlin444
+
+Também temos grupos de vagas toda semana:
+
+Vagas T.I. - Remotas
+https://lnkd.in/vagas555`
+
+		expect(splitMultiJobPost(post)).toBeNull()
+	})
+
 	test('vários links na mesma linha não são divididos', () => {
 		const post = `Links: https://a.com https://b.com
 Outros: https://c.com https://d.com

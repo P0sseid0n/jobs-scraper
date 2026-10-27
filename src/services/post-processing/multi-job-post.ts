@@ -13,6 +13,8 @@ export type JobListing = {
 /** Abaixo disso é um post comum com alguns links (site, formulário...), não uma lista de vagas. */
 const MIN_LISTINGS = 3
 const MAX_TITLE_LENGTH = 120
+/** Cargo com mais palavras que isso é uma frase ("Desenvolvimento de jogos: converse sobre programação, mecânicas..."). */
+const MAX_TITLE_WORDS = 12
 
 const URL_PATTERN = /https?:\/\/[^\s<>"'()[\]]+/gi
 
@@ -84,7 +86,17 @@ export function splitMultiJobPost(text: string): JobListing[] | null {
 	}
 
 	const unique = uniqueListings(listings)
-	return unique.length >= MIN_LISTINGS ? unique : null
+	if (unique.length < MIN_LISTINGS) return null
+
+	// A maioria dos "cargos" é frase: o post apresenta links de outra coisa (os grupos de uma comunidade, com
+	// "JavaScript é sua praia? Entre no grupo..." antes do convite do WhatsApp), não uma lista de vagas
+	const prose = unique.filter(listing => isProse(listing.title)).length
+	return prose * 2 > unique.length ? null : unique
+}
+
+/** Frase, e não cargo: pergunta, exclamação, ponto final ou palavras demais. */
+function isProse(title: string) {
+	return /[?!]|\.$/.test(title) || title.split(' ').length > MAX_TITLE_WORDS
 }
 
 /**

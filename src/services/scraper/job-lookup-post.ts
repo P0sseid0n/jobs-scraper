@@ -18,13 +18,16 @@ const MIN_PAGE_TEXT = 200
 const NOT_A_JOB_PAGE =
 	/redirecionando|você será (levado|redirecionad)|redirecting|being redirected|not a robot|não (é|sou) um robô|captcha|verify you are human/i
 
+/** Convites de grupo (WhatsApp, Discord, Telegram): a página é o menu do app, e o menu viraria a vaga. */
+const GROUP_INVITE_HOST = /(^|\.)(whatsapp\.com|wa\.me|discord\.gg|discord\.com|t\.me|telegram\.me|telegram\.org)$/i
+
 /**
  * Monta o post que o post-processing vai ler: o cargo e o link da lista e o texto da página. Se a página não abriu
- * (ou é só um redirecionamento ou uma verificação), usa só as linhas do post sobre a vaga.
+ * (ou é só um redirecionamento, uma verificação ou o convite de um grupo), usa só as linhas do post sobre a vaga.
  */
 export function lookupToRawPost(lookup: JobLookup, page: ListingPage | null): RawPost {
 	const pageText = page ? cleanPostText(page.text).slice(0, MAX_PAGE_TEXT) : ''
-	const body = isJobPageText(pageText) ? pageText : lookup.text
+	const body = page && !isGroupInvite(page.url) && isJobPageText(pageText) ? pageText : lookup.text
 
 	return {
 		postId: lookup.postId,
@@ -40,6 +43,10 @@ export function lookupToRawPost(lookup: JobLookup, page: ListingPage | null): Ra
 		// A página da vaga já traz a descrição em texto
 		images: [],
 	}
+}
+
+function isGroupInvite(url: string) {
+	return URL.canParse(url) && GROUP_INVITE_HOST.test(new URL(url).hostname)
 }
 
 function isJobPageText(text: string) {

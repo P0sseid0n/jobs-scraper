@@ -20,7 +20,7 @@ Busca posts de vagas no LinkedIn com o Puppeteer e envia cada um para a fila `po
 
 ## Posts com várias vagas
 
-O post-processing divide os posts de agregadores ("📄 Cargo" + "🔗 Candidate-se: https://lnkd.in/...") e manda cada vaga relevante para a fila `scraper-lookup`. O scraper abre o link de cada uma no navegador logado, uma por vez, com pausa (`SCRAPER_LOOKUP_DELAY_MS`) e nunca durante uma coleta. O texto da página volta para a fila `post-processing` como um post comum, com `sourcePostId` apontando para o post original.
+O post-processing divide os posts de agregadores ("📄 Cargo" + "🔗 Candidate-se: https://lnkd.in/...") e manda cada vaga relevante para a fila `scraper-lookup`. O scraper abre o link de cada uma no navegador logado, uma por vez, com pausa (`SCRAPER_LOOKUP_DELAY_MS`) e nunca durante uma coleta. O texto da página volta para a fila `post-processing` como um post comum, com `sourcePostId` apontando para o post original. Se a página não abrir, for um redirecionamento, uma verificação ("not a robot") ou o convite de um grupo (WhatsApp, Discord, Telegram), vão só as linhas do post sobre a vaga: o menu do app virava a descrição da vaga.
 
 Quando a coleta completa o mínimo de vagas, as listas dela não são abertas: saem de `seen_posts` (e ficam em `deferredLists` no histórico), para aparecerem de novo numa próxima busca, e os pedidos de vaga delas já na fila são ignorados.
 

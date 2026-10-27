@@ -42,15 +42,20 @@ describe('lookupToRawPost', () => {
 		expect(lookupToRawPost(lookup, { url: 'https://empresa.com/vagas/1?utm_source=x', text: DESCRIPTION }).jobLink).toBe(lookup.link)
 	})
 
-	test('sem a página, com ela vazia, num redirecionamento ou num captcha, usa as linhas do post sobre a vaga', () => {
+	test('sem a página, com ela vazia, num redirecionamento, num captcha ou no convite de um grupo, usa as linhas do post sobre a vaga', () => {
 		const captcha = { url: 'https://br.thebigjobsite.com/x', text: 'First we just need to check you are not a robot' }
 		// Página real de um agregador no meio da contagem: longa, mas o texto é só o rodapé do site
 		const redirect = {
 			url: 'https://www.netvagas.com.br/l-redirect/?url=x',
 			text: `Redirecionando em 1…\n\nVocê será levado automaticamente para o destino.\n\nIr agora\n\n${'Buscar vagas · Cadastre-se grátis · Ajuda ao candidato · '.repeat(5)}`,
 		}
+		// Convite de grupo: a página é o menu do WhatsApp, longa o bastante para passar por vaga
+		const groupInvite = {
+			url: 'https://chat.whatsapp.com/AbC123',
+			text: `Programadores Javascript\nGroup chat invite\nOpen app\nContinue to WhatsApp Web\n\n${'Features · Privacy · Help Center · For Business · '.repeat(5)}`,
+		}
 
-		for (const page of [null, { url: lookup.link, text: '  \n ' }, captcha, redirect]) {
+		for (const page of [null, { url: lookup.link, text: '  \n ' }, captcha, redirect, groupInvite]) {
 			expect(lookupToRawPost(lookup, page).text).toBe(`Vaga: ${lookup.title}\nLink: ${lookup.link}\n\n${lookup.text}`)
 		}
 	})
