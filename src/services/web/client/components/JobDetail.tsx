@@ -17,6 +17,7 @@ import { CvButton } from './CvButton'
 import { CvReady } from './CvReady'
 import { ExtractionChecksBadge, MissedChecks } from './ExtractionChecksBadge'
 import { Icon } from './Icon'
+import { JobReposts } from './JobReposts'
 import { ListingBadge } from './ListingBadge'
 import { PostImages } from './PostImages'
 import { ReportJobDialog } from './ReportJobDialog'
@@ -245,6 +246,15 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 					</TextLink>
 				)}
 			</section>
+
+			<JobReposts
+				job={job}
+				onUngrouped={saved => {
+					onCorrected(saved)
+					replaceJob(saved)
+					setRawJson(null)
+				}}
+			/>
 
 			<footer className="flex flex-col gap-2 border-t border-line pt-3.5">
 				{/* Só a partir do limite das configurações: com poucos checks, o selo do topo já basta */}

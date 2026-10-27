@@ -26,6 +26,7 @@ const job: WebJob = {
 	imageText: null,
 	correctedAt: null,
 	viewedAt: null,
+	reposts: [],
 }
 
 const now = new Date('2026-10-10T12:00:00.000Z').getTime()

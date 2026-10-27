@@ -5,6 +5,7 @@ export const LIMITS = {
 	termLength: 100,
 	minJobsPerRun: [1, 50],
 	intervalMinutes: [1, 7 * 24 * 60],
+	duplicateWindowDays: [1, 365],
 	keywords: 50,
 	keywordLength: 50,
 	languages: 20,
@@ -59,6 +60,9 @@ export function validateDraft(draft: SettingsDraft) {
 		if (processing[field].length > LIMITS.keywords) errors[field] = `Use no máximo ${LIMITS.keywords} palavras`
 	}
 
+	if (!isIntIn(processing.duplicateWindowDays, LIMITS.duplicateWindowDays))
+		errors.duplicateWindowDays = 'Use um número inteiro de 1 a 365'
+
 	return errors
 }
 
@@ -91,4 +95,17 @@ function isIntIn(value: number, [min, max]: readonly [number, number]) {
 /** O primeiro erro de um campo ou dos campos dentro dele (ex.: "searchTerms" mostra "searchTerms.2.term"). */
 export function errorFor(errors: Record<string, string>, field: string) {
 	return errors[field] ?? Object.entries(errors).find(([path]) => path.startsWith(`${field}.`))?.[1] ?? null
+}
+
+/**
+ * O que a semelhança mínima para agrupar repostagens faz na prática, pela faixa escolhida. As faixas vêm dos pares de
+ * posts dos testes de `job-duplicates.ts`: uma repostagem com outra abertura, emojis, hashtags e uma linha a mais fica
+ * por volta de 80%; outra vaga da mesma empresa escrita no mesmo modelo de post, por volta de 40%.
+ */
+export function duplicateSimilarityHint(percent: number) {
+	if (percent < 30) return 'Muito solto: pode juntar vagas diferentes da mesma empresa.'
+	if (percent < 50) return 'Solto: agrupa repostagens bem reescritas, mas pode juntar vagas diferentes.'
+	if (percent < 70) return 'Equilibrado (recomendado): agrupa repostagens com pequenas mudanças no texto.'
+	if (percent < 90) return 'Rígido: repostagens com parte do texto reescrita ficam separadas.'
+	return 'Muito rígido: só agrupa textos quase iguais.'
 }

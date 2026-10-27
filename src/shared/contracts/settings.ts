@@ -86,6 +86,15 @@ export const PostProcessingSettingsSchema = z.object({
 
 	/** A vaga é descartada se citar alguma destas palavras no cargo ou nos conhecimentos. */
 	excludedKeywords: keywordList,
+
+	/**
+	 * Semelhança mínima (porcentagem, Jaccard dos trigramas de palavras) entre o texto de dois posts da mesma empresa e
+	 * cargo para a vaga nova ser agrupada como repostagem da outra.
+	 */
+	duplicateSimilarityPercent: z.number().int().min(1).max(100).default(60),
+
+	/** Quantos dias para trás a vaga nova é comparada com as já salvas, procurando a mesma vaga repostada. */
+	duplicateWindowDays: z.number().int().min(1).max(365).default(30),
 })
 
 export type PostProcessingSettings = z.output<typeof PostProcessingSettingsSchema>

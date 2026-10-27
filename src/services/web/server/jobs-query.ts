@@ -2,7 +2,7 @@ import { Types } from 'mongoose'
 import { z } from 'zod'
 
 import { CONTRACT_TYPES, needsReview, WORK_MODES, type ProcessedJob } from '@shared/contracts'
-import type { JobCorrectionState, JobExtractionSource, JobViewState } from '@shared/database'
+import type { JobCorrectionState, JobDuplicateState, JobExtractionSource, JobViewState } from '@shared/database'
 
 import type { WebJob } from '../api-types'
 import { decodeCursor, type Cursor } from './http'
@@ -55,14 +55,16 @@ export const JobsQuerySchema = z.object({
 export type JobsQuery = z.output<typeof JobsQuerySchema>
 
 /**
- * Vagas que a interface mostra: com `postId` (documentos antigos não têm) e cargo, e que não foram marcadas pelo
- * site como "não é vaga" nem como "outro idioma".
+ * Vagas que a interface mostra: com `postId` (documentos antigos não têm) e cargo, que não foram marcadas pelo
+ * site como "não é vaga" nem como "outro idioma" e que não são repostagem de outra (aparecem no detalhe dela).
  */
 export const LISTABLE_JOBS = {
 	postId: { $type: 'string' as const },
 	title: { $type: 'string' as const },
 	notAJob: { $ne: true },
 	wrongLanguage: { $ne: true },
+	// `null` também pega as vagas salvas antes do campo
+	duplicateOf: null,
 }
 
 /** Vagas já abertas no site. */
@@ -127,10 +129,10 @@ export function upToCursor(cursor: Cursor, field = 'createdAt') {
 
 /**
  * Documento da coleção `jobs` como o `lean()` devolve (com os timestamps do mongoose). Vagas salvas antes do
- * campo `contractTypes`, dos de correção, do `viewedAt` e dos das imagens não os têm.
+ * campo `contractTypes`, dos de correção, do `viewedAt`, dos das imagens e dos das repostagens não os têm.
  */
 export type JobDocument = Omit<ProcessedJob, 'title' | 'contractTypes' | 'extractionChecks' | 'imageCount' | 'imageText'> &
-	Partial<JobExtractionSource & JobCorrectionState & JobViewState> & {
+	Partial<JobExtractionSource & JobCorrectionState & JobViewState & JobDuplicateState> & {
 		title: string | null
 		contractTypes?: ProcessedJob['contractTypes']
 		extractionChecks?: ProcessedJob['extractionChecks']
@@ -169,6 +171,12 @@ export function toWebJob(doc: JobDocument, reviewChecksPercent: number): WebJob 
 		imageText: doc.imageText ?? null,
 		correctedAt: doc.correctedAt?.toISOString() ?? null,
 		viewedAt: doc.viewedAt?.toISOString() ?? null,
+		reposts: (doc.reposts ?? []).map(repost => ({
+			postId: repost.postId,
+			author: repost.author ?? null,
+			postLink: repost.postLink ?? null,
+			postedAt: repost.postedAt ?? null,
+		})),
 	}
 }
 

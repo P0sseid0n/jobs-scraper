@@ -33,7 +33,14 @@ import { SECTION_TITLE } from '../components/ui/text'
 import { cx } from '../lib/cx'
 import { formatInterval, LANGUAGE_NAMES, languageLabel } from '../lib/format'
 import { shakeInvalid } from '../lib/motion'
-import { LIMITS, profileDraftOf, validateDraft, validateProfile, type SettingsDraft } from '../lib/settings-form'
+import {
+	duplicateSimilarityHint,
+	LIMITS,
+	profileDraftOf,
+	validateDraft,
+	validateProfile,
+	type SettingsDraft,
+} from '../lib/settings-form'
 import { useFlash } from '../lib/use-flash'
 import { notify } from '../stores/toast'
 
@@ -563,6 +570,47 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 						A comparação é por palavra inteira (“java” não pega “javascript”) e ignora maiúsculas, acentos, hífen e “.js”. Ou
 						seja, “Vue.js” = “vue” e “Front-End” = “frontend”.
 					</FieldHelp>
+				</div>
+
+				<div className="grid grid-cols-2 gap-5 max-md:grid-cols-1">
+					<div className="flex flex-col gap-1.5">
+						<span className="flex items-center justify-between gap-3">
+							<FieldLabel htmlFor="duplicateSimilarityPercent">agrupar repostagens a partir de</FieldLabel>
+							<span className="font-mono">{p.duplicateSimilarityPercent}%</span>
+						</span>
+						<Range
+							id="duplicateSimilarityPercent"
+							aria-describedby="duplicateSimilarityPercent-help"
+							min={1}
+							max={100}
+							value={p.duplicateSimilarityPercent}
+							aria-valuetext={`${p.duplicateSimilarityPercent}% de texto em comum`}
+							onChange={event => {
+								const value = Number(event.target.value)
+								edit(next => {
+									next['post-processing'].duplicateSimilarityPercent = value
+								})
+							}}
+						/>
+						<FieldHelp id="duplicateSimilarityPercent-help">
+							{duplicateSimilarityHint(p.duplicateSimilarityPercent)} É quanto do texto dois posts da mesma empresa e cargo têm
+							em comum.
+						</FieldHelp>
+					</div>
+					<div className="flex flex-col gap-1.5">
+						<FieldLabel htmlFor="duplicateWindowDays">procurar repostagens em (dias)</FieldLabel>
+						{numberInput(
+							p.duplicateWindowDays,
+							(next, value) => (next['post-processing'].duplicateWindowDays = value),
+							'duplicateWindowDays',
+							{ min: 1, max: 365 },
+						)}
+						{fieldError('duplicateWindowDays') ?? (
+							<FieldHelp id="duplicateWindowDays-help">
+								de 1 a 365; a vaga nova é comparada com as salvas nesse período
+							</FieldHelp>
+						)}
+					</div>
 				</div>
 			</section>
 		)

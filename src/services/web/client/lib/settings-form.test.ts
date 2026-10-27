@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 
 import { PostProcessingSettingsSchema, ProfileSettingsSchema, ScraperSettingsSchema } from '@shared/contracts'
 
-import { errorFor, profileDraftOf, validateDraft, validateProfile, type SettingsDraft } from './settings-form'
+import { duplicateSimilarityHint, errorFor, profileDraftOf, validateDraft, validateProfile, type SettingsDraft } from './settings-form'
 
 function draft(): SettingsDraft {
 	const { paused: _paused, ...scraper } = ScraperSettingsSchema.parse({})
@@ -36,8 +36,9 @@ describe('validateDraft (as mesmas regras do servidor)', () => {
 		const value = draft()
 		value.scraper.minJobsPerRun = 51
 		value.scraper.intervalMinutes = Number.NaN
+		value['post-processing'].duplicateWindowDays = 0
 
-		expect(Object.keys(validateDraft(value))).toEqual(['minJobsPerRun', 'intervalMinutes'])
+		expect(Object.keys(validateDraft(value))).toEqual(['minJobsPerRun', 'intervalMinutes', 'duplicateWindowDays'])
 	})
 
 	test('o resultado aceito pelo cliente também passa no schema do servidor', () => {
@@ -74,4 +75,13 @@ describe('validateProfile', () => {
 test('errorFor: o erro do campo ou de um campo dentro dele', () => {
 	expect(errorFor({ 'searchTerms.2.term': 'Termo repetido' }, 'searchTerms')).toBe('Termo repetido')
 	expect(errorFor({ minJobsPerRun: 'x' }, 'searchTerms')).toBeNull()
+})
+
+test('duplicateSimilarityHint: um texto por faixa, com o padrão (60%) no recomendado', () => {
+	const hints = [1, 29, 30, 49, 50, 69, 70, 89, 90, 100].map(duplicateSimilarityHint)
+
+	expect(new Set(hints).size).toBe(5)
+	expect(hints[0]).toBe(hints[1])
+	expect(hints[1]).not.toBe(hints[2])
+	expect(duplicateSimilarityHint(PostProcessingSettingsSchema.parse({}).duplicateSimilarityPercent)).toContain('recomendado')
 })

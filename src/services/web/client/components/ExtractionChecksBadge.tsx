@@ -72,6 +72,7 @@ export function ExtractionChecksBadge({
 		// Por cima do link que cobre o card (`z-10`), para o hover chegar ao selo; aberto, sobe acima dos cards de baixo.
 		// Focável: pelo teclado (ou um toque), a lista abre como no hover
 		<span
+			// biome-ignore lint/a11y/noNoninteractiveTabindex: o foco é o que abre a lista dos checks pelo teclado ou toque
 			tabIndex={0}
 			className={cx('group/checks relative z-10 inline-flex rounded-pill hover:z-30 focus-visible:z-30', className)}
 		>
