@@ -2066,5 +2066,42 @@
 		],
 		"model": null,
 		"promptVersion": null
+	},
+	{
+		"postId": "caso-imagem-projeto-pessoal",
+		"anonymized": true,
+		"area": "dev",
+		"kind": "not-a-job",
+		"post": {
+			"text": "Por pouco não larguei meu projeto pessoal por causa do sistema de pagamentos.\n\nFaz uns 4 meses que comecei o Freelagora, um app que liga quem precisa de um serviço a freelancers, e ele virou a coisa mais ambiciosa que já construí.\n\nEu queria aprender a empreender e ficar mais forte em desenvolvimento multiplataforma. E sempre achei os sites de freela confusos demais, então quis fazer algo mais simples.\n\nNão fazia ideia do trabalho que ia dar 😅\n\nNesse tempo fiz a versão Web, Android e desktop com Flutter, Dart, Firebase, Bloc e Clean Architecture: login, chat em tempo real, propostas, acompanhamento de entregas e pagamentos.\n\nOs pagamentos foram a parte que quase me fez parar. Foram semanas lendo logs e refazendo integrações até o checkout funcionar em produção, e a sensação quando deu certo foi incrível.\n\nUsei IA como apoio, mas aprendi que não dá para aceitar tudo que ela sugere: revisei código, testei fluxos e tomei as decisões técnicas eu mesmo.\n\nHoje o Freelagora está em beta e o próximo passo é testar com usuários de verdade.\n\nE vocês, qual problema quase fez vocês desistirem de um projeto próprio?\n\nSite: https://freelagora.exemplo.com/\n\n#Flutter #Dart #DesenvolvimentoDeSoftware #FullStack",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null,
+			"images": [
+				"projeto-pessoal-setup.jpg",
+				"projeto-pessoal-print-do-site.jpg"
+			]
+		},
+		"aiOutput": {
+			"title": "Desenvolvedor Front-end",
+			"company": "Freelagora",
+			"location": null,
+			"workMode": null,
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"Flutter",
+				"Dart",
+				"Firebase",
+				"Bloc",
+				"Clean Architecture"
+			],
+			"recruiterEmail": null,
+			"applyLink": "https://freelagora.exemplo.com/"
+		},
+		"expected": null,
+		"correctedFields": [],
+		"model": "gemma3:4b",
+		"promptVersion": "3205cf472bb7"
 	}
 ]
