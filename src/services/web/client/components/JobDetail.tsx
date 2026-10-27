@@ -222,8 +222,8 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 			<section className="flex flex-col gap-2.5" aria-label={fromList ? 'Página da vaga' : 'Post original'}>
 				<div className="flex items-center justify-between gap-3">
 					<h3 className={LABEL}>{fromList ? 'página da vaga' : 'post original'}</h3>
-					{/* Com outra forma de candidatura, o post serve mais para conferir (debug): link discreto */}
-					{postLink && !appliesThroughPost && (
+					{/* Sempre aparece, mesmo repetindo o botão de candidatura pelo post: é o lugar onde se procura o post */}
+					{postLink && (
 						<TextLink className="text-xs font-mono" href={postLink} external>
 							{fromList ? 'ver post com a lista' : 'ir para o post'}
 						</TextLink>
