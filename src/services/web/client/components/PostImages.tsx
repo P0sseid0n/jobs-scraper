@@ -70,9 +70,6 @@ function ImageViewer({ job, start, onClose }: { job: PostImagesJob; start: numbe
 	const swipeFrom = useRef<{ x: number; y: number } | null>(null)
 	// O clique que o navegador às vezes dispara no fim de um deslize não fecha o visualizador
 	const swiped = useRef(false)
-	/** Proporção (largura / altura) de cada imagem já carregada, para ela ocupar o espaço livre sem distorcer. */
-	const [ratios, setRatios] = useState<Record<number, number>>({})
-	const ratio = ratios[index]
 	const count = job.imageCount
 	const src = jobImageUrl(job.postId, index)
 	const go = (step: number) => setIndex(current => stepImage(current, step, count))
@@ -140,24 +137,15 @@ function ImageViewer({ job, start, onClose }: { job: PostImagesJob; start: numbe
 					</div>
 				</header>
 
-				{/* A área livre da tela: a imagem cresce até encostar na largura ou na altura dela (`cqw`/`cqh`), mesmo que o
-				    arquivo seja menor que a tela, sem distorcer nem sobrar moldura em volta */}
-				<div className="flex min-h-0 w-full flex-1 items-center justify-center" style={{ containerType: 'size' }} data-closes>
+				{/* A imagem no tamanho do arquivo, e menor só quando não cabe na tela: ampliada além dele, ela fica pixelada */}
+				<div className="flex min-h-0 w-full flex-1 items-center justify-center" data-closes>
 					<img
 						// Nova imagem, nova animação de entrada
 						key={index}
-						className={cx(
-							'block max-h-full max-w-full animate-pop-in rounded-sm shadow-float select-none motion-reduce:animate-none',
-							!ratio && 'invisible',
-						)}
-						style={ratio ? { aspectRatio: ratio, width: `min(100cqw, ${ratio} * 100cqh)` } : undefined}
+						className="block max-h-full max-w-full animate-pop-in rounded-sm object-contain shadow-float select-none motion-reduce:animate-none"
 						src={src}
 						alt={imageLabel(index, count)}
 						draggable={false}
-						onLoad={event => {
-							const { naturalWidth, naturalHeight } = event.currentTarget
-							if (naturalWidth && naturalHeight) setRatios(current => ({ ...current, [index]: naturalWidth / naturalHeight }))
-						}}
 					/>
 				</div>
 
