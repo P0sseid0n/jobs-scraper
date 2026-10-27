@@ -613,6 +613,12 @@
 	--color-check-high: #b91c1c;
 	--color-inv-check-low: #facc15;
 	--color-inv-check-high: #ff4433;
+	/*
+	 * O selo do detalhe com 1 check é preenchido: um amarelo forte não tem contraste como texto no branco, só como fundo
+	 * do texto escuro. O mesmo nos dois temas.
+	 */
+	--color-check-fill: #facc15;
+	--color-check-fill-ink: #1d1b18;
 	/* Contorno de foco: o lime de texto, com contraste de pelo menos 3:1 com o fundo nos dois temas */
 	--color-focus: var(--color-lime-text);
 	--color-switch-knob: #ffffff;
