@@ -13,6 +13,8 @@ const PATHS = {
 	moon: 'M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z',
 	sun: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M12 2v2 M12 20v2 M4.9 4.9l1.4 1.4 M17.7 17.7l1.4 1.4 M2 12h2 M20 12h2 M4.9 19.1l1.4-1.4 M17.7 6.3l1.4-1.4',
 	back: 'M15 18l-6-6 6-6',
+	forward: 'M9 18l6-6-6-6',
+	expand: 'M15 3h6v6 M9 21H3v-6 M21 3l-7 7 M3 21l7-7',
 	/** Para a primeira página (girado, a última). */
 	first: 'M12 18l-6-6 6-6 M18 18l-6-6 6-6',
 	chevron: 'M6 9l6 6 6-6',

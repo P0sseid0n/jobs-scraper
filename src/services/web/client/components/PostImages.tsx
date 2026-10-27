@@ -1,79 +1,185 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type PointerEvent } from 'react'
 
 import type { WebJob } from '../../api-types'
 import { jobImageUrl } from '../api'
 import { cx } from '../lib/cx'
+import { stepImage, swipeStep } from '../lib/image-viewer'
 import { Icon } from './Icon'
-import { DIALOG } from './ui/Dialog'
+import { Badge } from './ui/Badge'
 import { IconButton } from './ui/IconButton'
 import { PRESS } from './ui/press'
 
-/** As imagens do post como miniaturas; cada uma abre em tamanho real numa modal. */
-export function PostImages({ job }: { job: Pick<WebJob, 'postId' | 'imageCount'> }) {
+type PostImagesJob = Pick<WebJob, 'postId' | 'imageCount'>
+
+const imageLabel = (index: number, count: number) => `imagem ${index + 1} de ${count} do post`
+
+/**
+ * As imagens do post numa faixa que rola de lado, na proporção original (a arte da vaga não é cortada); cada uma abre
+ * no visualizador em tamanho real.
+ */
+export function PostImages({ job }: { job: PostImagesJob }) {
 	const [open, setOpen] = useState<number | null>(null)
 	if (job.imageCount === 0) return null
 
 	const indexes = Array.from({ length: job.imageCount }, (_, index) => index)
-	const label = (index: number) => `imagem ${index + 1} de ${job.imageCount} do post`
 
 	return (
 		<>
-			<ul className="m-0 flex list-none flex-wrap gap-2 p-0" aria-label="Imagens do post">
+			<ul
+				className="m-0 flex list-none snap-x snap-mandatory gap-2 overflow-x-auto overscroll-x-contain p-0 pb-1"
+				aria-label="Imagens do post"
+			>
 				{indexes.map(index => (
-					<li key={index}>
+					<li key={index} className="shrink-0 snap-start">
 						<button
 							type="button"
 							className={cx(
-								'block overflow-hidden rounded-sm border border-line bg-surface-2 p-0 hover:border-line-strong',
+								'group relative block overflow-hidden rounded-md border border-line bg-surface-2 p-0 hover:border-line-strong',
 								PRESS,
 							)}
-							aria-label={`ampliar ${label(index)}`}
+							aria-label={`ampliar ${imageLabel(index, job.imageCount)}`}
 							aria-haspopup="dialog"
 							onClick={() => setOpen(index)}
 						>
+							{/* Altura fixa e largura pela proporção: a faixa não pula quando a imagem carrega */}
 							<img
-								className="block size-24 object-cover"
+								className="block h-50 w-auto max-w-[min(26rem,80vw)] min-w-24 object-contain"
 								src={jobImageUrl(job.postId, index)}
-								alt={label(index)}
+								alt={imageLabel(index, job.imageCount)}
 								loading="lazy"
 							/>
+							<span className="absolute right-2 bottom-2 grid size-7 place-items-center rounded-full bg-black/55 text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 pointer-coarse:hidden">
+								<Icon name="expand" size={14} />
+							</span>
 						</button>
 					</li>
 				))}
 			</ul>
-			{open !== null && <ImageDialog src={jobImageUrl(job.postId, open)} alt={label(open)} onClose={() => setOpen(null)} />}
+			{open !== null && <ImageViewer job={job} start={open} onClose={() => setOpen(null)} />}
 		</>
 	)
 }
 
-function ImageDialog({ src, alt, onClose }: { src: string; alt: string; onClose: () => void }) {
+/**
+ * Visualizador em tela cheia: fundo escuro, a imagem solta, setas e ← → (ou deslizar no toque) para trocar, o
+ * contador e o link para o arquivo original. Esc, o botão de fechar ou um clique fora da imagem fecham.
+ */
+function ImageViewer({ job, start, onClose }: { job: PostImagesJob; start: number; onClose: () => void }) {
 	const ref = useRef<HTMLDialogElement>(null)
+	const [index, setIndex] = useState(start)
+	const swipeFrom = useRef<{ x: number; y: number } | null>(null)
+	// O clique que o navegador às vezes dispara no fim de um deslize não fecha o visualizador
+	const swiped = useRef(false)
+	const count = job.imageCount
+	const src = jobImageUrl(job.postId, index)
+	const go = (step: number) => setIndex(current => stepImage(current, step, count))
 
 	useEffect(() => {
 		ref.current?.showModal()
 	}, [])
 
+	function onPointerUp(event: PointerEvent) {
+		const from = swipeFrom.current
+		swipeFrom.current = null
+		if (!from || event.pointerType === 'mouse') return
+
+		const step = swipeStep(event.clientX - from.x, event.clientY - from.y)
+		swiped.current = step !== 0
+		if (step !== 0 && count > 1) go(step)
+	}
+
 	return (
-		// biome-ignore lint/a11y/useKeyWithClickEvents: pelo teclado, o Esc já fecha o <dialog>
 		<dialog
 			ref={ref}
-			className={cx(DIALOG, 'w-fit max-w-[min(64rem,calc(100vw-2rem))]')}
-			aria-label={alt}
+			// O próprio diálogo cobre a tela e escurece o fundo: o `::backdrop` fica transparente
+			className="inverted fixed inset-0 m-0 h-dvh max-h-none w-dvw max-w-none animate-fade-in bg-black/90 p-0 backdrop:bg-transparent motion-reduce:animate-none"
+			aria-label={imageLabel(index, count)}
 			onClose={onClose}
-			// Clique fora da imagem (no fundo escurecido) fecha
-			onClick={event => event.target === ref.current && ref.current.close()}
+			onKeyDown={event => {
+				if (count < 2) return
+				if (event.key === 'ArrowRight') go(1)
+				else if (event.key === 'ArrowLeft') go(-1)
+			}}
+			// Clique fora da imagem e dos controles fecha
+			onClick={event => {
+				if (swiped.current) swiped.current = false
+				else if (event.target === event.currentTarget.firstElementChild) ref.current?.close()
+			}}
 		>
-			<div className="relative">
-				<img className="block max-h-[calc(100dvh-4rem)] max-w-full object-contain" src={src} alt={alt} />
-				<IconButton
-					label="fechar imagem"
-					size="sm"
-					className="absolute top-2 right-2 bg-surface text-ink"
-					onClick={() => ref.current?.close()}
-				>
-					<Icon name="close" size={15} />
-				</IconButton>
+			<div
+				// `pan-y`: o deslize horizontal fica para trocar de imagem, sem o navegador tratar como gesto dele
+				className="flex h-full touch-pan-y flex-col items-center justify-center gap-3 px-4 pt-16 pb-6"
+				onPointerDown={event => {
+					swipeFrom.current = { x: event.clientX, y: event.clientY }
+				}}
+				onPointerUp={onPointerUp}
+			>
+				<header className="fixed inset-x-0 top-0 flex items-center justify-between gap-3 px-4 py-3">
+					<Badge tone="neutral" size="sm" aria-live="polite">
+						{index + 1} / {count}
+					</Badge>
+					<div className="flex items-center gap-1">
+						<a
+							className="inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 font-mono text-muted text-xs no-underline hover:bg-surface-2 hover:text-ink"
+							href={src}
+							target="_blank"
+							rel="noreferrer"
+						>
+							abrir original
+							<Icon name="external" size={13} />
+						</a>
+						<IconButton label="fechar imagem" autoFocus onClick={() => ref.current?.close()}>
+							<Icon name="close" size={18} />
+						</IconButton>
+					</div>
+				</header>
+
+				<img
+					// Nova imagem, nova animação de entrada
+					key={index}
+					className="block max-h-full max-w-full animate-pop-in rounded-sm object-contain shadow-float select-none motion-reduce:animate-none"
+					src={src}
+					alt={imageLabel(index, count)}
+					draggable={false}
+				/>
+
+				{count > 1 && (
+					<>
+						<IconButton
+							label="imagem anterior"
+							bordered
+							className="fixed top-1/2 left-4 -translate-y-1/2 bg-inv-bg/60 max-md:hidden"
+							onClick={() => go(-1)}
+						>
+							<Icon name="back" size={18} />
+						</IconButton>
+						<IconButton
+							label="próxima imagem"
+							bordered
+							className="fixed top-1/2 right-4 -translate-y-1/2 bg-inv-bg/60 max-md:hidden"
+							onClick={() => go(1)}
+						>
+							<Icon name="forward" size={18} />
+						</IconButton>
+						<p className="m-0 font-mono text-muted text-xs md:hidden">deslize para ver a outra imagem</p>
+					</>
+				)}
 			</div>
 		</dialog>
+	)
+}
+
+/** Selo do card da lista: o post tem imagem, e quantas (os dados da vaga podem ter vindo dela). */
+export function PostImagesBadge({ job }: { job: Pick<WebJob, 'imageCount'> }) {
+	if (job.imageCount === 0) return null
+
+	const title = job.imageCount === 1 ? 'O post tem 1 imagem' : `O post tem ${job.imageCount} imagens`
+
+	return (
+		<Badge tone="plain" bordered size="sm" className="text-muted" title={title}>
+			<Icon name="image" size={13} />
+			<span aria-hidden="true">{job.imageCount}</span>
+			<span className="sr-only">{title.toLowerCase()}</span>
+		</Badge>
 	)
 }

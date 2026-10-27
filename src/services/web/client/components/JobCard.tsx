@@ -12,6 +12,7 @@ import { CorrectedBadge } from './CorrectedBadge'
 import { ExtractionChecksBadge } from './ExtractionChecksBadge'
 import { Icon } from './Icon'
 import { ListingBadge } from './ListingBadge'
+import { PostImagesBadge } from './PostImages'
 import { badge, BadgeList } from './ui/Badge'
 import { card } from './ui/Card'
 import { Skeleton } from './ui/Skeleton'
@@ -130,12 +131,7 @@ export function JobCard({
 						'candidatura pelo post'
 					)}
 				</span>
-				{job.imageCount > 0 && (
-					<span className="text-muted inline-flex" title="O post tem imagem">
-						<Icon name="image" size={14} />
-						<span className="sr-only">o post tem imagem</span>
-					</span>
-				)}
+				<PostImagesBadge job={job} />
 			</div>
 		</article>
 	)
