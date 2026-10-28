@@ -107,7 +107,7 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 	// a mensagem que a IA escreve junto (se a pessoa ainda não editou o modelo: aí o texto dela fica)
 	const awaitingAi = cv?.status === 'pending' && !generated && !edited
 	const bodyLoading = !textReady || awaitingAi
-	const loadingLabel = textReady ? 'a IA está escrevendo a mensagem para a vaga' : 'carregando a mensagem'
+	const loadingLabel = textReady ? 'a IA está escrevendo a mensagem para a vaga…' : 'carregando a mensagem…'
 	// Sem saber ainda se há conta de e-mail, os campos aparecem como editáveis (desligados), no lugar em que vão ficar
 	const editable = canSend || setup === null
 

@@ -266,8 +266,8 @@
 
 	/* O brilho que atravessa os esqueletos (`shimmer`, abaixo) */
 	--animate-shimmer: shimmer 1600ms ease-in-out infinite;
-	/* O campo carregando (`FieldScan`): uma linha horizontal sobe e desce por ele, como um scanner */
-	--animate-field-scan: field-scan 1500ms ease-in-out infinite alternate;
+	/* O campo carregando (`FieldScan`): uma onda desfocada atravessa o campo de cima para baixo, como um scanner */
+	--animate-field-scan: field-scan 2200ms ease-in-out infinite;
 	/*
 	 * O currículo ajustado para a vaga: a habilidade que saiu ganha um risco da esquerda para a direita
 	 * (`strike-through`, abaixo); a apresentação antiga se desfaz desfocando e a nova chega palavra por palavra; um
@@ -281,12 +281,16 @@
 	--animate-shake: shake 420ms ease-in-out;
 	--animate-draw: draw 600ms var(--ease-glide) both;
 
+	/*
+	 * A onda tem 3/5 da altura do campo e fica no meio dele (`top-1/5`): ±133% da altura dela a leva de toda acima do
+	 * campo a toda abaixo, entrando pela borda de cima e saindo pela de baixo
+	 */
 	@keyframes field-scan {
 		from {
-			top: 0;
+			translate: 0 -133%;
 		}
 		to {
-			top: calc(100% - 2px);
+			translate: 0 133%;
 		}
 	}
 
