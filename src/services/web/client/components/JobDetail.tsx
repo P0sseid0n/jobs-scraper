@@ -1,14 +1,25 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useLayoutEffect, useRef, useState } from 'react'
 
+import { MESSAGE_LENGTHS, MESSAGE_TONES, type MessageLength, type MessageTone } from '@shared/contracts'
 import { applicationMessage, formatApplicationMessage } from '@shared/templates'
 
 import type { WebJob } from '../../api-types'
 import { api, RequestError } from '../api'
 import { cx } from '../lib/cx'
-import { isListingPageText, jobDate, jobSubtitle, languageLabel, listingPageText, safeLink, timeAgo } from '../lib/format'
+import {
+	isListingPageText,
+	jobDate,
+	jobSubtitle,
+	languageLabel,
+	listingPageText,
+	MESSAGE_LENGTH_LABELS,
+	MESSAGE_TONE_LABELS,
+	safeLink,
+	timeAgo,
+} from '../lib/format'
 import { revealJobDetail } from '../lib/job-opening'
-import { useCvFor, useGeneratedMessage } from '../stores/cv'
+import { rewriteMessage, undoMessageRewrite, useCvFor, useGeneratedMessage } from '../stores/cv'
 import { removeJob, replaceJob } from '../stores/jobs'
 import { copyText, notify } from '../stores/toast'
 import { ContractTypeBadge } from './ContractTypeBadge'
@@ -26,6 +37,7 @@ import { Button } from './ui/Button'
 import { CodeBlock } from './ui/CodeBlock'
 import { IconButton } from './ui/IconButton'
 import { Notice } from './ui/Notice'
+import { Pill, PillGroup } from './ui/Pill'
 import { Skeleton } from './ui/Skeleton'
 import { LABEL } from './ui/text'
 import { TextLink } from './ui/TextLink'
@@ -65,14 +77,20 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 
 	// A mensagem gerada pela IA aparece no lugar do modelo padrão, que continua a um clique
 	const [useDefaultMessage, setUseDefaultMessage] = useState(false)
+	// O que está sendo reescrito pela IA agora (o tom, o tamanho, "mais direta" ou o desfazer), para o spinner
+	const [rewriting, setRewriting] = useState<MessageTone | MessageLength | 'direct' | 'undo' | null>(null)
 
 	const cv = useCvFor(job.postId)
 	const postLink = safeLink(job.postLink)
 	const applyLink = safeLink(job.applyLink)
 	const appliesThroughPost = !applyLink && !job.recruiterEmail
-	const generated = useGeneratedMessage(job.postId)
+	const generatedRequest = useGeneratedMessage(job.postId)
+	const generated = generatedRequest?.message ?? null
 	const showGenerated = !!generated && !useDefaultMessage
 	const message = generated && showGenerated ? formatApplicationMessage(generated) : applicationMessage(job.title)
+	// Mensagens de antes do tom e do tamanho foram escritas no neutro e no tamanho médio
+	const tone = generated?.tone ?? 'neutral'
+	const length = generated?.length ?? 'medium'
 	// Vaga de um post com várias: o texto é o da página aberta pelo link dela, não o do post
 	const fromList = !!job.sourcePostId
 	const fromPage = fromList && isListingPageText(job.rawContent)
@@ -84,6 +102,24 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 	useLayoutEffect(() => {
 		if (root.current) revealJobDetail(root.current)
 	}, [])
+
+	/** Pede à IA outra versão da mensagem (ou desfaz a última); se ela não conseguir, a mensagem continua a mesma. */
+	async function changeMessage(
+		kind: NonNullable<typeof rewriting>,
+		style: { tone: MessageTone; length: MessageLength; direct?: boolean } | null,
+	) {
+		if (!generatedRequest || rewriting) return
+
+		setRewriting(kind)
+		try {
+			if (style) await rewriteMessage(generatedRequest.requestId, style)
+			else await undoMessageRewrite(generatedRequest.requestId)
+		} catch (error) {
+			notify(error instanceof RequestError ? error.message : 'Não consegui reescrever a mensagem', 'error')
+		} finally {
+			setRewriting(null)
+		}
+	}
 
 	async function toggleRawJson() {
 		if (rawJson !== null) {
@@ -230,10 +266,76 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 								copiar
 							</Button>
 						</div>
-						<pre className={MESSAGE_TEXT}>{message}</pre>
+						<pre
+							className={cx(MESSAGE_TEXT, rewriting && 'animate-pulse opacity-55 motion-reduce:animate-none')}
+							aria-busy={!!rewriting}
+						>
+							{message}
+						</pre>
+						{showGenerated && (
+							// Reescreve a mensagem já gerada: o tom e o tamanho escolhidos ficam ligados
+							<div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line pt-2.5">
+								<PillGroup role="group" aria-label="Tom da mensagem">
+									{MESSAGE_TONES.map(option => (
+										<Pill
+											key={option}
+											pressed={option === tone}
+											disabled={!!rewriting}
+											onClick={() => option !== tone && changeMessage(option, { tone: option, length })}
+										>
+											{rewriting === option && <Icon name="spinner" size={13} />}
+											{MESSAGE_TONE_LABELS[option]}
+										</Pill>
+									))}
+								</PillGroup>
+								<PillGroup role="group" aria-label="Tamanho da mensagem">
+									{MESSAGE_LENGTHS.map(option => (
+										<Pill
+											key={option}
+											pressed={option === length}
+											disabled={!!rewriting}
+											onClick={() => option !== length && changeMessage(option, { tone, length: option })}
+										>
+											{rewriting === option && <Icon name="spinner" size={13} />}
+											{MESSAGE_LENGTH_LABELS[option]}
+										</Pill>
+									))}
+								</PillGroup>
+								<Pill
+									shape="dashed"
+									disabled={!!rewriting}
+									onClick={() => changeMessage('direct', { tone, length, direct: true })}
+								>
+									{rewriting === 'direct' && <Icon name="spinner" size={13} />}
+									mais direta
+								</Pill>
+							</div>
+						)}
 						{generated ? (
 							<div className="flex items-center justify-between gap-3 text-muted text-xs">
-								<span>{showGenerated ? 'revise antes de enviar' : ''}</span>
+								<span role="status">
+									{rewriting && rewriting !== 'undo' ? (
+										'a IA está reescrevendo…'
+									) : showGenerated ? (
+										<>
+											revise antes de enviar
+											{generatedRequest?.previousMessage && (
+												<>
+													{' · '}
+													<TextLink
+														className="text-xs"
+														disabled={!!rewriting}
+														onClick={() => changeMessage('undo', null)}
+													>
+														desfazer
+													</TextLink>
+												</>
+											)}
+										</>
+									) : (
+										''
+									)}
+								</span>
 								<TextLink className="text-xs" onClick={() => setUseDefaultMessage(!useDefaultMessage)}>
 									{showGenerated ? 'usar o modelo padrão' : 'usar a mensagem da IA'}
 								</TextLink>

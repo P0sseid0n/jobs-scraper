@@ -4,11 +4,15 @@ import { useEffect, useMemo, useRef, useState, type FormEvent, type InputHTMLAtt
 import {
 	DATE_POSTED_FILTERS,
 	EXTRACTION_CHECKS,
+	MESSAGE_DEFAULT_TONES,
+	MESSAGE_LENGTHS,
 	PROFILE_AREAS,
 	reviewChecksThreshold,
 	SENIORITY_LEVELS,
 	suggestedRoles,
 	type DatePostedFilter,
+	type MessageDefaultTone,
+	type MessageLength,
 	type SeniorityLevel,
 } from '@shared/contracts'
 
@@ -23,7 +27,7 @@ import { Combobox } from '../components/ui/Combobox'
 import { ConfirmDialog } from '../components/ui/Dialog'
 import { FieldError, FieldHelp, FieldLabel } from '../components/ui/Field'
 import { IconButton } from '../components/ui/IconButton'
-import { Checkbox, Input, Range } from '../components/ui/Input'
+import { Checkbox, field, Input, Range } from '../components/ui/Input'
 import { KeywordInput } from '../components/ui/KeywordInput'
 import { Notice } from '../components/ui/Notice'
 import { Hero, Page, pageFrame } from '../components/ui/Page'
@@ -32,9 +36,16 @@ import { SECTION_SCROLL_MARGIN, SectionNav } from '../components/ui/SectionNav'
 import { SelectMenu, type SelectMenuOption } from '../components/ui/SelectMenu'
 import { Switch } from '../components/ui/Switch'
 import { StatusDot } from '../components/ui/StatusDot'
-import { SECTION_TITLE } from '../components/ui/text'
+import { FIELDSET, SECTION_TITLE } from '../components/ui/text'
 import { cx } from '../lib/cx'
-import { DATE_POSTED_LABELS, formatInterval, LANGUAGE_NAMES, languageLabel } from '../lib/format'
+import {
+	DATE_POSTED_LABELS,
+	formatInterval,
+	LANGUAGE_NAMES,
+	languageLabel,
+	MESSAGE_LENGTH_LABELS,
+	MESSAGE_TONE_LABELS,
+} from '../lib/format'
 import { shakeInvalid } from '../lib/motion'
 import {
 	duplicateSimilarityHint,
@@ -68,6 +79,19 @@ const SENIORITY_OPTIONS: SelectMenuOption<SeniorityLevel | ''>[] = [
 	...SENIORITY_LEVELS.map(value => ({ value, label: SENIORITY_LABELS[value] })),
 ]
 
+/** O que cada tom padrão faz, mostrado embaixo das opções. */
+const TONE_HELP: Record<MessageDefaultTone, string> = {
+	auto: 'A IA escolhe pela vaga: formal para bancos, órgãos públicos e empresas tradicionais; descontraído para startups e posts informais; neutro no resto.',
+	formal: '“Prezados,” e frases completas, sem exclamações; fecha com “Agradeço a atenção.”',
+	neutral: '“Olá! Tudo bem?”, educado e direto; fecha com “Obrigado!”',
+	casual: '“Oi, pessoal! Tudo bem?”, frases curtas como numa conversa, sem gírias nem emojis; fecha com “Abraço!”',
+}
+
+const LENGTH_HELP: Record<MessageLength, string> = {
+	short: 'Umas 3 frases, para mandar por mensagem direta no LinkedIn.',
+	medium: '2 ou 3 parágrafos, para o e-mail ao recrutador.',
+}
+
 const SETTINGS_CARD = card({ size: 'lg', className: cx('flex flex-col gap-6.5', SECTION_SCROLL_MARGIN) })
 
 /** Os atalhos do `SectionNav`: o `id` de cada seção da tela. */
@@ -75,6 +99,7 @@ const SECTIONS = [
 	{ id: 'perfil', label: 'perfil' },
 	{ id: 'coleta', label: 'coleta' },
 	{ id: 'filtros', label: 'filtros' },
+	{ id: 'mensagem', label: 'mensagem' },
 	{ id: 'contas', label: 'contas' },
 ] as const
 
@@ -83,7 +108,12 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 /** O rascunho editável das configurações (o `paused` é salvo na hora, fora do formulário). */
 function draftOf(settings: WebSettings): SettingsDraft {
 	const { paused: _paused, ...scraper } = settings.scraper
-	return structuredClone({ scraper, 'post-processing': settings['post-processing'], profile: profileDraftOf(settings.profile) })
+	return structuredClone({
+		scraper,
+		'post-processing': settings['post-processing'],
+		profile: profileDraftOf(settings.profile),
+		message: settings.message,
+	})
 }
 
 /**
@@ -114,7 +144,7 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 	const dirtyKeys = useMemo(() => {
 		if (!draft || !loaded) return []
 		const saved = draftOf(loaded)
-		return (['profile', 'scraper', 'post-processing'] as const).filter(
+		return (['profile', 'scraper', 'post-processing', 'message'] as const).filter(
 			key => JSON.stringify(draft[key]) !== JSON.stringify(saved[key]),
 		)
 	}, [draft, loaded])
@@ -621,6 +651,102 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 		)
 	}
 
+	function renderMessage(d: SettingsDraft) {
+		const message = d.message
+		const sampleLength = message.styleSample.trim().length
+
+		return (
+			<section id="mensagem" className={SETTINGS_CARD} aria-labelledby="message-title">
+				<h2 id="message-title" className={SECTION_TITLE}>
+					mensagem de candidatura <span className="font-mono text-xs font-normal text-muted">IA</span>
+				</h2>
+
+				<fieldset className={FIELDSET}>
+					<legend className="mb-2.5 p-0 text-sm font-medium">tom</legend>
+					<PillGroup>
+						{MESSAGE_DEFAULT_TONES.map(tone => (
+							<label key={tone} className={pill({ className: 'cursor-pointer' })}>
+								<input
+									type="radio"
+									name="message-tone"
+									className="sr-only"
+									checked={message.tone === tone}
+									onChange={() =>
+										edit(next => {
+											next.message.tone = tone
+										})
+									}
+								/>
+								{MESSAGE_TONE_LABELS[tone]}
+							</label>
+						))}
+					</PillGroup>
+					<FieldHelp>{TONE_HELP[message.tone]}</FieldHelp>
+				</fieldset>
+
+				<fieldset className={FIELDSET}>
+					<legend className="mb-2.5 p-0 text-sm font-medium">tamanho</legend>
+					<PillGroup>
+						{MESSAGE_LENGTHS.map(length => (
+							<label key={length} className={pill({ className: 'cursor-pointer' })}>
+								<input
+									type="radio"
+									name="message-length"
+									className="sr-only"
+									checked={message.length === length}
+									onChange={() =>
+										edit(next => {
+											next.message.length = length
+										})
+									}
+								/>
+								{MESSAGE_LENGTH_LABELS[length]}
+							</label>
+						))}
+					</PillGroup>
+					<FieldHelp>{LENGTH_HELP[message.length]}</FieldHelp>
+				</fieldset>
+
+				<div className="flex flex-col gap-1.5">
+					<span className="flex items-center justify-between gap-3">
+						<FieldLabel htmlFor="styleSample">seu jeito de escrever</FieldLabel>
+						<span className={cx('font-mono text-xs', sampleLength > LIMITS.styleSample ? 'text-danger' : 'text-muted')}>
+							{sampleLength} / {LIMITS.styleSample}
+						</span>
+					</span>
+					<textarea
+						id="styleSample"
+						rows={5}
+						value={message.styleSample}
+						placeholder="Opcional. Cole uma mensagem que você já mandou para um recrutador."
+						aria-invalid={!!errors.styleSample || undefined}
+						aria-describedby={errors.styleSample ? 'styleSample-error' : 'styleSample-help'}
+						onChange={event => {
+							const value = event.target.value
+							edit(next => {
+								next.message.styleSample = value
+							})
+						}}
+						className={field({ invalid: !!errors.styleSample, className: 'resize-y py-2.5 leading-relaxed' })}
+					/>
+					{fieldError('styleSample') ?? (
+						<FieldHelp id="styleSample-help">
+							A IA imita a saudação, o tamanho das frases e o calor do texto, sem copiar fatos, nomes ou empresas dele.
+						</FieldHelp>
+					)}
+				</div>
+
+				<Notice tone="info" icon="info">
+					<p className="text-sm">
+						Em qualquer tom, expressões batidas como “agregar valor”, “soluções inovadoras” e “manifestar meu interesse” são
+						recusadas, e a IA escreve de novo. Vale para as próximas mensagens; numa vaga, dá para trocar o tom e o tamanho da
+						mensagem já gerada.
+					</p>
+				</Notice>
+			</section>
+		)
+	}
+
 	const paused = loaded?.scraper.paused ?? false
 
 	return (
@@ -674,6 +800,7 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 			{draft && renderProfile(draft)}
 			{draft && renderScraper(draft)}
 			{draft && renderProcessing(draft)}
+			{draft && renderMessage(draft)}
 			<AccountsSection id="contas" className={SECTION_SCROLL_MARGIN} initial={credentials} onDirtyChange={setDirtyAccounts} />
 
 			{draft && (

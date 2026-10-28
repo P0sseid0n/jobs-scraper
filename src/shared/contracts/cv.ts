@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import { MESSAGE_LENGTHS, MESSAGE_TONES } from './settings'
+
 /**
  * Para onde o resultado do currículo volta: a fila de quem pediu e um contexto que o cv-updater devolve sem
  * interpretar (ex.: o token da interação do Discord). Assim qualquer canal pode pedir currículo.
@@ -19,8 +21,16 @@ export const CvRequestSchema = z.object({
 
 export type CvRequest = z.infer<typeof CvRequestSchema>
 
-/** E-mail de candidatura sugerido para a vaga (gerado pela IA no cv-updater). */
-export const ApplicationMessageSchema = z.object({ subject: z.string().min(1), body: z.string().min(1) })
+/**
+ * E-mail de candidatura sugerido para a vaga (gerado pela IA no cv-updater), com o tom e o tamanho em que foi escrito.
+ * Mensagens de antes desses campos ficam com `null`.
+ */
+export const ApplicationMessageSchema = z.object({
+	subject: z.string().min(1),
+	body: z.string().min(1),
+	tone: z.enum(MESSAGE_TONES).nullable().default(null),
+	length: z.enum(MESSAGE_LENGTHS).nullable().default(null),
+})
 export type ApplicationMessage = z.infer<typeof ApplicationMessageSchema>
 
 /** O que o currículo da vaga mudou em relação ao currículo base (o site mostra o ajuste). */

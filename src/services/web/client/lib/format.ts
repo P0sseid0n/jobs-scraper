@@ -1,4 +1,4 @@
-import type { ContractType, DatePostedFilter, ProcessedJob } from '@shared/contracts'
+import type { ContractType, DatePostedFilter, MessageDefaultTone, MessageLength, ProcessedJob } from '@shared/contracts'
 
 import type { WebJob } from '../../api-types'
 
@@ -113,6 +113,16 @@ export const DATE_POSTED_LABELS: Record<DatePostedFilter, string> = {
 	'past-month': 'Último mês',
 	any: 'Qualquer data',
 }
+
+/** Os tons da mensagem de candidatura; `auto` só existe como padrão das configurações. */
+export const MESSAGE_TONE_LABELS: Record<MessageDefaultTone, string> = {
+	auto: 'automático',
+	formal: 'formal',
+	neutral: 'neutro',
+	casual: 'descontraído',
+}
+
+export const MESSAGE_LENGTH_LABELS: Record<MessageLength, string> = { short: 'curta', medium: 'média' }
 
 export const LANGUAGE_NAMES: Record<string, string> = {
 	pt: 'Português',

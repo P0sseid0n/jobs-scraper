@@ -66,7 +66,7 @@ describe('validateMessageBody', () => {
 	test('"express" como verbo não é a tecnologia Express', () => {
 		const english = `Hello,
 
-I would like to express my interest in the Front-end Developer position at Acme. I work with Vue.js and TypeScript, and in the Painel Exemplo project I built fast interfaces.
+I want to express how glad I was to see the Front-end Developer position at Acme. I work with Vue.js and TypeScript, and in the Painel Exemplo project I built fast interfaces.
 
 My résumé is attached and I am available to talk. Thank you!`
 
@@ -84,6 +84,23 @@ My résumé is attached and I am available to talk. Thank you!`
 		expect(validateMessageBody('Olá! Tenho interesse na vaga.', cv, job).rejected).toContain('length')
 		expect(validateMessageBody(goodBody.repeat(3), cv, job).rejected).toContain('length')
 		expect(validateMessageBody(null, cv, job).rejected).toContain('empty')
+	})
+
+	test('rejeita clichês em qualquer idioma, citando quais', () => {
+		const body = goodBody
+			.replace('e tenho interesse', 'e venho manifestar meu interesse')
+			.replace('com foco em performance', 'para agregar valor')
+
+		expect(validateMessageBody(body, cv, job).rejected).toBe('it uses clichés: "manifestar meu interesse", "agregar valor"')
+	})
+
+	test('a mensagem curta tem limite menor', () => {
+		const short =
+			'Olá! Tudo bem?\n\nVi a vaga de Front-end Pleno na Acme. Trabalho com Vue.js e TypeScript e envio meu currículo em anexo. Obrigado!'
+
+		expect(validateMessageBody(short, cv, job, [], 'short').rejected).toBeNull()
+		expect(validateMessageBody(short, cv, job).rejected).toContain('length')
+		expect(validateMessageBody(goodBody.repeat(2), cv, job, [], 'short').rejected).toContain('outside 80-450')
 	})
 })
 
@@ -122,6 +139,29 @@ describe('pedido à IA', () => {
 		expect(messages.at(-1)?.content).not.toContain('Projects:')
 	})
 
+	test('manda o tom, o tamanho e a mensagem de exemplo das configurações', () => {
+		const { messages, format } = buildMessageRequest(cv, job, 'pt', {
+			style: { tone: 'formal', length: 'short', styleSample: 'Oi! Vi a vaga e achei a cara do que faço.' },
+		})
+
+		expect(messages[0]?.content).toContain('- Tone formal:')
+		expect(messages[0]?.content).toContain('"Prezados,"')
+		expect(messages[0]?.content).toContain('LinkedIn direct message')
+		expect(messages[0]?.content).toContain('"agregar valor"')
+		expect(messages.at(-1)?.content).toEndWith(
+			'## Writing sample\nA message the person wrote. Imitate its voice (greeting, sentence length, warmth), but follow the tone and length rules and never copy facts, names, companies or skills from it.\nOi! Vi a vaga e achei a cara do que faço.',
+		)
+		expect(format.required).toEqual(['body'])
+	})
+
+	test('no tom automático, a IA escolhe e devolve o tom', () => {
+		const { messages, format } = buildMessageRequest(cv, job, 'pt', { style: { tone: 'auto', length: 'medium', styleSample: '' } })
+
+		expect(messages[0]?.content).toContain('Choose the tone that fits the job post')
+		expect(messages.at(-1)?.content).not.toContain('Writing sample')
+		expect(format.required).toEqual(['tone', 'body'])
+	})
+
 	test('lê o corpo da resposta, ou null se não for o JSON esperado', () => {
 		expect(parseMessageBody(JSON.stringify({ body: 'Olá' }))).toBe('Olá')
 		expect(parseMessageBody('não é json')).toBeNull()
@@ -151,7 +191,18 @@ describe('requestApplicationMessage', () => {
 		expect(await requestApplicationMessage({ ollama, model: 'm' }, cv, job, {}, log)).toEqual({
 			subject: 'Candidatura – Desenvolvedor(a) Front-end Pleno',
 			body: goodBody,
+			tone: 'neutral',
+			length: 'medium',
 		})
+	})
+
+	test('no tom automático, guarda o tom escolhido pela IA (neutro se vier outro)', async () => {
+		const style = { tone: 'auto', length: 'medium', styleSample: '' } as const
+		const reply = (tone: string) =>
+			({ chat: async () => ({ message: { content: JSON.stringify({ tone, body: goodBody }) } }) }) as unknown as Ollama
+
+		expect((await requestApplicationMessage({ ollama: reply('casual'), model: 'm' }, cv, job, { style }, log))?.tone).toBe('casual')
+		expect((await requestApplicationMessage({ ollama: reply('chique'), model: 'm' }, cv, job, { style }, log))?.tone).toBe('neutral')
 	})
 
 	test('pede outra versão uma vez quando a primeira é rejeitada', async () => {

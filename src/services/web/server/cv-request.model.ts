@@ -1,8 +1,11 @@
 import mongoose, { Schema } from 'mongoose'
 
-import type { ApplicationMessage, CvChanges } from '@shared/contracts'
+import { MESSAGE_LENGTHS, MESSAGE_TONES, type ApplicationMessage, type CvChanges } from '@shared/contracts'
 
 import { CV_STATUSES, type CvStatus, type WebCvRequest } from '../api-types'
+
+/** Mensagens de antes do tom e do tamanho não têm esses campos. */
+type StoredMessage = Omit<ApplicationMessage, 'tone' | 'length'> & Partial<Pick<ApplicationMessage, 'tone' | 'length'>>
 
 type CvRequestDocument = {
 	requestId: string
@@ -14,7 +17,9 @@ type CvRequestDocument = {
 	pdf: Buffer | null
 	error: string | null
 	/** E-mail de candidatura gerado pela IA; pedidos de antes do campo não o têm. */
-	message?: ApplicationMessage | null
+	message?: StoredMessage | null
+	/** A versão de antes da última reescrita pelo site (tom, tamanho, "mais direta"), para desfazer. */
+	previousMessage?: StoredMessage | null
 	/** O ajuste feito para a vaga; pedidos de antes do campo não o têm. */
 	changes?: CvChanges | null
 	/** De qual currículo base o PDF saiu (`versionId` `null`: o arquivo); `null` na falha e nos pedidos de antes do campo. */
@@ -24,6 +29,16 @@ type CvRequestDocument = {
 }
 
 const HISTORY_DAYS = 90
+
+const messageSchema = new Schema(
+	{
+		subject: { type: String, required: true },
+		body: { type: String, required: true },
+		tone: { type: String, enum: [...MESSAGE_TONES, null], default: null },
+		length: { type: String, enum: [...MESSAGE_LENGTHS, null], default: null },
+	},
+	{ _id: false },
+)
 
 /** Currículos pedidos pelo site, com o PDF: a lista "Meus currículos" baixa de novo sem gerar outro. */
 const cvRequestSchema = new Schema<CvRequestDocument>(
@@ -36,10 +51,8 @@ const cvRequestSchema = new Schema<CvRequestDocument>(
 		fileName: { type: String, default: null },
 		pdf: { type: Buffer, default: null },
 		error: { type: String, default: null },
-		message: {
-			type: new Schema({ subject: { type: String, required: true }, body: { type: String, required: true } }, { _id: false }),
-			default: null,
-		},
+		message: { type: messageSchema, default: null },
+		previousMessage: { type: messageSchema, default: null },
 		changes: {
 			type: new Schema(
 				{
@@ -81,7 +94,8 @@ export function toWebCvRequest(doc: Omit<CvRequestDocument, 'pdf'>, now = new Da
 		status: timedOut ? 'failed' : doc.status,
 		fileName: doc.fileName,
 		error: timedOut ? CV_TIMEOUT_ERROR : doc.error,
-		message: doc.message ? { subject: doc.message.subject, body: doc.message.body } : null,
+		message: toWebMessage(doc.message),
+		previousMessage: toWebMessage(doc.previousMessage),
 		changes: doc.changes
 			? {
 					addedSkills: [...doc.changes.addedSkills],
@@ -94,4 +108,8 @@ export function toWebCvRequest(doc: Omit<CvRequestDocument, 'pdf'>, now = new Da
 		requestedAt: doc.requestedAt.toISOString(),
 		finishedAt: doc.finishedAt?.toISOString() ?? null,
 	}
+}
+
+function toWebMessage(message: StoredMessage | null | undefined): ApplicationMessage | null {
+	return message ? { subject: message.subject, body: message.body, tone: message.tone ?? null, length: message.length ?? null } : null
 }

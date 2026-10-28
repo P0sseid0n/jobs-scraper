@@ -29,6 +29,7 @@ import { setJobsViewed, setJobViewed } from './server/job-viewed'
 import { getJob, getJobImage, getRawJob, jobFacets, listJobs } from './server/jobs'
 import { toWebJob, type JobDocument } from './server/jobs-query'
 import { getLinkedinLogin, requestLinkedinLogin, sendVerificationCode } from './server/linkedin-login'
+import { rewriteCvMessage, undoCvMessage } from './server/message-rewrite'
 import { listRuns, requestRun, scraperStatus } from './server/scraper'
 import { getSettings, putSettings } from './server/settings'
 import { searchSuggestions, setupStatus } from './server/setup'
@@ -64,8 +65,11 @@ await queue.consume(QUEUES.webCvBase, CvBaseValidationResultSchema, result => sa
 
 const api = <R extends Request>(fn: (req: R) => Promise<Response> | Response) => handler(logger, fn)
 
-const SUGGESTIONS_TIMEOUT_SECONDS = 240
+// A primeira chamada depois de subir carrega o modelo no Ollama, o que passa dos 10 s em que o Bun fecha uma conexão
+// sem resposta (na CPU, bem mais): as rotas que esperam a IA aguentam até 4 min
+const AI_TIMEOUT_SECONDS = 240
 const suggestSearchTerms = api(() => searchSuggestions(ai, logger))
+const rewriteMessage = api<Request & { params: { requestId: string } }>(req => rewriteCvMessage(req, { ai, events, logger }))
 
 const server = Bun.serve({
 	hostname: config.WEB_HOST,
@@ -91,6 +95,13 @@ const server = Bun.serve({
 		'/api/cv': { GET: api(listCvRequests) },
 		'/api/cv/:requestId': { GET: api(getCvRequest) },
 		'/api/cv/:requestId/pdf': { GET: api(getCvPdf) },
+		'/api/cv/:requestId/message': {
+			POST: (req, srv) => {
+				srv.timeout(req, AI_TIMEOUT_SECONDS)
+				return rewriteMessage(req)
+			},
+		},
+		'/api/cv/:requestId/message/undo': { POST: api(req => undoCvMessage(req, { events })) },
 		'/api/cv-base': { GET: api(listCvBaseVersions) },
 		'/api/cv-base/versions': { POST: api(req => createCvBaseVersion(req, { queue, events, logger })) },
 		'/api/cv-base/versions/:versionId': { GET: api(getCvBaseVersion) },
@@ -108,9 +119,7 @@ const server = Bun.serve({
 		'/api/setup': { GET: api(() => setupStatus({ skipOnboarding: config.SKIP_ONBOARDING, cvTexFile: config.CV_TEX_FILE })) },
 		'/api/setup/suggestions': {
 			POST: (req, srv) => {
-				// A primeira chamada depois de subir carrega o modelo no Ollama, o que passa dos 10 s em que o Bun fecha
-				// uma conexão sem resposta (na CPU, bem mais): espera até 4 min
-				srv.timeout(req, SUGGESTIONS_TIMEOUT_SECONDS)
+				srv.timeout(req, AI_TIMEOUT_SECONDS)
 				return suggestSearchTerms(req)
 			},
 		},

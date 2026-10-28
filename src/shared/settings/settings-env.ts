@@ -72,6 +72,8 @@ export function settingsSeedsFromEnv(env: SettingsEnv): SettingsSeeds {
 			seniority: env.PROFILE_SENIORITY || null,
 			...(profileLanguages.length > 0 ? { languages: profileLanguages } : {}),
 		},
+		// Sem variável no `.env`: o tom e o tamanho começam nos padrões e mudam pelo site
+		message: {},
 	}
 }
 

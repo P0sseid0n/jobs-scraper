@@ -1,4 +1,4 @@
-import type { CvForm, JobCorrectionInput } from '@shared/contracts'
+import type { CvForm, JobCorrectionInput, MessageLength, MessageTone } from '@shared/contracts'
 
 import type {
 	ApiError,
@@ -100,6 +100,10 @@ export const api = {
 	requestCv: (postId: string) => request<WebCvRequest>(`/api/jobs/${encodeURIComponent(postId)}/cv`, { method: 'POST' }),
 	cvRequests: () => request<WebCvRequest[]>('/api/cv'),
 	cvRequest: (requestId: string) => request<WebCvRequest>(`/api/cv/${requestId}`),
+	/** Reescreve com a IA a mensagem do currículo no tom e no tamanho pedidos (ou mais direta); a anterior fica para desfazer. */
+	rewriteCvMessage: (requestId: string, style: { tone: MessageTone; length: MessageLength; direct?: boolean }) =>
+		request<WebCvRequest>(`/api/cv/${requestId}/message`, { method: 'POST', body: JSON.stringify(style) }),
+	undoCvMessage: (requestId: string) => request<WebCvRequest>(`/api/cv/${requestId}/message/undo`, { method: 'POST' }),
 
 	cvBase: () => request<WebCvBase>('/api/cv-base'),
 	cvBaseVersion: (versionId: string) => request<WebCvBaseVersionWithTex>(`/api/cv-base/versions/${versionId}`),

@@ -128,7 +128,7 @@ async function generateCv(request: CvRequest) {
 				{ ollama, model: config.OLLAMA_MODEL },
 				cv,
 				job,
-				{ profile, unsupportedSkills: report.unsupportedSkills },
+				{ profile, unsupportedSkills: report.unsupportedSkills, style: await readSettings('message') },
 				log,
 			)
 		: null

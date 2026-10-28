@@ -1,3 +1,5 @@
+import { MESSAGE_STYLE_SAMPLE_MAX } from '@shared/contracts'
+
 import type { WebSettings } from '../../api-types'
 
 export const LIMITS = {
@@ -12,6 +14,7 @@ export const LIMITS = {
 	area: 80,
 	targetRole: 100,
 	profileLanguages: 10,
+	styleSample: MESSAGE_STYLE_SAMPLE_MAX,
 } as const
 
 /** O perfil no formulário: área e cargo-alvo ainda não preenchidos ficam como texto vazio. */
@@ -22,6 +25,7 @@ export type SettingsDraft = {
 	scraper: Omit<WebSettings['scraper'], 'paused'>
 	'post-processing': WebSettings['post-processing']
 	profile: ProfileDraft
+	message: WebSettings['message']
 }
 
 export function profileDraftOf(profile: WebSettings['profile']): ProfileDraft {
@@ -62,6 +66,9 @@ export function validateDraft(draft: SettingsDraft) {
 
 	if (!isIntIn(processing.duplicateWindowDays, LIMITS.duplicateWindowDays))
 		errors.duplicateWindowDays = 'Use um número inteiro de 1 a 365'
+
+	if (draft.message.styleSample.trim().length > LIMITS.styleSample)
+		errors.styleSample = `Use até ${LIMITS.styleSample.toLocaleString('pt-BR')} caracteres`
 
 	return errors
 }

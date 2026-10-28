@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { PostProcessingSettingsSchema, ProfileSettingsSchema, ScraperSettingsSchema } from '@shared/contracts'
+import { MessageSettingsSchema, PostProcessingSettingsSchema, ProfileSettingsSchema, ScraperSettingsSchema } from '@shared/contracts'
 
 import { duplicateSimilarityHint, errorFor, profileDraftOf, validateDraft, validateProfile, type SettingsDraft } from './settings-form'
 
@@ -10,6 +10,7 @@ function draft(): SettingsDraft {
 		scraper,
 		'post-processing': PostProcessingSettingsSchema.parse({}),
 		profile: profileDraftOf(ProfileSettingsSchema.parse({})),
+		message: MessageSettingsSchema.parse({}),
 	}
 }
 
@@ -39,6 +40,14 @@ describe('validateDraft (as mesmas regras do servidor)', () => {
 		value['post-processing'].duplicateWindowDays = 0
 
 		expect(Object.keys(validateDraft(value))).toEqual(['minJobsPerRun', 'intervalMinutes', 'duplicateWindowDays'])
+	})
+
+	test('a mensagem de exemplo tem o limite do servidor', () => {
+		const value = draft()
+		value.message.styleSample = 'a'.repeat(1501)
+
+		expect(validateDraft(value)).toEqual({ styleSample: 'Use até 1.500 caracteres' })
+		expect(MessageSettingsSchema.safeParse(value.message).success).toBe(false)
 	})
 
 	test('o resultado aceito pelo cliente também passa no schema do servidor', () => {

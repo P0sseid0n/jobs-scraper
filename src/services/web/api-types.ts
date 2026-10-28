@@ -10,6 +10,7 @@ import type {
 	CvChanges,
 	CvForm,
 	DatePostedFilter,
+	MessageSettings,
 	PostProcessingSettings,
 	ProcessedJob,
 	ProfileSettings,
@@ -73,6 +74,8 @@ export type WebCvRequest = {
 	error: string | null
 	/** E-mail de candidatura gerado pela IA para a vaga (só com e-mail de contato e resposta válida da IA). */
 	message: ApplicationMessage | null
+	/** A mensagem de antes da última reescrita pelo site, para desfazer; `null` se ela não foi reescrita. */
+	previousMessage: ApplicationMessage | null
 	/** O que o currículo mudou para a vaga (só nos prontos; pedidos de antes do campo não o têm). */
 	changes: CvChanges | null
 	/**
@@ -225,7 +228,12 @@ export type RunsPageSize = (typeof RUNS_PAGE_SIZES)[number]
 /** Uma página do histórico de coletas; `total` é de todas as páginas. */
 export type RunsPage = { runs: WebScraperRun[]; total: number }
 
-export type WebSettings = { scraper: ScraperSettings; 'post-processing': PostProcessingSettings; profile: ProfileSettings }
+export type WebSettings = {
+	scraper: ScraperSettings
+	'post-processing': PostProcessingSettings
+	profile: ProfileSettings
+	message: MessageSettings
+}
 export type { SettingsKey }
 
 /** `GET /api/credentials`: de onde vem cada grupo e os campos públicos; os segredos nunca vêm, só se estão preenchidos. */

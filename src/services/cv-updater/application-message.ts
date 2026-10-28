@@ -1,8 +1,17 @@
 import type { Message, Ollama } from 'ollama'
 import { z } from 'zod'
 
-import type { ApplicationMessage } from '@shared/contracts'
+import { MESSAGE_TONES, type ApplicationMessage, type MessageSettings } from '@shared/contracts'
 import type { Logger } from '@shared/logging'
+import {
+	cleanMessageBody,
+	MESSAGE_LANGUAGE_NAMES,
+	messageLanguage,
+	messageStyleRules,
+	messageTextProblem,
+	styleSampleSection,
+	type MessageLanguage,
+} from '@shared/templates'
 
 import { knownTechnologies } from './projects/tech-catalog'
 import type { TailoredResume } from './resume/resume.types'
@@ -10,40 +19,39 @@ import { mentionsSkill, normalizeSkill, skillAliases } from './skills/skill-matc
 import { describeProfile, type TailoringProfile } from './tailoring-prompt'
 import type { CvJob } from './target-job'
 
-const BODY_MIN = 150
-const BODY_MAX = 700
 const POST_MAX = 1500
-const MODEL_ATTEMPTS = 2
+// Um clichê recusado costuma sumir na versão seguinte: uma tentativa a mais que antes das regras de estilo
+const MODEL_ATTEMPTS = 3
 
-type MessageLanguage = 'pt' | 'en'
 type AiOptions = { ollama: Ollama; model: string }
 
-/** O que a mensagem precisa saber além do currículo e da vaga: o perfil e os requisitos que a pessoa não tem. */
-export type MessageContext = { profile?: TailoringProfile; unsupportedSkills?: string[] }
+/** O estilo usado quando não há configuração (os padrões de `MessageSettingsSchema`). */
+const DEFAULT_STYLE: MessageSettings = { tone: 'neutral', length: 'medium', styleSample: '' }
 
-const LANGUAGE_NAMES: Record<MessageLanguage, string> = { pt: 'Brazilian Portuguese', en: 'English' }
+/**
+ * O que a mensagem precisa saber além do currículo e da vaga: o perfil, os requisitos que a pessoa não tem e o estilo
+ * das configurações (tom, tamanho e mensagem de exemplo).
+ */
+export type MessageContext = { profile?: TailoringProfile; unsupportedSkills?: string[]; style?: MessageSettings }
 
-const SYSTEM_PROMPT = `You write the body of a short job application email that a professional (from any field) sends to a recruiter, with the tailored résumé attached.
+function systemPrompt(style: MessageSettings) {
+	return `You write the body of a short job application email that a professional (from any field) sends to a recruiter, with the tailored résumé attached.
 
-Return JSON with "body", following these rules:
+Return JSON with ${style.tone === 'auto' ? '"tone" and "body"' : '"body"'}, following these rules:
 - Write in the language given in "Message language".
-- At most ${BODY_MAX - 100} characters, in 2 or 3 short paragraphs of plain text (no markdown, no lists, no subject line).
-- Start with a short greeting ("Olá! Tudo bem?" in Portuguese, "Hello," in English).
+- Plain text (no markdown, no lists, no subject line).
 - Say which role you are applying for and, if the company is known, the company name. Never write "unknown".
 - Mention 2 or 3 of the job's required skills, tools or qualifications that are in the résumé, and at most one project or experience from the résumé that relates to the job, by its name.
 - Say the résumé is attached and that you are available to talk.
-- End with a short thanks. No signature, no candidate name and no placeholders like [name].
+- No signature, no candidate name and no placeholders like [name].
 - Use only facts from the résumé and the job: never invent companies, years of experience, certifications, numbers, skills or tools.
 - Never mention the items in "Not in the résumé": the person does not have them.
-- First person, polite and direct; avoid clichés like "I am passionate about".`
+- First person.
+${messageStyleRules(style.tone, style.length)}`
+}
 
-/** O modelo pode devolver o corpo com espaços extras ou repetir o assunto na primeira linha. */
-const MessageOutputSchema = z.object({ body: z.string() })
-
-const PLACEHOLDER = /\[[^\]]*\]|<[^>]*>|\{[^}]*\}|\bx{3,}\b|seu nome|your name|nome da empresa|company name/i
-const MARKDOWN = /\*\*|^\s*#+\s|^\s*[-*]\s|```/m
-const YEARS_CLAIM = /\d+\s*\+?\s*(anos|years)\b/i
-const SUBJECT_LINE = /^\s*(assunto|subject)\s*:[^\n]*\n+/i
+/** O modelo pode devolver o corpo com espaços extras ou repetir o assunto na primeira linha; o tom só vem no `auto`. */
+const MessageOutputSchema = z.object({ body: z.string(), tone: z.string().optional() })
 
 /**
  * Escreve com a IA o e-mail de candidatura da vaga, a partir do currículo já ajustado (apresentação, habilidades e
@@ -58,6 +66,7 @@ export async function requestApplicationMessage(
 	log: Logger,
 ): Promise<ApplicationMessage | null> {
 	const language = messageLanguage(job.language)
+	const style = context.style ?? DEFAULT_STYLE
 	const request = buildMessageRequest(cv, job, language, context)
 	const messages: Message[] = request.messages
 
@@ -71,8 +80,16 @@ export async function requestApplicationMessage(
 			return null
 		}
 
-		const result = validateMessageBody(parseMessageBody(content), cv, job, context.unsupportedSkills)
-		if (result.body) return { subject: messageSubject(job.title, language), body: result.body }
+		const output = parseMessageOutput(content)
+		const result = validateMessageBody(output?.body ?? null, cv, job, context.unsupportedSkills, style.length)
+		if (result.body) {
+			return {
+				subject: messageSubject(job.title, language),
+				body: result.body,
+				tone: style.tone === 'auto' ? chosenTone(output?.tone) : style.tone,
+				length: style.length,
+			}
+		}
 
 		log.info({ attempt, reason: result.rejected }, 'Mensagem de candidatura rejeitada')
 		messages.push(
@@ -87,9 +104,11 @@ export async function requestApplicationMessage(
 	return null
 }
 
-/** Idioma da mensagem: o do post quando é inglês; português nos outros casos (inclusive idioma desconhecido). */
-export function messageLanguage(postLanguage: string | null): MessageLanguage {
-	return postLanguage === 'en' ? 'en' : 'pt'
+export { messageLanguage }
+
+/** O tom que a IA disse ter escolhido no `auto`; fora da lista, vale o neutro. */
+function chosenTone(tone: string | undefined) {
+	return MESSAGE_TONES.find(name => name === tone?.trim().toLowerCase()) ?? 'neutral'
 }
 
 /** Assunto fixo, sem IA: o cargo é o que o recrutador procura na caixa de entrada. */
@@ -103,9 +122,10 @@ export function buildMessageRequest(cv: TailoredResume, job: CvJob, language: Me
 	const experience = cv.experience.map(entry => `${entry.header}: ${entry.bullets.slice(0, 2).join(' ')}`)
 	const candidate = describeProfile(context.profile ?? {})
 	const unsupported = context.unsupportedSkills ?? []
+	const style = context.style ?? DEFAULT_STYLE
 
 	const content = [
-		`## Message language\n${LANGUAGE_NAMES[language]}`,
+		`## Message language\n${MESSAGE_LANGUAGE_NAMES[language]}`,
 		...(candidate ? [`## Candidate profile\n${candidate}`] : []),
 		[
 			'## Job opening',
@@ -122,28 +142,39 @@ export function buildMessageRequest(cv: TailoredResume, job: CvJob, language: Me
 			`Experience: ${experience.join(' | ')}`,
 		].join('\n'),
 		...(unsupported.length > 0 ? [`## Not in the résumé\n${unsupported.join(', ')}`] : []),
+		...styleSampleSection(style.styleSample),
 	].join('\n\n')
 
 	const messages: Message[] = [
-		{ role: 'system', content: SYSTEM_PROMPT },
+		{ role: 'system', content: systemPrompt(style) },
 		{ role: 'user', content },
 	]
 
-	return { messages, format: z.toJSONSchema(MessageOutputSchema) }
+	const format =
+		style.tone === 'auto'
+			? z.toJSONSchema(z.object({ tone: z.enum(MESSAGE_TONES), body: z.string() }))
+			: z.toJSONSchema(z.object({ body: z.string() }))
+
+	return { messages, format }
 }
 
-/** Lê o corpo da resposta do modelo (`null` se não for o JSON esperado). */
-export function parseMessageBody(content: string): string | null {
+/** Lê a resposta do modelo (`null` se não for o JSON esperado). */
+export function parseMessageOutput(content: string): { body: string; tone?: string } | null {
 	try {
-		return MessageOutputSchema.parse(JSON.parse(content)).body
+		return MessageOutputSchema.parse(JSON.parse(content))
 	} catch {
 		return null
 	}
 }
 
+/** Lê o corpo da resposta do modelo (`null` se não for o JSON esperado). */
+export function parseMessageBody(content: string): string | null {
+	return parseMessageOutput(content)?.body ?? null
+}
+
 /**
- * Valida o corpo da mensagem: tamanho, texto puro, sem placeholders, sem anos de experiência, sem tecnologias
- * que não estão no currículo nem na vaga e sem os requisitos da vaga que a pessoa não tem (`unsupportedSkills`).
+ * Valida o corpo da mensagem: tamanho, texto puro, sem placeholders, sem anos de experiência, sem clichês, sem
+ * tecnologias que não estão no currículo nem na vaga e sem os requisitos da vaga que a pessoa não tem (`unsupportedSkills`).
  * @returns O corpo limpo, ou o motivo da rejeição.
  */
 export function validateMessageBody(
@@ -151,16 +182,12 @@ export function validateMessageBody(
 	cv: TailoredResume,
 	job: Pick<CvJob, 'necessaryKnowledge'>,
 	unsupportedSkills: string[] = [],
+	length: MessageSettings['length'] = 'medium',
 ): { body: string; rejected: null } | { body: null; rejected: string } {
-	const body = cleanBody(candidate ?? '')
+	const body = cleanMessageBody(candidate ?? '')
 
-	if (!body) return { body: null, rejected: 'empty or invalid JSON' }
-	if (body.length < BODY_MIN || body.length > BODY_MAX) {
-		return { body: null, rejected: `length ${body.length} is outside ${BODY_MIN}-${BODY_MAX} characters` }
-	}
-	if (PLACEHOLDER.test(body)) return { body: null, rejected: 'it has a placeholder to fill in' }
-	if (MARKDOWN.test(body)) return { body: null, rejected: 'it uses markdown; write plain text' }
-	if (YEARS_CLAIM.test(body)) return { body: null, rejected: 'it claims years of experience' }
+	const problem = messageTextProblem(body, length)
+	if (problem) return { body: null, rejected: problem }
 
 	const unknown = technologiesOutside(body, cv, job)
 	if (unknown.length > 0) {
@@ -173,17 +200,6 @@ export function validateMessageBody(
 	}
 
 	return { body, rejected: null }
-}
-
-/** Tira o assunto repetido e os espaços extras, mantendo os parágrafos. */
-function cleanBody(text: string) {
-	return text
-		.replace(SUBJECT_LINE, '')
-		.split('\n')
-		.map(line => line.trim().replace(/\s+/g, ' '))
-		.join('\n')
-		.replace(/\n{3,}/g, '\n\n')
-		.trim()
 }
 
 /**

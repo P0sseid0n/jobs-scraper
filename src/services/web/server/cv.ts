@@ -110,6 +110,7 @@ export async function saveCvResult(result: CvResult, { events, logger }: Omit<De
 			pdf: result.file ? Buffer.from(result.file.base64, 'base64') : null,
 			error: result.file ? null : (result.error ?? 'Erro desconhecido no cv-updater'),
 			message: result.file ? result.message : null,
+			previousMessage: null,
 			changes: result.file ? result.changes : null,
 			base: result.file ? result.base : null,
 			finishedAt: new Date(),

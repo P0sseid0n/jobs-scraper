@@ -61,7 +61,10 @@ export function useCvFor(postId: string) {
 	}, [requests, postId])
 }
 
-/** A mensagem de candidatura gerada pela IA mais recente da vaga (um pedido novo em andamento não a apaga). */
+/**
+ * O pedido com a mensagem de candidatura gerada pela IA mais recente da vaga (um pedido novo em andamento não a apaga):
+ * `message` é a mensagem, e `requestId` e `previousMessage` servem para reescrever e desfazer.
+ */
 export function useGeneratedMessage(postId: string) {
 	const { requests } = useStore(state)
 
@@ -71,8 +74,18 @@ export function useGeneratedMessage(postId: string) {
 			if (request.postId !== postId || request.status !== 'ready' || !request.message) continue
 			if (!latest || request.requestedAt > latest.requestedAt) latest = request
 		}
-		return latest?.message ?? null
+		return latest
 	}, [requests, postId])
+}
+
+/** Reescreve a mensagem do pedido com outro estilo; o pedido atualizado também chega pelo stream. */
+export async function rewriteMessage(requestId: string, style: Parameters<typeof api.rewriteCvMessage>[1]) {
+	upsert(await api.rewriteCvMessage(requestId, style))
+}
+
+/** Volta a mensagem do pedido à versão de antes da última reescrita. */
+export async function undoMessageRewrite(requestId: string) {
+	upsert(await api.undoCvMessage(requestId))
 }
 
 function upsert(request: WebCvRequest, { track = false } = {}) {

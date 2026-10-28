@@ -3,7 +3,12 @@ import { describe, expect, test } from 'bun:test'
 import { buildCvDeliveryContent } from './cv-delivery'
 
 const file = { name: 'Curriculo.pdf', base64: 'JVBERi0=' }
-const message = { subject: 'Candidatura – Dev Vue', body: 'Olá! Tudo bem?\n\nVi a vaga de Dev Vue na Acme e tenho interesse.' }
+const message = {
+	subject: 'Candidatura – Dev Vue',
+	body: 'Olá! Tudo bem?\n\nVi a vaga de Dev Vue na Acme e tenho interesse.',
+	tone: null,
+	length: null,
+}
 
 describe('buildCvDeliveryContent', () => {
 	test('com a mensagem da IA: o aviso e a mensagem num bloco para copiar', () => {

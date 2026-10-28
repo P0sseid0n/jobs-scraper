@@ -139,11 +139,36 @@ export function isProfileComplete(profile: ProfileSettings) {
 	return !!profile.area && !!profile.targetRole
 }
 
+/** Tons do e-mail de candidatura escrito pela IA. */
+export const MESSAGE_TONES = ['formal', 'neutral', 'casual'] as const
+export type MessageTone = (typeof MESSAGE_TONES)[number]
+
+/** `short`: poucas frases, para mensagem direta no LinkedIn. `medium`: o e-mail completo. */
+export const MESSAGE_LENGTHS = ['short', 'medium'] as const
+export type MessageLength = (typeof MESSAGE_LENGTHS)[number]
+
+/** O tom padrão pode ser `auto`: a IA escolhe pelo post (formal num banco, descontraído numa startup). */
+export const MESSAGE_DEFAULT_TONES = ['auto', ...MESSAGE_TONES] as const
+export type MessageDefaultTone = (typeof MESSAGE_DEFAULT_TONES)[number]
+
+export const MESSAGE_STYLE_SAMPLE_MAX = 1500
+
+/** Como a IA escreve o e-mail de candidatura (cv-updater); em cada vaga dá para reescrever com outro tom e tamanho. */
+export const MessageSettingsSchema = z.object({
+	tone: z.enum(MESSAGE_DEFAULT_TONES).default('neutral'),
+	length: z.enum(MESSAGE_LENGTHS).default('medium'),
+	/** Uma mensagem que a pessoa já mandou: a IA imita o jeito de escrever, sem copiar os fatos. Vazio desliga. */
+	styleSample: z.string().trim().max(MESSAGE_STYLE_SAMPLE_MAX).default(''),
+})
+
+export type MessageSettings = z.output<typeof MessageSettingsSchema>
+
 /** Schema de cada documento da coleção `settings`, pelo `_id`. */
 export const SETTINGS_SCHEMAS = {
 	scraper: ScraperSettingsSchema,
 	'post-processing': PostProcessingSettingsSchema,
 	profile: ProfileSettingsSchema,
+	message: MessageSettingsSchema,
 } as const
 
 export type SettingsKey = keyof typeof SETTINGS_SCHEMAS
