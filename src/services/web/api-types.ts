@@ -11,6 +11,7 @@ import type {
 	CvForm,
 	DatePostedFilter,
 	JobAppliedChange,
+	MailStatus,
 	MessageSettings,
 	PostProcessingSettings,
 	ProcessedJob,
@@ -22,6 +23,7 @@ import type {
 	CvBaseStatus,
 	LinkedinChallenge,
 	LinkedinLoginStatus,
+	MailChannel,
 	ScraperLoginFailure,
 	ScraperRunStatus,
 	ScraperRunTrigger,
@@ -189,10 +191,10 @@ export type ScraperStatus = {
 }
 
 /** Os passos do onboarding que têm o que configurar (a revisão, no fim, não tem). */
-export const SETUP_STEPS = ['profile', 'linkedin', 'cv', 'discord', 'github'] as const
+export const SETUP_STEPS = ['profile', 'linkedin', 'cv', 'discord', 'github', 'email'] as const
 export type SetupStep = (typeof SETUP_STEPS)[number]
 
-/** O mínimo para começar: sem um deles, o site abre o onboarding. Discord e GitHub são opcionais. */
+/** O mínimo para começar: sem um deles, o site abre o onboarding. Discord, GitHub e e-mail são opcionais. */
 export const REQUIRED_SETUP_STEPS = ['profile', 'linkedin', 'cv'] as const satisfies readonly SetupStep[]
 
 /** `GET /api/setup`: se o onboarding deve abrir e o que já está configurado (pelo `.env` ou pelo site). */
@@ -263,9 +265,38 @@ export type { JobAppliedChange }
  */
 export type WebAppliedSimilar = { postId: string; title: string; company: string | null; appliedAt: string }
 
+/** `GET /api/mail`: se o envio por e-mail está ligado (há conta SMTP, do site ou do `.env`) e de qual remetente. */
+export type WebMailSetup = { enabled: boolean; from: string | null }
+
+/** Uma candidatura enviada (ou tentada) por e-mail, pelo site ou pelo Discord. */
+export type WebMail = {
+	mailId: string
+	postId: string
+	channel: MailChannel
+	to: string
+	subject: string
+	fileName: string
+	/** `sending` há mais de 10 minutos aparece como `failed`, com o motivo. */
+	status: MailStatus
+	error: string | null
+	requestedAt: string
+	sentAt: string | null
+}
+
+/** `POST /api/jobs/:postId/mail`: o e-mail revisado na prévia, com o currículo (pedido pronto) a anexar. */
+export type WebMailDraft = {
+	requestId: string
+	to: string
+	subject: string
+	body: string
+	/** Confirma o envio para uma vaga que já recebeu candidatura por e-mail. */
+	force?: boolean
+}
+
 /**
  * Eventos do stream SSE (`/api/jobs/stream`): `viewed` e `applied` levam a marcação de vista e a de candidatura às
- * outras abas e aparelhos; `cvBase`, uma versão do currículo base criada, validada ou ativada.
+ * outras abas e aparelhos; `cvBase`, uma versão do currículo base criada, validada ou ativada; `mail`, uma candidatura por
+ * e-mail pedida, enviada ou que falhou.
  */
 export type StreamEvents = {
 	job: WebJob
@@ -273,4 +304,5 @@ export type StreamEvents = {
 	viewed: JobsViewedChange
 	applied: JobAppliedChange
 	cvBase: WebCvBaseVersion
+	mail: WebMail
 }

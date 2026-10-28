@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { CREDENTIAL_GROUPS, type CredentialGroup } from '@shared/contracts'
 import { deleteCredentials, mergeCredentials, readCredentialsStatus, saveCredentials } from '@shared/settings'
 
-import { checkDiscord, checkGithub } from './credential-checks'
+import { checkDiscord, checkGithub, checkSmtp } from './credential-checks'
 import { HttpError } from './http'
 
 const CredentialGroupSchema = z.enum(CREDENTIAL_GROUPS as [CredentialGroup, ...CredentialGroup[]])
@@ -33,7 +33,7 @@ export async function removeCredentials(req: GroupRequest) {
 }
 
 /**
- * `POST /api/credentials/:group/test`: testa o Discord ou o GitHub com os campos enviados (sobre os em uso), sem salvar.
+ * `POST /api/credentials/:group/test`: testa o Discord, o GitHub ou o SMTP com os campos enviados (sobre os em uso), sem salvar.
  * O LinkedIn não tem teste: um login a mais aumenta o risco de bloqueio da conta.
  */
 export async function testCredentials(req: GroupRequest) {
@@ -42,6 +42,7 @@ export async function testCredentials(req: GroupRequest) {
 
 	const patch = await readPatch(req)
 	if (group === 'discord') return Response.json(await checkDiscord(await mergeCredentials('discord', patch)))
+	if (group === 'smtp') return Response.json(await checkSmtp(await mergeCredentials('smtp', patch)))
 
 	return Response.json(await checkGithub(await mergeCredentials('github', patch)))
 }

@@ -25,6 +25,14 @@ export const credentialsEnv = {
 	DISCORD_CHANNEL_ID: optional,
 	GITHUB_USERNAME: optional,
 	GITHUB_TOKEN: optional,
+	SMTP_HOST: optional,
+	SMTP_PORT: optional,
+	SMTP_USER: optional,
+	SMTP_PASS: z
+		.string()
+		.optional()
+		.transform(value => value || undefined),
+	MAIL_FROM: optional,
 }
 
 export type CredentialsEnv = z.infer<z.ZodObject<typeof credentialsEnv>>
@@ -34,6 +42,7 @@ const ENV_NAMES: { [G in CredentialGroup]: Record<string, keyof CredentialsEnv> 
 	linkedin: { email: 'LINKEDIN_EMAIL', password: 'LINKEDIN_PASSWORD', liAt: 'LINKEDIN_LI_AT' },
 	discord: { token: 'DISCORD_TOKEN', channelId: 'DISCORD_CHANNEL_ID' },
 	github: { username: 'GITHUB_USERNAME', token: 'GITHUB_TOKEN' },
+	smtp: { host: 'SMTP_HOST', port: 'SMTP_PORT', user: 'SMTP_USER', password: 'SMTP_PASS', from: 'MAIL_FROM' },
 }
 
 /**

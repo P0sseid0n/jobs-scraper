@@ -1,7 +1,7 @@
 import type { SetupStatus } from '../../../api-types'
 
 /** Os passos do onboarding, na ordem, como aparecem na URL (`/boas-vindas?passo=linkedin`); `inicio` é a abertura. */
-export const ONBOARDING_STEPS = ['inicio', 'area', 'linkedin', 'curriculo', 'extras', 'revisao'] as const
+export const ONBOARDING_STEPS = ['inicio', 'area', 'linkedin', 'curriculo', 'extras', 'email', 'revisao'] as const
 export type OnboardingStep = (typeof ONBOARDING_STEPS)[number]
 
 /** Os passos numerados (todos menos a abertura), com o nome curto da lista de passos. */
@@ -10,6 +10,7 @@ export const NUMBERED_STEPS: { step: Exclude<OnboardingStep, 'inicio'>; label: s
 	{ step: 'linkedin', label: 'LinkedIn' },
 	{ step: 'curriculo', label: 'Currículo' },
 	{ step: 'extras', label: 'Extras' },
+	{ step: 'email', label: 'E-mail' },
 	{ step: 'revisao', label: 'Revisão' },
 ]
 
@@ -24,6 +25,8 @@ export function stepDone(step: OnboardingStep, setup: SetupStatus) {
 			return setup.steps.cv
 		case 'extras':
 			return setup.steps.discord || setup.steps.github
+		case 'email':
+			return setup.steps.email
 		default:
 			return false
 	}

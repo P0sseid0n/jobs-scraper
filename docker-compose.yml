@@ -175,6 +175,24 @@ services:
     healthcheck: *app-healthcheck
     restart: unless-stopped
 
+  # Envia as candidaturas por e-mail (SMTP), pedidas pelo site e pelo Discord. A conta de e-mail fica em
+  # Configurações › Contas (ou SMTP_* no .env); sem ela, o envio fica desligado
+  mailer:
+    profiles: [app]
+    build:
+      context: .
+      target: app
+    command: ['bun', 'src/services/mailer/index.ts']
+    env_file: ${ENV_FILE:-.env}
+    environment: *app-env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+    healthcheck: *app-healthcheck
+    restart: unless-stopped
+
   # Site (vagas em tempo real, currículos, coletas e configurações): http://localhost:3000
   web:
     profiles: [app]

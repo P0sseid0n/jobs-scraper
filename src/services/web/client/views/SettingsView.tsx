@@ -34,8 +34,8 @@ import { Hero, Page, pageFrame } from '../components/ui/Page'
 import { pill, PillGroup } from '../components/ui/Pill'
 import { SECTION_SCROLL_MARGIN, SectionNav } from '../components/ui/SectionNav'
 import { SelectMenu, type SelectMenuOption } from '../components/ui/SelectMenu'
-import { Switch } from '../components/ui/Switch'
 import { StatusDot } from '../components/ui/StatusDot'
+import { Switch } from '../components/ui/Switch'
 import { FIELDSET, SECTION_TITLE } from '../components/ui/text'
 import { cx } from '../lib/cx'
 import {
@@ -792,7 +792,7 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 					title="Sair sem salvar?"
 					description={
 						dirtyAccounts.length > 0
-							? `Há alterações não salvas${dirty ? ' nas configurações e' : ''} na conta do ${LIST_FORMAT.format(dirtyAccounts)}; elas vão se perder.`
+							? `Há alterações não salvas${dirty ? ' nas configurações e' : ''} na ${LIST_FORMAT.format(dirtyAccounts)}; elas vão se perder.`
 							: 'As alterações nas configurações ainda não foram salvas e vão se perder.'
 					}
 					confirmLabel="sair sem salvar"
@@ -849,13 +849,13 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 										: dirty
 											? 'alterações não salvas'
 											: dirtyAccounts.length > 0
-												? `conta do ${LIST_FORMAT.format(dirtyAccounts)} não salva`
+												? `${LIST_FORMAT.format(dirtyAccounts)} não salva`
 												: 'tudo salvo'}
 							</p>
 							{/* O "salvar alterações" não leva as contas: cada uma tem o próprio botão */}
 							{dirtyAccounts.length > 0 && (saveState === 'idle' || saveState === 'saving') && (
 								<p className="text-xs text-muted">
-									{dirty ? `e a conta do ${LIST_FORMAT.format(dirtyAccounts)}: ` : ''}use o “salvar” da conta, em contas
+									{dirty ? `e a ${LIST_FORMAT.format(dirtyAccounts)}: ` : ''}use o “salvar” da conta, em contas
 								</p>
 							)}
 							{(saveState === 'saved' || saveState === 'error') && saveMessage.detail && (

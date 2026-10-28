@@ -6,7 +6,7 @@ import { MESSAGE_LENGTHS, MESSAGE_TONES } from './settings'
  * Para onde o resultado do currículo volta: a fila de quem pediu e um contexto que o cv-updater devolve sem
  * interpretar (ex.: o token da interação do Discord). Assim qualquer canal pode pedir currículo.
  */
-const ReplyToSchema = z.object({
+export const ReplyToSchema = z.object({
 	queue: z.string().regex(/^[a-z0-9][a-z0-9-]*$/, 'Nome de fila inválido'),
 	context: z.record(z.string(), z.unknown()).default({}),
 })

@@ -9,7 +9,7 @@ Código usado por mais de um serviço, importado pelo barrel de cada módulo (`@
 | `service/` | `startService()`: logger, `.env`, MongoDB e RabbitMQ prontos em uma chamada |
 | `config/` | carregamento e validação do `.env` (zod) e as variáveis de infraestrutura |
 | `contracts/` | formato das mensagens das filas |
-| `database/` | conexão com o MongoDB e os modelos (`Job`, `SeenPost`, `Settings`, `ScraperRun`, `ExtractionFeedback`) |
+| `database/` | conexão com o MongoDB e os modelos (`Job`, `SeenPost`, `Settings`, `ScraperRun`, `ExtractionFeedback`, `ApplicationMail`, `CvFile`) |
 | `messaging/` | cliente RabbitMQ, nomes das filas e política de retry e DLQ |
 | `settings/` | configurações editáveis em tempo de execução e as credenciais das contas |
 | `language/` | detecção do idioma do post (`franc`, sem IA; o alfabeto decide mesmo em texto curto), usada pelo scraper e pelo post-processing |
@@ -39,13 +39,13 @@ O perfil profissional, os termos de busca, o filtro de data, o limite de posts, 
 
 ## Credenciais
 
-As contas do LinkedIn (`LINKEDIN_EMAIL`, `LINKEDIN_PASSWORD`, `LINKEDIN_LI_AT`), do Discord (`DISCORD_TOKEN`, `DISCORD_CHANNEL_ID`) e do GitHub (`GITHUB_USERNAME`, `GITHUB_TOKEN`) podem vir do `.env` ou do site (Configurações › Contas). O site grava no documento `credentials` da coleção `settings`, um grupo por conta (`linkedin`, `discord`, `github`), validado por `CredentialsSchema` (`contracts/settings.ts`).
+As contas do LinkedIn (`LINKEDIN_EMAIL`, `LINKEDIN_PASSWORD`, `LINKEDIN_LI_AT`), do Discord (`DISCORD_TOKEN`, `DISCORD_CHANNEL_ID`), do GitHub (`GITHUB_USERNAME`, `GITHUB_TOKEN`) e do e-mail (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`) podem vir do `.env` ou do site (Configurações › Contas). O site grava no documento `credentials` da coleção `settings`, um grupo por conta (`linkedin`, `discord`, `github`, `smtp`), validado por `CredentialsSchema` (`contracts/settings.ts`).
 
 - **Ordem de leitura, por grupo: banco, depois `.env`.** O grupo salvo pelo site vale por inteiro; sem ele, vale o do `.env`. Apagar o grupo pelo site volta a usar o do `.env`.
 - **O `.env` é lido ao subir, como as configurações:** todo serviço com banco lê as credenciais do `.env` (`credentialsEnv`, em `settings/credentials-env.ts`) antes de qualquer outra coisa e as guarda em memória (`setEnvCredentials`, chamada pelo `startService`). Diferente das configurações, elas **não são copiadas para o banco**: só vai para o banco o que é salvo pelo site, e o site mostra de onde vem cada conta. Mudar o `.env` vale para os grupos que o site não salvou (ao reiniciar o serviço).
 - Um grupo do `.env` só existe se alguma variável dele estiver preenchida, e aí precisa estar completo (ex.: `LINKEDIN_EMAIL` sem `LINKEDIN_PASSWORD` impede o serviço de subir, com o nome da variável).
-- `loadCredentials(grupo)` lê o grupo em uso a cada chamada: o scraper a cada coleta, o cv-updater a cada currículo e o bot do Discord a cada 30 s (reconecta quando muda). Assim, o que é salvo pelo site vale sem reiniciar nada.
-- **Segredos** (`SECRET_FIELDS`: a senha e o `li_at` do LinkedIn, o token do Discord e o do GitHub) nunca saem do servidor: a API (`credentialStatus`) só diz se estão preenchidos. Também nunca vão para os logs: nenhum código os loga, as mensagens de erro de validação trazem só o campo, e o logger oculta (`redact`) campos chamados `password`, `token`, `liAt` ou `credentials`.
+- `loadCredentials(grupo)` lê o grupo em uso a cada chamada: o scraper a cada coleta, o cv-updater a cada currículo, o mailer a cada envio e o bot do Discord a cada 30 s (reconecta quando muda). Assim, o que é salvo pelo site vale sem reiniciar nada.
+- **Segredos** (`SECRET_FIELDS`: a senha e o `li_at` do LinkedIn, o token do Discord, o do GitHub e a senha do SMTP) nunca saem do servidor: a API (`credentialStatus`) só diz se estão preenchidos. Também nunca vão para os logs: nenhum código os loga, as mensagens de erro de validação trazem só o campo, e o logger oculta (`redact`) campos chamados `password`, `token`, `liAt` ou `credentials`.
 - O site só escuta em `127.0.0.1`: guardar no MongoDB local tem o mesmo risco que no `.env`.
 
 ## Healthcheck

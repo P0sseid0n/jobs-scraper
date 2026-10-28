@@ -34,6 +34,8 @@ type FieldDef = {
 
 type GroupDef = {
 	title: string
+	/** Como a conta é chamada nos avisos; sem ele, "conta do <título>". */
+	account?: string
 	note: string
 	/** O que fica parado enquanto a conta não está configurada; sem ele, a conta é opcional. */
 	missing?: string
@@ -91,6 +93,35 @@ const GROUPS: Record<CredentialGroup, GroupDef> = {
 			},
 		],
 	},
+	smtp: {
+		title: 'E-mail',
+		account: 'conta de e-mail',
+		note: 'Usada pelo mailer para enviar as candidaturas, pelo site e pelo Discord, sempre depois da sua confirmação. O teste faz o login sem enviar nada.',
+		testable: true,
+		fields: [
+			{ name: 'host', label: 'servidor SMTP', placeholder: 'ex.: smtp.gmail.com' },
+			{
+				name: 'port',
+				label: 'porta',
+				inputMode: 'numeric',
+				placeholder: '587',
+				help: 'Opcional: 587 (STARTTLS) por padrão; use 465 para TLS direto.',
+			},
+			{ name: 'user', label: 'usuário', type: 'email', placeholder: 'voce@gmail.com' },
+			{
+				name: 'password',
+				label: 'senha de app',
+				secret: true,
+				help: 'No Gmail e no Outlook, crie uma senha de app (com a verificação em duas etapas ligada); a senha normal é recusada.',
+			},
+			{
+				name: 'from',
+				label: 'remetente',
+				placeholder: 'ex.: Ana Souza <voce@gmail.com>',
+				help: 'Opcional: o nome e o e-mail que o recrutador vê. Vazio usa o usuário.',
+			},
+		],
+	},
 }
 
 const SOURCE_BADGES = {
@@ -107,7 +138,7 @@ const GROUP_KEYS = Object.keys(GROUPS) as CredentialGroup[]
 const TABS = GROUP_KEYS.map(group => ({ value: group, label: GROUPS[group].title }))
 
 /**
- * As contas do LinkedIn, do Discord e do GitHub, uma por aba. Cada uma é salva à parte, no MongoDB local, e vale no
+ * As contas do LinkedIn, do Discord, do GitHub e do e-mail (SMTP), uma por aba. Cada uma é salva à parte, no MongoDB local, e vale no
  * lugar do `.env`; os segredos salvos nunca chegam ao navegador.
  */
 export function AccountsSection({
@@ -117,7 +148,7 @@ export function AccountsSection({
 	...props
 }: {
 	initial: WebCredentials
-	/** Os nomes das contas com alterações não salvas (cada uma tem o próprio salvar), na ordem das abas. */
+	/** As contas com alterações não salvas ("conta do LinkedIn"; cada uma tem o próprio salvar), na ordem das abas. */
 	onDirtyChange?: (accounts: string[]) => void
 	className?: string
 	id?: string
@@ -126,7 +157,7 @@ export function AccountsSection({
 	const [selected, setSelected] = useState<CredentialGroup>('linkedin')
 	const [dirtyGroups, setDirtyGroups] = useState<CredentialGroup[]>([])
 
-	useEffect(() => onDirtyChange?.(dirtyGroups.map(group => GROUPS[group].title)), [dirtyGroups])
+	useEffect(() => onDirtyChange?.(dirtyGroups.map(accountNameOf)), [dirtyGroups])
 
 	function setGroupDirty(group: CredentialGroup, dirty: boolean) {
 		setDirtyGroups(current =>
@@ -135,7 +166,11 @@ export function AccountsSection({
 	}
 
 	return (
-		<section {...props} className={card({ size: 'lg', className: cx('flex flex-col gap-6.5', className) })} aria-labelledby="accounts-title">
+		<section
+			{...props}
+			className={card({ size: 'lg', className: cx('flex flex-col gap-6.5', className) })}
+			aria-labelledby="accounts-title"
+		>
 			<div className="flex flex-col gap-1.5">
 				<h2 id="accounts-title" className={SECTION_TITLE}>
 					contas <span className="font-mono text-xs font-normal text-muted">credenciais</span>
@@ -163,6 +198,15 @@ export function AccountsSection({
 			</div>
 		</section>
 	)
+}
+
+/** Como a conta é chamada nos avisos ("conta do LinkedIn", "conta de e-mail"). */
+function accountNameOf(group: CredentialGroup) {
+	return GROUPS[group].account ?? `conta do ${GROUPS[group].title}`
+}
+
+function capitalize(text: string) {
+	return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
 /** Os campos de um grupo como estão salvos: os públicos com o valor e os segredos vazios. */
@@ -207,6 +251,7 @@ export function AccountGroup({
 	compact?: boolean
 }) {
 	const config = GROUPS[group]
+	const accountName = accountNameOf(group)
 	const current = status[group]
 	const secrets: Record<string, boolean> = current.secrets
 
@@ -250,7 +295,7 @@ export function AccountGroup({
 				onSaved(next)
 				reset(next)
 				if (action === 'save') flashSaved()
-				notify(action === 'save' ? `Conta do ${config.title} salva` : `Conta do ${config.title} apagada do site`)
+				notify(action === 'save' ? `${capitalize(accountName)} salva` : `${capitalize(accountName)} apagada do site`)
 			}
 		} catch (error) {
 			setErrors(error instanceof RequestError ? error.fields : {})
@@ -273,7 +318,7 @@ export function AccountGroup({
 		<>
 			{confirmDelete && (
 				<ConfirmDialog
-					title={`Apagar a conta do ${config.title}?`}
+					title={`Apagar a ${accountName}?`}
 					description="As credenciais salvas no site são apagadas. Se o .env tiver as dele, elas voltam a valer."
 					confirmLabel="apagar"
 					cancelLabel="cancelar"

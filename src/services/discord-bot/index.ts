@@ -1,4 +1,4 @@
-import { CvResultSchema, JobPublishedSchema } from '@shared/contracts'
+import { CvResultSchema, JobPublishedSchema, MailResultSchema } from '@shared/contracts'
 import { findJobImage } from '@shared/database'
 import { onShutdown } from '@shared/lifecycle'
 import { EXCHANGES, QUEUES } from '@shared/messaging'
@@ -12,6 +12,9 @@ import { DiscordConnection } from './discord-connection'
 import { toQueueError } from './discord-errors'
 import { APPLIED_BUTTON_PREFIX } from './job-card'
 import { publishJob } from './job-publisher'
+import { handleMailButton, handleMailCancel, handleMailSend } from './mail-button'
+import { deliverMailResult } from './mail-delivery'
+import { MAIL_BUTTON_PREFIX, MAIL_CANCEL_PREFIX, MAIL_SEND_PREFIX } from './mail-reply'
 
 // O banco guarda o token e o canal salvos pelo site (sem eles, valem os do .env)
 const { logger, queue } = await startService({ name: 'discord-bot', database: true })
@@ -33,6 +36,24 @@ const discord = new DiscordConnection({
 			} catch (error) {
 				logger.error({ err: error }, 'Erro ao responder o botão de candidatura')
 			}
+		} else if (interaction.customId.startsWith(MAIL_BUTTON_PREFIX)) {
+			try {
+				await handleMailButton(interaction)
+			} catch (error) {
+				logger.error({ err: error }, 'Erro ao mostrar a confirmação do envio')
+			}
+		} else if (interaction.customId.startsWith(MAIL_SEND_PREFIX)) {
+			try {
+				await handleMailSend(interaction, queue, logger)
+			} catch (error) {
+				logger.error({ err: error }, 'Erro ao pedir o envio da candidatura')
+			}
+		} else if (interaction.customId.startsWith(MAIL_CANCEL_PREFIX)) {
+			try {
+				await handleMailCancel(interaction)
+			} catch (error) {
+				logger.error({ err: error }, 'Erro ao cancelar o envio da candidatura')
+			}
 		}
 	},
 })
@@ -40,6 +61,7 @@ onShutdown(() => discord.close())
 
 await queue.assertQueue(QUEUES.cvUpdater)
 await queue.assertQueue(QUEUES.webApplied)
+await queue.assertQueue(QUEUES.mailer)
 await discord.start()
 
 // Os consumidores esperam o bot conectar (ou trocar de conta). Sem bot configurado, descartam as mensagens: senão
@@ -52,6 +74,16 @@ await queue.consume(QUEUES.discordCv, CvResultSchema, async result => {
 	}
 
 	await deliverCv(link.client, result, logger)
+})
+
+await queue.consume(QUEUES.discordMail, MailResultSchema, async result => {
+	const link = await discord.ready()
+	if (!link) {
+		logger.warn({ mailId: result.mailId }, 'Resultado de envio descartado: nenhum bot do Discord configurado (ele fica no site)')
+		return
+	}
+
+	await deliverMailResult(link.client, result, logger)
 })
 
 // A fila `discord` assina o evento `job-published`: recebe todas as vagas, independente de outros canais

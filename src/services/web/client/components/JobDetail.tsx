@@ -37,6 +37,7 @@ import { JobReposts } from './JobReposts'
 import { ListingBadge } from './ListingBadge'
 import { PostImages } from './PostImages'
 import { ReportJobDialog } from './ReportJobDialog'
+import { SendApplication } from './SendApplication'
 import { badge, BadgeList } from './ui/Badge'
 import { Button } from './ui/Button'
 import { CodeBlock } from './ui/CodeBlock'
@@ -397,6 +398,8 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 							</p>
 						)}
 					</ApplicationEmail>
+					{/* Envia exatamente o que está na caixa acima (revisado de novo na prévia), com o currículo pronto anexado */}
+					<SendApplication job={job} message={message} />
 				</section>
 			)}
 

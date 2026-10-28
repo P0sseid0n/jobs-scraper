@@ -21,6 +21,12 @@ O botão "📧 Contato do recrutador" (ou "📄 Gerar currículo", quando a vaga
 
 O pedido guarda no contexto o token da interação do Discord, e o resultado volta pela fila `discord-cv`.
 
+## Enviar a candidatura por e-mail
+
+Com e-mail de contato na vaga e a conta de e-mail (SMTP) configurada no site ou no `.env`, a resposta com o currículo traz o botão "✉️ Enviar candidatura". Ele mostra, só para quem clicou, o e-mail como vai sair (para quem, assunto, corpo e o PDF anexo) e só envia com "📤 Confirmar envio"; "Cancelar" descarta. Se a vaga já recebeu candidatura por e-mail (pelo site ou pelo Discord), a confirmação avisa antes, e o botão vira "Enviar de novo".
+
+O currículo entregue fica guardado na coleção `cv_files` (30 dias), com a mensagem sugerida, e o pedido vai para o [mailer](../mailer/README.md) com o `fileId`. O resultado volta pela fila `discord-mail` e aparece na própria confirmação: enviada, ou o motivo da falha com "🔁 Tentar de novo". Para mudar o texto antes de enviar, use o site.
+
 ## Variáveis
 
 `DISCORD_TOKEN` e `DISCORD_CHANNEL_ID`, documentadas no `.env.example`. Também dá para informar pelo site (Configurações › Contas), e o salvo lá vale no lugar do `.env` ([ordem de leitura](../../shared/README.md#credenciais)). O bot relê as credenciais a cada 30 s e reconecta quando mudam. Sem credenciais, ele fica no ar em espera e descarta as mensagens com um log: as vagas ficam só no site e não se acumulam na fila para sair todas de uma vez quando alguém configurar. Com um token ou canal recusado, ele espera outras credenciais, e as vagas esperam na fila. Por isso o bot usa o MongoDB.
@@ -33,4 +39,6 @@ O pedido guarda no contexto o token da interação do Discord, e o resultado vol
 | `job-card.ts` | card (embed) da vaga |
 | `contact-button.ts`, `contact-reply.ts` | clique no botão de contato e o texto da resposta |
 | `applied-button.ts` | clique no "Já me candidatei" (marca e desmarca a candidatura) |
-| `cv-delivery.ts` | envio do PDF e da mensagem de candidatura |
+| `cv-delivery.ts` | envio do PDF e da mensagem de candidatura (com o botão "Enviar candidatura") |
+| `mail-button.ts`, `mail-reply.ts` | a confirmação do envio por e-mail e o pedido ao mailer |
+| `mail-delivery.ts` | o resultado do envio na confirmação |
