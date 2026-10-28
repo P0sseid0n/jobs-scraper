@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router'
 import { useId, useState, type MouseEvent } from 'react'
 
 import type { CvChanges } from '@shared/contracts'
@@ -12,6 +13,7 @@ import { Button, ButtonLink } from '../components/ui/Button'
 import { card } from '../components/ui/Card'
 import { EmptyState } from '../components/ui/EmptyState'
 import { iconButton, IconButton } from '../components/ui/IconButton'
+import { SearchInput } from '../components/ui/Input'
 import { NEW_TAB } from '../components/ui/link'
 import { Hero, Page } from '../components/ui/Page'
 import { PdfIcon } from '../components/ui/PdfIcon'
@@ -24,15 +26,26 @@ import { jobParams } from '../router'
 import { requestCv, useCvRequests } from '../stores/cv'
 import { copyText, notify } from '../stores/toast'
 
-/** Quantas tecnologias que entraram (e que saíram) aparecem no resumo do item; o resto vira "+N". */
+/** Quantas tecnologias que entraram aparecem no resumo do item; o resto vira "+N". */
 const SUMMARY_ADDED = 4
-const SUMMARY_REMOVED = 2
 
 /** A folha clicável que abre o PDF: sobe um pouco no hover, como os botões. */
 const SHEET_LINK =
 	'shrink-0 rounded-xs no-underline transition-transform duration-150 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime'
 
 const DAY_MS = 24 * 60 * 60 * 1000
+/** Até quanto tempo depois de pronto o "baixar" fica em lime: é a ação do momento; nos outros, é só histórico. */
+const JUST_READY_MS = 10 * 60 * 1000
+
+/** O título dos grupos por data: um tamanho acima do `LABEL`, para separar os grupos entre os cards. */
+const GROUP_TITLE = cx(LABEL, 'mt-2 text-sm')
+
+/** Para a busca: sem acentos nem maiúsculas ("Sênior" acha "senior"). */
+const searchable = (text: string) =>
+	text
+		.normalize('NFD')
+		.replace(/\p{Diacritic}/gu, '')
+		.toLowerCase()
 
 /** Os grupos da lista de gerados, na ordem em que aparecem. */
 const DATE_GROUPS = ['hoje', 'ontem', 'nos últimos 7 dias', 'nos últimos 30 dias', 'há mais tempo'] as const
@@ -64,12 +77,16 @@ function hasChanges(changes: CvChanges | null): changes is CvChanges {
 	)
 }
 
-/** "+React +Docker −PHP · 3 projetos · apresentação reescrita": o ajuste numa linha, sem abrir o PDF. */
+/**
+ * "+React +Docker · −3 tecnologias · 3 projetos · apresentação reescrita": o ajuste numa linha, sem abrir o PDF. O que
+ * entrou vem em selos; o que saiu, só contado (riscado e pequeno, era difícil de ler; a lista fica no detalhe).
+ */
 function ChangeSummary({ changes }: { changes: CvChanges }) {
 	const added = changes.addedSkills.slice(0, SUMMARY_ADDED)
-	const removed = changes.removedSkills.slice(0, SUMMARY_REMOVED)
-	const hidden = changes.addedSkills.length - added.length + changes.removedSkills.length - removed.length
+	const hidden = changes.addedSkills.length - added.length
+	const removed = changes.removedSkills.length
 	const facts = [
+		removed > 0 && `−${removed} ${removed === 1 ? 'tecnologia' : 'tecnologias'}`,
 		changes.projects.length > 0 && `${changes.projects.length} ${changes.projects.length === 1 ? 'projeto' : 'projetos'}`,
 		changes.summary && 'apresentação reescrita',
 	].filter(Boolean)
@@ -82,16 +99,10 @@ function ChangeSummary({ changes }: { changes: CvChanges }) {
 					<span className="max-w-48 truncate">+{skill}</span>
 				</Badge>
 			))}
-			{removed.map(skill => (
-				<Badge key={`-${skill}`} tone="plain" size="sm" bordered className="text-muted">
-					<span className="sr-only">saiu:</span>
-					<span className="strike-through max-w-48 truncate">{skill}</span>
-				</Badge>
-			))}
-			{hidden > 0 && <span className="font-mono text-xs text-muted">e mais {hidden}</span>}
+			{hidden > 0 && <span className="font-mono text-xs text-muted">+{hidden}</span>}
 			{facts.length > 0 && (
 				<span className="font-mono text-xs text-muted">
-					{added.length + removed.length > 0 && '· '}
+					{added.length > 0 && '· '}
 					{facts.join(' · ')}
 				</span>
 			)}
@@ -130,6 +141,7 @@ function CvItem({ request, outdated, latest }: CvItemProps) {
 	const detailsId = useId()
 
 	const ready = request.status === 'ready'
+	const justReady = ready && !!request.finishedAt && Date.now() - new Date(request.finishedAt).getTime() < JUST_READY_MS
 	const changes = hasChanges(request.changes) ? request.changes : null
 	const title = request.jobTitle ?? 'Vaga'
 	const meta = [request.company, formatDateTime(request.finishedAt ?? request.requestedAt)].filter(Boolean).join(' · ')
@@ -145,14 +157,28 @@ function CvItem({ request, outdated, latest }: CvItemProps) {
 			{/* Pelo teclado, quem abre e fecha é a seta (um botão de verdade) */}
 			{/* biome-ignore lint/a11y/useKeyWithClickEvents lint/a11y/noStaticElementInteractions: atalho do mouse para a seta */}
 			<div className="flex cursor-pointer items-start gap-3.5" onClick={toggleFromHeader}>
-				<PdfIcon dashed={request.status === 'pending'}>
-					{request.status === 'pending' ? <Icon name="spinner" size={14} /> : request.status === 'failed' ? 'erro' : 'PDF'}
-				</PdfIcon>
+				{/* Pronto, a folha abre o PDF, como a do currículo base */}
+				{ready ? (
+					<a className={SHEET_LINK} href={cvPdfUrl(request.requestId)} {...NEW_TAB} aria-label={`Abrir o PDF de ${title}`}>
+						<PdfIcon>PDF</PdfIcon>
+					</a>
+				) : (
+					<PdfIcon dashed={request.status === 'pending'}>
+						{request.status === 'pending' ? <Icon name="spinner" size={14} /> : 'erro'}
+					</PdfIcon>
+				)}
 
 				<div className="flex min-w-0 grow flex-col gap-2">
 					<div className="flex items-start gap-3">
 						<div className="flex min-w-0 grow flex-col gap-1">
-							<span className="block truncate font-semibold">{title}</span>
+							{/* O cargo leva à vaga; o resto do cabeçalho abre o ajuste */}
+							<Link
+								className="block truncate font-semibold no-underline hover:underline hover:underline-offset-3"
+								to="/vagas/$id"
+								params={jobParams(request.postId)}
+							>
+								{title}
+							</Link>
 							<span className="font-mono text-xs text-muted">
 								{request.status === 'pending' ? `gerando · pedido ${formatDateTime(request.requestedAt)}` : meta}
 							</span>
@@ -167,7 +193,7 @@ function CvItem({ request, outdated, latest }: CvItemProps) {
 									</Button>
 									<Button
 										className="max-md:hidden"
-										variant="lime"
+										variant={justReady ? 'lime' : 'ghost'}
 										href={cvPdfUrl(request.requestId, true)}
 										download={request.fileName ?? undefined}
 									>
@@ -225,7 +251,7 @@ function CvItem({ request, outdated, latest }: CvItemProps) {
 
 			{expanded && (
 				<div id={detailsId} className="flex flex-col gap-3 animate-panel-in motion-reduce:animate-none">
-					{changes && <Changes changes={changes} fresh={false} />}
+					{changes && <Changes changes={changes} fresh={false} tone="quiet" />}
 					{ready && request.message && <ApplicationMessageBox message={request.message} />}
 					<div className="flex flex-wrap gap-2">
 						<ButtonLink variant="ghost" size="sm" to="/vagas/$id" params={jobParams(request.postId)}>
@@ -341,9 +367,16 @@ function CvList({
 export function CvsView({ baseVersions }: { baseVersions: WebCvBaseVersion[] | null }) {
 	// A lista vem do loader da rota (`routes/curriculos.tsx`), que também cuida do carregamento e do erro
 	const { requests } = useCvRequests()
+	const [query, setQuery] = useState('')
 
-	const pending = requests.filter(request => request.status === 'pending')
-	const done = requests.filter(request => request.status !== 'pending')
+	// A busca filtra pelo cargo e pela empresa; os grupos e o "mais recente da vaga" seguem a lista inteira
+	const terms = searchable(query.trim())
+	const matches = (request: WebCvRequest) =>
+		!terms || searchable(`${request.jobTitle ?? ''} ${request.company ?? ''}`).includes(terms)
+	const shown = requests.filter(matches)
+
+	const pending = shown.filter(request => request.status === 'pending')
+	const done = shown.filter(request => request.status !== 'pending')
 
 	// O pedido mais recente de cada vaga (a lista vem do mais novo ao mais antigo)
 	const seen = new Set<string>()
@@ -391,15 +424,36 @@ export function CvsView({ baseVersions }: { baseVersions: WebCvBaseVersion[] | n
 				/>
 			)}
 
+			{requests.length > 0 && (
+				<SearchInput
+					label="Buscar currículos"
+					value={query}
+					onChange={event => setQuery(event.target.value)}
+					placeholder="cargo ou empresa…"
+				/>
+			)}
+			{requests.length > 0 && shown.length === 0 && (
+				<EmptyState
+					illustration="search"
+					title="Nenhum currículo com essa busca"
+					description="A busca olha o cargo e a empresa da vaga."
+					action={
+						<Button variant="ghost" onClick={() => setQuery('')}>
+							limpar busca
+						</Button>
+					}
+				/>
+			)}
+
 			{pending.length > 0 && (
 				<section className="flex flex-col gap-2.5">
-					<h2 className={LABEL}>em andamento</h2>
+					<h2 className={GROUP_TITLE}>em andamento</h2>
 					<CvList requests={pending} isOutdated={isOutdated} latest={latest} />
 				</section>
 			)}
 			{groups.map(({ group, items }) => (
 				<section key={group} className="flex flex-col gap-2.5">
-					<h2 className={LABEL}>
+					<h2 className={GROUP_TITLE}>
 						{group} · {items.length}
 					</h2>
 					<CvList requests={items} isOutdated={isOutdated} latest={latest} />

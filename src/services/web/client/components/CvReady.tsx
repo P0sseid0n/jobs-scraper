@@ -69,15 +69,28 @@ export function CvReady({ cv }: { cv: WebCvRequest }) {
 	)
 }
 
-export function Changes({ changes, fresh }: { changes: CvChanges; fresh: boolean }) {
+/**
+ * O que mudou no currículo. `tone="quiet"` (o histórico em "meus currículos"): sem o marca-texto lime no rótulo e com
+ * as tecnologias novas no tom suave; o lime forte fica para o currículo que acabou de ficar pronto.
+ */
+export function Changes({
+	changes,
+	fresh,
+	tone = 'highlight',
+}: {
+	changes: CvChanges
+	fresh: boolean
+	tone?: 'highlight' | 'quiet'
+}) {
 	const { addedSkills, removedSkills, summary, projects } = changes
+	const quiet = tone === 'quiet'
 
 	return (
 		<section className="flex flex-col gap-3 border-t border-line pt-3" aria-label="O que mudou no currículo">
 			<span
 				className={cx(
 					LABEL,
-					'self-start rounded-xs bg-linear-to-r from-lime to-lime bg-no-repeat px-1 text-lime-ink',
+					!quiet && 'self-start rounded-xs bg-linear-to-r from-lime to-lime bg-no-repeat px-1 text-lime-ink',
 					fresh && 'animate-mark-in',
 				)}
 				style={fresh ? delay(AT.mark) : undefined}
@@ -91,7 +104,7 @@ export function Changes({ changes, fresh }: { changes: CvChanges; fresh: boolean
 						{addedSkills.map((skill, index) => (
 							<li
 								key={`+${skill}`}
-								className={badge({ tone: 'lime', className: cx(fresh && 'animate-pop-in') })}
+								className={badge({ tone: quiet ? 'running' : 'lime', className: cx(fresh && 'animate-pop-in') })}
 								style={fresh ? delay(AT.added + index * STEP_MS) : undefined}
 							>
 								<span className="sr-only">entrou:</span>
