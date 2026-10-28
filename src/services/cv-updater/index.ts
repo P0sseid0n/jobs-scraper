@@ -93,7 +93,7 @@ async function generateCv(request: CvRequest) {
 	}
 
 	cv.projects = await chooseProjects(
-		{ github: await githubClient(), ollama, model: config.OLLAMA_MODEL, maxProjects: config.CV_MAX_PROJECTS },
+		{ github: await githubClient(), ollama, model: config.OLLAMA_MODEL },
 		base,
 		cv.projects,
 		job,
@@ -102,7 +102,7 @@ async function generateCv(request: CvRequest) {
 
 	let rendered: Awaited<ReturnType<typeof renderOnePagePdf>>
 	try {
-		rendered = await renderOnePagePdf(base, cv, compileOptions, log)
+		rendered = await renderOnePagePdf(base, cv, tex => compileLatex(tex, compileOptions), log)
 	} catch (error) {
 		if (!(error instanceof LatexCompileError)) throw error
 

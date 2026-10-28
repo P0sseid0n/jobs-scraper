@@ -13,8 +13,10 @@ type ChooseProjectsOptions = {
 	github: GithubRepositories | null
 	ollama: Ollama
 	model: string
-	maxProjects: number
 }
+
+// Candidatos levados ao PDF, que fica com quantos couberem em uma página (`renderOnePagePdf`)
+const MAX_PROJECT_CANDIDATES = 4
 
 /**
  * Escolhe os projetos do GitHub mais relevantes para a vaga (ranking em project-ranking.ts).
@@ -34,7 +36,7 @@ export async function chooseProjects(
 
 	try {
 		const ranked = rankProjects(base.model.projects, await options.github.load(), jobSkills)
-		const selected = selectProjects(ranked, options.maxProjects)
+		const selected = selectProjects(ranked, MAX_PROJECT_CANDIDATES)
 
 		log.info({ projects: selected.map(describeChoice) }, 'Projetos escolhidos')
 

@@ -10,7 +10,7 @@ Funciona para currículos de qualquer área. A área e o cargo-alvo do perfil (C
 
 - **Apresentação:** reescrita pela IA para a vaga, destacando o que combina e citando as competências pedidas que estão no currículo. Se citar um requisito da vaga que a pessoa não tem, é rejeitada e a IA tenta de novo; na segunda falha, fica a original.
 - **Habilidades:** as competências da vaga são associadas às do currículo pelo nome ("CSS3/SCSS" ↔ "CSS (SASS/SCSS)") ou pelas palavras ("Gestão de tráfego pago" ↔ "Tráfego pago (Google Ads, Meta Ads)", aceitando o plural), ficam só as suas categorias relacionadas à vaga, e o que a vaga pede vem primeiro. Do que falta no currículo, só entram as tecnologias do catálogo (`projects/tech-catalog.ts`), na categoria certa (nuvem e DevOps vão para ferramentas); competências de outras áreas que você não tem ("Copywriting", "Hemodiálise") nunca são adicionadas.
-- **Projetos:** com o usuário do GitHub (em Configurações › Contas ou `GITHUB_USERNAME`), os projetos (`CV_MAX_PROJECTS`, padrão 2) vêm dos seus repositórios públicos, por ranqueamento:
+- **Projetos:** com o usuário do GitHub (em Configurações › Contas ou `GITHUB_USERNAME`), os projetos vêm dos seus repositórios públicos (pelo menos 2 e, se couber na página, até 4), por ranqueamento:
   - +10 por tecnologia da vaga que o projeto usa (linguagens, topics e dependências do `package.json`); Bun e Deno contam como Node.js, e qualquer provedor de IA (Ollama, OpenAI, Anthropic, Gemini/Google GenAI, LangChain) atende a vaga que pede outro, somando +10 uma vez só;
   - +3 se tem descrição e +3 se tem topics;
   - +8 se teve push nos últimos 12 meses (−8 se não tem push há mais de 3 anos) e +3 se tem link do projeto publicado (o "Website" do repositório);
@@ -20,7 +20,7 @@ Funciona para currículos de qualquer área. A área e o cargo-alvo do perfil (C
 - **Experiência:** os bullets são reordenados por relevância. Nenhum é criado ou removido.
 - **Mensagem de candidatura** (só em vagas com e-mail): a IA escreve o e-mail a partir do currículo ajustado, citando o cargo, a empresa, competências da vaga que estão no currículo e um projeto ou experiência relacionada, no idioma do post. Regras descartam placeholders, anos de experiência, tecnologias do catálogo que não estão no currículo nem na vaga e requisitos da vaga que a pessoa não tem. Se a IA falhar, fica o modelo padrão.
 
-Se o resultado passar de uma página, primeiro sai um projeto e depois volta a apresentação original, até caber. Os PDFs ficam em `data/cv/generated/`.
+O PDF começa com os 2 primeiros projetos e ganha o próximo enquanto continuar em uma página. Se nem com 2 couber, volta a apresentação original. Os PDFs ficam em `data/cv/generated/`.
 
 ## Configuração
 

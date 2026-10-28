@@ -1,26 +1,43 @@
 import type { Logger } from '@shared/logging'
 
-import { compileLatex, type CompileOptions } from './latex-compiler'
+import type { CompileResult } from './latex-compiler'
 import { writeResumeTex } from './resume/latex-writer'
 import type { ParsedResume, TailoredResume } from './resume/resume.types'
 
+// Projetos que o currículo sempre tem (se houver tantos); os seguintes entram enquanto couberem em uma página
+const MIN_PROJECTS = 2
+
 /**
- * Gera o PDF do currículo garantindo uma página.
- * Se transbordar, tira projetos (até sobrar 1) e depois volta à apresentação original. Devolve também a versão que
- * entrou no PDF (`resume`).
+ * Gera o PDF do currículo em uma página, com o máximo de projetos que couber, na ordem recebida (no mínimo
+ * `MIN_PROJECTS`). Se nem o mínimo couber, volta à apresentação original. Devolve também a versão que entrou no PDF
+ * (`resume`).
  */
-export async function renderOnePagePdf(base: ParsedResume, tailored: TailoredResume, compileOptions: CompileOptions, log: Logger) {
-	const attempts = simplifications(base, tailored)
+export async function renderOnePagePdf(
+	base: ParsedResume,
+	tailored: TailoredResume,
+	compile: (tex: string) => Promise<CompileResult>,
+	log: Logger,
+) {
+	const withProjects = (count: number): TailoredResume => ({ ...tailored, projects: tailored.projects.slice(0, count) })
+	const minimum = Math.min(MIN_PROJECTS, tailored.projects.length)
 
-	let resume = attempts[0]!
-	let result = await compileLatex(writeResumeTex(base, resume), compileOptions)
+	let resume = withProjects(minimum)
+	let result = await compile(writeResumeTex(base, resume))
 
-	for (const attempt of attempts.slice(1)) {
-		if (result.pages === null || result.pages <= 1) break
+	if (result.pages !== null && result.pages > 1) {
+		log.info({ pages: result.pages, projects: minimum }, 'Currículo passou de uma página, voltando à apresentação original')
+		resume = { ...resume, summary: base.model.summary }
+		return { pdf: (await compile(writeResumeTex(base, resume))).pdf, resume }
+	}
 
-		log.info({ pages: result.pages, projects: attempt.projects.length }, 'Currículo passou de uma página, simplificando')
+	// Sem o número de páginas não dá para saber se mais um projeto cabe
+	for (let count = minimum + 1; result.pages === 1 && count <= tailored.projects.length; count++) {
+		const attempt = withProjects(count)
+		const attemptResult = await compile(writeResumeTex(base, attempt))
+		if (attemptResult.pages !== 1) break
+
 		resume = attempt
-		result = await compileLatex(writeResumeTex(base, resume), compileOptions)
+		result = attemptResult
 	}
 
 	return { pdf: result.pdf, resume }
@@ -38,17 +55,4 @@ export function pdfFileName(job: { title: string | null; company: string | null 
 		.slice(0, 60)
 
 	return `Curriculo${slug ? `-${slug}` : ''}.pdf`
-}
-
-/** Lista versões cada vez mais simples do currículo, na ordem em que são tentadas. */
-function simplifications(base: ParsedResume, tailored: TailoredResume) {
-	const attempts: TailoredResume[] = [tailored]
-
-	for (let count = tailored.projects.length - 1; count >= 1; count--) {
-		attempts.push({ ...tailored, projects: tailored.projects.slice(0, count) })
-	}
-
-	attempts.push({ ...attempts.at(-1)!, summary: base.model.summary })
-
-	return attempts
 }

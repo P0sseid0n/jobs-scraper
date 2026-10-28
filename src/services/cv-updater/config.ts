@@ -9,8 +9,6 @@ export const cvUpdaterEnv = {
 	CV_OUTPUT_DIR: z.string().min(1).default('data/cv/generated'),
 	/** Executável do Tectonic (compilador LaTeX). */
 	TECTONIC_BIN: z.string().min(1).default('tectonic'),
-	/** Quantidade de projetos no currículo (diminui só se não couber em uma página). */
-	CV_MAX_PROJECTS: z.coerce.number().int().min(1).default(2),
 	/** Cache local (ex.: repositórios do GitHub). */
 	CV_CACHE_DIR: z.string().min(1).default('data/cache'),
 	// O usuário e o token do GitHub ficam nas credenciais (site ou `.env`, ver `loadCredentials`), relidas a cada currículo
