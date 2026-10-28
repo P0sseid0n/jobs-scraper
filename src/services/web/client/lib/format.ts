@@ -1,4 +1,4 @@
-import type { ContractType, ProcessedJob } from '@shared/contracts'
+import type { ContractType, DatePostedFilter, ProcessedJob } from '@shared/contracts'
 
 import type { WebJob } from '../../api-types'
 
@@ -105,6 +105,13 @@ export function formatInterval(minutes: number) {
 	const hours = Math.floor(minutes / 60)
 	const rest = minutes % 60
 	return `a cada ${hours} h${rest ? ` ${rest} min` : ''}`
+}
+
+export const DATE_POSTED_LABELS: Record<DatePostedFilter, string> = {
+	'past-24h': 'Últimas 24h',
+	'past-week': 'Última semana',
+	'past-month': 'Último mês',
+	any: 'Qualquer data',
 }
 
 export const LANGUAGE_NAMES: Record<string, string> = {

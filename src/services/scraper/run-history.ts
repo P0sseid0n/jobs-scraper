@@ -1,4 +1,4 @@
-import { ScraperRun, type ScraperRunTerm, type ScraperRunTrigger } from '@shared/database'
+import { Job, ScraperRun, type ScraperRunTerm, type ScraperRunTrigger } from '@shared/database'
 
 import { LoginError } from './login'
 import type { ScrapeResult } from './scrape-run'
@@ -32,7 +32,7 @@ export async function recordRun(
 		)
 
 	try {
-		const { terms, deferredLists } = await collect(onTerm)
+		const { terms, deferredLists, missingJobs } = await collect(onTerm)
 		const sent = terms.reduce((total, term) => total + term.sent, 0)
 		// Busca sem resultados não é falha: a coleta só falha se todos os termos quebraram de verdade
 		const failed = terms.every(term => term.error && term.errorKind !== 'empty')
@@ -45,6 +45,7 @@ export async function recordRun(
 				terms,
 				sent,
 				deferredLists,
+				missingJobs,
 				error: failed ? 'Todas as buscas falharam' : null,
 			},
 		)
@@ -77,4 +78,35 @@ export async function lastRunStartedAt() {
 	const last = await ScraperRun.findOne({}, { startedAt: 1 }).sort({ startedAt: -1 }).lean()
 
 	return last?.startedAt ?? null
+}
+
+/** Coletas recentes que contam no rendimento de cada termo (ver `rankTerms`). */
+const YIELD_RUNS = 10
+
+/**
+ * Vagas que cada termo trouxe nas últimas coletas (as de listas de vagas contam pelo post da lista). Só entram os
+ * termos que chegaram a buscar: um termo pulado ou com a busca quebrada fica sem histórico.
+ */
+export async function jobsByTerm() {
+	const runs = await ScraperRun.find({ status: 'success' }, { terms: 1 }).sort({ startedAt: -1 }).limit(YIELD_RUNS).lean()
+	const postIdsByTerm = new Map<string, string[]>()
+
+	for (const term of runs.flatMap(run => run.terms)) {
+		if (term.error || !term.postIds || term.sent + term.skipped + term.otherLanguage === 0) continue
+		postIdsByTerm.set(term.term, [...(postIdsByTerm.get(term.term) ?? []), ...term.postIds])
+	}
+
+	const postIds = [...postIdsByTerm.values()].flat()
+	const jobs = await Job.find(
+		{ $or: [{ postId: { $in: postIds } }, { sourcePostId: { $in: postIds } }] },
+		{ postId: 1, sourcePostId: 1 },
+	).lean()
+	const jobPosts = jobs.map(job => job.sourcePostId ?? job.postId)
+
+	return new Map(
+		[...postIdsByTerm].map(([term, ids]) => {
+			const own = new Set(ids)
+			return [term, jobPosts.filter(postId => own.has(postId)).length]
+		}),
+	)
 }

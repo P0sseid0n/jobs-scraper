@@ -9,6 +9,7 @@ import type {
 	CredentialsStatus,
 	CvChanges,
 	CvForm,
+	DatePostedFilter,
 	PostProcessingSettings,
 	ProcessedJob,
 	ProfileSettings,
@@ -153,6 +154,8 @@ export type WebScraperRunTerm = {
 	errorKind: ScraperTermErrorKind | null
 	/** A busca aberta no LinkedIn; `null` nas coletas antigas. */
 	searchUrl: string | null
+	/** O período da última busca do termo (mais amplo que o das configurações se a coleta ampliou); `null` nas antigas. */
+	datePosted: DatePostedFilter | null
 }
 
 export type ScraperStatus = {
@@ -167,6 +170,8 @@ export type ScraperStatus = {
 	nextRunAt: string | null
 	paused: boolean
 	intervalMinutes: number
+	/** Quantas vezes o intervalo está esticado (1 = normal) porque as últimas coletas terminaram abaixo do mínimo. */
+	intervalStretch: number
 	/** Quantos termos de busca estão ativos; com 0, o scraper fica em espera até a pessoa configurar. */
 	activeSearchTerms: number
 	/** Se há conta do LinkedIn (site ou `.env`); sem ela, o scraper fica em espera até a pessoa conectar. */

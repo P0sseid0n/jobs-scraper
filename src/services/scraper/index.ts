@@ -10,8 +10,8 @@ import { scraperEnv } from './config'
 import { JobLookupWorker } from './job-lookup'
 import { NO_LINKEDIN_ACCOUNT } from './login'
 import { testLinkedinLogin } from './login-test'
-import { markInterruptedRuns, recordRun } from './run-history'
-import { NO_SEARCH_TERMS, waitingReason } from './schedule'
+import { jobsByTerm, markInterruptedRuns, recordRun } from './run-history'
+import { NO_SEARCH_TERMS, rankTerms, waitingReason } from './schedule'
 import { runOnSchedule } from './scheduler'
 import { closeActiveBrowser, scrapeOnce } from './scrape-run'
 import { submitVerificationCode } from './verification-inbox'
@@ -89,8 +89,9 @@ async function collect(trigger: ScraperRunTrigger) {
 
 	return browserLock.run(async () => {
 		await lookups.close()
-		const plan = { terms: activeSearchTerms(settings), minJobs: settings.minJobsPerRun }
-		return recordRun(trigger, plan, onTerm => scrapeOnce({ config, settings, queue, logger, onTerm }))
+		const terms = rankTerms(activeSearchTerms(settings), await jobsByTerm())
+		const plan = { terms, minJobs: settings.minJobsPerRun }
+		return recordRun(trigger, plan, onTerm => scrapeOnce({ config, settings, terms, queue, logger, onTerm }))
 	})
 }
 

@@ -46,6 +46,12 @@ export type ScraperRunTerm = {
 
 	/** A busca aberta no LinkedIn, para conferir o resultado; ausente nas coletas antigas. */
 	searchUrl: string | null
+
+	/**
+	 * O período da última busca do termo (o das configurações, ou um mais amplo quando a coleta não completou o mínimo
+	 * e ampliou a busca); ausente nas coletas antigas.
+	 */
+	datePosted: string | null
 }
 
 type ScraperRunDocument = {
@@ -57,6 +63,8 @@ type ScraperRunDocument = {
 	plannedTerms: string[]
 	/** O mínimo de vagas que a coleta procurou; `null` nas coletas antigas. */
 	minJobs: number | null
+	/** Quantas vagas faltaram para o mínimo quando as buscas acabaram (0 se completou); `null` nas coletas antigas. */
+	missingJobs: number | null
 	/**
 	 * Listas de vagas da coleta que não foram abertas porque o mínimo já estava completo: saíram de `seen_posts` e
 	 * podem aparecer de novo em outra busca.
@@ -81,6 +89,7 @@ const scraperRunSchema = new Schema<ScraperRunDocument>(
 		finishedAt: { type: Date, default: null },
 		plannedTerms: { type: [String], default: [] },
 		minJobs: { type: Number, default: null },
+		missingJobs: { type: Number, default: null },
 		deferredLists: { type: [String], default: [] },
 		terms: {
 			type: [
@@ -93,6 +102,7 @@ const scraperRunSchema = new Schema<ScraperRunDocument>(
 					error: { type: String, default: null },
 					errorKind: { type: String, enum: SCRAPER_TERM_ERROR_KINDS, default: null },
 					searchUrl: { type: String, default: null },
+					datePosted: { type: String, default: null },
 					_id: false,
 				},
 			],
@@ -117,4 +127,18 @@ export const ScraperRun = mongoose.model('ScraperRun', scraperRunSchema, 'scrape
 export async function neverCollected() {
 	const [run, job] = await Promise.all([ScraperRun.exists({}), Job.exists({})])
 	return !run && !job
+}
+
+/** Coletas terminadas que o intervalo olha para saber se as buscas estão esgotadas (ver `intervalStretch`). */
+const STRETCH_LOOKBACK = 2
+
+/**
+ * Quantas das coletas mais recentes terminaram seguidas abaixo do mínimo de vagas (as buscas acabaram antes). As
+ * coletas com falha não contam nem interrompem a sequência.
+ */
+export async function consecutiveShortRuns() {
+	const runs = await ScraperRun.find({ status: 'success' }, { missingJobs: 1 }).sort({ startedAt: -1 }).limit(STRETCH_LOOKBACK).lean()
+	const firstComplete = runs.findIndex(run => !run.missingJobs)
+
+	return firstComplete === -1 ? runs.length : firstComplete
 }

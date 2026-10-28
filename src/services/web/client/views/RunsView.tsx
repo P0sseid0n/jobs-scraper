@@ -19,7 +19,7 @@ import { SwitchField } from '../components/ui/Switch'
 import { LABEL, SECTION_TITLE } from '../components/ui/text'
 import { RouteLink, TextLink } from '../components/ui/TextLink'
 import { cx } from '../lib/cx'
-import { formatDateTime, formatDuration, formatInterval } from '../lib/format'
+import { DATE_POSTED_LABELS, formatDateTime, formatDuration, formatInterval } from '../lib/format'
 import { pageItems } from '../lib/pagination'
 import { useStore } from '../lib/store'
 import { RUNS_PAGE_SIZE_OPTIONS, runsPageSize } from '../stores/runs-page-size'
@@ -221,7 +221,10 @@ function TermCard({ term }: { term: WebScraperRunTerm }) {
 	if (!term.error) {
 		return (
 			<li className={card({ size: 'sm', className: 'flex flex-col gap-1.5' })}>
-				<span className="font-mono text-muted text-xs">{term.term}</span>
+				<span className="font-mono text-muted text-xs">
+					{term.term}
+					{term.datePosted && ` · ${DATE_POSTED_LABELS[term.datePosted].toLowerCase()}`}
+				</span>
 				<span className="font-mono text-lg">
 					{term.sent} novos{term.skipped > 0 && <span className="text-muted"> · {term.skipped} já vistos</span>}
 					{term.otherLanguage > 0 && <span className="text-muted"> · {term.otherLanguage} em outro idioma</span>}
@@ -779,7 +782,9 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 										? 'a primeira coleta começa quando você pedir'
 										: status.paused
 											? '“coletar agora” continua funcionando'
-											: formatInterval(status.intervalMinutes)}
+											: status.intervalStretch > 1
+												? `${formatInterval(status.intervalMinutes * status.intervalStretch)} (×${status.intervalStretch}: as últimas buscas se esgotaram)`
+												: formatInterval(status.intervalMinutes)}
 						</span>
 						<Button variant="lime" size="lg" disabled={!!running || requesting || starting || waiting} onClick={runNow}>
 							<Icon name={running || starting ? 'spinner' : 'refresh'} />

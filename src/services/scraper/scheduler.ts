@@ -1,5 +1,5 @@
 import { activeSearchTerms, ScraperCommandSchema, type ScraperSettings } from '@shared/contracts'
-import type { ScraperRunTrigger } from '@shared/database'
+import { consecutiveShortRuns, type ScraperRunTrigger } from '@shared/database'
 import type { Logger } from '@shared/logging'
 import { QUEUES, type QueueClient } from '@shared/messaging'
 
@@ -22,7 +22,8 @@ type SchedulerOptions = {
 const POLL_MS = 30_000
 
 /**
- * Mantém o scraper rodando: coleta quando o intervalo vence (sem pausa) ou quando chega um "coletar agora".
+ * Mantém o scraper rodando: coleta quando o intervalo vence (sem pausa) ou quando chega um "coletar agora". O
+ * intervalo estica depois de coletas que terminaram abaixo do mínimo de vagas (ver `intervalStretch`).
  * Relê as configurações e a conta a cada volta e ignora pedidos durante uma coleta. Sem termos de busca ativos ou sem
  * conta do LinkedIn, espera a configuração sem coletar; numa instalação nova, a primeira coleta espera o pedido do
  * site. Nunca retorna.
@@ -60,7 +61,7 @@ export async function runOnSchedule({
 				hasAccount: await hasAccount(),
 				awaitingFirstRun: await awaitingFirstRun(),
 			})
-			const next = nextRunAt(await lastRunStartedAt(), settings.intervalMinutes)
+			const next = nextRunAt(await lastRunStartedAt(), settings.intervalMinutes, await consecutiveShortRuns())
 			// O pedido manual vai para a coleta mesmo sem termos ou conta: ela registra o motivo de não buscar nada
 			const trigger = manualRequested ? 'manual' : !waiting && Date.now() >= next.getTime() ? 'schedule' : null
 

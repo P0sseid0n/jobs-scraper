@@ -1,7 +1,8 @@
 import { z } from 'zod'
 
-import { activeSearchTerms, type ScraperCommand } from '@shared/contracts'
+import { activeSearchTerms, type DatePostedFilter, type ScraperCommand } from '@shared/contracts'
 import {
+	consecutiveShortRuns,
 	Job,
 	neverCollected,
 	ScraperRun,
@@ -16,7 +17,7 @@ import {
 import { QUEUES, type QueueClient } from '@shared/messaging'
 import { loadCredentials, readSettings } from '@shared/settings'
 
-import { nextRunAt, waitingReason } from '../../scraper/schedule'
+import { intervalStretch, nextRunAt, waitingReason } from '../../scraper/schedule'
 import { RUNS_PAGE_SIZES, type RunsPage, type RunsPageSize, type ScraperStatus, type WebScraperRun } from '../api-types'
 import { HttpError, queryParams } from './http'
 
@@ -28,7 +29,7 @@ const RunsQuerySchema = z.object({
 		.default(20),
 })
 
-type OptionalTermField = 'skipped' | 'otherLanguage' | 'postIds' | 'errorKind' | 'searchUrl'
+type OptionalTermField = 'skipped' | 'otherLanguage' | 'postIds' | 'errorKind' | 'searchUrl' | 'datePosted'
 
 type RunDocument = {
 	_id: unknown
@@ -48,7 +49,7 @@ type RunDocument = {
 
 /** `GET /api/scraper/status`: coleta em andamento, última coleta e próxima agendada. */
 export async function scraperStatus({ skipOnboarding }: { skipOnboarding: boolean }) {
-	const [current, last, settings, linkedinAccount, firstRun] = await Promise.all([
+	const [current, last, settings, linkedinAccount, firstRun, shortRuns] = await Promise.all([
 		ScraperRun.findOne({ status: 'running' }).sort({ startedAt: -1 }).lean(),
 		ScraperRun.findOne({ status: { $ne: 'running' } })
 			.sort({ startedAt: -1 })
@@ -56,6 +57,7 @@ export async function scraperStatus({ skipOnboarding }: { skipOnboarding: boolea
 		readSettings('scraper'),
 		hasLinkedinAccount(),
 		skipOnboarding ? false : neverCollected(),
+		consecutiveShortRuns(),
 	])
 
 	// Mesma conta do scraper: intervalo a partir do início da última coleta (em andamento ou não)
@@ -67,7 +69,7 @@ export async function scraperStatus({ skipOnboarding }: { skipOnboarding: boolea
 		hasAccount: linkedinAccount,
 		awaitingFirstRun: firstRun && !current,
 	})
-	const next = waiting ? null : nextRunAt(lastStartedAt, settings.intervalMinutes)
+	const next = waiting ? null : nextRunAt(lastStartedAt, settings.intervalMinutes, shortRuns)
 
 	return Response.json({
 		current: current ? await toWebRun(current) : null,
@@ -75,6 +77,7 @@ export async function scraperStatus({ skipOnboarding }: { skipOnboarding: boolea
 		nextRunAt: next?.toISOString() ?? null,
 		paused: settings.paused,
 		intervalMinutes: settings.intervalMinutes,
+		intervalStretch: intervalStretch(shortRuns),
 		activeSearchTerms: terms,
 		linkedinAccount,
 		awaitingFirstRun: waiting === 'first-run',
@@ -155,6 +158,7 @@ async function toWebRun(doc: RunDocument): Promise<WebScraperRun> {
 			error: term.error ?? null,
 			errorKind: term.error ? (term.errorKind ?? legacyErrorKind(term.error)) : null,
 			searchUrl: term.searchUrl ?? null,
+			datePosted: (term.datePosted as DatePostedFilter | null | undefined) ?? null,
 		})),
 		error: doc.error ?? null,
 		loginFailure: doc.loginFailure ?? (doc.status === 'failed' && isLegacyLoginFailure(doc.error) ? 'other' : null),

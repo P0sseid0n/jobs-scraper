@@ -1,6 +1,6 @@
 import { TimeoutError, type Page } from 'puppeteer'
 
-import { activeSearchTerms, type CredentialsOf, type RawPost, type ScraperSettings } from '@shared/contracts'
+import type { CredentialsOf, DatePostedFilter, RawPost, ScraperSettings } from '@shared/contracts'
 import { SeenPost, type ScraperRunTerm, type ScraperTermErrorKind, type SeenPostOutcome } from '@shared/database'
 import { checkPostLanguage } from '@shared/language'
 import type { Logger } from '@shared/logging'
@@ -19,11 +19,13 @@ import { ensureLoggedIn, LoginError, loginOptionsFrom, NO_LINKEDIN_ACCOUNT } fro
 import { hashPost } from './post-id'
 import { downloadPostImages } from './post-images'
 import type { TermProgress } from './run-history'
-import { jobsPerTerm } from './schedule'
+import { jobsPerTerm, widerDatePosted } from './schedule'
 
 type ScrapeOptions = {
 	config: ScraperConfig
 	settings: ScraperSettings
+	/** Os termos ativos, na ordem em que são buscados (ver `rankTerms`). */
+	terms: string[]
 	queue: QueueClient
 	logger: Logger
 	/** Chamado a cada termo terminado, com os resultados até ali. */
@@ -64,18 +66,21 @@ export function closeActiveBrowser() {
 	return activeSession?.close()
 }
 
-/** O resultado de cada termo e as listas de vagas deixadas para outra coleta (`deferLists`). */
-export type ScrapeResult = { terms: ScraperRunTerm[]; deferredLists: string[] }
+/**
+ * O resultado de cada termo, as listas de vagas deixadas para outra coleta (`deferLists`) e quantas vagas faltaram
+ * para o mínimo.
+ */
+export type ScrapeResult = { terms: ScraperRunTerm[]; deferredLists: string[]; missingJobs: number }
 
 /**
- * Faz uma coleta: busca cada termo ativo em sequência e envia os posts novos para a fila. Com o mínimo de vagas
- * completo, as listas de vagas da coleta ficam para outra (ver `deferLists`).
+ * Faz uma coleta: busca cada termo em sequência e envia os posts novos para a fila. Se as buscas acabarem sem completar
+ * o mínimo de vagas, refaz a busca dos termos com um período mais amplo (24h → semana → mês → qualquer data), como quem
+ * aumenta a área de busca quando demora a achar. Com o mínimo de vagas completo, as listas de vagas da coleta ficam
+ * para outra (ver `deferLists`).
  * @returns O resultado de cada termo (um termo que falhar não impede os outros) e as listas deixadas para depois.
  */
 export async function scrapeOnce(options: ScrapeOptions): Promise<ScrapeResult> {
-	const { config, settings, logger } = options
-
-	const terms = activeSearchTerms(settings)
+	const { config, settings, terms, logger } = options
 
 	// O que falta do mínimo, dividido entre os termos que faltam: o que um termo não completar passa para os seguintes
 	let remaining = settings.minJobsPerRun
@@ -96,24 +101,48 @@ export async function scrapeOnce(options: ScrapeOptions): Promise<ScrapeResult> 
 
 	try {
 		const results: ScraperRunTerm[] = []
+		let datePosted: DatePostedFilter | null = settings.datePosted
 
-		for (const [index, term] of terms.entries()) {
-			const target = jobsPerTerm(remaining, terms.length - index)[0] ?? 0
+		while (datePosted) {
+			// Na ampliação, só os termos cuja busca funcionou (ou veio vazia no período menor)
+			const round = results.length === 0 ? terms : results.filter(canWiden).map(result => result.term)
 
-			// Mínimo já completado pelos termos anteriores: a coleta para, e os termos seguintes ficam sem busca, mas
-			// aparecem no histórico
-			if (target === 0) {
-				logger.info({ term }, 'Termo pulado: o mínimo de vagas da coleta já foi completado')
-				results.push({ term, sent: 0, skipped: 0, otherLanguage: 0, postIds: [], error: null, errorKind: null, searchUrl: null })
+			for (const [index, term] of round.entries()) {
+				const target = jobsPerTerm(remaining, round.length - index)[0] ?? 0
+				const previous = results.find(result => result.term === term)
+
+				// Mínimo já completado pelos termos anteriores: a coleta para, e os termos seguintes ficam sem busca, mas
+				// aparecem no histórico
+				if (target === 0) {
+					if (previous) continue
+					logger.info({ term }, 'Termo pulado: o mínimo de vagas da coleta já foi completado')
+					results.push({
+						term,
+						sent: 0,
+						skipped: 0,
+						otherLanguage: 0,
+						postIds: [],
+						error: null,
+						errorKind: null,
+						searchUrl: null,
+						datePosted: null,
+					})
+					await options.onTerm?.([...results])
+					continue
+				}
+
+				if (results.length > 0) await humanPause()
+				const { jobs, ...result } = await scrapeTerm(session, { term, target, seen, allowedLanguages, datePosted }, runOptions)
+				if (previous) Object.assign(previous, mergeTermResults(previous, result))
+				else results.push(result)
+				remaining -= jobs
 				await options.onTerm?.([...results])
-				continue
 			}
 
-			if (results.length > 0) await humanPause()
-			const { jobs, ...result } = await scrapeTerm(session, { term, target, seen, allowedLanguages }, runOptions)
-			results.push(result)
-			remaining -= jobs
-			await options.onTerm?.([...results])
+			datePosted = remaining > 0 ? widerDatePosted(datePosted) : null
+			if (datePosted && results.some(canWiden)) {
+				logger.info({ datePosted, missing: remaining }, '🔭 As buscas acabaram antes do mínimo: ampliando o período')
+			} else datePosted = null
 		}
 
 		// Renova a sessão salva (o LinkedIn atualiza os cookies durante a navegação)
@@ -128,14 +157,36 @@ export async function scrapeOnce(options: ScrapeOptions): Promise<ScrapeResult> 
 		}
 		logger.info({ sent, terms: results.length }, '✅ Coleta finalizada')
 
-		return { terms: results, deferredLists }
+		return { terms: results, deferredLists, missingJobs: Math.max(remaining, 0) }
 	} finally {
 		activeSession = undefined
 		await session.close()
 	}
 }
 
-type TermSearch = { term: string; target: number; seen: Set<string>; allowedLanguages: string[] }
+type TermSearch = { term: string; target: number; seen: Set<string>; allowedLanguages: string[]; datePosted: DatePostedFilter }
+
+/** Se o termo pode ser buscado de novo num período mais amplo: a busca funcionou ou não teve resultados. */
+function canWiden(result: ScraperRunTerm) {
+	return !result.error || result.errorKind === 'empty'
+}
+
+/**
+ * Junta o resultado do termo no período mais amplo ao do período anterior. Se a busca ampliada falhar, fica o
+ * resultado anterior (com os posts já enviados), a não ser que ele também não tenha trazido nada.
+ */
+function mergeTermResults(previous: ScraperRunTerm, wider: ScraperRunTerm): ScraperRunTerm {
+	if (previous.error) return wider
+	if (wider.error) return previous
+
+	return {
+		...wider,
+		sent: previous.sent + wider.sent,
+		skipped: previous.skipped + wider.skipped,
+		otherLanguage: previous.otherLanguage + wider.otherLanguage,
+		postIds: [...previous.postIds, ...wider.postIds],
+	}
+}
 
 /** A busca de um termo não trouxe posts; `kind` diz o motivo para o histórico. */
 class SearchError extends Error {
@@ -154,14 +205,15 @@ async function scrapeTerm(
 	search: TermSearch,
 	options: RunOptions,
 ): Promise<ScraperRunTerm & { jobs: number }> {
-	const logger = options.logger.child({ term: search.term })
-	const searchUrl = buildSearchUrl({ keywords: search.term, datePosted: options.settings.datePosted })
+	const logger = options.logger.child({ term: search.term, datePosted: search.datePosted })
+	const { datePosted } = search
+	const searchUrl = buildSearchUrl({ keywords: search.term, datePosted })
 
 	try {
 		const page = await openSearchResults(session, searchUrl, { ...options, logger })
 		const { sent, jobs, skipped, otherLanguage, postIds } = await publishNewPosts(page, search, { ...options, logger })
 
-		return { term: search.term, sent, jobs, skipped, otherLanguage, postIds, error: null, errorKind: null, searchUrl }
+		return { term: search.term, sent, jobs, skipped, otherLanguage, postIds, error: null, errorKind: null, searchUrl, datePosted }
 	} catch (error) {
 		if (error instanceof LoginError) throw error
 
@@ -179,6 +231,7 @@ async function scrapeTerm(
 			error: error instanceof Error ? error.message : String(error),
 			errorKind: kind,
 			searchUrl,
+			datePosted,
 		}
 	}
 }

@@ -31,7 +31,7 @@ import { SelectMenu, type SelectMenuOption } from '../components/ui/SelectMenu'
 import { Switch, SwitchField } from '../components/ui/Switch'
 import { SECTION_TITLE } from '../components/ui/text'
 import { cx } from '../lib/cx'
-import { formatInterval, LANGUAGE_NAMES, languageLabel } from '../lib/format'
+import { DATE_POSTED_LABELS, formatInterval, LANGUAGE_NAMES, languageLabel } from '../lib/format'
 import { shakeInvalid } from '../lib/motion'
 import {
 	duplicateSimilarityHint,
@@ -43,13 +43,6 @@ import {
 } from '../lib/settings-form'
 import { useFlash } from '../lib/use-flash'
 import { notify } from '../stores/toast'
-
-const DATE_POSTED_LABELS: Record<DatePostedFilter, string> = {
-	'past-24h': 'Últimas 24h',
-	'past-week': 'Última semana',
-	'past-month': 'Último mês',
-	any: 'Qualquer data',
-}
 
 const DATE_POSTED_OPTIONS: SelectMenuOption<DatePostedFilter>[] = DATE_POSTED_FILTERS.map(value => ({
 	value,
