@@ -15,6 +15,8 @@ const seenPostSchema = new Schema(
 		isJob: { type: Boolean, required: true },
 		/** Ausente nos posts processados antes de o destino ser registrado. */
 		outcome: { type: String, enum: SEEN_POST_OUTCOMES },
+		/** Por que o post foi descartado (ex.: o tipo de post que a IA viu), para conferir o descarte depois. */
+		reason: { type: String },
 	},
 	{ timestamps: true },
 )

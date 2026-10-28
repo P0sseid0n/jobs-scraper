@@ -360,7 +360,7 @@ async function readNewPosts(
 
 		const { rejection } = checkPostLanguage(post.text, allowedLanguages)
 		if (rejection) {
-			await markAsOtherLanguage(post.postId)
+			await markAsOtherLanguage(post.postId, rejection)
 			otherLanguage++
 			logger.debug({ postId: post.postId, reason: rejection }, 'Post em outro idioma ignorado')
 			continue
@@ -445,8 +445,8 @@ async function deferLists(postIds: string[]) {
 }
 
 /** Registra o post como visto, para as próximas coletas o pularem como fariam com um descartado pelo post-processing. */
-function markAsOtherLanguage(postId: string) {
-	return SeenPost.updateOne({ postId }, { $setOnInsert: { postId, isJob: false, outcome: 'language' } }, { upsert: true })
+function markAsOtherLanguage(postId: string, reason: string) {
+	return SeenPost.updateOne({ postId }, { $setOnInsert: { postId, isJob: false, outcome: 'language', reason } }, { upsert: true })
 }
 
 /** Ids, entre os dados, de posts que já passaram pela IA em coletas anteriores. */

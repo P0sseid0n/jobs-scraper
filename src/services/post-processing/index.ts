@@ -85,7 +85,7 @@ async function processPost(post: RawPost) {
 
 	if (rejection) {
 		log.info({ reason: rejection }, 'Post descartado')
-		await markAsSeen(post, 'language')
+		await markAsSeen(post, 'language', rejection)
 		return
 	}
 
@@ -97,7 +97,7 @@ async function processPost(post: RawPost) {
 
 	if (!aiJob || reason) {
 		log.info({ reason }, 'Post descartado')
-		await markAsSeen(post, 'not-a-job')
+		await markAsSeen(post, 'not-a-job', reason)
 		return
 	}
 
@@ -106,7 +106,7 @@ async function processPost(post: RawPost) {
 
 	if (irrelevant) {
 		log.info({ reason: irrelevant, title: job.title }, 'Vaga descartada')
-		await markAsSeen(post, 'keywords')
+		await markAsSeen(post, 'keywords', irrelevant)
 		return
 	}
 
@@ -183,10 +183,14 @@ async function processRoleList(post: RawPost, roles: RoleLine[], settings: Keywo
 type KeywordSettings = { requiredKeywords: string[]; excludedKeywords: string[] }
 
 /** Registra o destino do post (o histórico de coletas mostra os motivos de descarte); a IA o viu como vaga ou não. */
-function markAsSeen(post: RawPost, outcome: SeenPostOutcome) {
+function markAsSeen(post: RawPost, outcome: SeenPostOutcome, reason?: string | null) {
 	const isJob = outcome === 'saved' || outcome === 'keywords' || outcome === 'missing-fields'
 
-	return SeenPost.updateOne({ postId: post.postId }, { $setOnInsert: { postId: post.postId, isJob, outcome } }, { upsert: true })
+	return SeenPost.updateOne(
+		{ postId: post.postId },
+		{ $setOnInsert: { postId: post.postId, isJob, outcome, ...(reason && { reason }) } },
+		{ upsert: true },
+	)
 }
 
 /** Encerra o serviço com uma instrução clara se o modelo não estiver baixado no Ollama. */
