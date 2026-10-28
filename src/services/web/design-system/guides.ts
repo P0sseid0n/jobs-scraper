@@ -126,7 +126,7 @@ export const GUIDES: Record<string, string> = {
 - Para detalhes de depuração, deixe o bloco recolhido atrás de um link ou de um \`<details>\`.`,
 	FieldScan: `O padrão de carregamento dos campos: uma onda larga e desfocada, no \`lime-soft\` (perto do tom do fundo) e um pouco inclinada (o lado direito mais alto), atravessa o campo de cima para baixo e de baixo para cima, como um scanner, enquanto o conteúdo dele não chega (no lugar de spinner ou de "carregando…" dentro do campo).
 
-- Por cima do campo: deixe o campo no lugar (desligado e vazio) e ponha o \`FieldScan\` com \`absolute inset-0\` num contêiner \`relative\`.
+- Por cima do campo: deixe o campo no lugar, vazio e só de leitura (\`readOnly\` e \`aria-busy\`, não \`disabled\`: o visual de desligado é para o que não se pode usar) e ponha o \`FieldScan\` com \`absolute inset-0\` num contêiner \`relative\`.
 - No lugar de um texto só de leitura: dê a altura e o fundo (\`min-h-40 rounded-sm bg-surface\`).
 - \`label\` diz o que está acontecendo, escrito no centro do campo ("a IA está escrevendo a mensagem…"). Para uma área inteira (uma lista, um card), use o \`Skeleton\`.`,
 	Skeleton: `Bloco pulsando no lugar do conteúdo que ainda está carregando (o tamanho e a cor vêm do \`className\`).

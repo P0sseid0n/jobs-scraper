@@ -108,6 +108,10 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 	const awaitingAi = cv?.status === 'pending' && !generated && !edited
 	const bodyLoading = !textReady || awaitingAi
 	const loadingLabel = textReady ? 'a IA está escrevendo a mensagem para a vaga…' : 'carregando a mensagem…'
+	// Os campos esperando (dados chegando ou a IA reescrevendo) ficam só de leitura, com o `FieldScan` no corpo, e não
+	// desligados: o visual de desligado é para o que não se pode usar, não para o que ainda está chegando
+	const fieldsBusy = bodyLoading || !!rewriting
+	const busyLabel = rewriting ? 'a IA está reescrevendo a mensagem…' : loadingLabel
 	// Sem saber ainda se há conta de e-mail, os campos aparecem como editáveis (desligados), no lugar em que vão ficar
 	const editable = canSend || setup === null
 
@@ -271,10 +275,7 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 						</Notice>
 					)}
 
-					<div
-						className={cx('flex flex-col gap-3', rewriting && 'animate-pulse opacity-55 motion-reduce:animate-none')}
-						aria-busy={!!rewriting || bodyLoading}
-					>
+					<div className="flex flex-col gap-3" aria-busy={fieldsBusy}>
 						{editable ? (
 							<>
 								<div className="flex flex-col gap-1.5">
@@ -291,7 +292,8 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 									<Input
 										id={ids.subject}
 										value={subject}
-										disabled={!!rewriting || bodyLoading}
+										readOnly={fieldsBusy}
+										aria-busy={fieldsBusy}
 										invalid={!!errors.subject}
 										aria-describedby={errors.subject ? `${ids.subject}-error` : undefined}
 										onChange={event => {
@@ -307,8 +309,9 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 										<textarea
 											id={ids.body}
 											rows={9}
-											value={bodyLoading ? '' : body}
-											disabled={!!rewriting || bodyLoading}
+											value={fieldsBusy ? '' : body}
+											readOnly={fieldsBusy}
+											aria-busy={fieldsBusy}
 											aria-invalid={!!errors.body || undefined}
 											aria-describedby={errors.body ? `${ids.body}-error` : undefined}
 											onChange={event => {
@@ -317,7 +320,7 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 											}}
 											className={field({ invalid: !!errors.body, className: 'resize-y py-2.5 leading-relaxed' })}
 										/>
-										{bodyLoading && <FieldScan label={loadingLabel} className="absolute inset-0 rounded-sm" />}
+										{fieldsBusy && <FieldScan label={busyLabel} className="absolute inset-0 rounded-sm" />}
 									</div>
 									{errors.body && <FieldError id={`${ids.body}-error`}>{errors.body}</FieldError>}
 								</div>
@@ -336,8 +339,8 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 									/>
 								</p>
 								{/* Texto corrido, para revisar: sem a fonte mono e com a linha numa largura confortável de ler */}
-								{bodyLoading ? (
-									<FieldScan label={loadingLabel} className="min-h-40 rounded-sm bg-surface" />
+								{fieldsBusy ? (
+									<FieldScan label={busyLabel} className="min-h-40 rounded-sm bg-surface" />
 								) : (
 									<p className="m-0 max-w-prose text-sm leading-relaxed whitespace-pre-wrap wrap-break-word">{body}</p>
 								)}
