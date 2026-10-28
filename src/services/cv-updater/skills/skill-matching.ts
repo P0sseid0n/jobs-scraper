@@ -2,14 +2,15 @@ import { knownTechnologies } from '../projects/tech-catalog'
 import type { ResumeContent } from '../resume/resume.types'
 import type { TargetJob } from '../target-job'
 
-/** Normaliza o nome de uma habilidade para comparação: "Vue 3" ≈ "Vue.js" ≈ "vue". */
+/** Normaliza o nome de uma habilidade para comparação: "Vue 3" ≈ "Vue.js" ≈ "VueJS" ≈ "vue". */
 export function normalizeSkill(value: string) {
 	return (
 		value
 			.normalize('NFD')
 			.replace(/\p{Diacritic}/gu, '')
 			.toLowerCase()
-			.replace(/\.js\b|\bjs\b/g, '')
+			// "ReactJS"/"NodeJS" como na vaga ≈ "React"/"Node.js" do GitHub
+			.replace(/\.?js\b/g, '')
 			// Versões no nome: "JavaScript ES6+" ≈ "JavaScript", "Vue 3" ≈ "Vue"
 			.replace(/\b(es\d+|v\d+)\+?(?=\s|$)/g, '')
 			.replace(/\s*\d+(\.\d+)*\+?\s*$/, '')

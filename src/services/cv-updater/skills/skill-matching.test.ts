@@ -40,6 +40,8 @@ describe('associação de habilidades', () => {
 		expect(normalizeSkill('Vue 3')).toBe('vue')
 		expect(normalizeSkill('Vue.js')).toBe('vue')
 		expect(normalizeSkill('Node.JS')).toBe('node')
+		expect(normalizeSkill('ReactJS')).toBe('react')
+		expect(normalizeSkill('NestJS')).toBe('nest')
 		expect(normalizeSkill('JavaScript ES6+')).toBe('javascript')
 		expect(normalizeSkill('C#')).toBe('c#')
 	})
