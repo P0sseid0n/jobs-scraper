@@ -1,8 +1,5 @@
 import { useNavigate } from '@tanstack/react-router'
-import { useId, useLayoutEffect, useRef, useState } from 'react'
-
-import { MESSAGE_LENGTHS, MESSAGE_TONES, type MessageLength, type MessageTone } from '@shared/contracts'
-import { defaultApplicationMessage } from '@shared/templates'
+import { useLayoutEffect, useRef, useState } from 'react'
 
 import type { WebJob } from '../../api-types'
 import { api, RequestError } from '../api'
@@ -14,18 +11,16 @@ import {
 	jobSubtitle,
 	languageLabel,
 	listingPageText,
-	MESSAGE_LENGTH_LABELS,
-	MESSAGE_TONE_LABELS,
 	safeLink,
 	timeAgo,
 } from '../lib/format'
 import { revealJobDetail } from '../lib/job-opening'
 import { jobParams } from '../router'
 import { appliedSuggestion, setApplied, useAppliedAt, useAppliedSimilar } from '../stores/applied'
-import { rewriteMessage, undoMessageRewrite, useCvFor, useGeneratedMessage } from '../stores/cv'
+import { useCvFor } from '../stores/cv'
 import { removeJob, replaceJob } from '../stores/jobs'
 import { notify } from '../stores/toast'
-import { ApplicationEmail } from './ApplicationEmail'
+import { JobContact } from './ContactDialog'
 import { ContractTypeBadge } from './ContractTypeBadge'
 import { CopyButton } from './CopyButton'
 import { CorrectedBadge } from './CorrectedBadge'
@@ -37,13 +32,11 @@ import { JobReposts } from './JobReposts'
 import { ListingBadge } from './ListingBadge'
 import { PostImages } from './PostImages'
 import { ReportJobDialog } from './ReportJobDialog'
-import { SendApplication } from './SendApplication'
 import { badge, BadgeList } from './ui/Badge'
 import { Button } from './ui/Button'
 import { CodeBlock } from './ui/CodeBlock'
 import { IconButton } from './ui/IconButton'
 import { Notice } from './ui/Notice'
-import { Pill, PillGroup } from './ui/Pill'
 import { Skeleton } from './ui/Skeleton'
 import { LABEL } from './ui/text'
 import { RouteLink, TextLink } from './ui/TextLink'
@@ -54,9 +47,6 @@ const LONG_POST_CHARS = 600
 
 /** Os botões de candidatura dividem a linha e quebram quando não cabem. */
 const DETAIL_ACTION = 'flex-1 basis-45'
-
-/** Uma das opções de reescrita da mensagem (tom, tamanho): o rótulo e as pills na mesma linha; no celular, um embaixo do outro. */
-const MESSAGE_OPTION = 'flex items-center gap-2 max-sm:flex-col max-sm:items-start max-sm:gap-1.5'
 
 /** No `bun dev` (com o recarregamento ao vivo): o JSON da vaga só aparece para quem está desenvolvendo. */
 const DEVELOPMENT = Boolean(import.meta.hot)
@@ -81,14 +71,6 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 	const [rawJson, setRawJson] = useState<string | null>(null)
 	const [loadingRaw, setLoadingRaw] = useState(false)
 
-	// A mensagem gerada pela IA aparece no lugar do modelo padrão, que continua a um clique
-	const [useDefaultMessage, setUseDefaultMessage] = useState(false)
-	// O que está sendo reescrito pela IA agora (o tom, o tamanho, "mais direta" ou o desfazer), para o spinner
-	// Os rótulos visíveis "tom" e "tamanho" dão o nome dos grupos de pills
-	const toneLabel = useId()
-	const lengthLabel = useId()
-	const [rewriting, setRewriting] = useState<MessageTone | MessageLength | 'direct' | 'undo' | null>(null)
-
 	const cv = useCvFor(job.postId)
 	const appliedAt = useAppliedAt(job)
 	const appliedSimilar = useAppliedSimilar(job.postId)
@@ -100,13 +82,6 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 	const postLink = safeLink(job.postLink)
 	const applyLink = safeLink(job.applyLink)
 	const appliesThroughPost = !applyLink && !job.recruiterEmail
-	const generatedRequest = useGeneratedMessage(job.postId)
-	const generated = generatedRequest?.message ?? null
-	const showGenerated = !!generated && !useDefaultMessage
-	const message = generated && showGenerated ? generated : defaultApplicationMessage(job.title)
-	// Mensagens de antes do tom e do tamanho foram escritas no neutro e no tamanho médio
-	const tone = generated?.tone ?? 'neutral'
-	const length = generated?.length ?? 'medium'
 	// Vaga de um post com várias: o texto é o da página aberta pelo link dela, não o do post
 	const fromList = !!job.sourcePostId
 	const fromPage = fromList && isListingPageText(job.rawContent)
@@ -118,24 +93,6 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 	useLayoutEffect(() => {
 		if (root.current) revealJobDetail(root.current)
 	}, [])
-
-	/** Pede à IA outra versão da mensagem (ou desfaz a última); se ela não conseguir, a mensagem continua a mesma. */
-	async function changeMessage(
-		kind: NonNullable<typeof rewriting>,
-		style: { tone: MessageTone; length: MessageLength; direct?: boolean } | null,
-	) {
-		if (!generatedRequest || rewriting) return
-
-		setRewriting(kind)
-		try {
-			if (style) await rewriteMessage(generatedRequest.requestId, style)
-			else await undoMessageRewrite(generatedRequest.requestId)
-		} catch (error) {
-			notify(error instanceof RequestError ? error.message : 'Não consegui reescrever a mensagem', 'error')
-		} finally {
-			setRewriting(null)
-		}
-	}
 
 	async function toggleRawJson() {
 		if (rawJson !== null) {
@@ -293,115 +250,8 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 				)}
 			</section>
 
-			{/* Depois do post: primeiro se lê a vaga, depois se escreve para o recrutador */}
-			{job.recruiterEmail && (
-				<section className="flex flex-col gap-2.5" aria-label="Contato">
-					<h3 className={LABEL}>contato</h3>
-					<div className="flex min-w-0 items-center gap-2 rounded-sm border border-line py-1.5 pr-1.5 pl-3 text-sm">
-						<a className="font-mono block truncate grow no-underline" href={`mailto:${job.recruiterEmail}`}>
-							{job.recruiterEmail}
-						</a>
-						<CopyButton text={job.recruiterEmail} what="E-mail" toastAction={suggestion} />
-					</div>
-					<ApplicationEmail
-						label={showGenerated ? 'mensagem gerada pela IA' : 'modelo de mensagem'}
-						aria-label="Mensagem de candidatura"
-						message={message}
-						busy={!!rewriting}
-						copyAction={suggestion}
-					>
-						{showGenerated && (
-							// Reescreve a mensagem já gerada: o tom e o tamanho escolhidos ficam ligados
-							<div className="flex flex-wrap items-center gap-x-5 gap-y-2.5 border-t border-line-strong pt-3">
-								<div className={MESSAGE_OPTION}>
-									<span id={toneLabel} className={LABEL}>
-										tom
-									</span>
-									<PillGroup role="group" aria-labelledby={toneLabel}>
-										{MESSAGE_TONES.map(option => (
-											<Pill
-												key={option}
-												pressed={option === tone}
-												disabled={!!rewriting}
-												onClick={() => option !== tone && changeMessage(option, { tone: option, length })}
-											>
-												{rewriting === option && <Icon name="spinner" size={13} />}
-												{MESSAGE_TONE_LABELS[option]}
-											</Pill>
-										))}
-									</PillGroup>
-								</div>
-								<div className={MESSAGE_OPTION}>
-									<span id={lengthLabel} className={LABEL}>
-										tamanho
-									</span>
-									<PillGroup role="group" aria-labelledby={lengthLabel}>
-										{MESSAGE_LENGTHS.map(option => (
-											<Pill
-												key={option}
-												pressed={option === length}
-												disabled={!!rewriting}
-												onClick={() => option !== length && changeMessage(option, { tone, length: option })}
-											>
-												{rewriting === option && <Icon name="spinner" size={13} />}
-												{MESSAGE_LENGTH_LABELS[option]}
-											</Pill>
-										))}
-									</PillGroup>
-								</div>
-								{/* Uma ação, não uma opção: cada clique reescreve de novo, mais enxuta */}
-								<Button
-									variant="ghost"
-									size="sm"
-									disabled={!!rewriting}
-									onClick={() => changeMessage('direct', { tone, length, direct: true })}
-								>
-									<Icon name={rewriting === 'direct' ? 'spinner' : 'refresh'} size={13} />
-									deixar mais direta
-								</Button>
-							</div>
-						)}
-						{generated ? (
-							<div className="flex items-center justify-between gap-3 text-muted text-xs">
-								<span role="status">
-									{rewriting && rewriting !== 'undo' ? (
-										'a IA está reescrevendo…'
-									) : showGenerated ? (
-										<>
-											revise antes de enviar
-											{generatedRequest?.previousMessage && (
-												<>
-													{' · '}
-													<TextLink
-														className="text-xs"
-														disabled={!!rewriting}
-														onClick={() => changeMessage('undo', null)}
-													>
-														desfazer
-													</TextLink>
-												</>
-											)}
-										</>
-									) : (
-										''
-									)}
-								</span>
-								<TextLink className="text-xs" onClick={() => setUseDefaultMessage(!useDefaultMessage)}>
-									{showGenerated ? 'usar o modelo padrão' : 'usar a mensagem da IA'}
-								</TextLink>
-							</div>
-						) : (
-							<p className="text-muted text-xs">
-								{cv?.status === 'pending'
-									? 'A mensagem escrita para esta vaga chega junto com o currículo.'
-									: 'Gere o currículo para receber uma mensagem escrita para esta vaga.'}
-							</p>
-						)}
-					</ApplicationEmail>
-					{/* Envia exatamente o que está na caixa acima (revisado de novo na prévia), com o currículo pronto anexado */}
-					<SendApplication job={job} message={message} />
-				</section>
-			)}
+			{/* Depois do post: primeiro se lê a vaga, depois se escreve para o recrutador (a mensagem e o envio ficam na modal) */}
+			<JobContact job={job} copyAction={suggestion} />
 
 			<JobReposts
 				job={job}
