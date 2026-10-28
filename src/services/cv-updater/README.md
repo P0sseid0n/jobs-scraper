@@ -11,9 +11,9 @@ Funciona para currículos de qualquer área. A área e o cargo-alvo do perfil (C
 - **Apresentação:** reescrita pela IA para a vaga, destacando o que combina e citando as competências pedidas que estão no currículo. Se citar um requisito da vaga que a pessoa não tem, é rejeitada e a IA tenta de novo; na segunda falha, fica a original.
 - **Habilidades:** as competências da vaga são associadas às do currículo pelo nome ("CSS3/SCSS" ↔ "CSS (SASS/SCSS)") ou pelas palavras ("Gestão de tráfego pago" ↔ "Tráfego pago (Google Ads, Meta Ads)", aceitando o plural), ficam só as suas categorias relacionadas à vaga, e o que a vaga pede vem primeiro. Do que falta no currículo, só entram as tecnologias do catálogo (`projects/tech-catalog.ts`), na categoria certa (nuvem e DevOps vão para ferramentas); competências de outras áreas que você não tem ("Copywriting", "Hemodiálise") nunca são adicionadas.
 - **Projetos:** com o usuário do GitHub (em Configurações › Contas ou `GITHUB_USERNAME`), os projetos (`CV_MAX_PROJECTS`, padrão 2) vêm dos seus repositórios públicos, por ranqueamento:
-  - +10 por tecnologia da vaga que o projeto usa (linguagens, topics e dependências do `package.json`);
+  - +10 por tecnologia da vaga que o projeto usa (linguagens, topics e dependências do `package.json`); Bun e Deno contam como Node.js, e qualquer provedor de IA (Ollama, OpenAI, Anthropic, Gemini/Google GenAI, LangChain) atende a vaga que pede outro, somando +10 uma vez só;
   - +3 se tem descrição e +3 se tem topics;
-  - +3 se teve push nos últimos 12 meses e +3 se tem link do projeto publicado (o "Website" do repositório);
+  - +8 se teve push nos últimos 12 meses (−8 se não tem push há mais de 3 anos) e +3 se tem link do projeto publicado (o "Website" do repositório);
   - desempate por mais estrelas, depois mais tecnologias e depois o mais recente.
 
   Projetos que já estão no `.tex` usam o texto que você escreveu; os outros ganham uma descrição gerada a partir do README. Forks, arquivados e os de `GITHUB_EXCLUDE_REPOS` ficam de fora. Sem GitHub, ficam os projetos do `.tex`, reordenados. Sem a seção de projetos no `.tex`, o GitHub não é consultado.

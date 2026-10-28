@@ -73,6 +73,22 @@ describe('tecnologias de um repositório', () => {
 		expect(matchingTechnologies(['Nuxt.js', 'Vue.js', 'Supabase'], ['Vue 3', 'Nuxt', 'Angular'])).toEqual(['Vue 3', 'Nuxt'])
 	})
 
+	test('Bun e Deno atendem a vaga que pede Node.js', () => {
+		expect(matchingTechnologies(['Bun', 'TypeScript'], ['Node.js', 'TypeScript'])).toEqual(['Node.js', 'TypeScript'])
+		expect(matchingTechnologies(['Deno'], ['NodeJS'])).toEqual(['NodeJS'])
+		expect(matchingTechnologies(['Node.js'], ['Bun'])).toEqual([])
+	})
+
+	test('um provedor de IA atende a vaga que pede outro', () => {
+		expect(matchingTechnologies(['Ollama'], ['OpenAI', 'Gemini API', 'LangChain', 'PostgreSQL'])).toEqual([
+			'OpenAI',
+			'Gemini API',
+			'LangChain',
+		])
+		expect(matchingTechnologies(['Google GenAI'], ['Anthropic'])).toEqual(['Anthropic'])
+		expect(matchingTechnologies(['React'], ['OpenAI'])).toEqual([])
+	})
+
 	test('coloca as tecnologias da vaga primeiro', () => {
 		expect(orderTechnologies(['Supabase', 'TypeScript', 'Vue.js'], ['Vue.js'])).toEqual(['Vue.js', 'Supabase', 'TypeScript'])
 	})
@@ -81,21 +97,21 @@ describe('tecnologias de um repositório', () => {
 describe('ranqueamento', () => {
 	const jobSkills = ['Vue.js', 'Nuxt', 'TypeScript', 'Pinia']
 
-	test('pontua tecnologias da vaga (+10, linguagens básicas +3), descrição (+3), topics (+3) e push recente (+3)', () => {
+	test('pontua tecnologias da vaga (+10, linguagens básicas +3), descrição (+3), topics (+3) e push recente (+8)', () => {
 		const ranked = rankProjects(texProjects, [calculadora, chat, placar], jobSkills, now)
 		const byName = Object.fromEntries(ranked.map(candidate => [candidate.project.name, candidate.score]))
 
 		// Placar: Vue e Nuxt (+10 cada), TypeScript (+3), descrição, topics e push recente
-		expect(byName.Placar).toBe(32)
-		// Chat: Vue e Pinia = 20 + descrição (último push há mais de um ano)
-		expect(byName['Chat Vue']).toBe(23)
+		expect(byName.Placar).toBe(37)
+		// Chat: Vue e Pinia = 20 + descrição − 8 (último push há mais de 3 anos)
+		expect(byName['Chat Vue']).toBe(15)
 		// Calculadora: só TypeScript (+3) e push recente, sem descrição nem topics
-		expect(byName['React Calculator']).toBe(6)
+		expect(byName['React Calculator']).toBe(11)
 		expect(ranked[0]?.project.name).toBe('Placar')
 	})
 
 	test('link do projeto publicado vale +3; no .tex, só um link que não é do GitHub', () => {
-		const antigo = { pushedAt: '2020-01-01T00:00:00Z' }
+		const antigo = { pushedAt: '2024-06-01T00:00:00Z' }
 		const publicado = repo({ ...antigo, name: 'publicado', fullName: 'fulano/publicado', homepage: 'https://publicado.dev' })
 		const semLink = repo({ ...antigo, name: 'sem-link', fullName: 'fulano/sem-link' })
 		const site = { ...texProjects[0]!, name: 'Site', url: 'site.dev' }
@@ -111,6 +127,31 @@ describe('ranqueamento', () => {
 		expect(scoreTechMatches(['Vue.js', 'Nuxt'])).toBe(20)
 		expect(scoreTechMatches(['JavaScript', 'TypeScript', 'HTML5', 'CSS3'])).toBe(9)
 		expect(scoreTechMatches(['CSS3/SCSS', 'JavaScript ES6+'])).toBe(6)
+	})
+
+	test('provedores de IA somam +10 uma vez só', () => {
+		expect(scoreTechMatches(['OpenAI', 'Gemini API', 'LangChain', 'Node.js'])).toBe(20)
+	})
+
+	test('projeto atual com Bun e IA passa à frente de um antigo com o topic nodejs', () => {
+		const antigo = repo({
+			name: 'antigo',
+			fullName: 'fulano/antigo',
+			description: 'x',
+			topics: ['nodejs', 'vuejs'],
+			homepage: 'https://antigo.netlify.app',
+			pushedAt: '2022-01-12T00:00:00Z',
+		})
+		const atual = repo({
+			name: 'atual',
+			fullName: 'fulano/atual',
+			description: 'x',
+			languages: ['TypeScript'],
+			dependencies: ['ollama', 'mongoose'],
+			pushedAt: '2026-10-20T00:00:00Z',
+		})
+		const ranked = rankProjects([], [antigo, atual], ['Node.js', 'TypeScript', 'OpenAI', 'Anthropic'], now)
+		expect(ranked.map(candidate => candidate.repo?.name)).toEqual(['atual', 'antigo'])
 	})
 
 	test('no empate, ganha o projeto com mais estrelas', () => {

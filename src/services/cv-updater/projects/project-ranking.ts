@@ -17,20 +17,28 @@ export type ProjectCandidate = {
 const SCORE_PER_MATCH = 10
 const SCORE_DESCRIPTION = 3
 const SCORE_TOPICS = 3
-const SCORE_RECENT = 3
+const SCORE_RECENT = 8
+const SCORE_STALE = -8
 const SCORE_LINK = 3
 
-// Projeto com push neste período conta como recente
+// Projeto com push neste período conta como recente; sem push há mais que `STALE_YEARS`, como abandonado
 const RECENT_MONTHS = 12
+const STALE_YEARS = 3
 
 // Linguagens básicas aparecem em quase todo projeto web: valem menos que frameworks/bibliotecas
 const SCORE_PER_BASIC_MATCH = 3
 const BASIC_SKILLS = new Set(['javascript', 'typescript', 'html', 'css'])
 
+// Quem usa Bun ou Deno programa para o mesmo runtime que a vaga chama de Node.js
+const IMPLIED_SKILLS: Record<string, string[]> = { bun: ['node'], deno: ['node'] }
+
+// Integração com modelos de IA: quem integrou um provedor (ou o Ollama) atende a vaga que pede outro; conta uma vez só
+const LLM_SKILLS = new Set(['ollama', 'openai', 'anthropic', 'claude', 'gemini', 'googlegenai', 'genai', 'langchain', 'llm', 'llms'])
+
 /**
  * Ranqueia os projetos do GitHub e do `.tex` para a vaga: tecnologias da vaga (`scoreTechMatches`),
- * +3 por descrição e +3 por topics (os do `.tex` ganham os dois), +3 se teve push nos últimos 12 meses
- * e +3 se tem link do projeto publicado. Desempate em `compareCandidates`.
+ * +3 por descrição e +3 por topics (os do `.tex` ganham os dois), +8 se teve push nos últimos 12 meses
+ * (−8 se não tem há mais de 3 anos) e +3 se tem link do projeto publicado. Desempate em `compareCandidates`.
  */
 export function rankProjects(
 	texProjects: ResumeProject[],
@@ -64,27 +72,45 @@ export function orderTechnologies(technologies: string[], jobSkills: string[]) {
 	return ordered.slice(0, MAX_TECHNOLOGIES)
 }
 
-/** Retorna as tecnologias da vaga presentes no projeto. */
+/** Retorna as tecnologias da vaga presentes no projeto (Bun/Deno atendem Node.js; um provedor de IA atende outro). */
 export function matchingTechnologies(technologies: string[], jobSkills: string[]) {
 	const projectAliases = new Set(technologies.flatMap(tech => [...skillAliases(tech)]))
 
-	return jobSkills.filter(skill => [...skillAliases(skill)].some(alias => projectAliases.has(alias)))
+	for (const alias of [...projectAliases]) {
+		for (const implied of IMPLIED_SKILLS[alias] ?? []) projectAliases.add(implied)
+		if (isLlmSkill(alias)) for (const llm of LLM_SKILLS) projectAliases.add(llm)
+	}
+
+	return jobSkills.filter(skill =>
+		[...skillAliases(skill)].some(alias => projectAliases.has(alias) || (isLlmSkill(alias) && projectAliases.has('llm'))),
+	)
 }
 
-/** Pontua as tecnologias da vaga: +10 cada; linguagens básicas valem +3 (JavaScript e TypeScript contam como uma). */
+/**
+ * Pontua as tecnologias da vaga: +10 cada; linguagens básicas valem +3 (JavaScript e TypeScript contam como uma)
+ * e os provedores de IA ("OpenAI", "Gemini", "LangChain") somam +10 uma vez só.
+ */
 export function scoreTechMatches(matches: string[]) {
 	const basic = new Set<string>()
+	let llm = false
 	let score = 0
 
 	for (const skill of matches) {
+		const aliases = [...skillAliases(skill)]
 		// Requisitos compostos ("CSS3/SCSS") contam como básicos se alguma parte for uma linguagem básica
-		const key = [...skillAliases(skill)].find(alias => BASIC_SKILLS.has(alias))
+		const key = aliases.find(alias => BASIC_SKILLS.has(alias))
 
 		if (key) basic.add(key === 'typescript' ? 'javascript' : key)
+		else if (aliases.some(isLlmSkill)) llm = true
 		else score += SCORE_PER_MATCH
 	}
 
-	return score + basic.size * SCORE_PER_BASIC_MATCH
+	return score + basic.size * SCORE_PER_BASIC_MATCH + (llm ? SCORE_PER_MATCH : 0)
+}
+
+/** Diz se o nome é de um provedor de IA, aceitando "API" no fim ("OpenAI API", "Gemini API"). */
+function isLlmSkill(alias: string) {
+	return LLM_SKILLS.has(alias.replace(/apis?$/, ''))
 }
 
 /** Cria o candidato de um projeto do `.tex`, somando as tecnologias do repositório correspondente. */
@@ -123,17 +149,20 @@ function repoCandidate(repo: GithubRepo, jobSkills: string[], now: Date): Projec
 }
 
 /**
- * Pontos de projeto vivo: push recente no repositório e link do projeto publicado (o "Website" do GitHub ou,
- * no `.tex`, um link que não é do GitHub).
+ * Pontos de projeto vivo: push recente no repositório (ou desconto se está parado há anos) e link do projeto
+ * publicado (o "Website" do GitHub ou, no `.tex`, um link que não é do GitHub). Sem repositório, a data não conta.
  */
 function activityScore(repo: GithubRepo | null, texUrl: string | null | undefined, now: Date) {
 	const recentSince = new Date(now)
 	recentSince.setMonth(recentSince.getMonth() - RECENT_MONTHS)
+	const staleBefore = new Date(now)
+	staleBefore.setFullYear(staleBefore.getFullYear() - STALE_YEARS)
 
-	const recent = repo !== null && new Date(repo.pushedAt) >= recentSince
+	const pushedAt = repo ? new Date(repo.pushedAt) : null
+	const recency = !pushedAt ? 0 : pushedAt >= recentSince ? SCORE_RECENT : pushedAt < staleBefore ? SCORE_STALE : 0
 	const link = Boolean(repo?.homepage) || Boolean(texUrl && !/github\.com/i.test(texUrl))
 
-	return (recent ? SCORE_RECENT : 0) + (link ? SCORE_LINK : 0)
+	return recency + (link ? SCORE_LINK : 0)
 }
 
 /** Ordena por pontuação; desempata por mais estrelas, mais tecnologias e mais recente. */
