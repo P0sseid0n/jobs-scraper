@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { applicationMessage, formatApplicationMessage } from './application-message'
+import { applicationMessage, formatApplicationBody, formatApplicationMessage } from './application-message'
 
 describe('formatApplicationMessage', () => {
 	const message = { subject: 'Candidatura – Dev', body: 'Olá! Tudo bem?\n\nVi a vaga.' }
@@ -20,5 +20,16 @@ describe('formatApplicationMessage', () => {
 		expect(applicationMessage('Dev', 'GitHub: https://github.com/exemplo')).toEndWith(
 			'Obrigado!\n\nGitHub: https://github.com/exemplo',
 		)
+	})
+})
+
+describe('formatApplicationBody', () => {
+	const message = { subject: 'Candidatura – Dev', body: 'Olá!\n\nVi a vaga.' }
+
+	test('só o corpo e a assinatura, sem o assunto', () => {
+		expect(formatApplicationBody(message, ' GitHub: https://github.com/exemplo ')).toBe(
+			'Olá!\n\nVi a vaga.\n\nGitHub: https://github.com/exemplo',
+		)
+		expect(formatApplicationBody(message)).toBe('Olá!\n\nVi a vaga.')
 	})
 })

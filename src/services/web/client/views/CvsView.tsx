@@ -2,10 +2,10 @@ import { Link } from '@tanstack/react-router'
 import { useId, useState, type MouseEvent } from 'react'
 
 import type { CvChanges } from '@shared/contracts'
-import { formatApplicationMessage } from '@shared/templates'
 
 import type { WebCvBaseVersion, WebCvRequest } from '../../api-types'
 import { cvBasePdfUrl, cvPdfUrl } from '../api'
+import { ApplicationEmail } from '../components/ApplicationEmail'
 import { Changes } from '../components/CvReady'
 import { Icon } from '../components/Icon'
 import { Badge } from '../components/ui/Badge'
@@ -24,8 +24,7 @@ import { cx } from '../lib/cx'
 import { formatDateTime } from '../lib/format'
 import { jobParams } from '../router'
 import { requestCv, useCvRequests } from '../stores/cv'
-import { useMessageSignature } from '../stores/message-settings'
-import { copyText, notify } from '../stores/toast'
+import { notify } from '../stores/toast'
 
 /** Quantas tecnologias que entraram aparecem no resumo do item; o resto vira "+N". */
 const SUMMARY_ADDED = 4
@@ -113,20 +112,7 @@ function ChangeSummary({ changes }: { changes: CvChanges }) {
 
 /** O e-mail de candidatura que a IA escreveu para a vaga, para copiar. */
 function ApplicationMessageBox({ message }: { message: NonNullable<WebCvRequest['message']> }) {
-	const text = formatApplicationMessage(message, useMessageSignature())
-
-	return (
-		<section className="flex flex-col gap-2.5 rounded-sm bg-surface-2 p-3.5" aria-label="E-mail de candidatura">
-			<div className="flex items-center justify-between gap-3">
-				<span className={LABEL}>e-mail de candidatura</span>
-				<Button variant="ghost" size="xs" onClick={() => copyText(text, 'Mensagem')}>
-					<Icon name="copy" size={13} />
-					copiar
-				</Button>
-			</div>
-			<pre className="m-0 font-mono text-xs leading-relaxed whitespace-pre-wrap wrap-break-word">{text}</pre>
-		</section>
-	)
+	return <ApplicationEmail label="e-mail de candidatura" aria-label="E-mail de candidatura" message={message} />
 }
 
 type CvItemProps = {

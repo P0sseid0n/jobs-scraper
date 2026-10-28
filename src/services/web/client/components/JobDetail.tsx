@@ -2,7 +2,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { useLayoutEffect, useRef, useState } from 'react'
 
 import { MESSAGE_LENGTHS, MESSAGE_TONES, type MessageLength, type MessageTone } from '@shared/contracts'
-import { applicationMessage, formatApplicationMessage } from '@shared/templates'
+import { defaultApplicationMessage } from '@shared/templates'
 
 import type { WebJob } from '../../api-types'
 import { api, RequestError } from '../api'
@@ -21,8 +21,8 @@ import {
 import { revealJobDetail } from '../lib/job-opening'
 import { rewriteMessage, undoMessageRewrite, useCvFor, useGeneratedMessage } from '../stores/cv'
 import { removeJob, replaceJob } from '../stores/jobs'
-import { useMessageSignature } from '../stores/message-settings'
 import { copyText, notify } from '../stores/toast'
+import { ApplicationEmail, TOUCH_BUTTON } from './ApplicationEmail'
 import { ContractTypeBadge } from './ContractTypeBadge'
 import { CorrectedBadge } from './CorrectedBadge'
 import { CvButton } from './CvButton'
@@ -50,11 +50,14 @@ const LONG_POST_CHARS = 600
 /** Os botões de candidatura dividem a linha e quebram quando não cabem. */
 const DETAIL_ACTION = 'flex-1 basis-45'
 
-const MESSAGE_BOX = 'flex flex-col gap-2.5 rounded-sm bg-surface-2 p-3.5'
+/** Uma das opções de reescrita da mensagem (tom, tamanho): o rótulo e as pills na mesma linha; no celular, um embaixo do outro. */
+const MESSAGE_OPTION = 'flex items-center gap-2 max-sm:flex-col max-sm:items-start max-sm:gap-1.5'
+
+/** Na tela de toque, a área de clique dos links do rodapé da mensagem chega aos 44px de altura. */
+const TOUCH_LINK = 'relative pointer-coarse:after:absolute pointer-coarse:after:-inset-x-1 pointer-coarse:after:-inset-y-2'
 
 /** No `bun dev` (com o recarregamento ao vivo): o JSON da vaga só aparece para quem está desenvolvendo. */
 const DEVELOPMENT = Boolean(import.meta.hot)
-const MESSAGE_TEXT = 'm-0 font-mono text-xs leading-relaxed whitespace-pre-wrap wrap-break-word'
 
 /** Todos os dados da vaga, com as ações de candidatura (painel lateral no desktop, página própria no celular). */
 export function JobDetail({ job }: { job: WebJob }) {
@@ -88,9 +91,7 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 	const generatedRequest = useGeneratedMessage(job.postId)
 	const generated = generatedRequest?.message ?? null
 	const showGenerated = !!generated && !useDefaultMessage
-	const signature = useMessageSignature()
-	const message =
-		generated && showGenerated ? formatApplicationMessage(generated, signature) : applicationMessage(job.title, signature)
+	const message = generated && showGenerated ? generated : defaultApplicationMessage(job.title)
 	// Mensagens de antes do tom e do tamanho foram escritas no neutro e no tamanho médio
 	const tone = generated?.tone ?? 'neutral'
 	const length = generated?.length ?? 'medium'
@@ -261,57 +262,64 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 							copiar
 						</Button>
 					</div>
-					<div className={MESSAGE_BOX}>
-						<div className="flex items-center justify-between gap-3">
-							<span className={LABEL}>{showGenerated ? 'mensagem gerada pela IA' : 'modelo de mensagem'}</span>
-							<Button variant="ghost" size="xs" onClick={() => copyText(message, 'Mensagem')}>
-								<Icon name="copy" size={13} />
-								copiar
-							</Button>
-						</div>
-						<pre
-							className={cx(MESSAGE_TEXT, rewriting && 'animate-pulse opacity-55 motion-reduce:animate-none')}
-							aria-busy={!!rewriting}
-						>
-							{message}
-						</pre>
+					<ApplicationEmail
+						label={showGenerated ? 'mensagem gerada pela IA' : 'modelo de mensagem'}
+						aria-label="Mensagem de candidatura"
+						message={message}
+						busy={!!rewriting}
+					>
 						{showGenerated && (
 							// Reescreve a mensagem já gerada: o tom e o tamanho escolhidos ficam ligados
-							<div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line pt-2.5">
-								<PillGroup role="group" aria-label="Tom da mensagem">
-									{MESSAGE_TONES.map(option => (
-										<Pill
-											key={option}
-											pressed={option === tone}
-											disabled={!!rewriting}
-											onClick={() => option !== tone && changeMessage(option, { tone: option, length })}
-										>
-											{rewriting === option && <Icon name="spinner" size={13} />}
-											{MESSAGE_TONE_LABELS[option]}
-										</Pill>
-									))}
-								</PillGroup>
-								<PillGroup role="group" aria-label="Tamanho da mensagem">
-									{MESSAGE_LENGTHS.map(option => (
-										<Pill
-											key={option}
-											pressed={option === length}
-											disabled={!!rewriting}
-											onClick={() => option !== length && changeMessage(option, { tone, length: option })}
-										>
-											{rewriting === option && <Icon name="spinner" size={13} />}
-											{MESSAGE_LENGTH_LABELS[option]}
-										</Pill>
-									))}
-								</PillGroup>
-								<Pill
-									shape="dashed"
+							<div className="flex flex-wrap items-center gap-x-5 gap-y-2.5 border-t border-line-strong pt-3">
+								<div className={MESSAGE_OPTION}>
+									<span className={LABEL} aria-hidden="true">
+										tom
+									</span>
+									<PillGroup role="group" aria-label="Tom da mensagem">
+										{MESSAGE_TONES.map(option => (
+											<Pill
+												key={option}
+												className={TOUCH_BUTTON}
+												pressed={option === tone}
+												disabled={!!rewriting}
+												onClick={() => option !== tone && changeMessage(option, { tone: option, length })}
+											>
+												{rewriting === option && <Icon name="spinner" size={13} />}
+												{MESSAGE_TONE_LABELS[option]}
+											</Pill>
+										))}
+									</PillGroup>
+								</div>
+								<div className={MESSAGE_OPTION}>
+									<span className={LABEL} aria-hidden="true">
+										tamanho
+									</span>
+									<PillGroup role="group" aria-label="Tamanho da mensagem">
+										{MESSAGE_LENGTHS.map(option => (
+											<Pill
+												key={option}
+												className={TOUCH_BUTTON}
+												pressed={option === length}
+												disabled={!!rewriting}
+												onClick={() => option !== length && changeMessage(option, { tone, length: option })}
+											>
+												{rewriting === option && <Icon name="spinner" size={13} />}
+												{MESSAGE_LENGTH_LABELS[option]}
+											</Pill>
+										))}
+									</PillGroup>
+								</div>
+								{/* Uma ação, não uma opção: cada clique reescreve de novo, mais enxuta */}
+								<Button
+									variant="ghost"
+									size="sm"
+									className={cx('sm:ml-auto', TOUCH_BUTTON)}
 									disabled={!!rewriting}
 									onClick={() => changeMessage('direct', { tone, length, direct: true })}
 								>
-									{rewriting === 'direct' && <Icon name="spinner" size={13} />}
-									mais direta
-								</Pill>
+									<Icon name={rewriting === 'direct' ? 'spinner' : 'refresh'} size={13} />
+									deixar mais direta
+								</Button>
 							</div>
 						)}
 						{generated ? (
@@ -326,7 +334,7 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 												<>
 													{' · '}
 													<TextLink
-														className="text-xs"
+														className={cx('text-xs', TOUCH_LINK)}
 														disabled={!!rewriting}
 														onClick={() => changeMessage('undo', null)}
 													>
@@ -339,7 +347,7 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 										''
 									)}
 								</span>
-								<TextLink className="text-xs" onClick={() => setUseDefaultMessage(!useDefaultMessage)}>
+								<TextLink className={cx('text-xs', TOUCH_LINK)} onClick={() => setUseDefaultMessage(!useDefaultMessage)}>
 									{showGenerated ? 'usar o modelo padrão' : 'usar a mensagem da IA'}
 								</TextLink>
 							</div>
@@ -350,7 +358,7 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 									: 'Gere o currículo para receber uma mensagem escrita para esta vaga.'}
 							</p>
 						)}
-					</div>
+					</ApplicationEmail>
 				</section>
 			)}
 
