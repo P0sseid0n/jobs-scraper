@@ -7,6 +7,7 @@ const listeners: { [E in keyof StreamEvents]: Set<Listener<E>> } = {
 	job: new Set(),
 	cv: new Set(),
 	viewed: new Set(),
+	applied: new Set(),
 	cvBase: new Set(),
 }
 

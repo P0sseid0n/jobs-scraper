@@ -4,6 +4,7 @@ import type {
 	ApiError,
 	CredentialCheck,
 	CredentialGroup,
+	JobAppliedChange,
 	JobFacets,
 	JobsPage,
 	JobsViewedChange,
@@ -14,6 +15,7 @@ import type {
 	SearchSuggestions,
 	SettingsKey,
 	SetupStatus,
+	WebAppliedSimilar,
 	WebCredentials,
 	WebCvBase,
 	WebCvBaseVersion,
@@ -67,6 +69,7 @@ export function jobsQueryString(filters: JobFilters, cursor?: string | null, unt
 	if (filters.since !== 'all') params.set('since', filters.since)
 	if (filters.hasEmail) params.set('hasEmail', 'true')
 	if (filters.unviewed) params.set('viewed', 'false')
+	if (filters.hideApplied) params.set('applied', 'false')
 	if (filters.language) params.set('language', filters.language)
 	if (cursor) params.set('cursor', cursor)
 	if (until) params.set('until', until)
@@ -91,6 +94,14 @@ export const api = {
 	/** Marca ou desmarca várias vagas; devolve só as que mudaram. */
 	setJobsViewed: (postIds: string[], viewed: boolean) =>
 		request<JobsViewedChange>('/api/jobs/viewed', { method: 'PUT', body: JSON.stringify({ postIds, viewed }) }),
+	/** Marca que se candidatou à vaga, ou desmarca; devolve a data como ficou no banco (`null`: sem candidatura). */
+	setApplied: (postId: string, applied: boolean) =>
+		request<JobAppliedChange>(`/api/jobs/${encodeURIComponent(postId)}/applied`, {
+			method: 'PUT',
+			body: JSON.stringify({ applied }),
+		}),
+	/** Outra vaga que parece a mesma e em que a pessoa já se candidatou, ou `null`. */
+	appliedSimilar: (postId: string) => request<WebAppliedSimilar | null>(`/api/jobs/${encodeURIComponent(postId)}/applied-similar`),
 	/** "Não é a mesma vaga": a repostagem vira uma vaga própria; devolve a vaga original atualizada. */
 	ungroupRepost: (postId: string, repostId: string) =>
 		request<WebJob>(`/api/jobs/${encodeURIComponent(postId)}/reposts/${encodeURIComponent(repostId)}`, { method: 'DELETE' }),

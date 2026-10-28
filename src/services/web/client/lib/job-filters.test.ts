@@ -26,6 +26,7 @@ const job: WebJob = {
 	imageText: null,
 	correctedAt: null,
 	viewedAt: null,
+	appliedAt: null,
 	reposts: [],
 }
 
@@ -67,12 +68,21 @@ describe('matchesFilters (vagas que chegam em tempo real)', () => {
 		expect(matchesFilters({ ...job, viewedAt: '2026-10-10T11:30:00.000Z' }, { ...DEFAULT_FILTERS, unviewed: true }, now)).toBe(false)
 		expect(matchesFilters({ ...job, viewedAt: '2026-10-10T11:30:00.000Z' }, DEFAULT_FILTERS, now)).toBe(true)
 	})
+
+	test('"esconder candidatadas", ligado por padrão: a vaga marcada fica de fora até desligar', () => {
+		const applied = { ...job, appliedAt: '2026-10-10T11:45:00.000Z' }
+
+		expect(matches({})).toBe(true)
+		expect(matchesFilters(applied, DEFAULT_FILTERS, now)).toBe(false)
+		expect(matchesFilters(applied, { ...DEFAULT_FILTERS, hideApplied: false }, now)).toBe(true)
+	})
 })
 
 test('hasActiveFilters', () => {
 	expect(hasActiveFilters(DEFAULT_FILTERS)).toBe(false)
 	expect(hasActiveFilters({ ...DEFAULT_FILTERS, workMode: ['remoto'] })).toBe(true)
 	expect(hasActiveFilters({ ...DEFAULT_FILTERS, contractType: ['pj'] })).toBe(true)
+	expect(hasActiveFilters({ ...DEFAULT_FILTERS, hideApplied: false })).toBe(true)
 })
 
 describe('jobFiltersSearch (os filtros da URL)', () => {

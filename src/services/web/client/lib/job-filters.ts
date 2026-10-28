@@ -23,6 +23,8 @@ export const jobFiltersSearch = z.object({
 	hasEmail: z.boolean().default(false).catch(false),
 	/** Só as vagas ainda não abertas no site. */
 	unviewed: z.boolean().default(false).catch(false),
+	/** Tira da lista as vagas em que a pessoa já se candidatou (ligado sem nada na URL: `?hideApplied=false` as mostra). */
+	hideApplied: z.boolean().default(true).catch(true),
 	language: z.string().default('').catch(''),
 })
 
@@ -55,6 +57,7 @@ export function matchesFilters(job: WebJob, filters: JobFilters, now = Date.now(
 	if (filters.since !== 'all' && new Date(job.createdAt).getTime() < now - SINCE_MS[filters.since] * 24 * 60 * 60 * 1000) return false
 	if (filters.hasEmail && !job.recruiterEmail) return false
 	if (filters.unviewed && job.viewedAt) return false
+	if (filters.hideApplied && job.appliedAt) return false
 	if (filters.language && job.language !== filters.language) return false
 
 	return true

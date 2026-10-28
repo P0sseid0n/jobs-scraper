@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test'
 import type { JobPublished } from '@shared/contracts'
 
 import { CONTACT_BUTTON_PREFIX } from './contact-reply'
-import { buildJobCard, buildThreadName, pickForumTags, summarizePost } from './job-card'
+import { APPLIED_BUTTON_PREFIX, buildJobCard, buildThreadName, pickForumTags, summarizePost, withAppliedButton } from './job-card'
 
 const job: JobPublished = {
 	postId: 'urn:li:share:7513649051440021505',
@@ -97,19 +97,29 @@ describe('buildJobCard', () => {
 		expect(embed.color).toBe(0x95a5a6)
 	})
 
-	test('botões de contato e do post (por último)', () => {
+	test('botões de contato, da candidatura e do post (por último)', () => {
 		const [row] = buildJobCard(job).components
 		const buttons = row!.toJSON().components as { label?: string; url?: string; custom_id?: string }[]
 
 		expect(buttons[0]).toMatchObject({ label: 'Contato do recrutador', custom_id: `${CONTACT_BUTTON_PREFIX}${job.postId}` })
-		expect(buttons[1]).toMatchObject({ label: 'Ver post', url: job.postLink })
+		expect(buttons[1]).toMatchObject({ label: 'Já me candidatei', custom_id: `${APPLIED_BUTTON_PREFIX}${job.postId}` })
+		expect(buttons[2]).toMatchObject({ label: 'Ver post', url: job.postLink })
+	})
+
+	test('marcada a candidatura, só o botão dela muda', () => {
+		const rows = buildJobCard(job).components.map(row => row.toJSON())
+		const [marked] = withAppliedButton(rows, job.postId, true)
+		const buttons = marked!.components as { label?: string; custom_id?: string }[]
+
+		expect(buttons.map(button => button.label)).toEqual(['Contato do recrutador', 'Candidatura enviada', 'Ver post'])
+		expect(withAppliedButton(rows, job.postId, false)).toEqual(rows)
 	})
 
 	test('com site de candidatura: a candidatura primeiro, cada link no seu botão', () => {
 		const [row] = buildJobCard({ ...job, applyLink: 'https://empresa.com/vagas/1' }).components
 		const buttons = row!.toJSON().components as { label?: string; url?: string }[]
 
-		expect(buttons.map(button => button.label)).toEqual(['Candidatar-se', 'Contato do recrutador', 'Ver post'])
+		expect(buttons.map(button => button.label)).toEqual(['Candidatar-se', 'Contato do recrutador', 'Já me candidatei', 'Ver post'])
 		expect(buttons[0]).toMatchObject({ url: 'https://empresa.com/vagas/1' })
 	})
 
@@ -117,8 +127,8 @@ describe('buildJobCard', () => {
 		const [row] = buildJobCard({ ...job, postLink: null, recruiterEmail: null }).components
 		const buttons = row!.toJSON().components as { label?: string; custom_id?: string }[]
 
-		expect(buttons).toHaveLength(1)
-		expect(buttons[0]).toMatchObject({ label: 'Gerar currículo', custom_id: `${CONTACT_BUTTON_PREFIX}${job.postId}` })
+		expect(buttons.map(button => button.label)).toEqual(['Gerar currículo', 'Já me candidatei'])
+		expect(buttons[0]).toMatchObject({ custom_id: `${CONTACT_BUTTON_PREFIX}${job.postId}` })
 	})
 })
 

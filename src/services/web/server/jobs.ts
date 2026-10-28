@@ -5,7 +5,16 @@ import { readSettings } from '@shared/settings'
 import type { JobFacets, JobsPage, WebJob } from '../api-types'
 import { postIdCandidates } from '../job-route-id'
 import { encodeCursor, HttpError, queryParams } from './http'
-import { buildJobsFilter, JobsQuerySchema, LISTABLE_JOBS, NOT_VIEWED, toWebJob, upToCursor, type JobDocument } from './jobs-query'
+import {
+	APPLIED,
+	buildJobsFilter,
+	JobsQuerySchema,
+	LISTABLE_JOBS,
+	NOT_VIEWED,
+	toWebJob,
+	upToCursor,
+	type JobDocument,
+} from './jobs-query'
 
 const TOP_SKILLS = 40
 /** Até quantas vagas o `until` traz de uma vez; mais longe que isso, a lista começa normal e a vaga fica só no painel. */
@@ -55,11 +64,12 @@ async function positionInList(filter: ReturnType<typeof buildJobsFilter>, routeI
 	return upTo.length <= UNTIL_MAX && String(upTo.at(-1)?._id) === String(target._id) ? upTo.length : null
 }
 
-/** `GET /api/jobs/facets`: contagens para os filtros (não vistas, modalidades, regimes e tecnologias mais pedidas). */
+/** `GET /api/jobs/facets`: contagens para os filtros (não vistas, candidaturas enviadas, modalidades, regimes e tecnologias mais pedidas). */
 export async function jobFacets() {
-	const [total, unviewed, modes, contracts, skills] = await Promise.all([
+	const [total, unviewed, applied, modes, contracts, skills] = await Promise.all([
 		Job.countDocuments(LISTABLE_JOBS),
 		Job.countDocuments({ ...LISTABLE_JOBS, ...NOT_VIEWED }),
+		Job.countDocuments({ ...LISTABLE_JOBS, ...APPLIED }),
 		Job.aggregate<{ _id: string | null; count: number }>([
 			{ $match: LISTABLE_JOBS },
 			{ $group: { _id: '$workMode', count: { $sum: 1 } } },
@@ -92,7 +102,7 @@ export async function jobFacets() {
 		contractTypes[key] += contract.count
 	}
 
-	return Response.json({ total, unviewed, workModes, contractTypes, skills } satisfies JobFacets)
+	return Response.json({ total, unviewed, applied, workModes, contractTypes, skills } satisfies JobFacets)
 }
 
 /** `GET /api/jobs/:postId` */

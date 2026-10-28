@@ -1,6 +1,7 @@
 export * from './cv'
 export * from './cv-form'
 export * from './job'
+export * from './job-applied'
 export * from './job-correction'
 export * from './job-lookup'
 export * from './profile-catalog'

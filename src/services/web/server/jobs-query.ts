@@ -2,7 +2,7 @@ import { Types } from 'mongoose'
 import { z } from 'zod'
 
 import { CONTRACT_TYPES, needsReview, WORK_MODES, type ProcessedJob } from '@shared/contracts'
-import type { JobCorrectionState, JobDuplicateState, JobExtractionSource, JobViewState } from '@shared/database'
+import type { JobApplicationState, JobCorrectionState, JobDuplicateState, JobExtractionSource, JobViewState } from '@shared/database'
 
 import type { WebJob } from '../api-types'
 import { decodeCursor, type Cursor } from './http'
@@ -39,6 +39,11 @@ export const JobsQuerySchema = z.object({
 		.enum(['true', 'false'])
 		.optional()
 		.transform(value => (value === undefined ? undefined : value === 'true')),
+	/** `true`: só as vagas em que a pessoa se candidatou; `false`: só as outras; ausente: todas. */
+	applied: z
+		.enum(['true', 'false'])
+		.optional()
+		.transform(value => (value === undefined ? undefined : value === 'true')),
 	language: z
 		.string()
 		.regex(/^[a-z]{2}$/)
@@ -71,6 +76,11 @@ export const LISTABLE_JOBS = {
 export const VIEWED = { viewedAt: { $type: 'date' as const } }
 /** Vagas não vistas: `null` ou sem o campo (salvas antes de ele existir). */
 export const NOT_VIEWED = { viewedAt: null }
+
+/** Vagas em que a pessoa marcou que se candidatou. */
+export const APPLIED = { appliedAt: { $type: 'date' as const } }
+/** Vagas sem candidatura: `null` ou sem o campo (salvas antes de ele existir). */
+export const NOT_APPLIED = { appliedAt: null }
 
 /** Monta o filtro do MongoDB para a lista de vagas (mais recentes primeiro, paginada por cursor). */
 export function buildJobsFilter(query: JobsQuery, now = new Date()) {
@@ -107,6 +117,7 @@ export function buildJobsFilter(query: JobsQuery, now = new Date()) {
 
 	if (query.hasEmail) conditions.push({ recruiterEmail: { $nin: [null, ''] } })
 	if (query.viewed !== undefined) conditions.push(query.viewed ? VIEWED : NOT_VIEWED)
+	if (query.applied !== undefined) conditions.push(query.applied ? APPLIED : NOT_APPLIED)
 	if (query.language) conditions.push({ language: query.language })
 	if (query.cursor) conditions.push(afterCursor(decodeCursor(query.cursor)))
 
@@ -129,10 +140,10 @@ export function upToCursor(cursor: Cursor, field = 'createdAt') {
 
 /**
  * Documento da coleção `jobs` como o `lean()` devolve (com os timestamps do mongoose). Vagas salvas antes do
- * campo `contractTypes`, dos de correção, do `viewedAt`, dos das imagens e dos das repostagens não os têm.
+ * campo `contractTypes`, dos de correção, do `viewedAt`, do `appliedAt`, dos das imagens e dos das repostagens não os têm.
  */
 export type JobDocument = Omit<ProcessedJob, 'title' | 'contractTypes' | 'extractionChecks' | 'imageCount' | 'imageText'> &
-	Partial<JobExtractionSource & JobCorrectionState & JobViewState & JobDuplicateState> & {
+	Partial<JobExtractionSource & JobCorrectionState & JobViewState & JobApplicationState & JobDuplicateState> & {
 		title: string | null
 		contractTypes?: ProcessedJob['contractTypes']
 		extractionChecks?: ProcessedJob['extractionChecks']
@@ -171,6 +182,7 @@ export function toWebJob(doc: JobDocument, reviewChecksPercent: number): WebJob 
 		imageText: doc.imageText ?? null,
 		correctedAt: doc.correctedAt?.toISOString() ?? null,
 		viewedAt: doc.viewedAt?.toISOString() ?? null,
+		appliedAt: doc.appliedAt?.toISOString() ?? null,
 		reposts: (doc.reposts ?? []).map(repost => ({
 			postId: repost.postId,
 			author: repost.author ?? null,

@@ -103,6 +103,7 @@ flowchart LR
 	web -- "cv-updater" --> cv
 	cv -- "discord-cv" --> bot
 	cv -- "web-cv" --> web
+	bot -. "web-applied<br/><small>candidatura marcada</small>" .-> web
 ```
 
 <a id="servicos"></a>

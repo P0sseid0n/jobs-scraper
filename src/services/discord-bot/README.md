@@ -11,6 +11,10 @@ Cada vaga vira um card (embed) com cargo, empresa, local, modalidade, regime de 
 - **Canal de texto:** cada vaga vira uma mensagem.
 - **Canal de fórum:** cada vaga vira um post próprio, com as tags do fórum que batem com a modalidade, o regime ou as tecnologias. Crie no fórum tags como "Remoto", "PJ" ou "Vue".
 
+## Candidatura enviada
+
+O botão "☑️ Já me candidatei" marca a vaga no banco (`appliedAt`, o mesmo campo do site) e vira "✅ Candidatura enviada"; outro clique desmarca. O estado do banco decide, então o clique funciona mesmo depois de a vaga ser marcada ou desmarcada no site. O bot avisa o site pela fila `web-applied`, e a vaga sai da lista de lá (o filtro "esconder candidaturas enviadas").
+
 ## Currículo
 
 O botão "📧 Contato do recrutador" (ou "📄 Gerar currículo", quando a vaga não tem e-mail) responde só para quem clicou, com o contato. O pedido vai para o [cv-updater](../cv-updater/README.md) e, segundos depois, chega o PDF do currículo ajustado à vaga. Quando a vaga tem e-mail, vem junto uma mensagem de candidatura escrita para ela.
@@ -28,4 +32,5 @@ O pedido guarda no contexto o token da interação do Discord, e o resultado vol
 | `job-publisher.ts` | escolhe o canal (texto ou fórum) e envia o card |
 | `job-card.ts` | card (embed) da vaga |
 | `contact-button.ts`, `contact-reply.ts` | clique no botão de contato e o texto da resposta |
+| `applied-button.ts` | clique no "Já me candidatei" (marca e desmarca a candidatura) |
 | `cv-delivery.ts` | envio do PDF e da mensagem de candidatura |

@@ -10,6 +10,7 @@ import type {
 	CvChanges,
 	CvForm,
 	DatePostedFilter,
+	JobAppliedChange,
 	MessageSettings,
 	PostProcessingSettings,
 	ProcessedJob,
@@ -38,6 +39,8 @@ export type WebJob = Omit<ProcessedJob, 'title'> & {
 	correctedAt: string | null
 	/** Quando a vaga foi aberta no site; `null` se ainda não foi vista. */
 	viewedAt: string | null
+	/** Quando a pessoa marcou que se candidatou; `null` se não marcou. */
+	appliedAt: string | null
 	/** Se há checks da extração suficientes para pedir que a pessoa confira o post original. */
 	needsReview: boolean
 	/** Outros posts da mesma vaga (repostagens agrupadas nela), do mais antigo ao mais novo. */
@@ -53,6 +56,8 @@ export type JobFacets = {
 	total: number
 	/** Vagas ainda não abertas no site. */
 	unviewed: number
+	/** Vagas em que a pessoa marcou que se candidatou. */
+	applied: number
 	/** Quantidade por modalidade; `none` são as vagas sem modalidade. */
 	workModes: Record<NonNullable<ProcessedJob['workMode']> | 'none', number>
 	/** Quantidade por regime (uma vaga com dois regimes conta nos dois); `none` são as vagas sem regime. */
@@ -249,8 +254,23 @@ export type ApiError = { error: string; fields?: Record<string, string> }
 /** Vagas marcadas como vistas (`viewedAt` com a data) ou como não vistas (`viewedAt: null`). */
 export type JobsViewedChange = { postIds: string[]; viewedAt: string | null }
 
+/** A candidatura marcada (`appliedAt` com a data) ou desmarcada (`appliedAt: null`), pelo site ou pelo Discord. */
+export type { JobAppliedChange }
+
 /**
- * Eventos do stream SSE (`/api/jobs/stream`): `viewed` leva a marcação de vista às outras abas e aparelhos; `cvBase`,
- * uma versão do currículo base criada, validada ou ativada.
+ * `GET /api/jobs/:postId/applied-similar`: outra vaga da mesma empresa e do mesmo cargo (ou com o mesmo link de
+ * candidatura) em que a pessoa já se candidatou, para não se candidatar duas vezes à mesma vaga postada de novo.
  */
-export type StreamEvents = { job: WebJob; cv: WebCvRequest; viewed: JobsViewedChange; cvBase: WebCvBaseVersion }
+export type WebAppliedSimilar = { postId: string; title: string; company: string | null; appliedAt: string }
+
+/**
+ * Eventos do stream SSE (`/api/jobs/stream`): `viewed` e `applied` levam a marcação de vista e a de candidatura às
+ * outras abas e aparelhos; `cvBase`, uma versão do currículo base criada, validada ou ativada.
+ */
+export type StreamEvents = {
+	job: WebJob
+	cv: WebCvRequest
+	viewed: JobsViewedChange
+	applied: JobAppliedChange
+	cvBase: WebCvBaseVersion
+}

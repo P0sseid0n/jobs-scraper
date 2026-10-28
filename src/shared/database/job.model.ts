@@ -20,6 +20,9 @@ export type JobCorrectionState = {
 /** Quando a vaga foi aberta no site (`null`: ainda não vista). O sistema tem um único usuário: o campo fica na vaga. */
 export type JobViewState = { viewedAt: Date | null }
 
+/** Quando a pessoa marcou que se candidatou à vaga (`null`: não se candidatou). Também fica na vaga, como o `viewedAt`. */
+export type JobApplicationState = { appliedAt: Date | null }
+
 /** Outro post da mesma vaga (ver `post-processing/job-duplicates.ts`), guardado na vaga original. */
 export type JobRepost = { postId: string; author: string | null; postLink: string | null; postedAt: string | null; createdAt: Date }
 
@@ -34,6 +37,7 @@ type JobDocument = ProcessedJob &
 	JobExtractionSource &
 	JobCorrectionState &
 	JobViewState &
+	JobApplicationState &
 	JobDuplicateState & { notifiedAt: Date | null }
 
 const jobSchema = new Schema<JobDocument>(
@@ -68,6 +72,7 @@ const jobSchema = new Schema<JobDocument>(
 		notAJob: { type: Boolean, default: false },
 		wrongLanguage: { type: Boolean, default: false },
 		viewedAt: { type: Date, default: null },
+		appliedAt: { type: Date, default: null },
 		duplicateOf: { type: String, default: null },
 		reposts: {
 			type: [
@@ -89,3 +94,20 @@ const jobSchema = new Schema<JobDocument>(
 )
 
 export const Job = mongoose.model('Job', jobSchema, 'jobs')
+
+/**
+ * Marca (`applied`) ou desmarca a candidatura da vaga, pelo site ou pelo Discord. Marcar de novo uma vaga já marcada não
+ * troca a data da primeira marcação.
+ * @returns A data como ficou no banco (`null`: desmarcada) e se mudou; `undefined` se a vaga não existe.
+ */
+export async function setJobApplied(postId: string, applied: boolean) {
+	const changed = await Job.findOneAndUpdate(
+		{ postId, appliedAt: applied ? null : { $type: 'date' } },
+		{ $set: { appliedAt: applied ? new Date() : null } },
+		{ returnDocument: 'after', projection: { appliedAt: 1 }, lean: true },
+	)
+	if (changed) return { appliedAt: changed.appliedAt ?? null, changed: true }
+
+	const doc = await Job.findOne({ postId }, { appliedAt: 1 }).lean()
+	return doc ? { appliedAt: doc.appliedAt ?? null, changed: false } : undefined
+}

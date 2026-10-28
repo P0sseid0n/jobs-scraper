@@ -78,6 +78,12 @@ describe('buildJobsFilter', () => {
 		expect(JobsQuerySchema.safeParse({ viewed: 'sim' }).success).toBe(false)
 	})
 
+	test('candidatura: "false" tira as enviadas (as salvas antes do campo ficam); "true" só as enviadas', () => {
+		expect(filterFor({ applied: 'false' })).toContainEqual({ appliedAt: null })
+		expect(filterFor({ applied: 'true' })).toContainEqual({ appliedAt: { $type: 'date' } })
+		expect(JobsQuerySchema.safeParse({ applied: 'sim' }).success).toBe(false)
+	})
+
 	test('cursor: depois do último item (data, com o _id desempatando)', () => {
 		const at = new Date('2026-10-09T10:00:00.000Z')
 		const cursor = encodeCursor({ at, id: '6ac9a547e4a3ee550b03ecd3' })
@@ -131,11 +137,16 @@ describe('toWebJob', () => {
 			createdAt: NOW.toISOString(),
 			correctedAt: null,
 			viewedAt: null,
+			appliedAt: null,
 		})
 	})
 
 	test('data em que a vaga foi vista', () => {
 		expect(toWebJob({ ...doc, viewedAt: NOW }, 60).viewedAt).toBe(NOW.toISOString())
+	})
+
+	test('data em que a candidatura foi marcada', () => {
+		expect(toWebJob({ ...doc, appliedAt: NOW }, 60).appliedAt).toBe(NOW.toISOString())
 	})
 
 	test('pede para conferir o post a partir do limite de checks', () => {

@@ -7,6 +7,8 @@ import {
 	escapeMarkdown,
 	time,
 	TimestampStyles,
+	type APIActionRowComponent,
+	type APIComponentInMessageActionRow,
 	type MessageActionRowComponentBuilder,
 } from 'discord.js'
 
@@ -19,6 +21,9 @@ import {
 } from '@shared/contracts'
 
 import { CONTACT_BUTTON_PREFIX } from './contact-reply'
+
+/** Botão "Já me candidatei": o custom_id carrega o postId da vaga marcada. */
+export const APPLIED_BUTTON_PREFIX = 'applied:'
 
 const WORK_MODE_LABELS = { remoto: 'Remoto', hibrido: 'Híbrido', presencial: 'Presencial' } as const
 const CONTRACT_TYPE_LABELS = { clt: 'CLT', pj: 'PJ', estagio: 'Estágio', freelance: 'Freelance' } as const
@@ -152,6 +157,9 @@ function buildJobComponents(job: ProcessedJob) {
 		)
 	}
 
+	// Marca no site também: a vaga sai da lista de lá (o filtro "esconder candidaturas enviadas")
+	if (`${APPLIED_BUTTON_PREFIX}${job.postId}`.length <= CUSTOM_ID_MAX) buttons.push(appliedButton(job.postId, false))
+
 	if (isHttpUrl(job.postLink)) {
 		buttons.push(new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel('Ver post').setEmoji('🔗').setURL(job.postLink))
 	}
@@ -159,6 +167,31 @@ function buildJobComponents(job: ProcessedJob) {
 	if (buttons.length === 0) return []
 
 	return [new ActionRowBuilder<MessageActionRowComponentBuilder>().addComponents(buttons)]
+}
+
+/** "Já me candidatei" na vaga ainda não marcada; "Candidatura enviada", verde, na marcada (outro clique desmarca). */
+export function appliedButton(postId: string, applied: boolean) {
+	const button = new ButtonBuilder().setCustomId(`${APPLIED_BUTTON_PREFIX}${postId}`)
+
+	return applied
+		? button.setStyle(ButtonStyle.Success).setLabel('Candidatura enviada').setEmoji('✅')
+		: button.setStyle(ButtonStyle.Secondary).setLabel('Já me candidatei').setEmoji('☑️')
+}
+
+/** As linhas de botões do card com o "Já me candidatei" trocado pelo do estado `applied`; os outros ficam iguais. */
+export function withAppliedButton(
+	rows: APIActionRowComponent<APIComponentInMessageActionRow>[],
+	postId: string,
+	applied: boolean,
+): APIActionRowComponent<APIComponentInMessageActionRow>[] {
+	const customId = `${APPLIED_BUTTON_PREFIX}${postId}`
+
+	return rows.map(row => ({
+		...row,
+		components: row.components.map(component =>
+			'custom_id' in component && component.custom_id === customId ? appliedButton(postId, applied).toJSON() : component,
+		),
+	}))
 }
 
 function jobColor(job: Pick<JobPublished, 'workMode' | 'needsReview'>) {

@@ -118,6 +118,20 @@ export function setViewedAt(postIds: string[], viewedAt: string | null) {
 	facetsTimer = setTimeout(loadFacets, 300)
 }
 
+/**
+ * Atualiza a candidatura da vaga na lista (e nas que esperam para entrar), sem tirá-la da tela mesmo com o filtro
+ * "esconder candidaturas enviadas": ela sai na próxima vez que a lista carregar.
+ */
+export function setAppliedAt(postId: string, appliedAt: string | null) {
+	const { jobs, incoming } = jobsStore.get()
+	const patch = (list: WebJob[]) =>
+		list.map(job => (job.postId === postId && job.appliedAt !== appliedAt ? { ...job, appliedAt } : job))
+
+	update({ jobs: patch(jobs), incoming: patch(incoming) })
+	clearTimeout(facetsTimer)
+	facetsTimer = setTimeout(loadFacets, 300)
+}
+
 /** Tira da lista a vaga marcada como "não é vaga" (o documento continua no banco). */
 export function removeJob(postId: string) {
 	const { jobs, incoming } = jobsStore.get()

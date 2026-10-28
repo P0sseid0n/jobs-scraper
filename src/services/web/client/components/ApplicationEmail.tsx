@@ -4,6 +4,7 @@ import { formatApplicationBody, type ApplicationMessageText } from '@shared/temp
 
 import { cx } from '../lib/cx'
 import { useMessageSignature } from '../stores/message-settings'
+import type { ToastAction } from '../stores/toast'
 import { CopyButton } from './CopyButton'
 import { LABEL } from './ui/text'
 
@@ -16,20 +17,22 @@ type ApplicationEmailProps = {
 	'aria-label': string
 	/** O que vem depois do corpo (as opções de reescrita, o rodapé). */
 	children?: ReactNode
+	/** Um botão no aviso de que a mensagem foi copiada (no detalhe da vaga, "marcar como enviada"). */
+	copyAction?: ToastAction
 }
 
 /**
  * O e-mail de candidatura para copiar. O assunto e o corpo (com a assinatura) têm cada um o seu botão, para colar
  * cada um no seu campo do e-mail sem ter de recortar a linha do assunto.
  */
-export function ApplicationEmail({ label, message, busy = false, children, ...props }: ApplicationEmailProps) {
+export function ApplicationEmail({ label, message, busy = false, children, copyAction, ...props }: ApplicationEmailProps) {
 	const body = formatApplicationBody(message, useMessageSignature())
 
 	return (
 		<section {...props} className="flex flex-col gap-3 rounded-sm bg-surface-2 p-3.5">
 			<div className="flex items-center justify-between gap-3">
 				<span className={LABEL}>{label}</span>
-				<CopyButton text={body} what="Texto da mensagem" label="copiar mensagem" size="xs" />
+				<CopyButton text={body} what="Texto da mensagem" label="copiar mensagem" size="xs" toastAction={copyAction} />
 			</div>
 			<div className={cx('flex flex-col gap-3', busy && 'animate-pulse opacity-55 motion-reduce:animate-none')} aria-busy={busy}>
 				<p className="m-0 text-sm leading-relaxed wrap-break-word">

@@ -162,6 +162,18 @@ function ToastItem({ toast, depth }: { toast: Toast; depth: number }) {
 				onPointerCancel={onPointerCancel}
 			>
 				<span className="grow">{toast.message}</span>
+				{toast.action && (
+					<button
+						type="button"
+						className="shrink-0 cursor-pointer rounded-xs border-0 bg-transparent px-1 py-1 font-semibold text-current underline underline-offset-3 pointer-coarse:min-h-11"
+						onClick={() => {
+							toast.action!.run()
+							close()
+						}}
+					>
+						{toast.action.label}
+					</button>
+				)}
 				<IconButton label="Fechar aviso" size="sm" onClick={() => close()}>
 					<Icon name="close" size={14} />
 				</IconButton>

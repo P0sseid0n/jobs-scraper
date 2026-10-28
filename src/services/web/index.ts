@@ -1,7 +1,7 @@
 import { Ollama } from 'ollama'
 import { z } from 'zod'
 
-import { CvBaseValidationResultSchema, CvResultSchema, ProcessedJobSchema } from '@shared/contracts'
+import { CvBaseValidationResultSchema, CvResultSchema, JobAppliedChangeSchema, ProcessedJobSchema } from '@shared/contracts'
 import { Job } from '@shared/database'
 import { onShutdown } from '@shared/lifecycle'
 import { EXCHANGES, QUEUES } from '@shared/messaging'
@@ -23,6 +23,7 @@ import {
 } from './server/cv-base'
 import { EventHub } from './server/event-hub'
 import { handler } from './server/http'
+import { appliedSimilar, setJobAppliedRoute } from './server/job-applied'
 import { correctJob } from './server/job-correction'
 import { ungroupRepost } from './server/job-reposts'
 import { setJobsViewed, setJobViewed } from './server/job-viewed'
@@ -62,6 +63,8 @@ await queue.consume(
 
 await queue.consume(QUEUES.webCv, CvResultSchema, result => saveCvResult(result, { events, logger }))
 await queue.consume(QUEUES.webCvBase, CvBaseValidationResultSchema, result => saveCvBaseValidation(result, { events, logger }))
+// Candidatura marcada pelo botão do Discord: o banco já mudou, os navegadores abertos ficam sabendo
+await queue.consume(QUEUES.webApplied, JobAppliedChangeSchema, async change => events.broadcast('applied', change))
 
 const api = <R extends Request>(fn: (req: R) => Promise<Response> | Response) => handler(logger, fn)
 
@@ -88,6 +91,8 @@ const server = Bun.serve({
 		'/api/jobs/viewed': { PUT: api(req => setJobsViewed(req, { events })) },
 		'/api/jobs/:postId': { GET: api(getJob), PATCH: api(req => correctJob(req, { logger })) },
 		'/api/jobs/:postId/viewed': { PUT: api(req => setJobViewed(req, { events })) },
+		'/api/jobs/:postId/applied': { PUT: api(req => setJobAppliedRoute(req, { events })) },
+		'/api/jobs/:postId/applied-similar': { GET: api(appliedSimilar) },
 		'/api/jobs/:postId/raw': { GET: api(getRawJob) },
 		'/api/jobs/:postId/reposts/:repostId': { DELETE: api(req => ungroupRepost(req, { queue, logger })) },
 		'/api/jobs/:postId/images/:index': { GET: api(getJobImage) },

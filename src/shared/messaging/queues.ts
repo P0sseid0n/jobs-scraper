@@ -27,6 +27,8 @@ export const QUEUES = {
 	webCv: 'web-cv',
 	/** Validações do currículo base pedidas pelo site (é o `replyTo.queue` delas). */
 	webCvBase: 'web-cv-base',
+	/** Candidaturas marcadas fora do site (o botão do Discord), para o site avisar os navegadores abertos. */
+	webApplied: 'web-applied',
 } as const
 
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES]

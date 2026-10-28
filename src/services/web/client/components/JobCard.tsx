@@ -5,6 +5,7 @@ import { cx } from '../lib/cx'
 import { jobSubtitle, safeLink, timeAgo } from '../lib/format'
 import { openJobFromCard } from '../lib/job-opening'
 import { jobParams } from '../router'
+import { useAppliedAt } from '../stores/applied'
 import { filtersOpen } from '../stores/filters-panel'
 import { setViewed, useViewed } from '../stores/viewed'
 import { ContractTypeBadge } from './ContractTypeBadge'
@@ -37,6 +38,7 @@ export function JobCard({
 	keepScroll?: boolean
 }) {
 	const viewed = useViewed(job)
+	const appliedAt = useAppliedAt(job)
 	const skills = job.necessaryKnowledge ?? []
 	const hidden = skills.length - VISIBLE_SKILLS
 
@@ -125,7 +127,13 @@ export function JobCard({
 			<div className="flex items-center justify-between gap-3">
 				{/* "de uma lista" vem aqui, e não nos selos do topo: lá espremia o cargo */}
 				<span className="font-mono text-muted inline-flex flex-wrap items-center gap-1.5 text-sm">
-					{job.recruiterEmail ? (
+					{/* Enviada, o canal já não importa: o selo diz quando, para não enviar de novo */}
+					{appliedAt ? (
+						<span className={badge({ tone: 'running', size: 'sm' })}>
+							<Icon name="check" size={13} />
+							candidatura enviada {timeAgo(appliedAt)}
+						</span>
+					) : job.recruiterEmail ? (
 						<>
 							<Icon name="mail" size={14} />
 							com e-mail de contato

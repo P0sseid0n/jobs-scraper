@@ -4,11 +4,13 @@ import { onShutdown } from '@shared/lifecycle'
 import { EXCHANGES, QUEUES } from '@shared/messaging'
 import { startService } from '@shared/service'
 
+import { handleAppliedButton } from './applied-button'
 import { handleContactButton } from './contact-button'
 import { CONTACT_BUTTON_PREFIX } from './contact-reply'
 import { deliverCv } from './cv-delivery'
 import { DiscordConnection } from './discord-connection'
 import { toQueueError } from './discord-errors'
+import { APPLIED_BUTTON_PREFIX } from './job-card'
 import { publishJob } from './job-publisher'
 
 // O banco guarda o token e o canal salvos pelo site (sem eles, valem os do .env)
@@ -17,18 +19,27 @@ const { logger, queue } = await startService({ name: 'discord-bot', database: tr
 const discord = new DiscordConnection({
 	logger,
 	onInteraction: async interaction => {
-		if (!interaction.isButton() || !interaction.customId.startsWith(CONTACT_BUTTON_PREFIX)) return
+		if (!interaction.isButton()) return
 
-		try {
-			await handleContactButton(interaction, queue, logger)
-		} catch (error) {
-			logger.error({ err: error }, 'Erro ao responder o botão de contato')
+		if (interaction.customId.startsWith(CONTACT_BUTTON_PREFIX)) {
+			try {
+				await handleContactButton(interaction, queue, logger)
+			} catch (error) {
+				logger.error({ err: error }, 'Erro ao responder o botão de contato')
+			}
+		} else if (interaction.customId.startsWith(APPLIED_BUTTON_PREFIX)) {
+			try {
+				await handleAppliedButton(interaction, queue, logger)
+			} catch (error) {
+				logger.error({ err: error }, 'Erro ao responder o botão de candidatura')
+			}
 		}
 	},
 })
 onShutdown(() => discord.close())
 
 await queue.assertQueue(QUEUES.cvUpdater)
+await queue.assertQueue(QUEUES.webApplied)
 await discord.start()
 
 // Os consumidores esperam o bot conectar (ou trocar de conta). Sem bot configurado, descartam as mensagens: senão

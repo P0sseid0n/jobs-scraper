@@ -166,6 +166,8 @@ function activeFilterChips(filters: JobFilters): FilterChip[] {
 			remove: { skills: toggled(filters.skills, skill) },
 		})),
 		...(filters.unviewed ? [{ key: 'unviewed', label: 'só não vistas', remove: { unviewed: false } }] : []),
+		// Ligado por padrão: o chip aparece quando a pessoa pede para ver as candidatadas também
+		...(filters.hideApplied ? [] : [{ key: 'hideApplied', label: 'com candidaturas enviadas', remove: { hideApplied: true } }]),
 		...(filters.hasEmail ? [{ key: 'hasEmail', label: 'com e-mail', remove: { hasEmail: false } }] : []),
 		...(filters.language
 			? [{ key: 'language', label: LANGUAGE_NAMES[filters.language] ?? filters.language, remove: { language: '' } }]
@@ -384,6 +386,13 @@ function Filters({ open }: { open: boolean }) {
 						<Checkbox checked={filters.unviewed} onChange={event => setFilters({ unviewed: event.target.checked })} />
 					</label>
 					<label className="flex items-center justify-between gap-3">
+						<span>
+							esconder candidaturas enviadas{' '}
+							{facets && <span className="font-mono text-muted">{facets.applied.toLocaleString('pt-BR')}</span>}
+						</span>
+						<Checkbox checked={filters.hideApplied} onChange={event => setFilters({ hideApplied: event.target.checked })} />
+					</label>
+					<label className="flex items-center justify-between gap-3">
 						tem e-mail de contato
 						<Checkbox checked={filters.hasEmail} onChange={event => setFilters({ hasEmail: event.target.checked })} />
 					</label>
@@ -594,6 +603,7 @@ export function JobsPending() {
  */
 export function JobsView({ selectedRouteId, detail }: { selectedRouteId: string | null; detail: ReactNode }) {
 	const { jobs, status, facets, nextCursor, incoming } = useJobs()
+	const { filters } = useFilters()
 	const wide = useWideLayout()
 	const showFilters = useStore(filtersOpen)
 	const pendingCvs = useTrayRequests().filter(request => request.status === 'pending').length
@@ -658,7 +668,12 @@ export function JobsView({ selectedRouteId, detail }: { selectedRouteId: string 
 					{!showFilters && <FilterChips className="mb-1 max-md:hidden" />}
 					{status !== 'error' && jobs.length > 0 && (
 						<div className="font-mono text-muted text-sm">
-							{listCount(jobs.length, Boolean(nextCursor), facets?.total)}
+							{/* Com as candidaturas enviadas escondidas (o padrão), elas não contam no total */}
+							{listCount(
+								jobs.length,
+								Boolean(nextCursor),
+								facets ? facets.total - (filters.hideApplied ? facets.applied : 0) : undefined,
+							)}
 							{unviewedOnScreen && (
 								<>
 									{' · '}

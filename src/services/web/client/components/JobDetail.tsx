@@ -8,6 +8,7 @@ import type { WebJob } from '../../api-types'
 import { api, RequestError } from '../api'
 import { cx } from '../lib/cx'
 import {
+	formatDateTime,
 	isListingPageText,
 	jobDate,
 	jobSubtitle,
@@ -19,6 +20,8 @@ import {
 	timeAgo,
 } from '../lib/format'
 import { revealJobDetail } from '../lib/job-opening'
+import { jobParams } from '../router'
+import { appliedSuggestion, setApplied, useAppliedAt, useAppliedSimilar } from '../stores/applied'
 import { rewriteMessage, undoMessageRewrite, useCvFor, useGeneratedMessage } from '../stores/cv'
 import { removeJob, replaceJob } from '../stores/jobs'
 import { notify } from '../stores/toast'
@@ -42,7 +45,7 @@ import { Notice } from './ui/Notice'
 import { Pill, PillGroup } from './ui/Pill'
 import { Skeleton } from './ui/Skeleton'
 import { LABEL } from './ui/text'
-import { TextLink } from './ui/TextLink'
+import { RouteLink, TextLink } from './ui/TextLink'
 import { WorkModeBadge } from './WorkModeBadge'
 
 /** Posts maiores que isso começam recolhidos. */
@@ -86,6 +89,13 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 	const [rewriting, setRewriting] = useState<MessageTone | MessageLength | 'direct' | 'undo' | null>(null)
 
 	const cv = useCvFor(job.postId)
+	const appliedAt = useAppliedAt(job)
+	const appliedSimilar = useAppliedSimilar(job.postId)
+	// Copiar a mensagem ou abrir a candidatura não quer dizer que enviou: o aviso só lembra de marcar
+	const suggestion = appliedSuggestion({ postId: job.postId, appliedAt })
+	const remindToMark = () => {
+		if (suggestion) notify('Depois de enviar a candidatura, marque aqui', 'info', suggestion)
+	}
 	const postLink = safeLink(job.postLink)
 	const applyLink = safeLink(job.applyLink)
 	const appliesThroughPost = !applyLink && !job.recruiterEmail
@@ -204,17 +214,49 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 			<div className="flex flex-wrap gap-2">
 				<CvButton job={job} size="lg" className={DETAIL_ACTION} />
 				{applyLink && (
-					<Button variant="ghost" size="lg" className={DETAIL_ACTION} href={applyLink} external>
+					<Button variant="ghost" size="lg" className={DETAIL_ACTION} href={applyLink} external onClick={remindToMark}>
 						ir para a candidatura
 					</Button>
 				)}
 				{/* Sem site nem e-mail, a candidatura é pelo próprio post: aí ele é um botão */}
 				{postLink && appliesThroughPost && (
-					<Button variant="ghost" size="lg" className={DETAIL_ACTION} href={postLink} external>
+					<Button variant="ghost" size="lg" className={DETAIL_ACTION} href={postLink} external onClick={remindToMark}>
 						ver post e se candidatar
 					</Button>
 				)}
 			</div>
+
+			{/* Marcada, a vaga sai da lista (o filtro "esconder candidaturas enviadas") e o selo fica no card */}
+			{appliedAt ? (
+				<div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm" role="status">
+					<span className={badge({ tone: 'running' })}>
+						<Icon name="check" size={13} />
+						candidatura enviada {formatDateTime(appliedAt)}
+					</span>
+					<TextLink className="text-xs font-mono" onClick={() => void setApplied(job, false)}>
+						desmarcar
+					</TextLink>
+				</div>
+			) : (
+				<Button variant="ghost" size="sm" className="self-start" onClick={() => void setApplied(job, true)}>
+					<Icon name="check" size={13} />
+					já enviei a candidatura
+				</Button>
+			)}
+
+			{/* A mesma vaga postada de novo, sem ter sido agrupada (outro texto, outro recrutador): avisa antes de enviar outra vez */}
+			{appliedSimilar && !appliedAt && (
+				<Notice tone="warn" icon="alert" className="text-sm">
+					<p className="m-0">
+						Você já enviou candidatura para uma vaga parecida em {formatDateTime(appliedSimilar.appliedAt)}:{' '}
+						<RouteLink className="text-sm" to="/vagas/$id" params={jobParams(appliedSimilar.postId)}>
+							{appliedSimilar.title}
+							{appliedSimilar.company && ` · ${appliedSimilar.company}`}
+						</RouteLink>
+						. Confira se não é a mesma antes de enviar de novo.
+					</p>
+				</Notice>
+			)}
 
 			{cv?.status === 'ready' && <CvReady key={cv.requestId} cv={cv} />}
 			{cv?.status === 'failed' && (
@@ -258,13 +300,14 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 						<a className="font-mono block truncate grow no-underline" href={`mailto:${job.recruiterEmail}`}>
 							{job.recruiterEmail}
 						</a>
-						<CopyButton text={job.recruiterEmail} what="E-mail" />
+						<CopyButton text={job.recruiterEmail} what="E-mail" toastAction={suggestion} />
 					</div>
 					<ApplicationEmail
 						label={showGenerated ? 'mensagem gerada pela IA' : 'modelo de mensagem'}
 						aria-label="Mensagem de candidatura"
 						message={message}
 						busy={!!rewriting}
+						copyAction={suggestion}
 					>
 						{showGenerated && (
 							// Reescreve a mensagem já gerada: o tom e o tamanho escolhidos ficam ligados
