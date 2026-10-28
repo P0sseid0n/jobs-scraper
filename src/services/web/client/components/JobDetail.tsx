@@ -20,7 +20,7 @@ import { appliedSuggestion, setApplied, useAppliedAt, useAppliedSimilar } from '
 import { useCvFor } from '../stores/cv'
 import { removeJob, replaceJob } from '../stores/jobs'
 import { notify } from '../stores/toast'
-import { JobContact } from './ContactDialog'
+import { JobContact, JobMailStatus } from './ContactDialog'
 import { ContractTypeBadge } from './ContractTypeBadge'
 import { CopyButton } from './CopyButton'
 import { CorrectedBadge } from './CorrectedBadge'
@@ -170,7 +170,12 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 			)}
 
 			<div className="flex flex-wrap gap-2">
-				<CvButton job={job} size="lg" className={DETAIL_ACTION} />
+				{/* Com e-mail, o contato é a candidatura: o currículo é gerado na modal, para ir anexado */}
+				{job.recruiterEmail ? (
+					<JobContact job={{ ...job, recruiterEmail: job.recruiterEmail }} copyAction={suggestion} className={DETAIL_ACTION} />
+				) : (
+					<CvButton job={job} size="lg" className={DETAIL_ACTION} />
+				)}
 				{applyLink && (
 					<Button variant="ghost" size="lg" className={DETAIL_ACTION} href={applyLink} external onClick={remindToMark}>
 						ir para a candidatura
@@ -183,6 +188,9 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 					</Button>
 				)}
 			</div>
+
+			{/* O último envio pela modal do contato: enviando, enviada ou o motivo da falha */}
+			<JobMailStatus postId={job.postId} />
 
 			{/* Marcada, a vaga sai da lista (o filtro "esconder candidaturas enviadas") e o selo fica no card */}
 			{appliedAt ? (
@@ -249,9 +257,6 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 					</TextLink>
 				)}
 			</section>
-
-			{/* Depois do post: primeiro se lê a vaga, depois se escreve para o recrutador (a mensagem e o envio ficam na modal) */}
-			<JobContact job={job} copyAction={suggestion} />
 
 			<JobReposts
 				job={job}

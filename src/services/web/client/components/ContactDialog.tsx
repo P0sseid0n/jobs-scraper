@@ -12,6 +12,7 @@ import { sendApplication, useJobMails, useMailSetup } from '../stores/mail'
 import { useMessageSignature } from '../stores/message-settings'
 import { notify, type ToastAction } from '../stores/toast'
 import { CopyButton } from './CopyButton'
+import { CvButton } from './CvButton'
 import { Icon } from './Icon'
 import { badge } from './ui/Badge'
 import { Button } from './ui/Button'
@@ -321,7 +322,8 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 						</div>
 					)}
 
-					{generated ? (
+					{/* Sem mensagem da IA, a área do currículo, abaixo, explica que ela vem com ele */}
+					{generated && (
 						<div className="flex items-center justify-between gap-3 text-muted text-xs">
 							<span role="status">
 								{rewriting && rewriting !== 'undo' ? (
@@ -346,34 +348,47 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 								{showGenerated ? 'usar o modelo padrão' : 'usar a mensagem da IA'}
 							</TextLink>
 						</div>
-					) : (
-						<p className="text-muted text-xs">
-							{cv?.status === 'pending'
-								? 'A mensagem escrita para esta vaga chega junto com o currículo.'
-								: 'Gere o currículo para receber uma mensagem escrita para esta vaga.'}
-						</p>
 					)}
 				</section>
 
-				{canSend &&
-					(readyCv ? (
-						<div className="flex items-center gap-3 rounded-sm border border-line p-2.5">
+				{/* O currículo é escolha de quem abriu: com ele vêm o anexo e a mensagem escrita pela IA para a vaga */}
+				<section aria-label="Currículo" className="flex flex-col gap-2.5 rounded-sm border border-line p-2.5">
+					{readyCv ? (
+						<div className="flex items-center gap-3">
 							<PdfIcon>PDF</PdfIcon>
 							<div className="min-w-0 grow">
-								<div className="text-sm font-semibold">anexo</div>
+								<div className="text-sm font-semibold">{canSend ? 'anexo' : 'currículo'}</div>
 								<div className="block truncate font-mono text-xs text-muted">{readyCv.fileName}</div>
 							</div>
-							<TextLink className="text-sm" href={cvPdfUrl(readyCv.requestId)} external>
-								pré-visualizar
-							</TextLink>
+							<div className="flex flex-col items-end gap-1">
+								<TextLink className="text-sm" href={cvPdfUrl(readyCv.requestId)} external>
+									pré-visualizar
+								</TextLink>
+								{!canSend && (
+									<TextLink
+										className="text-sm"
+										href={cvPdfUrl(readyCv.requestId, true)}
+										download={readyCv.fileName ?? undefined}
+									>
+										baixar
+									</TextLink>
+								)}
+							</div>
 						</div>
 					) : (
-						<FieldHelp className="text-xs">
-							{cv?.status === 'pending'
-								? 'O currículo desta vaga está sendo gerado: o envio libera quando ele ficar pronto, para ir anexado.'
-								: 'Gere o currículo da vaga para enviar daqui: ele vai anexado ao e-mail.'}
-						</FieldHelp>
-					))}
+						<div className="flex flex-wrap items-center gap-3">
+							<FieldHelp className="min-w-0 basis-60 grow text-xs">
+								{cv?.status === 'pending'
+									? 'Gerando o currículo ajustado para a vaga: a mensagem da IA chega junto.'
+									: canSend
+										? 'Gere o currículo ajustado para a vaga: ele vai anexado ao e-mail, e a IA escreve a mensagem junto.'
+										: 'Gere o currículo ajustado para a vaga: a IA escreve a mensagem junto, e o PDF fica para você anexar.'}
+								{cv?.status === 'failed' && <span className="block text-danger">O último falhou: {cv.error}</span>}
+							</FieldHelp>
+							<CvButton job={job} className="shrink-0" />
+						</div>
+					)}
+				</section>
 
 				<div className="flex justify-end gap-2 pt-1">
 					<Button variant="ghost" type="button" disabled={busy} onClick={() => ref.current?.close()}>
@@ -408,25 +423,26 @@ export function MailStatus({ mail }: { mail: WebMail }) {
 	)
 }
 
-/** O contato no detalhe da vaga: o botão que abre a modal e o status do último envio por e-mail. */
-export function JobContact({ job, copyAction }: { job: ContactJob & Pick<WebJob, 'recruiterEmail'>; copyAction?: ToastAction }) {
+/**
+ * "Entrar em contato", a ação principal da vaga com e-mail: abre a modal do contato, onde também se gera o currículo.
+ */
+export function JobContact({
+	job,
+	copyAction,
+	className,
+}: {
+	job: ContactJob & { recruiterEmail: string }
+	copyAction?: ToastAction
+	className?: string
+}) {
 	const [open, setOpen] = useState(false)
-	const setup = useMailSetup()
-	const mails = useJobMails(job.postId)
-	const latest = mails[0] ?? null
-
-	if (!job.recruiterEmail) return null
 
 	return (
-		<section className="flex flex-col gap-2.5" aria-label="Contato">
-			<h3 className={LABEL}>contato</h3>
-			<div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-				<Button variant={setup?.enabled ? 'lime' : 'ghost'} size="sm" aria-haspopup="dialog" onClick={() => setOpen(true)}>
-					<Icon name="mail" size={13} />
-					{latest?.status === 'failed' ? 'entrar em contato de novo' : 'entrar em contato'}
-				</Button>
-				{latest && <MailStatus mail={latest} />}
-			</div>
+		<>
+			<Button variant="lime" size="lg" className={className} aria-haspopup="dialog" onClick={() => setOpen(true)}>
+				<Icon name="mail" />
+				entrar em contato
+			</Button>
 			{open && (
 				<ContactDialog
 					job={job}
@@ -436,6 +452,12 @@ export function JobContact({ job, copyAction }: { job: ContactJob & Pick<WebJob,
 					onClose={() => setOpen(false)}
 				/>
 			)}
-		</section>
+		</>
 	)
+}
+
+/** O status do último envio por e-mail da vaga, no detalhe; nada se ela nunca recebeu um. */
+export function JobMailStatus({ postId }: { postId: string }) {
+	const latest = useJobMails(postId)[0] ?? null
+	return latest && <MailStatus mail={latest} />
 }
