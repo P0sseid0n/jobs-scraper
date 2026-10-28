@@ -17,9 +17,15 @@ const button = tv({
 		'not-disabled:hover:-translate-y-px not-disabled:active:translate-y-0',
 	],
 	variants: {
-		/** `lime`: ação principal da tela. `ghost`: borda, sem preenchimento (numa superfície `inverted`, já sai clara). */
+		/**
+		 * `lime`: ação principal da tela; desabilitado, fica com a cara do `ghost` desabilitado, para não chamar para uma ação
+		 * que não há. `ghost`: borda, sem preenchimento (numa superfície `inverted`, já sai clara).
+		 */
 		variant: {
-			lime: 'bg-lime text-lime-ink font-semibold not-disabled:hover:bg-lime-hover not-disabled:hover:shadow-glow',
+			lime: [
+				'bg-lime text-lime-ink font-semibold not-disabled:hover:bg-lime-hover not-disabled:hover:shadow-glow',
+				'disabled:border-line disabled:bg-transparent disabled:text-muted',
+			],
 			ghost: ['border-line text-ink', OUTLINED],
 		},
 		size: {

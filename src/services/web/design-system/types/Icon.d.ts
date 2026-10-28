@@ -21,6 +21,7 @@ export interface IconProps {
 		| 'trash'
 		| 'plus'
 		| 'flag'
+		| 'info'
 		| 'spinner'
 	size?: number
 	className?: string

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import type { CredentialCheck, CredentialGroup, WebCredentials } from '../../api-types'
 import { api, RequestError } from '../api'
@@ -95,7 +95,11 @@ const GROUPS: Record<CredentialGroup, GroupDef> = {
 
 const SOURCE_BADGES = {
 	database: { tone: 'ok', label: 'salva no site' },
-	env: { tone: 'neutral', label: 'do .env' },
+	env: {
+		tone: 'neutral',
+		label: 'usando o .env',
+		title: 'Nada salvo no site: valem as credenciais do arquivo .env. Salvar aqui passa a valer no lugar delas.',
+	},
 	none: { tone: 'muted', label: 'não configurada' },
 } as const
 
@@ -106,12 +110,32 @@ const TABS = GROUP_KEYS.map(group => ({ value: group, label: GROUPS[group].title
  * As contas do LinkedIn, do Discord e do GitHub, uma por aba. Cada uma é salva à parte, no MongoDB local, e vale no
  * lugar do `.env`; os segredos salvos nunca chegam ao navegador.
  */
-export function AccountsSection({ initial }: { initial: WebCredentials }) {
+export function AccountsSection({
+	initial,
+	onDirtyChange,
+	className,
+	...props
+}: {
+	initial: WebCredentials
+	/** Os nomes das contas com alterações não salvas (cada uma tem o próprio salvar), na ordem das abas. */
+	onDirtyChange?: (accounts: string[]) => void
+	className?: string
+	id?: string
+}) {
 	const [status, setStatus] = useState(initial)
 	const [selected, setSelected] = useState<CredentialGroup>('linkedin')
+	const [dirtyGroups, setDirtyGroups] = useState<CredentialGroup[]>([])
+
+	useEffect(() => onDirtyChange?.(dirtyGroups.map(group => GROUPS[group].title)), [dirtyGroups])
+
+	function setGroupDirty(group: CredentialGroup, dirty: boolean) {
+		setDirtyGroups(current =>
+			dirty === current.includes(group) ? current : GROUP_KEYS.filter(key => (key === group ? dirty : current.includes(key))),
+		)
+	}
 
 	return (
-		<section className={card({ size: 'lg', className: 'flex flex-col gap-6.5' })} aria-labelledby="accounts-title">
+		<section {...props} className={card({ size: 'lg', className: cx('flex flex-col gap-6.5', className) })} aria-labelledby="accounts-title">
 			<div className="flex flex-col gap-1.5">
 				<h2 id="accounts-title" className={SECTION_TITLE}>
 					contas <span className="font-mono text-xs font-normal text-muted">credenciais</span>
@@ -127,7 +151,12 @@ export function AccountsSection({ initial }: { initial: WebCredentials }) {
 
 				{GROUP_KEYS.map(group => (
 					<TabPanel key={group} tabsId="accounts" value={group} selected={group === selected} className="flex flex-col gap-4">
-						<AccountGroup group={group} status={status} onSaved={setStatus} />
+						<AccountGroup
+							group={group}
+							status={status}
+							onSaved={setStatus}
+							onDirtyChange={dirty => setGroupDirty(group, dirty)}
+						/>
 						{group === 'linkedin' && <LinkedinLoginTest configured={status.linkedin.source !== null} />}
 					</TabPanel>
 				))}
@@ -167,11 +196,14 @@ export function AccountGroup({
 	group,
 	status,
 	onSaved,
+	onDirtyChange,
 	compact = false,
 }: {
 	group: CredentialGroup
 	status: WebCredentials
 	onSaved: (status: WebCredentials) => void
+	/** Avisa quando a conta passa a ter (ou deixa de ter) alterações não salvas. */
+	onDirtyChange?: (dirty: boolean) => void
 	compact?: boolean
 }) {
 	const config = GROUPS[group]
@@ -188,6 +220,7 @@ export function AccountGroup({
 
 	const saved = draftOf(group, status)
 	const dirty = removed.length > 0 || config.fields.some(field => draft[field.name] !== saved[field.name])
+	useEffect(() => onDirtyChange?.(dirty), [dirty])
 
 	/** Só o que mudou: segredos vazios mantêm o salvo; os removidos vão como texto vazio. */
 	function patch() {
@@ -255,7 +288,9 @@ export function AccountGroup({
 			{!compact && (
 				<div className="flex flex-wrap items-center justify-between gap-3">
 					<FieldHelp>{config.note}</FieldHelp>
-					<Badge tone={badge.tone}>{badge.label}</Badge>
+					<Badge tone={badge.tone} title={'title' in badge ? badge.title : undefined}>
+						{badge.label}
+					</Badge>
 				</div>
 			)}
 

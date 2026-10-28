@@ -29,10 +29,11 @@ import { Hero, Page, pageFrame } from '../components/ui/Page'
 import { pill, PillGroup } from '../components/ui/Pill'
 import { SelectMenu, type SelectMenuOption } from '../components/ui/SelectMenu'
 import { Switch, SwitchField } from '../components/ui/Switch'
+import { StatusDot } from '../components/ui/StatusDot'
 import { SECTION_TITLE } from '../components/ui/text'
 import { cx } from '../lib/cx'
 import { DATE_POSTED_LABELS, formatInterval, LANGUAGE_NAMES, languageLabel } from '../lib/format'
-import { shakeInvalid } from '../lib/motion'
+import { reducedMotion, shakeInvalid } from '../lib/motion'
 import {
 	duplicateSimilarityHint,
 	LIMITS,
@@ -43,6 +44,8 @@ import {
 } from '../lib/settings-form'
 import { useFlash } from '../lib/use-flash'
 import { notify } from '../stores/toast'
+
+const LIST_FORMAT = new Intl.ListFormat('pt-BR')
 
 const DATE_POSTED_OPTIONS: SelectMenuOption<DatePostedFilter>[] = DATE_POSTED_FILTERS.map(value => ({
 	value,
@@ -63,7 +66,73 @@ const SENIORITY_OPTIONS: SelectMenuOption<SeniorityLevel | ''>[] = [
 	...SENIORITY_LEVELS.map(value => ({ value, label: SENIORITY_LABELS[value] })),
 ]
 
-const SETTINGS_CARD = card({ size: 'lg', className: 'flex flex-col gap-6.5' })
+/** A margem do cabeçalho e dos atalhos fixos, para a seção não parar debaixo deles ao pular até ela. */
+const SECTION_SCROLL_MARGIN = 'scroll-mt-32'
+
+const SETTINGS_CARD = card({ size: 'lg', className: cx('flex flex-col gap-6.5', SECTION_SCROLL_MARGIN) })
+
+const SECTIONS = [
+	{ id: 'perfil', label: 'perfil' },
+	{ id: 'coleta', label: 'coleta' },
+	{ id: 'filtros', label: 'filtros' },
+	{ id: 'contas', label: 'contas' },
+] as const
+
+/**
+ * Atalhos para as seções, fixos abaixo do cabeçalho: a tela tem quase três alturas de rolagem. Marca a última seção
+ * cujo topo já passou de um terço da tela (no fim da página, a última).
+ */
+function SectionNav() {
+	const [current, setCurrent] = useState<string>(SECTIONS[0].id)
+
+	useEffect(() => {
+		let frame = 0
+		function update() {
+			frame = 0
+			const line = window.innerHeight / 3
+			const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4
+			let active: string = SECTIONS[0].id
+			for (const { id } of SECTIONS) {
+				const top = document.getElementById(id)?.getBoundingClientRect().top
+				if (top !== undefined && top <= line) active = id
+			}
+			setCurrent(atBottom ? SECTIONS[SECTIONS.length - 1]!.id : active)
+		}
+		function schedule() {
+			if (!frame) frame = requestAnimationFrame(update)
+		}
+
+		update()
+		window.addEventListener('scroll', schedule, { passive: true })
+		window.addEventListener('resize', schedule)
+		return () => {
+			cancelAnimationFrame(frame)
+			window.removeEventListener('scroll', schedule)
+			window.removeEventListener('resize', schedule)
+		}
+	}, [])
+
+	return (
+		<nav
+			aria-label="Seções das configurações"
+			className="sticky top-16 z-10 -my-2 flex flex-wrap gap-1.5 bg-bg/88 py-2 backdrop-blur-md"
+		>
+			{SECTIONS.map(({ id, label }) => (
+				<button
+					key={id}
+					type="button"
+					aria-current={current === id ? 'true' : undefined}
+					className={pill({ className: current === id && 'border-ink bg-ink text-bg' })}
+					onClick={() =>
+						document.getElementById(id)?.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'start' })
+					}
+				>
+					{label}
+				</button>
+			))}
+		</nav>
+	)
+}
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
@@ -87,6 +156,8 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 	const [newTerm, setNewTerm] = useState('')
 	const [savingPause, setSavingPause] = useState(false)
 	const [savedFlash, flashSaved] = useFlash()
+	// As contas têm o próprio salvar; a barra de baixo e o aviso de sair contam com elas também
+	const [dirtyAccounts, setDirtyAccounts] = useState<string[]>([])
 
 	function reset(settings = loaded) {
 		if (!settings) return
@@ -127,8 +198,8 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 
 	// Sair da tela (ou fechar a aba) com alterações não salvas pede confirmação
 	const blocker = useBlocker({
-		shouldBlockFn: () => dirty && saveState !== 'saving',
-		enableBeforeUnload: () => dirty,
+		shouldBlockFn: () => (dirty && saveState !== 'saving') || dirtyAccounts.length > 0,
+		enableBeforeUnload: () => dirty || dirtyAccounts.length > 0,
 		withResolver: true,
 	})
 
@@ -240,7 +311,7 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 		const suggestions = { area: Object.keys(PROFILE_AREAS), targetRole: suggestedRoles(profile.area) }
 
 		return (
-			<section className={SETTINGS_CARD} aria-labelledby="profile-title">
+			<section id="perfil" className={SETTINGS_CARD} aria-labelledby="profile-title">
 				<h2 id="profile-title" className={SECTION_TITLE}>
 					perfil <span className="font-mono text-xs font-normal text-muted">profissional</span>
 				</h2>
@@ -332,7 +403,7 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 		const terms = d.scraper.searchTerms
 
 		return (
-			<section className={SETTINGS_CARD} aria-labelledby="scraper-title">
+			<section id="coleta" className={SETTINGS_CARD} aria-labelledby="scraper-title">
 				<div className="flex items-center justify-between gap-3 flex-wrap">
 					<h2 id="scraper-title" className={SECTION_TITLE}>
 						coleta <span className="font-mono text-xs font-normal text-muted">scraper</span>
@@ -460,7 +531,7 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 		const languages = [...new Set([...Object.keys(LANGUAGE_NAMES), ...p.allowedLanguages])]
 
 		return (
-			<section className={SETTINGS_CARD} aria-labelledby="processing-title">
+			<section id="filtros" className={SETTINGS_CARD} aria-labelledby="processing-title">
 				<h2 id="processing-title" className={SECTION_TITLE}>
 					filtros das vagas <span className="font-mono text-xs font-normal text-muted">pós-processamento</span>
 				</h2>
@@ -556,9 +627,7 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 				</div>
 
 				<div className="flex gap-3 rounded-md bg-surface-2 px-4 py-3.5">
-					<span className="font-mono" aria-hidden="true">
-						?
-					</span>
+					<Icon name="info" className="mt-0.5 text-muted" />
 					<FieldHelp className="text-ink">
 						A comparação é por palavra inteira (“java” não pega “javascript”) e ignora maiúsculas, acentos, hífen e “.js”. Ou
 						seja, “Vue.js” = “vue” e “Front-End” = “frontend”.
@@ -625,7 +694,11 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 			{blocker.status === 'blocked' && (
 				<ConfirmDialog
 					title="Sair sem salvar?"
-					description="As alterações nas configurações ainda não foram salvas e vão se perder."
+					description={
+						dirtyAccounts.length > 0
+							? `Há alterações não salvas${dirty ? ' nas configurações e' : ''} na conta do ${LIST_FORMAT.format(dirtyAccounts)}; elas vão se perder.`
+							: 'As alterações nas configurações ainda não foram salvas e vão se perder.'
+					}
 					confirmLabel="sair sem salvar"
 					cancelLabel="continuar editando"
 					onConfirm={blocker.proceed}
@@ -634,24 +707,37 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 			)}
 
 			{loaded && (
-				<div className={card({ size: 'md', className: cx('flex flex-wrap items-center gap-4', paused && 'bg-lime-soft') })}>
+				// Ligado = coletando (como os outros interruptores da tela); pausado, o card fica neutro, sem o lime de "rodando"
+				<div className={card({ size: 'md', className: 'flex flex-wrap items-center gap-4' })}>
 					<div className="grow">
-						<p className="font-semibold">
+						<p className="flex items-center gap-2 font-semibold">
+							<StatusDot tone={paused ? 'muted' : 'lime'} glow={!paused} />
 							{paused
 								? 'Coletas automáticas pausadas'
 								: `Coletas automáticas ligadas · ${formatInterval(loaded.scraper.intervalMinutes)}`}
 						</p>
 
-						<FieldHelp>“Coletar agora” continua funcionando mesmo com as coletas pausadas.</FieldHelp>
+						<FieldHelp>
+							{paused
+								? '“Coletar agora” continua funcionando: uma coleta pedida à mão roda mesmo com as automáticas pausadas.'
+								: 'Desligue para pausar: o intervalo para de contar até você religar.'}
+						</FieldHelp>
 					</div>
-					<SwitchField id="settings-paused" title="pausar coletas" checked={paused} disabled={savingPause} onChange={setPaused} />
+					<SwitchField
+						id="settings-paused"
+						title="coletas automáticas"
+						checked={!paused}
+						disabled={savingPause}
+						onChange={on => setPaused(!on)}
+					/>
 				</div>
 			)}
 
+			{draft && <SectionNav />}
 			{draft && renderProfile(draft)}
 			{draft && renderScraper(draft)}
 			{draft && renderProcessing(draft)}
-			<AccountsSection initial={credentials} />
+			<AccountsSection id="contas" className={SECTION_SCROLL_MARGIN} initial={credentials} onDirtyChange={setDirtyAccounts} />
 
 			{draft && (
 				<div data-save-bar className="fixed inset-x-0 bottom-0 z-25 border-t border-line bg-bg max-md:bottom-safe-16">
@@ -671,8 +757,16 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 										? saveMessage.title
 										: dirty
 											? 'alterações não salvas'
-											: 'tudo salvo'}
+											: dirtyAccounts.length > 0
+												? `conta do ${LIST_FORMAT.format(dirtyAccounts)} não salva`
+												: 'tudo salvo'}
 							</p>
+							{/* O "salvar alterações" não leva as contas: cada uma tem o próprio botão */}
+							{dirtyAccounts.length > 0 && (saveState === 'idle' || saveState === 'saving') && (
+								<p className="text-xs text-muted">
+									{dirty ? `e a conta do ${LIST_FORMAT.format(dirtyAccounts)}: ` : ''}use o “salvar” da conta, em contas
+								</p>
+							)}
 							{(saveState === 'saved' || saveState === 'error') && saveMessage.detail && (
 								<p className={cx('text-xs', saveState === 'saved' && 'text-muted')}>{saveMessage.detail}</p>
 							)}

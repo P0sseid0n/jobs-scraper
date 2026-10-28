@@ -797,11 +797,11 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 					<h2 className={LABEL}>agenda</h2>
 					<SwitchField
 						id="runs-paused"
-						title="pausar coletas automáticas"
-						description="o intervalo para de contar até você retomar"
-						checked={status.paused}
+						title="coletas automáticas"
+						description="desligadas, o intervalo para de contar até você religar"
+						checked={!status.paused}
 						disabled={savingPause}
-						onChange={setPaused}
+						onChange={on => setPaused(!on)}
 					/>
 					{status.last && (
 						<p className="text-muted text-sm">
