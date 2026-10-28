@@ -292,6 +292,17 @@ Requisitos: Python, Airflow, SQL e AWS. Envie seu currículo pelo link do post.`
 		expect(keepContractTypesInPost(['estagio'], 'Internship: Software Engineer Intern (Python)')).toEqual(['estagio'])
 	})
 
+	test('estágio e freelance no cargo valem sem o modelo', () => {
+		const internship = 'ESTÁGIO EM INTELIGÊNCIA ARTIFICIAL | REMOTO. A Acme está recrutando para uma vaga de estágio.'
+
+		expect(keepContractTypesInPost([], internship, 'Estágio em Inteligência Artificial')).toEqual(['estagio'])
+		expect(keepContractTypesInPost(null, 'Freelancer Designer, projeto de 2 meses', 'Freelancer Designer')).toEqual([
+			'freelance',
+		])
+		// O cargo sem estágio não muda nada
+		expect(keepContractTypesInPost(null, 'Processo seletivo no estágio final, vaga de Dev Go', 'Dev Go')).toBeNull()
+	})
+
 	test('não confunde a sigla com parte de outra palavra', () => {
 		expect(keepContractTypesInPost(null, 'Dev para o sistema PJe (Processo Judicial Eletrônico)')).toBeNull()
 		expect(keepContractTypesInPost(null, 'Experiência com CLTool e PJAX')).toBeNull()

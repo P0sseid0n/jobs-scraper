@@ -189,16 +189,23 @@ const CONTRACT_TYPE_TERMS: Record<ContractType, { pattern: RegExp; reliable: boo
 /**
  * Decide os regimes da vaga pelo texto do post (evita regime inventado pelo modelo): fica cada regime escrito no
  * post que o modelo também indicou, mais "CLT" e "PJ" sempre que estiverem escritos. Com os dois ("CLT ou PJ"),
- * guarda os dois.
+ * guarda os dois. Estágio e freelance no cargo ("Estágio em Desenvolvimento", "Freelancer Designer") valem como
+ * indicados: o prompt manda o modelo responder [] sem regime escrito, e ele às vezes não liga o cargo ao regime.
+ * @param title O cargo da IA (já é escrito no post, ou a vaga leva o check de cargo).
  * @returns Os regimes na ordem de `CONTRACT_TYPES`, ou `null` se o post não diz.
  */
-export function keepContractTypesInPost(types: ContractType[] | null, text: string): ContractType[] | null {
+export function keepContractTypesInPost(
+	types: ContractType[] | null,
+	text: string,
+	title: string | null = null,
+): ContractType[] | null {
 	const normalizedText = normalizeForMatch(text)
+	const normalizedTitle = normalizeForMatch(title ?? '')
 	const fromModel = new Set(types ?? [])
 
 	const kept = CONTRACT_TYPES.filter(type => {
 		const { pattern, reliable } = CONTRACT_TYPE_TERMS[type]
-		return (reliable || fromModel.has(type)) && pattern.test(normalizedText)
+		return (reliable || fromModel.has(type) || pattern.test(normalizedTitle)) && pattern.test(normalizedText)
 	})
 
 	return kept.length > 0 ? kept : null

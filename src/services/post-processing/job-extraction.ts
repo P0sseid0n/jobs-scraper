@@ -90,7 +90,7 @@ export function buildProcessedJob(post: RawPost, aiJob: AiJobOutput, language: s
 		// Só a modalidade escrita no post: o modelo às vezes a deduz do cargo
 		workMode: keepWorkModeInPost(aiJob.workMode, sourceText),
 		// Só os regimes escritos no post; "CLT" e "PJ" entram pelo texto mesmo se o modelo não os devolver
-		contractTypes: keepContractTypesInPost(aiJob.contractTypes, sourceText),
+		contractTypes: keepContractTypesInPost(aiJob.contractTypes, sourceText, aiJob.title),
 		extractionChecks: [],
 		postedAt: post.postedAt,
 		author: post.author,
