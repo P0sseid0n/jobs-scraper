@@ -1,5 +1,5 @@
 import { useNavigate } from '@tanstack/react-router'
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useId, useLayoutEffect, useRef, useState } from 'react'
 
 import { MESSAGE_LENGTHS, MESSAGE_TONES, type MessageLength, type MessageTone } from '@shared/contracts'
 import { defaultApplicationMessage } from '@shared/templates'
@@ -21,9 +21,10 @@ import {
 import { revealJobDetail } from '../lib/job-opening'
 import { rewriteMessage, undoMessageRewrite, useCvFor, useGeneratedMessage } from '../stores/cv'
 import { removeJob, replaceJob } from '../stores/jobs'
-import { copyText, notify } from '../stores/toast'
-import { ApplicationEmail, TOUCH_BUTTON } from './ApplicationEmail'
+import { notify } from '../stores/toast'
+import { ApplicationEmail } from './ApplicationEmail'
 import { ContractTypeBadge } from './ContractTypeBadge'
+import { CopyButton } from './CopyButton'
 import { CorrectedBadge } from './CorrectedBadge'
 import { CvButton } from './CvButton'
 import { CvReady } from './CvReady'
@@ -53,9 +54,6 @@ const DETAIL_ACTION = 'flex-1 basis-45'
 /** Uma das opções de reescrita da mensagem (tom, tamanho): o rótulo e as pills na mesma linha; no celular, um embaixo do outro. */
 const MESSAGE_OPTION = 'flex items-center gap-2 max-sm:flex-col max-sm:items-start max-sm:gap-1.5'
 
-/** Na tela de toque, a área de clique dos links do rodapé da mensagem chega aos 44px de altura. */
-const TOUCH_LINK = 'relative pointer-coarse:after:absolute pointer-coarse:after:-inset-x-1 pointer-coarse:after:-inset-y-2'
-
 /** No `bun dev` (com o recarregamento ao vivo): o JSON da vaga só aparece para quem está desenvolvendo. */
 const DEVELOPMENT = Boolean(import.meta.hot)
 
@@ -82,6 +80,9 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 	// A mensagem gerada pela IA aparece no lugar do modelo padrão, que continua a um clique
 	const [useDefaultMessage, setUseDefaultMessage] = useState(false)
 	// O que está sendo reescrito pela IA agora (o tom, o tamanho, "mais direta" ou o desfazer), para o spinner
+	// Os rótulos visíveis "tom" e "tamanho" dão o nome dos grupos de pills
+	const toneLabel = useId()
+	const lengthLabel = useId()
 	const [rewriting, setRewriting] = useState<MessageTone | MessageLength | 'direct' | 'undo' | null>(null)
 
 	const cv = useCvFor(job.postId)
@@ -257,10 +258,7 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 						<a className="font-mono block truncate grow no-underline" href={`mailto:${job.recruiterEmail}`}>
 							{job.recruiterEmail}
 						</a>
-						<Button variant="ghost" onClick={() => copyText(job.recruiterEmail!, 'E-mail')}>
-							<Icon name="copy" size={14} />
-							copiar
-						</Button>
+						<CopyButton text={job.recruiterEmail} what="E-mail" />
 					</div>
 					<ApplicationEmail
 						label={showGenerated ? 'mensagem gerada pela IA' : 'modelo de mensagem'}
@@ -272,14 +270,13 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 							// Reescreve a mensagem já gerada: o tom e o tamanho escolhidos ficam ligados
 							<div className="flex flex-wrap items-center gap-x-5 gap-y-2.5 border-t border-line-strong pt-3">
 								<div className={MESSAGE_OPTION}>
-									<span className={LABEL} aria-hidden="true">
+									<span id={toneLabel} className={LABEL}>
 										tom
 									</span>
-									<PillGroup role="group" aria-label="Tom da mensagem">
+									<PillGroup role="group" aria-labelledby={toneLabel}>
 										{MESSAGE_TONES.map(option => (
 											<Pill
 												key={option}
-												className={TOUCH_BUTTON}
 												pressed={option === tone}
 												disabled={!!rewriting}
 												onClick={() => option !== tone && changeMessage(option, { tone: option, length })}
@@ -291,14 +288,13 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 									</PillGroup>
 								</div>
 								<div className={MESSAGE_OPTION}>
-									<span className={LABEL} aria-hidden="true">
+									<span id={lengthLabel} className={LABEL}>
 										tamanho
 									</span>
-									<PillGroup role="group" aria-label="Tamanho da mensagem">
+									<PillGroup role="group" aria-labelledby={lengthLabel}>
 										{MESSAGE_LENGTHS.map(option => (
 											<Pill
 												key={option}
-												className={TOUCH_BUTTON}
 												pressed={option === length}
 												disabled={!!rewriting}
 												onClick={() => option !== length && changeMessage(option, { tone, length: option })}
@@ -313,7 +309,6 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 								<Button
 									variant="ghost"
 									size="sm"
-									className={TOUCH_BUTTON}
 									disabled={!!rewriting}
 									onClick={() => changeMessage('direct', { tone, length, direct: true })}
 								>
@@ -334,7 +329,7 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 												<>
 													{' · '}
 													<TextLink
-														className={cx('text-xs', TOUCH_LINK)}
+														className="text-xs"
 														disabled={!!rewriting}
 														onClick={() => changeMessage('undo', null)}
 													>
@@ -347,7 +342,7 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 										''
 									)}
 								</span>
-								<TextLink className={cx('text-xs', TOUCH_LINK)} onClick={() => setUseDefaultMessage(!useDefaultMessage)}>
+								<TextLink className="text-xs" onClick={() => setUseDefaultMessage(!useDefaultMessage)}>
 									{showGenerated ? 'usar o modelo padrão' : 'usar a mensagem da IA'}
 								</TextLink>
 							</div>
@@ -392,7 +387,7 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 					</TextLink>
 				)}
 				{rawJson !== null && (
-					<CodeBlock label="documento no mongodb" onCopy={() => copyText(rawJson, 'JSON da vaga')} scroll>
+					<CodeBlock label="documento no mongodb" action={<CopyButton text={rawJson} what="JSON da vaga" size="xs" />} scroll>
 						{rawJson}
 					</CodeBlock>
 				)}

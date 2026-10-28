@@ -8,7 +8,8 @@ import { PRESS } from './press'
 /** Use `pill()` direto no `className` quando a opção não for um botão (ex.: um `<label>` com checkbox). */
 export const pill = tv({
 	base: [
-		'inline-flex min-h-8.5 items-center gap-1.5 rounded-pill border border-line bg-surface px-3 py-1.5 text-sm text-ink',
+		// Na tela de toque, chega aos 44px de altura
+		'inline-flex min-h-8.5 items-center gap-1.5 rounded-pill border border-line bg-surface px-3 py-1.5 text-sm text-ink pointer-coarse:min-h-11',
 		'aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-bg',
 		// Como `<label>` com checkbox, fica ligada do mesmo jeito quando ele está marcado
 		'has-checked:border-ink has-checked:bg-ink has-checked:text-bg',

@@ -7,8 +7,15 @@ import { NEW_TAB, NEW_TAB_NOTICE } from './link'
 const textLink = tv({
 	base: 'text-ink underline underline-offset-3 hover:text-lime-text',
 	variants: {
-		// Como botão, fica alinhado à esquerda e com área de clique um pouco maior
-		as: { a: '', button: 'self-start border-0 bg-transparent px-0 py-1.5' },
+		// Como botão, fica alinhado à esquerda e com área de clique um pouco maior; no toque, uma área invisível em volta
+		// chega aos 44px de altura
+		as: {
+			a: '',
+			button: [
+				'relative self-start border-0 bg-transparent px-0 py-1.5',
+				'pointer-coarse:after:absolute pointer-coarse:after:-inset-x-1 pointer-coarse:after:-inset-y-2',
+			],
+		},
 	},
 })
 

@@ -28,9 +28,10 @@ const button = tv({
 			],
 			ghost: ['border-line text-ink', OUTLINED],
 		},
+		// Na tela de toque, os pequenos chegam aos 44px de altura (o `overflow-clip` cortaria uma área invisível em volta)
 		size: {
-			xs: 'min-h-7.5 px-2.5 py-1 text-xs',
-			sm: 'min-h-8 px-3 py-1.5 text-xs',
+			xs: 'min-h-7.5 px-2.5 py-1 text-xs pointer-coarse:min-h-11',
+			sm: 'min-h-8 px-3 py-1.5 text-xs pointer-coarse:min-h-11',
 			md: '',
 			lg: 'min-h-11.5 px-4.5 py-3 text-sm',
 		},

@@ -2,6 +2,8 @@ import { useEffect, useId, useRef, useState } from 'react'
 
 import type { RunsPage, RunsPageSize, ScraperStatus, WebScraperRun, WebScraperRunTerm } from '../../api-types'
 import { api, type RequestError } from '../api'
+import { AutoRunsSwitch } from '../components/AutoRunsSwitch'
+import { CopyButton } from '../components/CopyButton'
 import { Icon } from '../components/Icon'
 import { Badge, badge, BadgeList, type BadgeTone } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
@@ -16,7 +18,6 @@ import { RollingNumber } from '../components/ui/RollingNumber'
 import { SelectMenu } from '../components/ui/SelectMenu'
 import { Skeleton } from '../components/ui/Skeleton'
 import { StatusDot, type StatusDotTone } from '../components/ui/StatusDot'
-import { AutoRunsSwitch } from '../components/AutoRunsSwitch'
 import { LABEL, SECTION_TITLE } from '../components/ui/text'
 import { RouteLink, TextLink } from '../components/ui/TextLink'
 import { cx } from '../lib/cx'
@@ -24,7 +25,7 @@ import { DATE_POSTED_LABELS, formatDateTime, formatDuration, formatInterval } fr
 import { pageItems } from '../lib/pagination'
 import { useStore } from '../lib/store'
 import { RUNS_PAGE_SIZE_OPTIONS, runsPageSize } from '../stores/runs-page-size'
-import { copyText, notify } from '../stores/toast'
+import { notify } from '../stores/toast'
 
 /** Como a coleta começou, em palavras de quem usa o site. */
 const TRIGGERS: Record<WebScraperRun['trigger'], string> = {
@@ -264,7 +265,7 @@ function TermCard({ term }: { term: WebScraperRunTerm }) {
 			)}
 			{!empty && (
 				<Disclosure summary="ver o erro completo" className="text-xs">
-					<CodeBlock label="erro original" onCopy={() => copyText(term.error ?? '', 'Erro')}>
+					<CodeBlock label="erro original" action={<CopyButton text={term.error ?? ''} what="Erro" size="xs" />}>
 						{term.error}
 					</CodeBlock>
 				</Disclosure>
@@ -793,15 +794,15 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 									: ''
 								: noTerms
 									? 'adicione um termo para coletar'
-								: noAccount
-									? 'conecte sua conta do LinkedIn'
-									: firstRun
-										? 'a primeira coleta começa quando você pedir'
-										: status.paused
-											? '“coletar agora” continua funcionando'
-											: status.intervalStretch > 1
-												? `${formatInterval(status.intervalMinutes * status.intervalStretch)} (×${status.intervalStretch}: as últimas buscas se esgotaram)`
-												: formatInterval(status.intervalMinutes)}
+									: noAccount
+										? 'conecte sua conta do LinkedIn'
+										: firstRun
+											? 'a primeira coleta começa quando você pedir'
+											: status.paused
+												? '“coletar agora” continua funcionando'
+												: status.intervalStretch > 1
+													? `${formatInterval(status.intervalMinutes * status.intervalStretch)} (×${status.intervalStretch}: as últimas buscas se esgotaram)`
+													: formatInterval(status.intervalMinutes)}
 						</span>
 						<Button variant="lime" size="lg" disabled={!!running || requesting || starting || waiting} onClick={runNow}>
 							<Icon name={running || starting ? 'spinner' : 'refresh'} />
@@ -811,7 +812,10 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 				</section>
 
 				{/* No topo, sem esticar até a altura da coleta ao vivo; sem título: o interruptor já diz do que se trata */}
-				<section aria-label="agenda" className={card({ size: 'lg', className: 'flex flex-1 basis-70 flex-col gap-2.5 self-start' })}>
+				<section
+					aria-label="agenda"
+					className={card({ size: 'lg', className: 'flex flex-1 basis-70 flex-col gap-2.5 self-start' })}
+				>
 					<AutoRunsSwitch
 						id="runs-paused"
 						description="desligadas, o intervalo para de contar até você religar"
