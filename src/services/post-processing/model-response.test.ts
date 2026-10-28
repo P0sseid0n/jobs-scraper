@@ -209,6 +209,13 @@ describe('keepSkillsInPost', () => {
 		expect(keepSkillsInPost(['Node.js', 'Python', 'node.js', 'Node'], text)).toEqual(['Node.js', 'Python'])
 	})
 
+	test('o "S" maiúsculo de sigla não é plural: HTTPS não vira HTTP', () => {
+		const http = 'Consumo de APIs (JSON, HTTP), HTTPS/certificados e servidores'
+
+		expect(keepSkillsInPost(['HTTP', 'HTTPS', 'API', 'Servers'], http)).toEqual(['HTTP', 'HTTPS', 'API'])
+		expect(keepSkillsInPost(['HTTPS'], 'Consumo de APIs (JSON, HTTP)')).toBeNull()
+	})
+
 	test('não confunde letra solta com parte de palavra', () => {
 		expect(keepSkillsInPost(['C', 'R'], 'Vaga para dev com experiência em React')).toBeNull()
 	})

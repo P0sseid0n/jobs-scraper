@@ -59,6 +59,17 @@ describe('extractionChecks', () => {
 		expect(job.extractionChecks).toEqual([])
 	})
 
+	test('tecnologia repetida pela IA com outra grafia não conta', () => {
+		const job = buildProcessedJob(
+			{ ...post, text: `${post.text} Diferencial: Node.js.` },
+			AiJobOutputSchema.parse({ postType: 'job_opening', necessary_knowledge: ['Vue.js', 'Node.js', 'Node'] }),
+			'pt',
+		)
+
+		expect(job.necessaryKnowledge).toEqual(['Vue.js', 'Node.js'])
+		expect(job.extractionChecks).toEqual([])
+	})
+
 	test('campo que a IA deixou vazio não conta', () => {
 		expect(checksFor({ title: 'Desenvolvedor Front-end' })).toEqual([])
 	})

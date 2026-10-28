@@ -182,10 +182,19 @@ export function keepSkillsInPost(skills: string[] | null, text: string): string[
 		if (seen.has(key)) return false
 
 		seen.add(key)
-		return words.every(word => containsWordStart(normalizedText, word))
+		return wordsInText(words, normalizedText)
 	})
 
 	return kept.length > 0 ? kept : null
+}
+
+/** Se o conhecimento está escrito no post, pelas mesmas regras de `keepSkillsInPost` (sem tirar os repetidos). */
+export function skillInPost(skill: string, text: string): boolean {
+	return wordsInText(skillWords(skill), normalizeForMatch(text))
+}
+
+function wordsInText(words: string[], normalizedText: string) {
+	return words.every(word => containsWordStart(normalizedText, word))
 }
 
 /**
@@ -262,12 +271,21 @@ function workModeInText(normalizedText: string): WorkMode | null {
 	return cited.length === 1 ? (cited[0] ?? null) : null
 }
 
+/**
+ * As palavras do conhecimento, sem ".js" e sem o "s" do plural. O plural é só o "s" minúsculo ("APIs", "Servers"):
+ * o "S" maiúsculo é parte de sigla ("HTTPS", "SaaS"), e tirá-lo juntava "HTTPS" com "HTTP".
+ */
 function skillWords(skill: string) {
-	return normalizeForMatch(skill)
-		.replace(/\.js\b/g, '')
-		.split(/[^a-z0-9#+]+/)
+	return skill
+		.normalize('NFKD')
+		.replace(/\p{Diacritic}/gu, '')
+		.replace(/\.js\b/gi, '')
+		.split(/[^A-Za-z0-9#+]+/)
 		.filter(Boolean)
-		.map(word => word.replace(/(?<=.{3})js$/, '').replace(/(?<=.{3})s$/, ''))
+		.map(word => {
+			const singular = word.replace(/(?<=.{3})s$/, '')
+			return singular.toLowerCase().replace(/(?<=.{3})js$/, '')
+		})
 }
 
 /** Palavras de até 2 caracteres ("C", "R", "Go", "AI") precisam aparecer inteiras; as demais, no começo de uma palavra. */
