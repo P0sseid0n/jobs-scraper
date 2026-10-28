@@ -313,7 +313,7 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 								<Button
 									variant="ghost"
 									size="sm"
-									className={cx('sm:ml-auto', TOUCH_BUTTON)}
+									className={TOUCH_BUTTON}
 									disabled={!!rewriting}
 									onClick={() => changeMessage('direct', { tone, length, direct: true })}
 								>
