@@ -39,7 +39,18 @@ export function Hero({ title, lead, aside }: { title: ReactNode; lead?: ReactNod
 	)
 }
 
-/** A parte do título em mono, sem negrito ("meus <Hero.Mono>currículos.</Hero.Mono>"). */
+/**
+ * A parte do título em mono, sem negrito ("meus <Hero.Mono>currículos.</Hero.Mono>"). O ponto final chega para perto da
+ * palavra: na mono ele fica no meio de uma casa da largura de uma letra e parecia separado ("base .").
+ */
 Hero.Mono = function HeroMono({ children }: { children: ReactNode }) {
+	if (typeof children === 'string' && children.endsWith('.')) {
+		return (
+			<span className="font-mono font-normal">
+				{children.slice(0, -1)}
+				<span className="-ml-1.5">.</span>
+			</span>
+		)
+	}
 	return <span className="font-mono font-normal">{children}</span>
 }

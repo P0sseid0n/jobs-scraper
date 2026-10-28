@@ -16,7 +16,7 @@ import { iconButton } from '../components/ui/IconButton'
 import { field } from '../components/ui/Input'
 import { Notice } from '../components/ui/Notice'
 import { Hero, Page } from '../components/ui/Page'
-import { LABEL, SECTION_TITLE } from '../components/ui/text'
+import { SECTION_TITLE } from '../components/ui/text'
 import { activeVersion, formatKilobytes, texBytes, upsertVersion } from '../lib/cv-base'
 import { CV_EXAMPLES, exampleDownloadUrl, type CvExample } from '../lib/cv-examples'
 import { cleanForm, emptyForm, formProblems, sameForm } from '../lib/cv-form'
@@ -38,6 +38,8 @@ type Source = { text: string; fileName: string | null }
 type Replacement = { version: WebCvBaseVersion } | { example: CvExample }
 
 const origin = (version: WebCvBaseVersion) => (version.fromForm ? 'formulário' : (version.fileName ?? 'editado no site'))
+/** Onde a versão abre para editar: no formulário, se veio dele; senão, o `.tex` no editor. */
+const editLabel = (version: WebCvBaseVersion) => (version.fromForm ? 'editar no formulário' : 'editar o .tex')
 const pagesLabel = (pages: number | null) => (pages === null ? null : `${pages} ${pages === 1 ? 'página' : 'páginas'}`)
 
 /** A pré-visualização do PDF: embutida no computador; no celular, que não mostra PDF dentro da página, só o botão. */
@@ -252,8 +254,9 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 
 	const replacesForm = !!replaceWith && 'version' in replaceWith && replaceWith.version.fromForm
 
-	const activateButton = (version: WebCvBaseVersion, size: 'sm' | 'md' = 'md') => (
-		<Button variant="lime" size={size} disabled={activating !== null} onClick={() => activate(version)}>
+	/** `ghost` no histórico: lá ativar é raro (e sem conferir a prévia); o lime fica para a versão que acabou de validar. */
+	const activateButton = (version: WebCvBaseVersion, size: 'sm' | 'md' = 'md', variant: 'lime' | 'ghost' = 'lime') => (
+		<Button variant={variant} size={size} disabled={activating !== null} onClick={() => activate(version)}>
 			{activating === version.versionId ? 'ativando…' : 'ativar esta versão'}
 		</Button>
 	)
@@ -268,7 +271,7 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 					{active && (
 						<div className="flex gap-2">
 							<Button variant="ghost" size="sm" onClick={() => edit(active)}>
-								editar
+								{editLabel(active)}
 							</Button>
 							<Button variant="ghost" size="sm" href={cvBasePdfUrl(active.versionId)} external>
 								abrir PDF
@@ -347,15 +350,9 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 	}
 
 	function renderExamples() {
-		return (
-			<section className={SECTION_CARD} aria-labelledby="cv-base-examples">
-				<div className="flex flex-col gap-1.5">
-					<h2 id="cv-base-examples" className={SECTION_TITLE}>
-						modelos
-					</h2>
-					<p className="text-sm text-muted">Comece por um modelo: troque os dados pelos seus e valide.</p>
-				</div>
-				<ul className="m-0 flex list-none flex-col gap-2.5 p-0">
+		const intro = 'Comece por um modelo: troque os dados pelos seus e valide.'
+		const list = (
+			<ul className="m-0 flex list-none flex-col gap-2.5 p-0">
 					{CV_EXAMPLES.map(example => {
 						const download = `baixar ${example.fileName}`
 
@@ -382,7 +379,7 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 								<div className="flex flex-wrap items-center gap-3.5">
 									<p className="min-w-0 grow basis-60 text-sm text-muted">{example.description}</p>
 									<div className="flex flex-wrap gap-2">
-										<Button variant="lime" size="sm" onClick={() => loadExample(example)}>
+										<Button variant="ghost" size="sm" onClick={() => loadExample(example)}>
 											usar no editor
 										</Button>
 										<Button variant="ghost" size="sm" href={example.pdfUrl} external>
@@ -393,7 +390,34 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 							</li>
 						)
 					})}
-				</ul>
+			</ul>
+		)
+
+		// Com uma versão ativa, os modelos (para começar do zero) ficam recolhidos depois do editor
+		if (active) {
+			return (
+				<details className={cx(SECTION_CARD, 'group gap-0 open:gap-5')}>
+					<summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+						<span className="flex flex-col gap-1.5">
+							<h2 className={SECTION_TITLE}>começar de um modelo</h2>
+							<span className="text-sm text-muted">{intro}</span>
+						</span>
+						<Icon name="chevron" className="text-muted transition-transform group-open:rotate-180 motion-reduce:transition-none" />
+					</summary>
+					{list}
+				</details>
+			)
+		}
+
+		return (
+			<section className={SECTION_CARD} aria-labelledby="cv-base-examples">
+				<div className="flex flex-col gap-1.5">
+					<h2 id="cv-base-examples" className={SECTION_TITLE}>
+						modelos
+					</h2>
+					<p className="text-sm text-muted">{intro}</p>
+				</div>
+				{list}
 			</section>
 		)
 	}
@@ -446,20 +470,33 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 					{tooBig ? (
 						<FieldError id="cv-base-tex-error">O .tex passa do limite de {MAX_SIZE}.</FieldError>
 					) : (
-						<FieldHelp id="cv-base-tex-help">
-							Precisa de pelo menos uma seção de experiência ou de formação, como nos modelos. Resumo, competências e projetos
-							são opcionais. Os títulos aceitam sinônimos (Resumo, Sobre, Competências, Experiência...), em português ou em
-							inglês. O cv-updater compila antes de você poder ativar. Sem saber LaTeX? Use "preencher com formulário": o
-							currículo sai no modelo neutro.
-						</FieldHelp>
+						<>
+							<FieldHelp id="cv-base-tex-help">
+								Precisa de pelo menos uma seção de experiência ou de formação; o cv-updater compila antes de você poder ativar.
+							</FieldHelp>
+							<details className="text-sm text-muted">
+								<summary className="w-fit cursor-pointer underline underline-offset-3 hover:text-ink">
+									ver o que o .tex precisa ter
+								</summary>
+								<FieldHelp className="mt-1.5">
+									Resumo, competências e projetos são opcionais. Os títulos aceitam sinônimos (Resumo, Sobre, Competências,
+									Experiência...), em português ou em inglês, como nos modelos.
+								</FieldHelp>
+							</details>
+						</>
 					)}
 				</div>
 
 				<div className="flex flex-wrap items-center gap-3">
-					<Button variant="lime" size="lg" disabled={submitting || tooBig || !text.trim()} onClick={submit}>
+					{/* Sem mudanças, o texto já está numa versão: validar de novo só repetiria ela no histórico */}
+					<Button variant="lime" size="lg" disabled={submitting || tooBig || !text.trim() || !dirty} onClick={submit}>
 						{submitting ? 'enviando…' : 'validar'}
 					</Button>
-					{dirty && <span className="font-mono text-xs text-muted">alterações não validadas</span>}
+					{text.trim() && (
+						<span className="font-mono text-xs text-muted">
+							{dirty ? 'alterações não validadas' : 'sem alterações para validar'}
+						</span>
+					)}
 				</div>
 
 				{candidate && renderCandidate(candidate)}
@@ -469,8 +506,8 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 
 	function renderHistory() {
 		return (
-			<section className="flex flex-col gap-2.5" aria-labelledby="cv-base-history">
-				<h2 id="cv-base-history" className={LABEL}>
+			<section className={SECTION_CARD} aria-labelledby="cv-base-history">
+				<h2 id="cv-base-history" className={SECTION_TITLE}>
 					histórico
 				</h2>
 				<ul className="m-0 flex list-none flex-col gap-2.5 p-0">
@@ -514,14 +551,14 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 								</div>
 								<div className="flex flex-wrap gap-2">
 									<Button variant="ghost" size="sm" onClick={() => edit(version)}>
-										editar
+										{editLabel(version)}
 									</Button>
 									{version.status === 'valid' && (
 										<Button variant="ghost" size="sm" href={cvBasePdfUrl(version.versionId)} external>
 											PDF
 										</Button>
 									)}
-									{version.status === 'valid' && !isActive && activateButton(version, 'sm')}
+									{version.status === 'valid' && !isActive && activateButton(version, 'sm', 'ghost')}
 								</div>
 							</li>
 						)
@@ -584,8 +621,9 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 			)}
 
 			{renderActive()}
-			{renderExamples()}
+			{!active && renderExamples()}
 			{renderEditor()}
+			{active && renderExamples()}
 			{versions.length > 0 && renderHistory()}
 		</Page>
 	)
