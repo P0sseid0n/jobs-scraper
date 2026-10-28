@@ -163,7 +163,9 @@ function FailureAlert({ status }: { status: ScraperStatus | null }) {
 							{testing ? 'pedindo…' : 'testar o login'}
 						</Button>
 					)}
-					<RouteLink to="/configuracoes">abrir configurações › contas</RouteLink>
+					<RouteLink to="/configuracoes" search={{ conta: 'linkedin' }} hash="contas">
+						abrir configurações › contas
+					</RouteLink>
 				</div>
 			)}
 			{last.error && (
@@ -185,7 +187,9 @@ function NoSearchTermsAlert({ status }: { status: ScraperStatus }) {
 			<p className="font-semibold">Configure os termos de busca</p>
 			<p className="text-sm">
 				Sem nenhum termo ativo, o scraper fica em espera e não coleta.{' '}
-				<RouteLink to="/configuracoes">adicionar termos em configurações</RouteLink>
+				<RouteLink to="/configuracoes" hash="coleta">
+					adicionar termos em configurações
+				</RouteLink>
 			</p>
 		</Notice>
 	)
@@ -200,7 +204,9 @@ function NoLinkedinAccountAlert({ status }: { status: ScraperStatus }) {
 			<p className="font-semibold">Conecte sua conta do LinkedIn</p>
 			<p className="text-sm">
 				Sem o e-mail e a senha do LinkedIn, o scraper fica em espera e não coleta. A coleta começa sozinha depois de salvar.{' '}
-				<RouteLink to="/configuracoes">conectar em configurações › contas</RouteLink>
+				<RouteLink to="/configuracoes" search={{ conta: 'linkedin' }} hash="contas">
+					conectar em configurações › contas
+				</RouteLink>
 			</p>
 		</Notice>
 	)
@@ -829,7 +835,7 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 							{status.last.status === 'success' ? lastRunSummary(status.last) : 'falhou'}
 						</p>
 					)}
-					<RouteLink className="text-sm" to="/configuracoes">
+					<RouteLink className="text-sm" to="/configuracoes" hash="coleta">
 						editar termos e intervalo
 					</RouteLink>
 				</section>

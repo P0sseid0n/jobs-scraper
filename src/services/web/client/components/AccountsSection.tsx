@@ -143,18 +143,23 @@ const TABS = GROUP_KEYS.map(group => ({ value: group, label: GROUPS[group].title
  */
 export function AccountsSection({
 	initial,
+	initialGroup = 'linkedin',
 	onDirtyChange,
 	className,
 	...props
 }: {
 	initial: WebCredentials
+	/** A aba que abre selecionada (o link "configure a conta de e-mail" abre a do e-mail). */
+	initialGroup?: CredentialGroup
 	/** As contas com alterações não salvas ("conta do LinkedIn"; cada uma tem o próprio salvar), na ordem das abas. */
 	onDirtyChange?: (accounts: string[]) => void
 	className?: string
 	id?: string
 }) {
 	const [status, setStatus] = useState(initial)
-	const [selected, setSelected] = useState<CredentialGroup>('linkedin')
+	const [selected, setSelected] = useState<CredentialGroup>(initialGroup)
+	// Outro link para a tela já aberta (ex.: de "e-mail" para "LinkedIn") troca a aba
+	useEffect(() => setSelected(initialGroup), [initialGroup])
 	const [dirtyGroups, setDirtyGroups] = useState<CredentialGroup[]>([])
 
 	useEffect(() => onDirtyChange?.(dirtyGroups.map(accountNameOf)), [dirtyGroups])

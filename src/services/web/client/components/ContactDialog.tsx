@@ -201,7 +201,7 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 							<FieldHelp>
 								Copie e envie pelo seu e-mail. Para editar e enviar daqui, com o currículo anexado, configure a conta de e-mail
 								em{' '}
-								<RouteLink className="text-sm" to="/configuracoes">
+								<RouteLink className="text-sm" to="/configuracoes" search={{ conta: 'smtp' }} hash="contas">
 									Configurações › Contas
 								</RouteLink>
 								.

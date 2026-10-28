@@ -16,7 +16,7 @@ import {
 	type SeniorityLevel,
 } from '@shared/contracts'
 
-import type { WebCredentials, WebSettings } from '../../api-types'
+import type { CredentialGroup, WebCredentials, WebSettings } from '../../api-types'
 import { api, RequestError } from '../api'
 import { AccountsSection } from '../components/AccountsSection'
 import { AutoRunsSwitch } from '../components/AutoRunsSwitch'
@@ -121,7 +121,16 @@ function draftOf(settings: WebSettings): SettingsDraft {
  * Formulário do perfil profissional, das configurações do scraper e dos filtros das vagas; valem a partir da próxima coleta. As configurações
  * salvas vêm do loader da rota (`routes/configuracoes.tsx`). As contas ficam no fim, cada uma com o próprio botão de salvar.
  */
-export function SettingsView({ initial, credentials }: { initial: WebSettings; credentials: WebCredentials }) {
+export function SettingsView({
+	initial,
+	credentials,
+	account,
+}: {
+	initial: WebSettings
+	credentials: WebCredentials
+	/** A aba de contas que abre selecionada (`?conta=` na URL). */
+	account?: CredentialGroup
+}) {
 	const [loaded, setLoaded] = useState<WebSettings | null>(initial)
 	const [draft, setDraft] = useState<SettingsDraft | null>(() => draftOf(initial))
 	const [serverErrors, setServerErrors] = useState<Record<string, string>>({})
@@ -828,7 +837,13 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 			{draft && renderScraper(draft)}
 			{draft && renderProcessing(draft)}
 			{draft && renderMessage(draft)}
-			<AccountsSection id="contas" className={SECTION_SCROLL_MARGIN} initial={credentials} onDirtyChange={setDirtyAccounts} />
+			<AccountsSection
+				id="contas"
+				className={SECTION_SCROLL_MARGIN}
+				initial={credentials}
+				initialGroup={account}
+				onDirtyChange={setDirtyAccounts}
+			/>
 
 			{draft && (
 				<div data-save-bar className="fixed inset-x-0 bottom-0 z-25 border-t border-line bg-bg max-md:bottom-safe-16">
