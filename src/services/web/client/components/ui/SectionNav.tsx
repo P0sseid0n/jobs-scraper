@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 
 import { cx } from '../../lib/cx'
 import { reducedMotion } from '../../lib/motion'
-import { pill } from './Pill'
+import { Pill } from './Pill'
 
 /** A margem do cabeçalho e dos atalhos fixos: vai em cada seção, para ela não parar debaixo deles ao pular até ela. */
 export const SECTION_SCROLL_MARGIN = 'scroll-mt-32'
@@ -54,17 +54,15 @@ export function SectionNav({ sections, label, className }: {
 			className={cx('sticky top-16 z-10 -my-2 flex flex-wrap gap-1.5 bg-bg/88 py-2 backdrop-blur-md', className)}
 		>
 			{sections.map(({ id, label }) => (
-				<button
+				<Pill
 					key={id}
-					type="button"
 					aria-current={current === id ? 'true' : undefined}
-					className={pill({ className: current === id && 'border-ink bg-ink text-bg' })}
 					onClick={() =>
 						document.getElementById(id)?.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'start' })
 					}
 				>
 					{label}
-				</button>
+				</Pill>
 			))}
 		</nav>
 	)

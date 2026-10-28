@@ -11,6 +11,8 @@ export const pill = tv({
 		// Na tela de toque, chega aos 44px de altura
 		'inline-flex min-h-8.5 items-center gap-1.5 rounded-pill border border-line bg-surface px-3 py-1.5 text-sm text-ink pointer-coarse:min-h-11',
 		'aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-bg',
+		// Atalho para a parte da tela onde se está (`aria-current`), como os do SectionNav: fica ligada do mesmo jeito
+		'aria-[current=true]:border-ink aria-[current=true]:bg-ink aria-[current=true]:text-bg',
 		// Como `<label>` com checkbox, fica ligada do mesmo jeito quando ele está marcado
 		'has-checked:border-ink has-checked:bg-ink has-checked:text-bg',
 		// O foco do checkbox de dentro vai na pill inteira: o contorno dele sumiria sobre a pill ligada
