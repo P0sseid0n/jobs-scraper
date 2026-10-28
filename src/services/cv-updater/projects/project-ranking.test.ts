@@ -14,6 +14,7 @@ const repo = (overrides: Partial<GithubRepo>): GithubRepo => ({
 	language: null,
 	pushedAt: '2026-01-01T00:00:00Z',
 	stars: 0,
+	homepage: null,
 	languages: [],
 	dependencies: [],
 	readme: '',
@@ -48,6 +49,8 @@ const chat = repo({
 	pushedAt: '2023-07-01T00:00:00Z',
 })
 
+const now = new Date('2026-10-27T00:00:00Z')
+
 const texProjects: ResumeProject[] = [
 	{
 		name: 'Loja Exemplo',
@@ -78,17 +81,30 @@ describe('tecnologias de um repositório', () => {
 describe('ranqueamento', () => {
 	const jobSkills = ['Vue.js', 'Nuxt', 'TypeScript', 'Pinia']
 
-	test('pontua tecnologias da vaga (+10, linguagens básicas +3), descrição (+3) e topics (+3)', () => {
-		const ranked = rankProjects(texProjects, [calculadora, chat, placar], jobSkills)
+	test('pontua tecnologias da vaga (+10, linguagens básicas +3), descrição (+3), topics (+3) e push recente (+3)', () => {
+		const ranked = rankProjects(texProjects, [calculadora, chat, placar], jobSkills, now)
 		const byName = Object.fromEntries(ranked.map(candidate => [candidate.project.name, candidate.score]))
 
-		// Placar: Vue e Nuxt (+10 cada), TypeScript (+3), descrição e topics
-		expect(byName.Placar).toBe(29)
-		// Chat: Vue e Pinia = 20 + descrição
+		// Placar: Vue e Nuxt (+10 cada), TypeScript (+3), descrição, topics e push recente
+		expect(byName.Placar).toBe(32)
+		// Chat: Vue e Pinia = 20 + descrição (último push há mais de um ano)
 		expect(byName['Chat Vue']).toBe(23)
-		// Calculadora: só TypeScript (+3), sem descrição nem topics
-		expect(byName['React Calculator']).toBe(3)
+		// Calculadora: só TypeScript (+3) e push recente, sem descrição nem topics
+		expect(byName['React Calculator']).toBe(6)
 		expect(ranked[0]?.project.name).toBe('Placar')
+	})
+
+	test('link do projeto publicado vale +3; no .tex, só um link que não é do GitHub', () => {
+		const antigo = { pushedAt: '2020-01-01T00:00:00Z' }
+		const publicado = repo({ ...antigo, name: 'publicado', fullName: 'fulano/publicado', homepage: 'https://publicado.dev' })
+		const semLink = repo({ ...antigo, name: 'sem-link', fullName: 'fulano/sem-link' })
+		const site = { ...texProjects[0]!, name: 'Site', url: 'site.dev' }
+		const byName = (tex: ResumeProject[], repos: GithubRepo[]) =>
+			Object.fromEntries(rankProjects(tex, repos, [], now).map(candidate => [candidate.project.name, candidate.score]))
+
+		expect(byName([], [publicado, semLink])).toEqual({ Publicado: 3, 'Sem Link': 0 })
+		// .tex: descrição e topics (+6) e o link do site (+3); o link do GitHub não conta
+		expect(byName([site, texProjects[0]!], [])).toEqual({ Site: 9, 'Loja Exemplo': 6 })
 	})
 
 	test('linguagens básicas valem menos; JavaScript e TypeScript contam como uma', () => {
@@ -97,7 +113,16 @@ describe('ranqueamento', () => {
 		expect(scoreTechMatches(['CSS3/SCSS', 'JavaScript ES6+'])).toBe(6)
 	})
 
-	test('no empate, ganha o projeto com mais tecnologias', () => {
+	test('no empate, ganha o projeto com mais estrelas', () => {
+		const comum = repo({ name: 'comum', fullName: 'fulano/comum', languages: ['Vue'], dependencies: ['pinia', 'supabase'] })
+		const estrelado = repo({ name: 'estrelado', fullName: 'fulano/estrelado', languages: ['Vue'], stars: 4 })
+		expect(rankProjects([], [comum, estrelado], ['Vue.js'], now).map(candidate => candidate.repo?.name)).toEqual([
+			'estrelado',
+			'comum',
+		])
+	})
+
+	test('no empate de estrelas, ganha o projeto com mais tecnologias', () => {
 		const simples = repo({ name: 'simples', fullName: 'fulano/simples', description: 'x', topics: ['vue'], languages: ['Vue'] })
 		const completo = repo({
 			name: 'completo',
@@ -106,9 +131,11 @@ describe('ranqueamento', () => {
 			topics: ['vue'],
 			languages: ['Vue'],
 			dependencies: ['pinia', 'supabase', 'vitest'],
-			pushedAt: '2020-01-01T00:00:00Z',
 		})
-		expect(rankProjects([], [simples, completo], ['Vue.js']).map(candidate => candidate.repo?.name)).toEqual(['completo', 'simples'])
+		expect(rankProjects([], [simples, completo], ['Vue.js'], now).map(candidate => candidate.repo?.name)).toEqual([
+			'completo',
+			'simples',
+		])
 	})
 
 	test('escolhe os melhores com tecnologia da vaga e completa com os do .tex', () => {

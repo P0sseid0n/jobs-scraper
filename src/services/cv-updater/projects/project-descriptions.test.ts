@@ -14,6 +14,7 @@ const repo = (overrides: Partial<GithubRepo>): GithubRepo => ({
 	language: null,
 	pushedAt: '2026-01-01T00:00:00Z',
 	stars: 0,
+	homepage: null,
 	languages: [],
 	dependencies: [],
 	readme: '',

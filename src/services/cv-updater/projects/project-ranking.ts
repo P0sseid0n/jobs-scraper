@@ -17,6 +17,11 @@ export type ProjectCandidate = {
 const SCORE_PER_MATCH = 10
 const SCORE_DESCRIPTION = 3
 const SCORE_TOPICS = 3
+const SCORE_RECENT = 3
+const SCORE_LINK = 3
+
+// Projeto com push neste período conta como recente
+const RECENT_MONTHS = 12
 
 // Linguagens básicas aparecem em quase todo projeto web: valem menos que frameworks/bibliotecas
 const SCORE_PER_BASIC_MATCH = 3
@@ -24,14 +29,20 @@ const BASIC_SKILLS = new Set(['javascript', 'typescript', 'html', 'css'])
 
 /**
  * Ranqueia os projetos do GitHub e do `.tex` para a vaga: tecnologias da vaga (`scoreTechMatches`),
- * +3 por descrição e +3 por topics (os do `.tex` ganham os dois). Desempate em `compareCandidates`.
+ * +3 por descrição e +3 por topics (os do `.tex` ganham os dois), +3 se teve push nos últimos 12 meses
+ * e +3 se tem link do projeto publicado. Desempate em `compareCandidates`.
  */
-export function rankProjects(texProjects: ResumeProject[], repos: GithubRepo[], jobSkills: string[]): ProjectCandidate[] {
-	const candidates = texProjects.map(project => texCandidate(project, repos, jobSkills))
+export function rankProjects(
+	texProjects: ResumeProject[],
+	repos: GithubRepo[],
+	jobSkills: string[],
+	now = new Date(),
+): ProjectCandidate[] {
+	const candidates = texProjects.map(project => texCandidate(project, repos, jobSkills, now))
 
 	for (const repo of repos) {
 		if (candidates.some(candidate => candidate.repo === repo)) continue
-		candidates.push(repoCandidate(repo, jobSkills))
+		candidates.push(repoCandidate(repo, jobSkills, now))
 	}
 
 	return candidates.sort(compareCandidates)
@@ -77,7 +88,7 @@ export function scoreTechMatches(matches: string[]) {
 }
 
 /** Cria o candidato de um projeto do `.tex`, somando as tecnologias do repositório correspondente. */
-function texCandidate(project: ResumeProject, repos: GithubRepo[], jobSkills: string[]): ProjectCandidate {
+function texCandidate(project: ResumeProject, repos: GithubRepo[], jobSkills: string[], now: Date): ProjectCandidate {
 	const repo = repos.find(candidate => sameProject(project, candidate)) ?? null
 	const technologies = [...project.technologies, ...(repo ? repoTechnologies(repo) : [])]
 	const matches = matchingTechnologies(technologies, jobSkills)
@@ -87,14 +98,15 @@ function texCandidate(project: ResumeProject, repos: GithubRepo[], jobSkills: st
 		fromTex: true,
 		repo,
 		matches,
-		score: scoreTechMatches(matches) + SCORE_DESCRIPTION + SCORE_TOPICS,
+		score: scoreTechMatches(matches) + SCORE_DESCRIPTION + SCORE_TOPICS + activityScore(repo, project.url, now),
 	}
 }
 
-function repoCandidate(repo: GithubRepo, jobSkills: string[]): ProjectCandidate {
+function repoCandidate(repo: GithubRepo, jobSkills: string[], now: Date): ProjectCandidate {
 	const technologies = repoTechnologies(repo)
 	const matches = matchingTechnologies(technologies, jobSkills)
-	const dedication = (repo.description ? SCORE_DESCRIPTION : 0) + (repo.topics.length > 0 ? SCORE_TOPICS : 0)
+	const dedication =
+		(repo.description ? SCORE_DESCRIPTION : 0) + (repo.topics.length > 0 ? SCORE_TOPICS : 0) + activityScore(repo, null, now)
 
 	return {
 		project: {
@@ -110,14 +122,28 @@ function repoCandidate(repo: GithubRepo, jobSkills: string[]): ProjectCandidate 
 	}
 }
 
-/** Ordena por pontuação; desempata por mais tecnologias, mais recente e mais estrelas. */
+/**
+ * Pontos de projeto vivo: push recente no repositório e link do projeto publicado (o "Website" do GitHub ou,
+ * no `.tex`, um link que não é do GitHub).
+ */
+function activityScore(repo: GithubRepo | null, texUrl: string | null | undefined, now: Date) {
+	const recentSince = new Date(now)
+	recentSince.setMonth(recentSince.getMonth() - RECENT_MONTHS)
+
+	const recent = repo !== null && new Date(repo.pushedAt) >= recentSince
+	const link = Boolean(repo?.homepage) || Boolean(texUrl && !/github\.com/i.test(texUrl))
+
+	return (recent ? SCORE_RECENT : 0) + (link ? SCORE_LINK : 0)
+}
+
+/** Ordena por pontuação; desempata por mais estrelas, mais tecnologias e mais recente. */
 function compareCandidates(a: ProjectCandidate, b: ProjectCandidate) {
 	const richness = (candidate: ProjectCandidate) =>
 		candidate.repo ? repoTechnologies(candidate.repo).length : candidate.project.technologies.length
 	const recency = (candidate: ProjectCandidate) => (candidate.repo ? new Date(candidate.repo.pushedAt).getTime() : 0)
 	const stars = (candidate: ProjectCandidate) => candidate.repo?.stars ?? 0
 
-	return b.score - a.score || richness(b) - richness(a) || recency(b) - recency(a) || stars(b) - stars(a)
+	return b.score - a.score || stars(b) - stars(a) || richness(b) - richness(a) || recency(b) - recency(a)
 }
 
 function sameProject(project: ResumeProject, repo: GithubRepo) {

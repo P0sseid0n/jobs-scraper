@@ -13,6 +13,9 @@ export type ListedRepo = {
 
 	pushedAt: string
 	stars: number
+
+	/** Link do projeto publicado (campo "Website" do repositório). */
+	homepage: string | null
 }
 
 export type RepoDetails = {
@@ -35,6 +38,7 @@ type RawRepo = {
 	language: string | null
 	pushed_at: string
 	stargazers_count: number
+	homepage: string | null
 	fork: boolean
 	archived: boolean
 }
@@ -164,5 +168,6 @@ function toListedRepo(repo: RawRepo): ListedRepo {
 		language: repo.language,
 		pushedAt: repo.pushed_at,
 		stars: repo.stargazers_count,
+		homepage: repo.homepage?.trim() || null,
 	}
 }

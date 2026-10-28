@@ -13,7 +13,8 @@ Funciona para currículos de qualquer área. A área e o cargo-alvo do perfil (C
 - **Projetos:** com o usuário do GitHub (em Configurações › Contas ou `GITHUB_USERNAME`), os projetos (`CV_MAX_PROJECTS`, padrão 2) vêm dos seus repositórios públicos, por ranqueamento:
   - +10 por tecnologia da vaga que o projeto usa (linguagens, topics e dependências do `package.json`);
   - +3 se tem descrição e +3 se tem topics;
-  - desempate pelo mais recente.
+  - +3 se teve push nos últimos 12 meses e +3 se tem link do projeto publicado (o "Website" do repositório);
+  - desempate por mais estrelas, depois mais tecnologias e depois o mais recente.
 
   Projetos que já estão no `.tex` usam o texto que você escreveu; os outros ganham uma descrição gerada a partir do README. Forks, arquivados e os de `GITHUB_EXCLUDE_REPOS` ficam de fora. Sem GitHub, ficam os projetos do `.tex`, reordenados. Sem a seção de projetos no `.tex`, o GitHub não é consultado.
 - **Experiência:** os bullets são reordenados por relevância. Nenhum é criado ou removido.
