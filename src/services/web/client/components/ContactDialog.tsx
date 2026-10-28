@@ -180,7 +180,7 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 		// biome-ignore lint/a11y/useKeyWithClickEvents: pelo teclado, o Esc já fecha o <dialog>
 		<dialog
 			ref={ref}
-			className={cx(DIALOG, 'w-150')}
+			className={cx(DIALOG, 'w-180')}
 			aria-labelledby={titleId}
 			onClose={onClose}
 			// Clique no fundo escurecido (fora do conteúdo) fecha
@@ -327,15 +327,16 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 							</>
 						) : (
 							<>
-								<p className="m-0 text-sm leading-relaxed wrap-break-word">
-									<span className={cx(LABEL, 'mr-2')}>assunto</span>
-									<span className="font-semibold">{subject}</span>
+								{/* O botão de copiar fica preso no fim da linha do assunto: nunca cai sozinho na linha de baixo */}
+								<p className="m-0 flex items-baseline gap-2 text-sm leading-relaxed">
+									<span className={cx(LABEL, 'shrink-0')}>assunto</span>
+									<span className="min-w-0 font-semibold wrap-break-word">{subject}</span>
 									<CopyButton
 										icon
 										text={subject}
 										what="Assunto"
 										label="copiar assunto"
-										className="ml-1 align-middle text-muted hover:text-ink"
+										className="shrink-0 self-center text-muted hover:text-ink"
 									/>
 								</p>
 								{/* Texto corrido, para revisar: sem a fonte mono e com a linha numa largura confortável de ler */}
@@ -445,7 +446,7 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 								<div className="text-sm font-semibold">{canSend ? 'anexo' : 'currículo'}</div>
 								<div className="block truncate font-mono text-xs text-muted">{readyCv.fileName}</div>
 							</div>
-							<div className="flex flex-col items-end gap-1">
+							<div className="flex shrink-0 items-center gap-3 whitespace-nowrap">
 								<TextLink className="text-sm" href={cvPdfUrl(readyCv.requestId)} external>
 									pré-visualizar
 								</TextLink>
