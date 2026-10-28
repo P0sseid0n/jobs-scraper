@@ -96,18 +96,32 @@ export type RoleLine = { title: string; text: string }
 const ROLE_LINE_WORK_MODE = /[-–—|(]\s*(100\s?%\s*)?(remot[oa]|remote|home office|hibrid[oa]|hybrid|presencial|on-?site)\b/i
 
 /**
+ * Cabeçalho de uma lista de vagas, no plural ("Confira as oportunidades", "Mais vagas:", "Open positions"): "Vaga:
+ * Dev Pleno" no singular abre os requisitos de uma vaga só.
+ */
+const ROLE_LIST_HEADER = /\b(vagas|oportunidades|posicoes|openings|positions|jobs)\b/
+/** Cabeçalhos com "vagas" ou "oportunidades" que abrem outra lista ("Requisitos para as vagas", "Benefícios"). */
+const NOT_ROLE_LIST_HEADER = /\b(requisitos?|beneficios?|responsabilidades?|atividades|diferencia(is|l)|requirements?|benefits?)\b/
+const MAX_HEADER_WORDS = 8
+
+/** Item marcado de lista: emoji ("🔹", "💼"), marcador ("•", "-", "▪") ou numeração ("1.", "2)", "1️⃣"). */
+const LIST_ITEM = /^(\p{Extended_Pictographic}|[•\-–—*▪◦►➤✓✔]|\d{1,2}[.)]\s|\d\u{FE0F}?\u{20E3})/u
+
+/**
  * Reconhece posts que listam várias vagas sem link próprio ("Vagas em destaque: Cargo – Remoto. Cargo – Híbrido |
- * São Paulo. ... Link para inscrição: https://..."): a linha de cada vaga tem a modalidade depois de um separador,
- * o que separa a lista de uma de requisitos ("React – avançado").
+ * São Paulo. ... Link para inscrição: https://..."). A linha de uma vaga tem a modalidade depois de um separador ou
+ * é um item marcado logo abaixo de um cabeçalho de vagas ("💻 Confira as oportunidades", "🔹 Cargo"): o que separa a
+ * lista de uma de requisitos ("React – avançado", "🔹 React" abaixo de "Requisitos").
  * @returns As vagas (sem repetir cargo), ou `null` se o post tiver menos de 3 ou não falar de vagas.
  */
 export function splitRoleListPost(text: string): RoleLine[] | null {
 	if (!talksAboutJobs(text)) return null
 
 	const lines = text.split('\n')
+	const listed = listedRoleLines(lines)
 	const seen = new Set<string>()
 	const roles = lines.flatMap((line, index) => {
-		const title = roleLineTitle(line)
+		const title = roleLineTitle(line) ?? (listed.has(index) ? listItemTitle(line) : null)
 		if (!title) return []
 
 		// O mesmo cargo escrito duas vezes ("Vaga: Dev Pleno - Acme - Home Office" e "Dev Pleno – Acme – Home Office"),
@@ -131,20 +145,65 @@ export function splitRoleListPost(text: string): RoleLine[] | null {
 	}))
 }
 
-/** O cargo de uma linha da lista sem links, ou `null` se a linha não for de uma vaga. */
+/** O cargo de uma linha com a modalidade ("Cargo – Remoto"), ou `null` se a linha não for de uma vaga. */
 function roleLineTitle(line: string) {
+	const title = listItemTitle(line)
+	return title && ROLE_LINE_WORK_MODE.test(withoutAccents(title)) ? title : null
+}
+
+/** O texto de um item de lista sem o marcador, ou `null` se ele não puder ser um cargo (link, frase, longo demais). */
+function listItemTitle(line: string) {
 	if (/https?:\/\//i.test(line)) return null
 
 	const title = cleanTitle(line).replace(/\.$/, '')
 	if (!title || title.length > MAX_TITLE_LENGTH || /[?!]/.test(title)) return null
-	return ROLE_LINE_WORK_MODE.test(withoutAccents(title)) ? title : null
+	return title
+}
+
+/**
+ * Os índices dos itens marcados logo abaixo de um cabeçalho de vagas (linhas em branco entre os dois valem), até a
+ * primeira linha que não é item. Blocos com menos de 3 itens ficam de fora.
+ */
+function listedRoleLines(lines: string[]) {
+	const listed = new Set<number>()
+
+	for (const [index, line] of lines.entries()) {
+		if (!isRoleListHeader(line)) continue
+
+		let next = index + 1
+		while (next < lines.length && !lines[next]?.trim()) next++
+
+		const block: number[] = []
+		for (; next < lines.length; next++) {
+			const item = lines[next]?.trim() ?? ''
+			if (!LIST_ITEM.test(item) || !listItemTitle(item) || isProse(listItemTitle(item) ?? '')) break
+			block.push(next)
+		}
+		if (block.length >= MIN_LISTINGS) for (const item of block) listed.add(item)
+	}
+
+	return listed
+}
+
+/** Cabeçalho de uma lista de vagas; o link fica de fora ("Cadastre-se: https://vagas.exemplo.com" não é cabeçalho). */
+function isRoleListHeader(line: string) {
+	if (/https?:\/\//i.test(line)) return false
+
+	const header = withoutAccents(cleanTitle(line)).toLowerCase()
+	return (
+		!!header &&
+		header.split(' ').length <= MAX_HEADER_WORDS &&
+		ROLE_LIST_HEADER.test(header) &&
+		!NOT_ROLE_LIST_HEADER.test(header)
+	)
 }
 
 /** O cargo antes da modalidade, só letras e números e sem o rótulo "Vaga:", para achar o mesmo cargo repetido. */
 function roleKey(title: string) {
 	const normalized = withoutAccents(title).toLowerCase()
+	const workMode = normalized.search(ROLE_LINE_WORK_MODE)
 	return normalized
-		.slice(0, normalized.search(ROLE_LINE_WORK_MODE))
+		.slice(0, workMode < 0 ? undefined : workMode)
 		.replace(/^\s*vagas?\s*:/, '')
 		.replace(/[^a-z0-9]+/g, '')
 }

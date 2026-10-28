@@ -248,6 +248,40 @@ Requisitos: Vue.js – avançado, TypeScript – intermediário`
 		expect(splitRoleListPost(post)).toBeNull()
 	})
 
+	test('divide os itens marcados abaixo de um cabeçalho de vagas, com a introdução valendo para todas', () => {
+		const post = `O Instituto está com oportunidades abertas para atuação presencial em São Paulo-SP.
+
+💻 Confira as oportunidades
+🔹 Pessoa Desenvolvedora de Software — Front-end Sênior (React/Typescript)
+🔹 Pessoa Desenvolvedora de Software — Back-end Sênior (Python)
+🔹 Pessoa Analista de Dados Sênior
+
+👉 Candidate-se pelo link:
+🔗 https://lnkd.in/dW7zCnvV`
+		const roles = splitRoleListPost(post)
+
+		expect(roles?.map(role => role.title)).toEqual([
+			'Pessoa Desenvolvedora de Software — Front-end Sênior (React/Typescript)',
+			'Pessoa Desenvolvedora de Software — Back-end Sênior (Python)',
+			'Pessoa Analista de Dados Sênior',
+		])
+		expect(roles?.[1]?.text).toBe(`O Instituto está com oportunidades abertas para atuação presencial em São Paulo-SP.
+
+💻 Confira as oportunidades
+🔹 Pessoa Desenvolvedora de Software — Back-end Sênior (Python)
+
+👉 Candidate-se pelo link:
+🔗 https://lnkd.in/dW7zCnvV`)
+	})
+
+	test('não divide os itens abaixo de uma vaga só, dos requisitos ou de um link', () => {
+		const items = '🔹 React\n🔹 TypeScript\n🔹 Jest'
+
+		expect(splitRoleListPost(`🚀 Vaga: Desenvolvedor Front-end Pleno\n${items}`)).toBeNull()
+		expect(splitRoleListPost(`Estamos contratando!\nRequisitos para as vagas:\n${items}`)).toBeNull()
+		expect(splitRoleListPost(`Vaga aberta!\nCadastre-se: https://vagas.exemplo.com/1\n${items}`)).toBeNull()
+	})
+
 	test('não divide lista de requisitos nem post que não fala de vagas', () => {
 		expect(splitRoleListPost('Estamos contratando!\nReact – avançado\nNode – intermediário\nSQL – básico')).toBeNull()
 		expect(
