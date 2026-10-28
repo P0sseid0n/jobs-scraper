@@ -124,7 +124,7 @@ export const GUIDES: Record<string, string> = {
 - \`onCopy\` mostra o botão "copiar"; no site ele chama o \`copyText\`, que avisa com um toast.
 - \`scroll\` para textos longos (um JSON): limita a altura e rola dentro do bloco.
 - Para detalhes de depuração, deixe o bloco recolhido atrás de um link ou de um \`<details>\`.`,
-	FieldScan: `O padrão de carregamento dos campos: uma onda larga e desfocada, num tom perto do fundo e um pouco inclinada (o lado direito mais alto), atravessa o campo de cima para baixo, como um scanner, enquanto o conteúdo dele não chega (no lugar de spinner ou de "carregando…" dentro do campo).
+	FieldScan: `O padrão de carregamento dos campos: uma onda larga e desfocada, no \`lime-soft\` (perto do tom do fundo) e um pouco inclinada (o lado direito mais alto), atravessa o campo de cima para baixo e de baixo para cima, como um scanner, enquanto o conteúdo dele não chega (no lugar de spinner ou de "carregando…" dentro do campo).
 
 - Por cima do campo: deixe o campo no lugar (desligado e vazio) e ponha o \`FieldScan\` com \`absolute inset-0\` num contêiner \`relative\`.
 - No lugar de um texto só de leitura: dê a altura e o fundo (\`min-h-40 rounded-sm bg-surface\`).
