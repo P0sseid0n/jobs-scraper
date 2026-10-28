@@ -89,6 +89,23 @@ describe('tailorResumeToJob', () => {
 		expect(report.summaryRejected).toContain('tamanho')
 	})
 
+	test('rejeita a apresentação que descreve a pessoa de fora', () => {
+		const outside = [
+			`${summary} O perfil demonstra conhecimento em frameworks modernos.`,
+			`${summary} A experiência com APIs RESTful complementa o conjunto de habilidades.`,
+			`${summary} Possui expertise em Node.js e integração de APIs.`,
+			`${summary} Busca aplicar suas habilidades em um ambiente de Healthtech.`,
+		]
+		const rejected = outside.map(text => tailorResumeToJob(cv, job, output({ summary: text })).report.summaryRejected)
+
+		expect(rejected).toEqual([
+			'descreve a pessoa de fora ("O perfil"); escreva como ela se apresentando',
+			'descreve a pessoa de fora ("complementa"); escreva como ela se apresentando',
+			'descreve a pessoa de fora ("Possui"); escreva como ela se apresentando',
+			'descreve a pessoa de fora ("suas habilidades"); escreva como ela se apresentando',
+		])
+	})
+
 	test('rejeita a apresentação que cita requisitos que a pessoa não tem', () => {
 		const marketingJob = { ...job, necessaryKnowledge: ['Vue 3', 'Copywriting', 'Excel avançado', 'Agile/Scrum'] }
 		const invented = `${summary.replace('e Angular', 'e Vue 3')} Domínio de copywriting e Excel avançado.`

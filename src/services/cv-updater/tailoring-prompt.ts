@@ -31,7 +31,11 @@ Return JSON with:
   Never invent skills, tools, companies, certifications, degrees or years of experience, and never mention the items
   in "Not in the résumé": the person does not have them. "Other sections" (education, certifications, languages) are
   facts you may use but must not change.
-  Write in the same impersonal style as the base summary (no "eu", no candidate name) and avoid repeating words.
+  It is the person presenting themselves, in the same style as the base summary: short phrases led by the role or an
+  adjective ("Desenvolvedor Front-end com experiência em Vue.js e TypeScript.", "Experiente em testes com Jest."),
+  with no "eu" and no candidate name. Never describe the person from the outside, as a recruiter or an evaluation
+  would: no "o perfil", "o candidato", "possui", "demonstra", "complementa", "suas habilidades", "para esta posição",
+  "conjunto de habilidades". Avoid repeating words.
 - relevantSkills: skills from the résumé "Skills" list that are related to this job, copied exactly, most relevant first.
   Skills can be technologies, tools, techniques or soft skills. Include closely related ones (e.g. for a Vue.js job:
   Nuxt.js, Pinia; for a paid traffic job: Google Ads, Meta Ads) and leave out unrelated ones.
