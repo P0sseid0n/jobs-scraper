@@ -200,8 +200,9 @@ const PREVIEWS: Record<string, Preview> = {
 	Notice: {
 		group: 'Feedback',
 		height: 150,
-		subtitle: 'warn / danger, md / lg',
+		subtitle: 'info / warn / danger, md / lg',
 		body: `col(
+	h(U.Notice, { tone: 'info', icon: 'info' }, 'A comparação é por palavra inteira: “java” não pega “javascript”.'),
 	h(U.Notice, { tone: 'warn', icon: 'alert' }, 'A IA citou o que não está escrito no post (modalidade, regime): confira esses dados no post.'),
 	h(U.Notice, { tone: 'danger', icon: 'alert', size: 'lg' }, 'O login do LinkedIn falhou. Envie o código de verificação para voltar a coletar.')
 )`,
@@ -250,6 +251,21 @@ const PREVIEWS: Record<string, Preview> = {
 		height: 220,
 		subtitle: 'a moldura de uma tela (largura wide)',
 		body: `h('div', { className: 'bg-bg' }, h(U.Page, { width: 'narrow', className: 'pt-6 pb-6' }, h('h2', { className: U.SECTION_TITLE }, 'Meus currículos'), h('p', { className: 'text-sm text-muted' }, 'O Page centraliza o conteúdo, dá as margens e o espaço entre os blocos (gap-7).'), h(U.Notice, { tone: 'warn' }, 'Os PDFs ficam guardados por 90 dias.')))`,
+	},
+	SectionNav: {
+		group: 'Layout',
+		height: 70,
+		subtitle: 'atalhos fixos para as seções, com a atual marcada',
+		body: `h(U.SectionNav, { label: 'Seções das configurações', sections: [{ id: 'perfil', label: 'perfil' }, { id: 'coleta', label: 'coleta' }, { id: 'filtros', label: 'filtros' }, { id: 'contas', label: 'contas' }] })`,
+	},
+	Disclosure: {
+		group: 'Layout',
+		height: 220,
+		subtitle: 'card recolhido / detalhe inline',
+		body: `col(
+	h(U.Disclosure, { variant: 'card', summary: h('span', { className: 'flex flex-col gap-1.5' }, h('h2', { className: U.SECTION_TITLE }, 'começar de um modelo'), h('span', { className: 'text-sm text-muted' }, 'Troque os dados pelos seus e valide.')) }, h('p', { className: 'text-sm' }, 'Os modelos ficam aqui.')),
+	h(U.Disclosure, { summary: 'ver o que o .tex precisa ter', defaultOpen: true }, h(U.FieldHelp, null, 'Resumo, competências e projetos são opcionais.'))
+)`,
 	},
 	Hero: {
 		group: 'Layout',

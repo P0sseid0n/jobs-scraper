@@ -67,6 +67,16 @@ export const GUIDES: Record<string, string> = {
 
 - \`id\` liga o texto ao interruptor; \`title\` é o texto (e o nome acessível); \`description\` explica em uma linha.
 - Usado nas configurações, um por linha, numa coluna com \`gap-4\`.`,
+	SectionNav: `Atalhos para as seções de uma tela longa, fixos abaixo do cabeçalho; marca a seção que está na tela.
+
+- Para telas com três ou mais seções e várias alturas de rolagem (ex.: Configurações). Telas curtas não precisam.
+- Cada seção leva o \`id\` do atalho e \`SECTION_SCROLL_MARGIN\`, para não parar debaixo do cabeçalho ao pular até ela.
+- \`sections\` fica fixa, fora do componente; os rótulos são o nome curto da seção, em minúsculas.`,
+	Disclosure: `Conteúdo que abre e fecha (\`<details>\` nativo); a seta gira quando aberto.
+
+- \`variant="card"\` recolhe uma seção inteira que só às vezes interessa (ex.: os modelos do currículo base, quando já há versão ativa).
+- \`inline\` (padrão) esconde o detalhe de uma explicação longa ("ver o que o .tex precisa ter"): deixe à vista a frase principal.
+- Não use para esconder o que a pessoa precisa para concluir a tarefa.`,
 	Tabs: `Abas sublinhadas para alternar entre partes do mesmo bloco (ex.: as contas em Configurações, uma por aba).
 
 - Controlado: \`items\` (\`value\` e \`label\`), \`selected\` e \`onSelect\`. \`label\` é o nome da lista para o leitor de tela e \`id\` liga as abas aos \`TabPanel\`.
@@ -100,7 +110,7 @@ export const GUIDES: Record<string, string> = {
 - Diga como corrigir: "Use pelo menos 5 minutos.", "Digite um e-mail completo, como ana@empresa.com."`,
 	Notice: `Aviso dentro da tela (dados duvidosos, falha de uma parte); erros que pedem ação usam \`role="alert"\`.
 
-- \`tone\`: \`warn\` (dados duvidosos, algo a conferir) ou \`danger\` (falhou).
+- \`tone\`: \`info\` (uma explicação a mais, com \`icon="info"\`), \`warn\` (dados duvidosos, algo a conferir) ou \`danger\` (falhou).
 - \`icon\` é um nome do \`Icon\` (normalmente \`alert\`); \`size="lg"\` para o aviso principal de uma tela.
 - Para uma tela inteira sem conteúdo, use \`EmptyState\`.`,
 	EmptyState: `Tela ou bloco sem conteúdo: nada encontrado, nada ainda ou falha ao carregar.

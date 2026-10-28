@@ -11,6 +11,7 @@ import { Badge } from '../components/ui/Badge'
 import { Button, ButtonLink } from '../components/ui/Button'
 import { card } from '../components/ui/Card'
 import { ConfirmDialog } from '../components/ui/Dialog'
+import { Disclosure } from '../components/ui/Disclosure'
 import { FieldError, FieldHelp, FieldLabel } from '../components/ui/Field'
 import { iconButton } from '../components/ui/IconButton'
 import { field } from '../components/ui/Input'
@@ -396,16 +397,17 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 		// Com uma versão ativa, os modelos (para começar do zero) ficam recolhidos depois do editor
 		if (active) {
 			return (
-				<details className={cx(SECTION_CARD, 'group gap-0 open:gap-5')}>
-					<summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+				<Disclosure
+					variant="card"
+					summary={
 						<span className="flex flex-col gap-1.5">
 							<h2 className={SECTION_TITLE}>começar de um modelo</h2>
 							<span className="text-sm text-muted">{intro}</span>
 						</span>
-						<Icon name="chevron" className="text-muted transition-transform group-open:rotate-180 motion-reduce:transition-none" />
-					</summary>
+					}
+				>
 					{list}
-				</details>
+				</Disclosure>
 			)
 		}
 
@@ -474,15 +476,12 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 							<FieldHelp id="cv-base-tex-help">
 								Precisa de pelo menos uma seção de experiência ou de formação; o cv-updater compila antes de você poder ativar.
 							</FieldHelp>
-							<details className="text-sm text-muted">
-								<summary className="w-fit cursor-pointer underline underline-offset-3 hover:text-ink">
-									ver o que o .tex precisa ter
-								</summary>
-								<FieldHelp className="mt-1.5">
+							<Disclosure summary="ver o que o .tex precisa ter">
+								<FieldHelp>
 									Resumo, competências e projetos são opcionais. Os títulos aceitam sinônimos (Resumo, Sobre, Competências,
 									Experiência...), em português ou em inglês, como nos modelos.
 								</FieldHelp>
-							</details>
+							</Disclosure>
 						</>
 					)}
 				</div>

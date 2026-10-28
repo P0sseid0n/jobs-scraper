@@ -15,7 +15,7 @@ import { RollingNumber } from '../components/ui/RollingNumber'
 import { SelectMenu } from '../components/ui/SelectMenu'
 import { Skeleton } from '../components/ui/Skeleton'
 import { StatusDot, type StatusDotTone } from '../components/ui/StatusDot'
-import { SwitchField } from '../components/ui/Switch'
+import { AutoRunsSwitch } from '../components/AutoRunsSwitch'
 import { LABEL, SECTION_TITLE } from '../components/ui/text'
 import { RouteLink, TextLink } from '../components/ui/TextLink'
 import { cx } from '../lib/cx'
@@ -795,13 +795,12 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 
 				<section className={card({ size: 'lg', className: 'flex flex-1 basis-70 flex-col gap-2.5' })}>
 					<h2 className={LABEL}>agenda</h2>
-					<SwitchField
+					<AutoRunsSwitch
 						id="runs-paused"
-						title="coletas automáticas"
 						description="desligadas, o intervalo para de contar até você religar"
-						checked={!status.paused}
+						paused={status.paused}
 						disabled={savingPause}
-						onChange={on => setPaused(!on)}
+						onPausedChange={setPaused}
 					/>
 					{status.last && (
 						<p className="text-muted text-sm">

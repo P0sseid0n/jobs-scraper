@@ -1,6 +1,7 @@
 /** Aviso dentro da tela (dados duvidosos, falha de uma parte); erros que pedem ação usam `role="alert"`. */
 export interface NoticeProps {
-	tone: 'danger' | 'warn'
+	/** `info`: uma explicação a mais, sem nada errado. */
+	tone: 'info' | 'warn' | 'danger'
 	size?: 'md' | 'lg'
 	icon?:
 		| 'search'
@@ -23,6 +24,7 @@ export interface NoticeProps {
 		| 'trash'
 		| 'plus'
 		| 'flag'
+		| 'info'
 		| 'spinner'
 	className?: string
 	children: React.ReactNode

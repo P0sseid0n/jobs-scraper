@@ -15,6 +15,7 @@ import {
 import type { WebCredentials, WebSettings } from '../../api-types'
 import { api, RequestError } from '../api'
 import { AccountsSection } from '../components/AccountsSection'
+import { AutoRunsSwitch } from '../components/AutoRunsSwitch'
 import { DrawnCheck, Icon } from '../components/Icon'
 import { Button } from '../components/ui/Button'
 import { card } from '../components/ui/Card'
@@ -27,13 +28,14 @@ import { KeywordInput } from '../components/ui/KeywordInput'
 import { Notice } from '../components/ui/Notice'
 import { Hero, Page, pageFrame } from '../components/ui/Page'
 import { pill, PillGroup } from '../components/ui/Pill'
+import { SECTION_SCROLL_MARGIN, SectionNav } from '../components/ui/SectionNav'
 import { SelectMenu, type SelectMenuOption } from '../components/ui/SelectMenu'
-import { Switch, SwitchField } from '../components/ui/Switch'
+import { Switch } from '../components/ui/Switch'
 import { StatusDot } from '../components/ui/StatusDot'
 import { SECTION_TITLE } from '../components/ui/text'
 import { cx } from '../lib/cx'
 import { DATE_POSTED_LABELS, formatInterval, LANGUAGE_NAMES, languageLabel } from '../lib/format'
-import { reducedMotion, shakeInvalid } from '../lib/motion'
+import { shakeInvalid } from '../lib/motion'
 import {
 	duplicateSimilarityHint,
 	LIMITS,
@@ -66,73 +68,15 @@ const SENIORITY_OPTIONS: SelectMenuOption<SeniorityLevel | ''>[] = [
 	...SENIORITY_LEVELS.map(value => ({ value, label: SENIORITY_LABELS[value] })),
 ]
 
-/** A margem do cabeçalho e dos atalhos fixos, para a seção não parar debaixo deles ao pular até ela. */
-const SECTION_SCROLL_MARGIN = 'scroll-mt-32'
-
 const SETTINGS_CARD = card({ size: 'lg', className: cx('flex flex-col gap-6.5', SECTION_SCROLL_MARGIN) })
 
+/** Os atalhos do `SectionNav`: o `id` de cada seção da tela. */
 const SECTIONS = [
 	{ id: 'perfil', label: 'perfil' },
 	{ id: 'coleta', label: 'coleta' },
 	{ id: 'filtros', label: 'filtros' },
 	{ id: 'contas', label: 'contas' },
 ] as const
-
-/**
- * Atalhos para as seções, fixos abaixo do cabeçalho: a tela tem quase três alturas de rolagem. Marca a última seção
- * cujo topo já passou de um terço da tela (no fim da página, a última).
- */
-function SectionNav() {
-	const [current, setCurrent] = useState<string>(SECTIONS[0].id)
-
-	useEffect(() => {
-		let frame = 0
-		function update() {
-			frame = 0
-			const line = window.innerHeight / 3
-			const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4
-			let active: string = SECTIONS[0].id
-			for (const { id } of SECTIONS) {
-				const top = document.getElementById(id)?.getBoundingClientRect().top
-				if (top !== undefined && top <= line) active = id
-			}
-			setCurrent(atBottom ? SECTIONS[SECTIONS.length - 1]!.id : active)
-		}
-		function schedule() {
-			if (!frame) frame = requestAnimationFrame(update)
-		}
-
-		update()
-		window.addEventListener('scroll', schedule, { passive: true })
-		window.addEventListener('resize', schedule)
-		return () => {
-			cancelAnimationFrame(frame)
-			window.removeEventListener('scroll', schedule)
-			window.removeEventListener('resize', schedule)
-		}
-	}, [])
-
-	return (
-		<nav
-			aria-label="Seções das configurações"
-			className="sticky top-16 z-10 -my-2 flex flex-wrap gap-1.5 bg-bg/88 py-2 backdrop-blur-md"
-		>
-			{SECTIONS.map(({ id, label }) => (
-				<button
-					key={id}
-					type="button"
-					aria-current={current === id ? 'true' : undefined}
-					className={pill({ className: current === id && 'border-ink bg-ink text-bg' })}
-					onClick={() =>
-						document.getElementById(id)?.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'start' })
-					}
-				>
-					{label}
-				</button>
-			))}
-		</nav>
-	)
-}
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
@@ -626,13 +570,12 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 					))}
 				</div>
 
-				<div className="flex gap-3 rounded-md bg-surface-2 px-4 py-3.5">
-					<Icon name="info" className="mt-0.5 text-muted" />
-					<FieldHelp className="text-ink">
+				<Notice tone="info" icon="info">
+					<p className="text-sm">
 						A comparação é por palavra inteira (“java” não pega “javascript”) e ignora maiúsculas, acentos, hífen e “.js”. Ou
 						seja, “Vue.js” = “vue” e “Front-End” = “frontend”.
-					</FieldHelp>
-				</div>
+					</p>
+				</Notice>
 
 				<div className="grid grid-cols-2 gap-5 max-md:grid-cols-1">
 					<div className="flex flex-col gap-1.5">
@@ -723,17 +666,11 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 								: 'Desligue para pausar: o intervalo para de contar até você religar.'}
 						</FieldHelp>
 					</div>
-					<SwitchField
-						id="settings-paused"
-						title="coletas automáticas"
-						checked={!paused}
-						disabled={savingPause}
-						onChange={on => setPaused(!on)}
-					/>
+					<AutoRunsSwitch id="settings-paused" paused={paused} disabled={savingPause} onPausedChange={setPaused} />
 				</div>
 			)}
 
-			{draft && <SectionNav />}
+			{draft && <SectionNav sections={SECTIONS} label="Seções das configurações" />}
 			{draft && renderProfile(draft)}
 			{draft && renderScraper(draft)}
 			{draft && renderProcessing(draft)}

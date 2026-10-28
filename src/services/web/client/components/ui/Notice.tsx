@@ -7,7 +7,8 @@ import { Icon, type IconName } from '../Icon'
 const notice = tv({
 	base: 'flex items-start rounded-sm',
 	variants: {
-		tone: { warn: 'bg-warn-bg text-warn', danger: 'bg-danger-bg text-danger' },
+		/** `info`: uma explicação a mais, sem nada errado (o ícone fica apagado e o texto na cor normal). */
+		tone: { info: 'bg-surface-2 text-ink', warn: 'bg-warn-bg text-warn', danger: 'bg-danger-bg text-danger' },
 		/** `lg`: aviso de destaque da tela, com ícone maior (ex.: a última coleta falhou). */
 		size: { md: 'gap-2.5 px-3 py-2.5', lg: 'gap-3.5 rounded-lg px-4.5 py-4' },
 	},
@@ -25,7 +26,7 @@ type NoticeProps = Required<Pick<VariantProps<typeof notice>, 'tone'>> &
 export function Notice({ tone, size, icon, className, children }: NoticeProps) {
 	return (
 		<div role={tone === 'danger' ? 'alert' : undefined} className={notice({ tone, size, className })}>
-			{icon && <Icon name={icon} size={size === 'lg' ? 20 : 16} />}
+			{icon && <Icon name={icon} size={size === 'lg' ? 20 : 16} className={tone === 'info' ? 'text-muted' : undefined} />}
 			<div className="min-w-0 grow">{children}</div>
 		</div>
 	)
