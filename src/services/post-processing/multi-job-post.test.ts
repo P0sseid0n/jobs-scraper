@@ -235,7 +235,9 @@ https://lnkd.in/dMuf4Zq
 		const [first, second] = splitRoleListPost(ROLE_LIST_POST) ?? []
 
 		expect(roleLinePostId('urn:li:activity:1', first?.title ?? '')).toBe(roleLinePostId('urn:li:activity:1', first?.title ?? ''))
-		expect(roleLinePostId('urn:li:activity:1', first?.title ?? '')).not.toBe(roleLinePostId('urn:li:activity:1', second?.title ?? ''))
+		expect(roleLinePostId('urn:li:activity:1', first?.title ?? '')).not.toBe(
+			roleLinePostId('urn:li:activity:1', second?.title ?? ''),
+		)
 	})
 
 	test('não divide a vaga com a modalidade e o local em linhas próprias, nem o mesmo cargo repetido', () => {
@@ -284,8 +286,6 @@ Requisitos: Vue.js – avançado, TypeScript – intermediário`
 
 	test('não divide lista de requisitos nem post que não fala de vagas', () => {
 		expect(splitRoleListPost('Estamos contratando!\nReact – avançado\nNode – intermediário\nSQL – básico')).toBeNull()
-		expect(
-			splitRoleListPost('Minha rotina:\nSegunda - Remoto\nTerça - Presencial\nQuarta - Remoto\nQuinta - Híbrido'),
-		).toBeNull()
+		expect(splitRoleListPost('Minha rotina:\nSegunda - Remoto\nTerça - Presencial\nQuarta - Remoto\nQuinta - Híbrido')).toBeNull()
 	})
 })

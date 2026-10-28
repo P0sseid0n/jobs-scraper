@@ -76,10 +76,7 @@ export function buildProcessedJob(post: RawPost, aiJob: AiJobOutput, language: s
 		title: aiJob.title,
 		// Pesa a resposta da IA, o texto, o autor e o domínio do e-mail: a IA às vezes tira a empresa de um link ou e-mail,
 		// e a empresa que posta nem sempre escreve o próprio nome
-		company: chooseCompany(
-			{ aiCompany: aiJob.company, author: post.author, authorIsCompany: post.authorIsCompany },
-			sourceText,
-		),
+		company: chooseCompany({ aiCompany: aiJob.company, author: post.author, authorIsCompany: post.authorIsCompany }, sourceText),
 		location: locationWithoutWorkMode(aiJob.location),
 		// O da lista (vaga de um post com várias) tem prioridade; o da IA só vale se estiver escrito no texto; sem nenhum,
 		// o do cartão anexado (reposts de sites de vagas, com o texto cortado)

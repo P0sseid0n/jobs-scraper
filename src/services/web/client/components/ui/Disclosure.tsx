@@ -25,7 +25,11 @@ export function Disclosure({ summary, children, variant = 'inline', defaultOpen,
 		<details
 			open={defaultOpen}
 			// Fechado, o card não guarda o espaço do conteúdo (o `gap` só vale aberto)
-			className={cx('group', isCard ? card({ size: 'lg', className: 'flex flex-col open:gap-5' }) : 'text-sm text-muted', className)}
+			className={cx(
+				'group',
+				isCard ? card({ size: 'lg', className: 'flex flex-col open:gap-5' }) : 'text-sm text-muted',
+				className,
+			)}
 		>
 			<summary
 				className={cx(

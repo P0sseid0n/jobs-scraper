@@ -146,9 +146,7 @@ async function readJobPage(page: Page): Promise<ListingPage> {
 
 	const text = await page.evaluate(
 		({ selectors, chrome, header }) => {
-			const parts = selectors
-				.map(selector => document.querySelector<HTMLElement>(selector)?.innerText.trim() ?? '')
-				.filter(Boolean)
+			const parts = selectors.map(selector => document.querySelector<HTMLElement>(selector)?.innerText.trim() ?? '').filter(Boolean)
 			if (parts.length > 0) return parts.join('\n\n')
 
 			// Removidos da própria página (o `innerText` de uma cópia fora dela não tem as quebras de linha); a aba
