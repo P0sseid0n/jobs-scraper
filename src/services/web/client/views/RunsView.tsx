@@ -7,6 +7,7 @@ import { Badge, badge, BadgeList, type BadgeTone } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { card } from '../components/ui/Card'
 import { CodeBlock } from '../components/ui/CodeBlock'
+import { Disclosure } from '../components/ui/Disclosure'
 import { EmptyState } from '../components/ui/EmptyState'
 import { iconButton, IconButton } from '../components/ui/IconButton'
 import { Notice } from '../components/ui/Notice'
@@ -27,9 +28,9 @@ import { copyText, notify } from '../stores/toast'
 
 /** Como a coleta começou, em palavras de quem usa o site. */
 const TRIGGERS: Record<WebScraperRun['trigger'], string> = {
-	schedule: 'Automática',
-	manual: 'Pedida por você',
-	once: 'Execução única',
+	schedule: 'automática',
+	manual: 'pedida por você',
+	once: 'execução única',
 }
 
 /** A falha que não foi no login: a mensagem do erro fica no "ver o erro completo". */
@@ -225,10 +226,15 @@ function TermCard({ term }: { term: WebScraperRunTerm }) {
 					{term.term}
 					{term.datePosted && ` · ${DATE_POSTED_LABELS[term.datePosted].toLowerCase()}`}
 				</span>
-				<span className="font-mono text-lg">
-					{term.sent} novos{term.skipped > 0 && <span className="text-muted"> · {term.skipped} já vistos</span>}
-					{term.otherLanguage > 0 && <span className="text-muted"> · {term.otherLanguage} em outro idioma</span>}
-				</span>
+				<span className="font-mono text-lg">{term.sent} novos</span>
+				{/* O resto embaixo, menor: na mesma linha, o card estreito quebrava os números em três linhas */}
+				{(term.skipped > 0 || term.otherLanguage > 0) && (
+					<span className="font-mono text-muted text-sm">
+						{[term.skipped > 0 && `${term.skipped} já vistos`, term.otherLanguage > 0 && `${term.otherLanguage} em outro idioma`]
+							.filter(Boolean)
+							.join(' · ')}
+					</span>
+				)}
 			</li>
 		)
 	}
@@ -257,12 +263,11 @@ function TermCard({ term }: { term: WebScraperRunTerm }) {
 				</TextLink>
 			)}
 			{!empty && (
-				<details className="text-xs">
-					<summary className="cursor-pointer text-muted">ver o erro completo</summary>
-					<CodeBlock label="erro original" onCopy={() => copyText(term.error ?? '', 'Erro')} className="mt-1.5">
+				<Disclosure summary="ver o erro completo" className="text-xs">
+					<CodeBlock label="erro original" onCopy={() => copyText(term.error ?? '', 'Erro')}>
 						{term.error}
 					</CodeBlock>
-				</details>
+				</Disclosure>
 			)}
 		</li>
 	)
@@ -352,6 +357,7 @@ function failureSummary(run: WebScraperRun) {
 }
 
 function RunRows({ run, open, onToggle }: { run: WebScraperRun; open: boolean; onToggle: () => void }) {
+	const detailsId = `run-${run.id}-details`
 	const failedTerms = run.terms.filter(term => term.error && term.errorKind !== 'empty').length
 	const emptyTerms = run.terms.filter(term => term.errorKind === 'empty').length
 	const duration = run.finishedAt ? formatDuration(new Date(run.finishedAt).getTime() - new Date(run.startedAt).getTime()) : '–'
@@ -401,14 +407,20 @@ function RunRows({ run, open, onToggle }: { run: WebScraperRun; open: boolean; o
 				</td>
 				<td className={TD}>
 					{run.terms.length > 0 && (
-						<Button variant="ghost" size="xs" aria-expanded={open} onClick={onToggle}>
+						<Button
+							variant="ghost"
+							size="xs"
+							aria-expanded={open}
+							aria-controls={open ? detailsId : undefined}
+							onClick={onToggle}
+						>
 							{open ? 'recolher' : 'detalhar'}
 						</Button>
 					)}
 				</td>
 			</tr>
 			{open && (
-				<tr className={ROW}>
+				<tr id={detailsId} className={ROW}>
 					<td colSpan={8} className={cx(TD, 'bg-surface-2 whitespace-normal')}>
 						<ul className="m-0 grid list-none grid-cols-fill-55 gap-2.5 p-0">
 							{run.terms.map(term => (
@@ -737,7 +749,7 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 							</Badge>
 							{running && (
 								<span className="font-mono text-xs text-muted">
-									{TRIGGERS[running.trigger].toLowerCase()} · iniciada {formatDateTime(running.startedAt)}
+									{TRIGGERS[running.trigger]} · iniciada {formatDateTime(running.startedAt)}
 								</span>
 							)}
 						</div>
@@ -774,8 +786,13 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 
 					<div className="flex items-center justify-between gap-3 flex-wrap">
 						<span className="font-mono text-xs text-muted">
-							{noTerms
-								? 'adicione um termo para coletar'
+							{running
+								? // Durante a coleta, o progresso (a dica de pausa contradizia o botão travado em "coletando…")
+									running.plannedTerms.length > 0
+									? `termo ${Math.min(running.terms.length + 1, running.plannedTerms.length)} de ${running.plannedTerms.length}`
+									: ''
+								: noTerms
+									? 'adicione um termo para coletar'
 								: noAccount
 									? 'conecte sua conta do LinkedIn'
 									: firstRun
@@ -793,8 +810,8 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 					</div>
 				</section>
 
-				<section className={card({ size: 'lg', className: 'flex flex-1 basis-70 flex-col gap-2.5' })}>
-					<h2 className={LABEL}>agenda</h2>
+				{/* No topo, sem esticar até a altura da coleta ao vivo; sem título: o interruptor já diz do que se trata */}
+				<section aria-label="agenda" className={card({ size: 'lg', className: 'flex flex-1 basis-70 flex-col gap-2.5 self-start' })}>
 					<AutoRunsSwitch
 						id="runs-paused"
 						description="desligadas, o intervalo para de contar até você religar"
@@ -833,14 +850,12 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 			{renderCurrent()}
 
 			<section className="flex flex-col gap-2.5">
-				<div className="flex items-center justify-between gap-3 flex-wrap">
-					<h2 className={SECTION_TITLE}>
-						histórico <span className="font-mono font-normal">de coletas</span>
-					</h2>
-					<span className="font-mono text-muted text-xs">
-						posts novos vão para a IA; vagas novas são as salvas a partir deles
-					</span>
-				</div>
+				<h2 className={SECTION_TITLE}>
+					histórico <span className="font-mono font-normal">de coletas</span>
+				</h2>
+				<Notice tone="info" icon="info">
+					<p className="text-sm">Posts novos são os que foram para a IA; vagas novas são as salvas a partir deles.</p>
+				</Notice>
 
 				{runsState === 'error' && (
 					<EmptyState
