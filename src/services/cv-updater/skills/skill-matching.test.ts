@@ -63,6 +63,13 @@ describe('associação de habilidades', () => {
 	test('"Java" não casa com "JavaScript"', () => {
 		expect(matchJobSkills(cv, ['Java'])).toEqual([])
 	})
+
+	test('o texto do currículo conta palavras inteiras: "Java" e "Go" faltam mesmo com "JavaScript" e "Google"', () => {
+		const withGoogle = { ...cv, fullText: `${cv.fullText} Integração com Google GenAI e APIs RESTful.` }
+
+		expect(missingJobSkills(withGoogle, ['Java', 'Go', 'REST'])).toEqual(['Java', 'Go'])
+		expect(skillsToAdd(withGoogle, { ...job, necessaryKnowledge: ['Java', 'React'] })).toEqual(['Java'])
+	})
 })
 
 describe('competências de outras áreas', () => {

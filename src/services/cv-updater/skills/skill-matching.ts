@@ -102,7 +102,8 @@ function catalogName(skill: string) {
 
 /**
  * Filtra as tecnologias da vaga que não aparecem no currículo: nem como habilidade ou tecnologia de projeto,
- * nem com todas as palavras no texto (ex.: "REST APIs" ↔ "Integração de APIs RESTful").
+ * nem com todas as palavras no texto (ex.: "REST APIs" ↔ "Integração de APIs RESTful"). A palavra conta inteira,
+ * aceitando o plural e o "-ful": "Java" não está em "JavaScript", nem "Go" em "Google".
  */
 export function missingJobSkills(cv: ResumeContent, jobSkills: string[]) {
 	const known = knownAliases(cv)
@@ -113,7 +114,9 @@ export function missingJobSkills(cv: ResumeContent, jobSkills: string[]) {
 		if (normalizeSkill(skill).length <= 1 || aliases.some(alias => known.has(alias))) return false
 
 		const significant = significantWords(skill)
-		const inText = significant.length > 0 && significant.every(word => textWords.some(textWord => textWord.startsWith(word)))
+		const inText =
+			significant.length > 0 &&
+			significant.every(word => textWords.some(textWord => sameWord(word, textWord) || textWord === `${word}ful`))
 
 		return !inText
 	})
