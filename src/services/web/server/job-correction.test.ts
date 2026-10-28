@@ -60,6 +60,13 @@ describe('planCorrection', () => {
 		})
 	})
 
+	test('o check do campo corrigido sai; os dos outros campos ficam', () => {
+		const checked: JobDocument = { ...doc, extractionChecks: ['company', 'contractTypes'] }
+
+		expect(plan({ company: 'Acme' }, checked).set.extractionChecks).toEqual(['contractTypes'])
+		expect(plan({ workMode: 'hibrido' }, checked).set).not.toHaveProperty('extractionChecks')
+	})
+
 	test('campo enviado com o mesmo valor não conta como corrigido', () => {
 		const { set, feedback } = plan({ title: 'Front-end', company: 'Acme' })
 

@@ -75,15 +75,16 @@ export type CompanySources = { aiCompany: string | null; author: string | null; 
 
 /**
  * Escolhe a empresa somando o peso de cada sinal: escrita no post (2), autor do post que é página de empresa (3),
- * escolhida pela IA (1) e no domínio de um e-mail do post (1; e-mail gratuito não conta). Fica a de mais pontos, se
- * chegar a 3: o domínio com a IA não basta (ela tirava "acme" de rh@acme.com), a página da empresa basta (a empresa
- * nem sempre escreve o próprio nome). No empate fica a da IA: a página de uma agência citando o cliente.
+ * escolhida pela IA (1) e no domínio de um e-mail do post (2; e-mail gratuito não conta). Fica a de mais pontos, se
+ * chegar a 3: a IA com o e-mail corporativo basta ("Tiviati" de rh@tiviati.com.br, com o nome escrito só ali), com
+ * o domínio de um link não (ela tirava "Gupy" de acme.gupy.io); a página da empresa basta (a empresa nem sempre
+ * escreve o próprio nome). No empate fica a da IA: a página de uma agência citando o cliente.
  * @param text O texto do post (com a transcrição das imagens).
  */
 export function chooseCompany({ aiCompany, author, authorIsCompany }: CompanySources, text: string): string | null {
 	const domains = emailDomains(text)
 	const score = (name: string) =>
-		(keepCompanyIfInPost(name, text) ? 2 : 0) + (domains.some(domain => companyInDomain(name, domain)) ? 1 : 0)
+		(keepCompanyIfInPost(name, text) ? 2 : 0) + (domains.some(domain => companyInDomain(name, domain)) ? 2 : 0)
 
 	const candidates: { name: string; points: number }[] = []
 	const ai = aiCompany?.trim()

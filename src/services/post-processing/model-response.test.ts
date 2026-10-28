@@ -169,9 +169,12 @@ describe('chooseCompany', () => {
 		expect(chooseCompany({ aiCompany: 'Ana Souza', author: 'Ana Souza', authorIsCompany: false }, 'Vaga React')).toBeNull()
 	})
 
-	test('a empresa só no domínio do e-mail não basta, e o e-mail gratuito nem conta', () => {
-		expect(chooseCompany({ aiCompany: 'Acmetech', ...person }, 'Envie o CV para rh@acmetech.com.br')).toBeNull()
+	test('a empresa da IA no domínio do e-mail fica; a de um link ou de e-mail gratuito, não', () => {
+		expect(chooseCompany({ aiCompany: 'Tiviati', ...person }, 'Envie o CV para solange.leite@tiviati.com.br')).toBe('Tiviati')
+		expect(chooseCompany({ aiCompany: 'Gupy', ...person }, 'Candidate-se: https://acme.gupy.io/jobs/1')).toBeNull()
 		expect(chooseCompany({ aiCompany: 'Outlook', ...person }, 'Envie o CV para ana@outlook.com')).toBeNull()
+		// O domínio sozinho não cria empresa: a IA precisa citá-la
+		expect(chooseCompany({ aiCompany: null, ...person }, 'Envie o CV para rh@acmetech.com.br')).toBeNull()
 	})
 
 	test('a agência citando o cliente fica com o cliente; o domínio do e-mail desempata', () => {

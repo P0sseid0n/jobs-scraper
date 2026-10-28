@@ -34,6 +34,10 @@ export function planCorrection(doc: JobDocument, correction: JobCorrection, now 
 
 	const set: Record<string, unknown> = { ...changes, correctedAt: now }
 	if (!doc.aiExtraction) set.aiExtraction = current
+	// O campo corrigido foi conferido por uma pessoa: o check dele sai. Os dos outros campos ficam
+	const checks = doc.extractionChecks ?? []
+	const remainingChecks = checks.filter(check => !correctedFields.includes(check))
+	if (remainingChecks.length < checks.length) set.extractionChecks = remainingChecks
 	if (correction.notAJob) set.notAJob = true
 
 	const feedback: ExtractionFeedbackRecord = {
