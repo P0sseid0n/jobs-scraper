@@ -47,7 +47,17 @@ describe('buildRewriteRequest', () => {
 		expect(messages[0]?.content).toContain('Make it more direct')
 		expect(messages.at(-1)?.content).toContain(`## Current message\n${message.body}`)
 		expect(messages.at(-1)?.content).toContain('Required skills: Vue 3, TypeScript, Pinia')
+		// O exemplo vai por último, depois da mensagem atual: a voz da pessoa pesa mais que a mensagem de antes
 		expect(messages.at(-1)?.content).toEndWith('Oi! Tudo certo?')
+		expect(messages[0]?.content).toContain('Open like the sample does ("Oi! Tudo certo?")')
+	})
+
+	test('o nome do exemplo preenche o "[Nome]" e não conta como nome inventado', () => {
+		const sample = 'Olá! Me chamo Matheus e vi a vaga.'
+		const body = formalBody.replace('Prezados,', 'Olá! Me chamo [Nome].')
+
+		expect(validateRewrite(body, message, job, 'medium', sample).body).toStartWith('Olá! Me chamo Matheus.')
+		expect(validateRewrite(body, message, job, 'medium').rejected).toBe('it has a placeholder to fill in')
 	})
 
 	test('sem "mais direta" nem exemplo, nada disso vai', () => {

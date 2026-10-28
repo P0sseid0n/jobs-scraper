@@ -42,9 +42,25 @@ const TONE_STYLE: Record<MessageTone, string> = {
 	casual: 'short, conversational sentences, like a message to a future colleague; still respectful, with no slang and no emojis',
 }
 
-function toneRule(tone: MessageTone) {
+/** Com a mensagem de exemplo, a saudação e o fechamento vêm dela: o tom só ajusta a formalidade. */
+function toneRule(tone: MessageTone, withSample: boolean) {
+	if (withSample) return `${tone}: ${TONE_STYLE[tone]}.`
+
 	const { pt, en } = TONE_WORDS[tone]
 	return `${tone}: ${TONE_STYLE[tone]}. Greet with "${pt.greeting}" in Portuguese or "${en.greeting}" in English; end with "${pt.closing}" in Portuguese or "${en.closing}" in English.`
+}
+
+/** Linhas com link (assinatura com GitHub, LinkedIn): a IA copiaria o link na mensagem. */
+const LINK_LINE = /https?:\/\/|www\./i
+
+/** A mensagem de exemplo como vai para a IA: sem as linhas com link e sem linhas em branco sobrando. */
+export function styleSampleText(sample: string) {
+	return sample
+		.split('\n')
+		.filter(line => !LINK_LINE.test(line))
+		.join('\n')
+		.replace(/\n{3,}/g, '\n\n')
+		.trim()
 }
 
 const LENGTH_RULES: Record<MessageLength, string> = {
@@ -90,31 +106,78 @@ export function clichesIn(body: string) {
 
 /**
  * As regras de tom, tamanho e clichês para o prompt. Com `auto`, a IA escolhe o tom pelo post e o devolve em "tone".
+ * Com a mensagem de exemplo da pessoa, a voz dela (saudação, expressões, fechamento) manda; o tom só ajusta a formalidade.
  */
-export function messageStyleRules(tone: MessageDefaultTone, length: MessageLength) {
+export function messageStyleRules(tone: MessageDefaultTone, length: MessageLength, styleSample = '') {
+	const sample = styleSampleText(styleSample)
+	const withSample = sample !== ''
 	const toneLines =
 		tone === 'auto'
 			? [
 					'- Choose the tone that fits the job post and return it in "tone": "formal" for banks, law firms, the public sector, large traditional companies or a formal post; "casual" for startups, agencies or a relaxed post (emojis, slang, first names); "neutral" otherwise. Then follow that tone:',
-					...(['formal', 'neutral', 'casual'] as const).map(name => `  - ${toneRule(name)}`),
+					...(['formal', 'neutral', 'casual'] as const).map(name => `  - ${toneRule(name, withSample)}`),
 				]
-			: [`- Tone ${toneRule(tone)}`]
+			: [`- Tone ${toneRule(tone, withSample)}`]
+	const voiceLines = withSample ? sampleVoiceRules(sample) : []
 
 	return [
+		...voiceLines,
 		...toneLines,
 		`- ${LENGTH_RULES[length]}`,
 		`- Never use these clichés (or translations of them): ${MESSAGE_CLICHES.map(cliche => `"${cliche.label}"`).join(', ')}. Say concretely what you did instead.`,
 	].join('\n')
 }
 
-/** A seção do prompt com a mensagem de exemplo da pessoa (vazia quando não há exemplo). */
+/**
+ * As regras da voz da pessoa. Modelos pequenos seguem a mensagem atual (ou o próprio hábito) e ignoram um exemplo só
+ * descrito: a primeira e a última frase dele vão escritas na regra, como a abertura e o fechamento a seguir.
+ */
+function sampleVoiceRules(sample: string) {
+	const lines = sample
+		.split('\n')
+		.map(line => line.trim())
+		.filter(Boolean)
+	const opening = lines[0]!
+		.split(/(?<=[.!?])\s+/)
+		.slice(0, 2)
+		.join(' ')
+	const closing = lines.at(-1)!
+
+	return [
+		'- Use "Writing sample" as a template: follow its sentences in order, with the same way of introducing themselves (keep their real name exactly as written, never "[Nome]" or another placeholder), the same expressions and the same closing, and swap the role, company and skills of that other opening for the facts of this one. The tone only adjusts how formal it is.',
+		`- Open like the sample does ("${opening}"), with this opening's role, instead of a generic greeting like "Olá! Tudo bem?".`,
+		...(lines.length > 1 ? [`- Close like the sample does ("${closing}").`] : []),
+	]
+}
+
+/** A seção do prompt com a mensagem de exemplo da pessoa (vazia quando não há exemplo), sem as linhas com link. */
 export function styleSampleSection(sample: string) {
-	const text = sample.trim()
+	const text = styleSampleText(sample)
 	if (!text) return []
 
 	return [
-		`## Writing sample\nA message the person wrote. Imitate its voice (greeting, sentence length, warmth), but follow the tone and length rules and never copy facts, names, companies or skills from it.\n${text}`,
+		`## Writing sample\nA message the person wrote to another recruiter: the template for the new message. The person's name in it is theirs: keep it. Its role, company, skills and other facts belong to another opening: never copy them.\n${text}`,
 	]
+}
+
+/** Como a pessoa se apresenta no exemplo ("Me chamo Matheus", "My name is Ana"): o nome vem no grupo `name`. */
+const SELF_INTRODUCTION = /\b(?:[Mm]e chamo|[Mm]eu nome é|[Mm]y name is|I'm|I am)\s+(?<name>\p{Lu}[\p{L}'-]+)/u
+
+/** Placeholder de nome que modelos pequenos põem no lugar do nome, mesmo com ele no exemplo. */
+const NAME_PLACEHOLDER = /\[\s*(?:seu\s+|your\s+)?(?:nome|name)[^\]]*\]/giu
+
+/** O primeiro nome com que a pessoa se apresenta na mensagem de exemplo, ou `null`. */
+export function sampleName(sample: string) {
+	return SELF_INTRODUCTION.exec(styleSampleText(sample))?.groups?.name ?? null
+}
+
+/**
+ * Troca o placeholder de nome ("[Nome]") pelo nome com que a pessoa se apresenta no exemplo. Sem nome no exemplo, o
+ * placeholder fica, e a validação recusa a mensagem.
+ */
+export function fillSampleName(body: string, sample: string) {
+	const name = sampleName(sample)
+	return name ? body.replace(NAME_PLACEHOLDER, name) : body
 }
 
 const PLACEHOLDER = /\[[^\]]*\]|<[^>]*>|\{[^}]*\}|\bx{3,}\b|seu nome|your name|nome da empresa|company name/i

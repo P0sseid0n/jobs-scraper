@@ -145,12 +145,13 @@ describe('pedido à IA', () => {
 		})
 
 		expect(messages[0]?.content).toContain('- Tone formal:')
-		expect(messages[0]?.content).toContain('"Prezados,"')
+		// Com exemplo, a saudação é a da pessoa, não a fixa do tom
+		expect(messages[0]?.content).not.toContain('"Prezados,"')
+		expect(messages[0]?.content).toContain('Open like the sample does ("Oi! Vi a vaga e achei a cara do que faço.")')
 		expect(messages[0]?.content).toContain('LinkedIn direct message')
 		expect(messages[0]?.content).toContain('"agregar valor"')
-		expect(messages.at(-1)?.content).toEndWith(
-			'## Writing sample\nA message the person wrote. Imitate its voice (greeting, sentence length, warmth), but follow the tone and length rules and never copy facts, names, companies or skills from it.\nOi! Vi a vaga e achei a cara do que faço.',
-		)
+		expect(messages.at(-1)?.content).toContain('## Writing sample\n')
+		expect(messages.at(-1)?.content).toContain('Oi! Vi a vaga e achei a cara do que faço.')
 		expect(format.required).toEqual(['body'])
 	})
 
@@ -203,6 +204,15 @@ describe('requestApplicationMessage', () => {
 
 		expect((await requestApplicationMessage({ ollama: reply('casual'), model: 'm' }, cv, job, { style }, log))?.tone).toBe('casual')
 		expect((await requestApplicationMessage({ ollama: reply('chique'), model: 'm' }, cv, job, { style }, log))?.tone).toBe('neutral')
+	})
+
+	test('o "[Nome]" que o modelo põe vira o nome com que a pessoa se apresenta no exemplo', async () => {
+		const style = { tone: 'neutral', length: 'medium', styleSample: 'Olá! Me chamo Matheus e quero a vaga.' } as const
+		const { ollama } = fakeOllama(goodBody.replace('Olá! Tudo bem?', 'Olá! Me chamo [Nome].'))
+
+		expect((await requestApplicationMessage({ ollama, model: 'm' }, cv, job, { style }, log))?.body).toStartWith(
+			'Olá! Me chamo Matheus.',
+		)
 	})
 
 	test('pede outra versão uma vez quando a primeira é rejeitada', async () => {

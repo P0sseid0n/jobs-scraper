@@ -8,12 +8,14 @@ import { readSettings } from '@shared/settings'
 import {
 	cleanMessageBody,
 	clichesIn,
+	fillSampleName,
 	MESSAGE_LANGUAGE_NAMES,
 	messageLanguage,
 	messageStyleRules,
 	messageTextProblem,
 	newProperNouns,
 	styleSampleSection,
+	styleSampleText,
 	type MessageLanguage,
 } from '@shared/templates'
 
@@ -46,7 +48,7 @@ Return JSON with "body", following these rules:
 - Write in the language given in "Message language".
 - Keep the facts of the current message: the role, the company, the skills and the project or experience it cites. You may drop some of them to make it shorter, but never add a skill, tool, project, company, number or claim that is not in the current message or in the job.
 - Keep saying the résumé is attached and that you are available to talk.
-- Plain text (no markdown, no lists, no subject line), no signature, no candidate name and no placeholders like [name].
+- Plain text (no markdown, no lists, no subject line), no signature block and no placeholders like [name]. The candidate's name only if the writing sample introduces the person by name.
 - Write new sentences instead of copying the current ones.
 - First person.`
 
@@ -62,7 +64,11 @@ export function buildRewriteRequest(
 	styleSample = '',
 ) {
 	const cliches = clichesIn(message.body)
-	const rules = [SYSTEM_PROMPT, messageStyleRules(request.tone, request.length), ...(request.direct ? [DIRECT_RULE] : [])]
+	const rules = [
+		SYSTEM_PROMPT,
+		messageStyleRules(request.tone, request.length, styleSample),
+		...(request.direct ? [DIRECT_RULE] : []),
+	]
 
 	const content = [
 		`## Message language\n${MESSAGE_LANGUAGE_NAMES[language]}`,
@@ -78,6 +84,7 @@ export function buildRewriteRequest(
 					`## Clichés in the current message\nRewrite the sentences with ${cliches.map(label => `"${label}"`).join(', ')} without them.`,
 				]
 			: []),
+		// Depois da mensagem atual: o que vem por último pesa mais, e a voz da pessoa deve ganhar da mensagem de antes
 		...styleSampleSection(styleSample),
 	].join('\n\n')
 
@@ -91,7 +98,8 @@ export function buildRewriteRequest(
 
 /**
  * Valida a versão reescrita: as regras de qualquer mensagem (tamanho, clichês…) e nenhum nome próprio que não estava
- * na mensagem anterior nem na vaga (a reescrita não pode inventar tecnologias, empresas ou projetos).
+ * na mensagem anterior, na vaga nem na mensagem de exemplo (a reescrita não pode inventar tecnologias, empresas ou
+ * projetos; o exemplo foi escrito pela própria pessoa e traz o nome dela).
  * @returns O corpo limpo, ou o motivo da recusa (em inglês, para devolver ao modelo).
  */
 export function validateRewrite(
@@ -99,8 +107,9 @@ export function validateRewrite(
 	previous: Pick<ApplicationMessage, 'body'>,
 	job: RewriteJob,
 	length: MessageLength,
+	styleSample = '',
 ): { body: string; rejected: null } | { body: null; rejected: string } {
-	const body = cleanMessageBody(candidate ?? '')
+	const body = cleanMessageBody(fillSampleName(candidate ?? '', styleSample))
 
 	const problem = messageTextProblem(body, length)
 	if (problem) return { body: null, rejected: problem }
@@ -111,6 +120,7 @@ export function validateRewrite(
 		job.company ?? '',
 		job.necessaryKnowledge.join(', '),
 		job.rawContent.slice(0, POST_MAX),
+		styleSampleText(styleSample),
 	]
 	const invented = newProperNouns(body, sources)
 	if (invented.length > 0) {
@@ -141,7 +151,7 @@ export async function requestRewrite(
 			return null
 		}
 
-		const result = validateRewrite(parseBody(content), message, job, request.length)
+		const result = validateRewrite(parseBody(content), message, job, request.length, styleSample)
 		if (result.body) return { subject: message.subject, body: result.body, tone: request.tone, length: request.length }
 
 		log.info({ attempt, reason: result.rejected }, 'Mensagem reescrita recusada')

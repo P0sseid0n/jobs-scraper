@@ -5,6 +5,7 @@ import { MESSAGE_TONES, type ApplicationMessage, type MessageSettings } from '@s
 import type { Logger } from '@shared/logging'
 import {
 	cleanMessageBody,
+	fillSampleName,
 	MESSAGE_LANGUAGE_NAMES,
 	messageLanguage,
 	messageStyleRules,
@@ -43,11 +44,11 @@ Return JSON with ${style.tone === 'auto' ? '"tone" and "body"' : '"body"'}, foll
 - Say which role you are applying for and, if the company is known, the company name. Never write "unknown".
 - Mention 2 or 3 of the job's required skills, tools or qualifications that are in the résumé, and at most one project or experience from the résumé that relates to the job, by its name.
 - Say the résumé is attached and that you are available to talk.
-- No signature, no candidate name and no placeholders like [name].
+- No signature block and no placeholders like [name]. The candidate's name only if the writing sample introduces the person by name.
 - Use only facts from the résumé and the job: never invent companies, years of experience, certifications, numbers, skills or tools.
 - Never mention the items in "Not in the résumé": the person does not have them.
 - First person.
-${messageStyleRules(style.tone, style.length)}`
+${messageStyleRules(style.tone, style.length, style.styleSample)}`
 }
 
 /** O modelo pode devolver o corpo com espaços extras ou repetir o assunto na primeira linha; o tom só vem no `auto`. */
@@ -81,7 +82,8 @@ export async function requestApplicationMessage(
 		}
 
 		const output = parseMessageOutput(content)
-		const result = validateMessageBody(output?.body ?? null, cv, job, context.unsupportedSkills, style.length)
+		const body = output ? fillSampleName(output.body, style.styleSample) : null
+		const result = validateMessageBody(body, cv, job, context.unsupportedSkills, style.length)
 		if (result.body) {
 			return {
 				subject: messageSubject(job.title, language),
@@ -126,6 +128,7 @@ export function buildMessageRequest(cv: TailoredResume, job: CvJob, language: Me
 
 	const content = [
 		`## Message language\n${MESSAGE_LANGUAGE_NAMES[language]}`,
+		...styleSampleSection(style.styleSample),
 		...(candidate ? [`## Candidate profile\n${candidate}`] : []),
 		[
 			'## Job opening',
@@ -142,7 +145,6 @@ export function buildMessageRequest(cv: TailoredResume, job: CvJob, language: Me
 			`Experience: ${experience.join(' | ')}`,
 		].join('\n'),
 		...(unsupported.length > 0 ? [`## Not in the résumé\n${unsupported.join(', ')}`] : []),
-		...styleSampleSection(style.styleSample),
 	].join('\n\n')
 
 	const messages: Message[] = [
