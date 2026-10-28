@@ -169,12 +169,21 @@ const WORK_MODE_ONLY = /^(100 ?% ?)?(remoto|remote|home ?office|hibrido|hybrid|p
 
 /**
  * Mantém só os conhecimentos escritos no post (evita tecnologia inventada): cada palavra do item precisa
- * começar alguma palavra do texto, ignorando caixa, acentos, ".js" e plural ("REST APIs" ↔ "API REST").
+ * começar alguma palavra do texto, ignorando caixa, acentos, ".js" e plural ("REST APIs" ↔ "API REST"). O mesmo
+ * conhecimento repetido pelo modelo ("Node.js" duas vezes, ou "Node" e "Node.js") fica só na primeira grafia.
  * @returns Os conhecimentos encontrados, ou `null` se nenhum sobrar.
  */
 export function keepSkillsInPost(skills: string[] | null, text: string): string[] | null {
 	const normalizedText = normalizeForMatch(text)
-	const kept = (skills ?? []).filter(skill => skillWords(skill).every(word => containsWordStart(normalizedText, word)))
+	const seen = new Set<string>()
+	const kept = (skills ?? []).filter(skill => {
+		const words = skillWords(skill)
+		const key = words.join(' ')
+		if (seen.has(key)) return false
+
+		seen.add(key)
+		return words.every(word => containsWordStart(normalizedText, word))
+	})
 
 	return kept.length > 0 ? kept : null
 }

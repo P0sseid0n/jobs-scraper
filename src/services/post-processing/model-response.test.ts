@@ -205,6 +205,10 @@ describe('keepSkillsInPost', () => {
 		expect(keepSkillsInPost(['Vue.js', 'React', 'SQL', 'Full Stack Development'], text)).toEqual(['Vue.js'])
 	})
 
+	test('o mesmo conhecimento repetido fica uma vez só, na primeira grafia', () => {
+		expect(keepSkillsInPost(['Node.js', 'Python', 'node.js', 'Node'], text)).toEqual(['Node.js', 'Python'])
+	})
+
 	test('não confunde letra solta com parte de palavra', () => {
 		expect(keepSkillsInPost(['C', 'R'], 'Vaga para dev com experiência em React')).toBeNull()
 	})

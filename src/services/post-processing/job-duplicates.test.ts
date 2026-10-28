@@ -102,6 +102,11 @@ describe('similarTitles', () => {
 		expect(similarTitles('Analista de Dados Sr', 'Analista de Dados Sênior')).toBe(true)
 	})
 
+	test('"Full Stack" e "Fullstack" são a mesma palavra', () => {
+		expect(similarTitles('Desenvolvedor Full Stack Pleno', 'Desenvolvedor(a) Fullstack Pleno')).toBe(true)
+		expect(similarTitles('Dev Front End', 'Desenvolvedor Front-end')).toBe(true)
+	})
+
 	test('cargos ou níveis diferentes', () => {
 		expect(similarTitles('Desenvolvedor Front-end Pleno', 'Desenvolvedor Back-end Pleno')).toBe(false)
 		expect(similarTitles('Desenvolvedor Front-end Pleno', 'Desenvolvedor Front-end Sênior')).toBe(false)
@@ -198,6 +203,39 @@ describe('findDuplicate', () => {
 		const sibling = { ...original, postId: 'listing:a', sourcePostId: 'urn:li:activity:9' }
 
 		expect(findDuplicate({ ...sibling, postId: 'listing:b' }, [sibling], THRESHOLD)).toBeNull()
+	})
+
+	test('mesma empresa e o mesmo cargo com nível agrupa mesmo com o texto todo diferente', () => {
+		const rewritten = {
+			...original,
+			postId: 'urn:li:activity:12',
+			title: 'Desenvolvedor(a) Frontend Pleno',
+			company: 'ACME Tecnologia Ltda.',
+			rawContent: 'Vem fazer parte do nosso time! Buscamos front pleno para o time de produto, inscrição no portal.',
+		}
+
+		expect(findDuplicate(rewritten, [original], THRESHOLD)).toMatchObject({ postId: original.postId, reason: 'title' })
+	})
+
+	test('sem nível no cargo, ou com cargo só parecido, o texto diferente não agrupa', () => {
+		const rewritten = { ...original, postId: 'urn:li:activity:13', rawContent: 'Vem fazer parte do nosso time!' }
+
+		expect(
+			findDuplicate(
+				{ ...rewritten, title: 'Desenvolvedora Front-end' },
+				[{ ...original, title: 'Desenvolvedora Front-end' }],
+				THRESHOLD,
+			),
+		).toBeNull()
+		expect(findDuplicate({ ...rewritten, title: 'Desenvolvedora Front-end React Pleno' }, [original], THRESHOLD)).toBeNull()
+		expect(findDuplicate({ ...rewritten, company: null }, [original], THRESHOLD)).toBeNull()
+	})
+
+	test('o texto parecido vale mais que só o mesmo cargo', () => {
+		const repost = { ...original, postId: 'urn:li:activity:14', rawContent: FRONTEND_REPOST }
+		const sameTitleOnly = { ...original, postId: 'urn:li:activity:15', rawContent: 'Vem fazer parte do nosso time!' }
+
+		expect(findDuplicate(repost, [sameTitleOnly, original], THRESHOLD)).toMatchObject({ postId: original.postId, reason: 'text' })
 	})
 
 	test('escolhe a mais parecida entre as candidatas', () => {

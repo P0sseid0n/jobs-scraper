@@ -14,7 +14,10 @@ export type DuplicateCandidate = {
 	sourcePostId?: string | null
 }
 
-export type DuplicateMatch = { postId: string; reason: 'applyLink' | 'text'; similarity: number }
+export type DuplicateMatch = { postId: string; reason: 'applyLink' | 'text' | 'title'; similarity: number }
+
+/** Do critério mais forte ao mais fraco: entre dois achados, vale o de critério mais forte. */
+const REASON_STRENGTH: Record<DuplicateMatch['reason'], number> = { applyLink: 3, text: 2, title: 1 }
 
 /** Os níveis de senioridade: dois cargos com níveis diferentes ("Pleno" e "Sênior") são vagas diferentes. */
 const SENIORITY: Record<string, string> = {
@@ -160,12 +163,12 @@ export function normalizeCompany(company: string | null) {
 	return list.join(' ') || null
 }
 
-/** O cargo separado em palavras principais e níveis de senioridade. */
+/** O cargo separado em palavras principais e níveis de senioridade ("Full Stack" e "Fullstack" são a mesma palavra). */
 function titleParts(title: string) {
 	const core = new Set<string>()
 	const seniority = new Set<string>()
 
-	for (const word of words(title)) {
+	for (const word of words(fold(title).replace(/\b(full|front|back)\s+(stack|end)\b/g, '$1$2'))) {
 		if (word in SENIORITY) {
 			seniority.add(SENIORITY[word]!)
 		} else if (!TITLE_STOPWORDS.has(word)) core.add(TITLE_SYNONYMS[word] ?? word)
@@ -188,6 +191,19 @@ export function similarTitles(a: string | null, b: string | null) {
 
 	const [smaller, larger] = first.core.size <= second.core.size ? [first.core, second.core] : [second.core, first.core]
 	return jaccard(first.core, second.core) >= 0.5 || [...smaller].every(word => larger.has(word))
+}
+
+/**
+ * Se dois cargos são exatamente o mesmo, com nível: as mesmas palavras principais e o mesmo nível de senioridade, escrito
+ * nos dois ("Desenvolvedor Full Stack Pleno" e "Desenvolvedor(a) Fullstack Pleno").
+ */
+export function sameTitleWithSeniority(a: string | null, b: string | null) {
+	if (!a || !b) return false
+
+	const first = titleParts(a)
+	const second = titleParts(b)
+	if (first.seniority.size === 0 || first.core.size === 0) return false
+	return jaccard(first.seniority, second.seniority) === 1 && jaccard(first.core, second.core) === 1
 }
 
 /**
@@ -220,7 +236,9 @@ export function specificApplyLink(link: string | null) {
 /**
  * Procura, entre as vagas recentes, a vaga original de que `job` é repostagem. Do critério mais forte ao mais fraco:
  * - o mesmo link de candidatura específico, com o mesmo cargo (e a empresa, quando as duas a citam, igual);
- * - a mesma empresa e o mesmo cargo, com o texto do post parecido (`minSimilarity`, de 0 a 1).
+ * - a mesma empresa e o mesmo cargo, com o texto do post parecido (`minSimilarity`, de 0 a 1);
+ * - a mesma empresa e exatamente o mesmo cargo com nível ("Pleno", "Sênior"), mesmo com o texto todo diferente: a
+ *   empresa que divulga a vaga em vários posts, cada um escrito do zero.
  * Sem empresa, só o link agrupa. Vagas de um mesmo post com várias vagas nunca são agrupadas entre si.
  * @returns A vaga mais provável, ou `null` se nenhuma é a mesma.
  */
@@ -242,17 +260,21 @@ export function findDuplicate(
 		if (company && candidateCompany && company !== candidateCompany) continue
 
 		const similarity = textSimilarity(job.rawContent, candidate.rawContent)
+		const sameCompany = company !== null && company === candidateCompany
+		const reason: DuplicateMatch['reason'] | null =
+			link && link === specificApplyLink(candidate.applyLink)
+				? 'applyLink'
+				: sameCompany && similarity >= minSimilarity
+					? 'text'
+					: sameCompany && sameTitleWithSeniority(job.title, candidate.title)
+						? 'title'
+						: null
+		if (!reason) continue
 
-		if (link && link === specificApplyLink(candidate.applyLink)) {
-			// O link vale mais que o texto: entre as do mesmo link, a de texto mais parecido
-			const beatsBest = best?.reason !== 'applyLink' || similarity > best.similarity
-			if (beatsBest) best = { postId: candidate.postId, reason: 'applyLink', similarity }
-			continue
-		}
-
-		if (!company || !candidateCompany || similarity < minSimilarity) continue
-		if (!best || (best.reason === 'text' && similarity > best.similarity))
-			best = { postId: candidate.postId, reason: 'text', similarity }
+		// O critério mais forte vale mais; no mesmo critério, a de texto mais parecido
+		const strength = REASON_STRENGTH[reason] - (best ? REASON_STRENGTH[best.reason] : 0)
+		if (!best || strength > 0 || (strength === 0 && similarity > best.similarity))
+			best = { postId: candidate.postId, reason, similarity }
 	}
 
 	return best
