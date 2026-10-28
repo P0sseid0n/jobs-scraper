@@ -248,6 +248,13 @@ describe('keepWorkModeInPost', () => {
 		expect(keepWorkModeInPost('hibrido', '3 dias presenciais e 2 remotos por semana')).toBe('hibrido')
 	})
 
+	test('"semipresencial" vale como híbrido, não como presencial', () => {
+		expect(keepWorkModeInPost('hibrido', '🏢 Modelo de trabalho: Semipresencial (inegociável)')).toBe('hibrido')
+		expect(keepWorkModeInPost('hibrido', 'Modelo semi-presencial em Blumenau')).toBe('hibrido')
+		expect(keepWorkModeInPost('presencial', 'Modelo de trabalho: Semipresencial')).toBeNull()
+		expect(keepWorkModeInPost(null, 'Modelo de trabalho: Semipresencial')).toBe('hibrido')
+	})
+
 	test('descarta a modalidade deduzida do cargo ou de outra modalidade', () => {
 		expect(keepWorkModeInPost('presencial', 'Enfermeiro(a) de Centro Cirúrgico, plantão 12x36')).toBeNull()
 		expect(keepWorkModeInPost('hibrido', 'Desenvolvedor Front-End Pleno – Home Office')).toBeNull()

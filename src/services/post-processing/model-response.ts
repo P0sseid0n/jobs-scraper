@@ -230,8 +230,8 @@ type WorkMode = (typeof WORK_MODES)[number]
 /** Termos de cada modalidade no texto sem acentos e em minúsculas; sem fronteira de palavra, para valer em hashtags. */
 const WORK_MODE_TERMS: Record<WorkMode, RegExp> = {
 	remoto: /remot[oa]|remote|home ?-?office|teletrabalho/,
-	presencial: /presencia(l|is)|on-?site|in-?office/,
-	hibrido: /hibrid[oa]|hybrid/,
+	presencial: /(?<!semi ?-?)presencia(l|is)|on-?site|in-?office/,
+	hibrido: /hibrid[oa]|hybrid|semi ?-?presencia(l|is)/,
 }
 
 /** "Não é remoto", "não sendo home office": o termo aparece, mas negado. */
