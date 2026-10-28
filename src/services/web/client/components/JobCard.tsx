@@ -2,7 +2,7 @@ import { Link } from '@tanstack/react-router'
 
 import type { WebJob } from '../../api-types'
 import { cx } from '../lib/cx'
-import { jobDate, jobSubtitle, safeLink, timeAgo } from '../lib/format'
+import { jobSubtitle, safeLink, timeAgo } from '../lib/format'
 import { openJobFromCard } from '../lib/job-opening'
 import { jobParams } from '../router'
 import { filtersOpen } from '../stores/filters-panel'
@@ -11,7 +11,7 @@ import { ContractTypeBadge } from './ContractTypeBadge'
 import { CorrectedBadge } from './CorrectedBadge'
 import { ExtractionChecksBadge } from './ExtractionChecksBadge'
 import { Icon } from './Icon'
-import { ListingBadge } from './ListingBadge'
+import { LISTING_TITLE } from './ListingBadge'
 import { PostImagesBadge } from './PostImages'
 import { badge, BadgeList } from './ui/Badge'
 import { card } from './ui/Card'
@@ -92,12 +92,16 @@ export function JobCard({
 					<div className="flex flex-wrap items-center gap-1.5">
 						<ExtractionChecksBadge job={job} iconOnly />
 						<CorrectedBadge job={job} />
-						<ListingBadge job={job} />
 						<ContractTypeBadge job={job} />
 						<WorkModeBadge job={job} />
 					</div>
-					<time className="font-mono text-muted text-sm whitespace-nowrap" dateTime={jobDate(job)}>
-						{timeAgo(jobDate(job))}
+					{/* A da coleta, que é a ordem da lista; a do post fica no title e no detalhe */}
+					<time
+						className="font-mono text-muted text-sm whitespace-nowrap"
+						dateTime={job.createdAt}
+						title={job.postedAt ? `publicada ${timeAgo(job.postedAt)}` : undefined}
+					>
+						coletada {timeAgo(job.createdAt)}
 					</time>
 				</div>
 			</div>
@@ -119,7 +123,8 @@ export function JobCard({
 
 			{/* Só o canal da candidatura: os botões ficam no detalhe, para a pessoa ler a vaga antes de se candidatar */}
 			<div className="flex items-center justify-between gap-3">
-				<span className="font-mono text-muted inline-flex items-center gap-1.5 text-xs">
+				{/* "de uma lista" vem aqui, e não nos selos do topo: lá espremia o cargo */}
+				<span className="font-mono text-muted inline-flex flex-wrap items-center gap-1.5 text-sm">
 					{job.recruiterEmail ? (
 						<>
 							<Icon name="mail" size={14} />
@@ -130,6 +135,7 @@ export function JobCard({
 					) : (
 						'candidatura pelo post'
 					)}
+					{job.sourcePostId && <span title={LISTING_TITLE}>· de uma lista</span>}
 				</span>
 				<PostImagesBadge job={job} />
 			</div>
@@ -217,7 +223,7 @@ export function JobCardSkeleton({ index = 0 }: { index?: number }) {
 					<Skeleton key={key} className={cx('h-6 rounded-pill bg-surface-2', width)} />
 				))}
 			</div>
-			<Skeleton className="h-3 w-40 rounded-xs bg-surface-2" />
+			<Skeleton className="h-3.5 w-48 rounded-xs bg-surface-2" />
 		</div>
 	)
 }

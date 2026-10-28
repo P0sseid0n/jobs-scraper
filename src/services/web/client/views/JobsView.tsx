@@ -525,6 +525,17 @@ function JobList({
 	)
 }
 
+/**
+ * "30+ de 62 vagas": as da lista (com `+` se há mais páginas) do total coletado, que não depende dos filtros. Com todas
+ * na lista, só "62 vagas".
+ */
+function listCount(loaded: number, hasMore: boolean, total: number | undefined) {
+	const shown = `${loaded.toLocaleString('pt-BR')}${hasMore ? '+' : ''}`
+	if (total === undefined) return `${shown} vagas`
+	if (!hasMore && loaded === total) return `${total.toLocaleString('pt-BR')} vagas`
+	return `${shown} de ${total.toLocaleString('pt-BR')} vagas`
+}
+
 const HERO_TITLE = (
 	<>
 		vagas <Hero.Mono>coletadas.</Hero.Mono>
@@ -602,11 +613,11 @@ export function JobsView({ selectedRouteId, detail }: { selectedRouteId: string 
 				title={HERO_TITLE}
 				lead={HERO_LEAD}
 				aside={
-					<span className="font-mono text-muted text-sm">
-						{facets ? facets.total.toLocaleString('pt-BR') : '–'} no histórico
-						{' · '}
-						{pendingCvs === 1 ? '1 currículo gerando' : `${pendingCvs} currículos gerando`}
-					</span>
+					pendingCvs > 0 && (
+						<span className="font-mono text-muted text-sm">
+							{pendingCvs === 1 ? '1 currículo gerando' : `${pendingCvs} currículos gerando`}
+						</span>
+					)
 				}
 			/>
 
@@ -646,9 +657,8 @@ export function JobsView({ selectedRouteId, detail }: { selectedRouteId: string 
 				>
 					{!showFilters && <FilterChips className="mb-1 max-md:hidden" />}
 					{status !== 'error' && jobs.length > 0 && (
-						<div className="font-mono text-muted text-xs">
-							{jobs.length}
-							{nextCursor ? '+' : ''} vagas
+						<div className="font-mono text-muted text-sm">
+							{listCount(jobs.length, Boolean(nextCursor), facets?.total)}
 							{unviewedOnScreen && (
 								<>
 									{' · '}
