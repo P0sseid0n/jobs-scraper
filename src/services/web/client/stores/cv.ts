@@ -61,6 +61,20 @@ export function useCvFor(postId: string) {
 	}, [requests, postId])
 }
 
+/** O currículo pronto mais recente da vaga (um pedido novo em andamento não o esconde), para anexar à candidatura. */
+export function useReadyCvFor(postId: string) {
+	const { requests } = useStore(state)
+
+	return useMemo(() => {
+		let latest: WebCvRequest | null = null
+		for (const request of requests.values()) {
+			if (request.postId !== postId || request.status !== 'ready') continue
+			if (!latest || request.requestedAt > latest.requestedAt) latest = request
+		}
+		return latest
+	}, [requests, postId])
+}
+
 /**
  * O pedido com a mensagem de candidatura gerada pela IA mais recente da vaga (um pedido novo em andamento não a apaga):
  * `message` é a mensagem, e `requestId` e `previousMessage` servem para reescrever e desfazer.

@@ -5,7 +5,7 @@ import type { SetupStatus, WebCredentials, WebCvBaseVersion } from '../../api-ty
 import { api } from '../api'
 import { Icon } from '../components/Icon'
 import { Logo } from '../components/Logo'
-import { ExtrasStep, LinkedinStep } from '../components/onboarding/AccountSteps'
+import { EmailStep, ExtrasStep, LinkedinStep } from '../components/onboarding/AccountSteps'
 import { CvStep } from '../components/onboarding/CvStep'
 import { Rise, StepBar, useCurrentSubSteps, useStepBar, type SubStepsState } from '../components/onboarding/parts'
 import { defaultProfilePart, ProfileStep, type ProfilePart, type ProfileStepData } from '../components/onboarding/ProfileStep'
@@ -29,7 +29,7 @@ const TOTAL = NUMBERED_STEPS.length
 
 /**
  * O onboarding do primeiro acesso (`/boas-vindas`), numa tela só dele, sem o cabeçalho do site: a abertura e os cinco
- * passos (área, LinkedIn, currículo, extras e revisão). Cada passo salva ao continuar, então dá para sair e voltar; o
+ * passos (área, LinkedIn, currículo, extras, e-mail e revisão). Cada passo salva ao continuar, então dá para sair e voltar; o
  * passo atual fica na URL (`?passo=`), e "voltar" do navegador também volta um passo.
  */
 export function OnboardingView({
@@ -127,6 +127,19 @@ export function OnboardingView({
 			case 'extras':
 				return (
 					<ExtrasStep
+						eyebrow={eyebrow}
+						credentials={credentials}
+						onCredentials={next => {
+							setCredentials(next)
+							void refresh()
+						}}
+						onBack={go(-1)}
+						onNext={afterSave(1)}
+					/>
+				)
+			case 'email':
+				return (
+					<EmailStep
 						eyebrow={eyebrow}
 						credentials={credentials}
 						onCredentials={next => {

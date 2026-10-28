@@ -22,6 +22,9 @@ import type {
 	WebCvBaseVersionWithTex,
 	WebCvRequest,
 	WebJob,
+	WebMail,
+	WebMailDraft,
+	WebMailSetup,
 	WebSettings,
 } from '../api-types'
 import type { JobFilters } from './lib/job-filters'
@@ -115,6 +118,14 @@ export const api = {
 	rewriteCvMessage: (requestId: string, style: { tone: MessageTone; length: MessageLength; direct?: boolean }) =>
 		request<WebCvRequest>(`/api/cv/${requestId}/message`, { method: 'POST', body: JSON.stringify(style) }),
 	undoCvMessage: (requestId: string) => request<WebCvRequest>(`/api/cv/${requestId}/message/undo`, { method: 'POST' }),
+
+	/** Se o envio por e-mail está ligado (há conta SMTP) e de qual remetente. */
+	mailSetup: () => request<WebMailSetup>('/api/mail'),
+	/** As candidaturas por e-mail da vaga, da mais recente à mais antiga. */
+	jobMails: (postId: string) => request<WebMail[]>(`/api/jobs/${encodeURIComponent(postId)}/mails`),
+	/** Envia a candidatura revisada na prévia; o resultado chega pelo stream (`mail`). */
+	sendMail: (postId: string, draft: WebMailDraft) =>
+		request<WebMail>(`/api/jobs/${encodeURIComponent(postId)}/mail`, { method: 'POST', body: JSON.stringify(draft) }),
 
 	cvBase: () => request<WebCvBase>('/api/cv-base'),
 	cvBaseVersion: (versionId: string) => request<WebCvBaseVersionWithTex>(`/api/cv-base/versions/${versionId}`),

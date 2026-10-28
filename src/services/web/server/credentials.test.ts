@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, mock, test } from 'bun:test'
 import { createLogger } from '@shared/logging'
 import { setEnvCredentials } from '@shared/settings'
 
-import { checkDiscord, checkGithub } from './credential-checks'
+import { checkDiscord, checkGithub, checkSmtp } from './credential-checks'
 import { handler } from './http'
 
 // A coleção `settings` em memória: a rota passa pelo credentials-store e pelos schemas de verdade
@@ -56,6 +56,10 @@ describe('/api/credentials', () => {
 		setEnvCredentials({ linkedin: { email: 'env@exemplo.com', password: 'senha-do-env' } })
 		await put(request('discord', 'PUT', { token: 'token-do-bot', channelId: '123' }))
 		await put(request('github', 'PUT', { username: 'P0sseid0n', token: 'ghp_token' }))
+		// Porta e remetente vazios no formulário contam como não informados
+		await put(
+			request('smtp', 'PUT', { host: 'smtp.gmail.com', port: '', user: 'voce@gmail.com', password: 'senha-de-app', from: '' }),
+		)
 
 		const body = await bodyOf(await get(new Request('http://localhost/api/credentials')))
 
@@ -63,7 +67,19 @@ describe('/api/credentials', () => {
 			linkedin: { source: 'env', values: { email: 'env@exemplo.com' }, secrets: { password: true, liAt: false } },
 			discord: { source: 'database', values: { channelId: '123' }, secrets: { token: true } },
 			github: { source: 'database', values: { username: 'P0sseid0n' }, secrets: { token: true } },
+			smtp: {
+				source: 'database',
+				values: { host: 'smtp.gmail.com', port: null, user: 'voce@gmail.com', from: null },
+				secrets: { password: true },
+			},
 		})
+	})
+
+	test('a conta de e-mail recusa servidor e porta inválidos, campo por campo', async () => {
+		const response = await put(request('smtp', 'PUT', { host: 'smtp://gmail', port: '99999', user: 'eu', password: 'x' }))
+
+		expect(response.status).toBe(400)
+		expect(Object.keys((await bodyOf(response)).fields).sort()).toEqual(['host', 'port'])
 	})
 
 	test('o PUT salva no banco e devolve o estado sem os segredos', async () => {
@@ -195,5 +211,34 @@ describe('checkGithub', () => {
 		expect(
 			(await checkGithub({ username: 'x', token: 'ghp_token' }, fakeFetch({ '/users/x': { status: 401 } }).fetchFn)).message,
 		).toBe('O GitHub recusou o token.')
+	})
+})
+
+describe('checkSmtp', () => {
+	const account = { host: 'smtp.gmail.com', user: 'ana@gmail.com', password: 'senha-de-app', from: 'Ana <ana@gmail.com>' }
+	const transport = (error?: unknown) => () => ({
+		verify: async () => {
+			if (error) throw error
+		},
+	})
+
+	test('login aceito diz o servidor e o remetente, sem enviar nada', async () => {
+		expect(await checkSmtp(account, transport())).toEqual({
+			ok: true,
+			message: 'Login aceito em smtp.gmail.com: as candidaturas saem de Ana <ana@gmail.com>.',
+		})
+	})
+
+	test('login recusado ou servidor fora aparecem com o motivo, nunca com a senha', async () => {
+		const refused = await checkSmtp(
+			account,
+			transport(Object.assign(new Error('535 senha-de-app'), { code: 'EAUTH', responseCode: 535 })),
+		)
+		expect(refused.ok).toBe(false)
+		expect(refused.message).toContain('recusou o login')
+		expect(refused.message).not.toContain('senha-de-app')
+
+		const offline = await checkSmtp(account, transport(Object.assign(new Error('timeout'), { code: 'ETIMEDOUT' })))
+		expect(offline).toEqual({ ok: false, message: 'Não consegui falar com o servidor SMTP (fora do ar ou sem resposta).' })
 	})
 })

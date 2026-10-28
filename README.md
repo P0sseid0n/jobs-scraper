@@ -71,7 +71,8 @@ Abra **http://localhost:3000** no navegador. Na primeira vez, o site abre o pass
 2. **LinkedIn:** o e-mail e a senha da conta. Ao salvar, o site testa o login. Se o LinkedIn pedir uma confirmação (aprovar no app do celular, um código ou um QR code), abre uma janela no site, em qualquer tela, para você resolver em até 3 minutos.
 3. **Currículo:** preencha o formulário (contato, experiência, formação, habilidades...) e veja a prévia do PDF. Quem já tem um currículo em LaTeX pode enviar o `.tex`.
 4. **Discord e GitHub:** opcionais, pode pular.
-5. **Revisão:** confira e clique em **fazer a primeira coleta**.
+5. **E-mail:** opcional. Com a sua conta de e-mail (SMTP, como o Gmail com uma senha de app), o botão **enviar candidatura** manda a mensagem e o currículo direto para o recrutador, depois de você confirmar.
+6. **Revisão:** confira e clique em **fazer a primeira coleta**.
 
 As primeiras vagas aparecem no site em alguns minutos. Em qualquer vaga, **gerar currículo** cria um PDF ajustado para ela. Tudo o que você configurou fica editável em **Configurações**.
 
@@ -104,6 +105,10 @@ flowchart LR
 	cv -- "discord-cv" --> bot
 	cv -- "web-cv" --> web
 	bot -. "web-applied<br/><small>candidatura marcada</small>" .-> web
+	web -- "mailer" --> mailer["mailer<br/><small>SMTP</small>"]
+	bot -- "mailer" --> mailer
+	mailer -- "web-mail" --> web
+	mailer -- "discord-mail" --> bot
 ```
 
 <a id="servicos"></a>
@@ -119,6 +124,7 @@ Cada serviço tem um README com os detalhes.
 | [🤖 discord-bot](src/services/discord-bot/README.md) | publica um card por vaga (canal de texto ou fórum) e entrega o currículo |
 | [🌐 web](src/services/web/README.md) | o site em http://localhost:3000: vagas com filtros, currículos, coletas e configurações |
 | [📄 cv-updater](src/services/cv-updater/README.md) | gera o currículo em PDF ajustado à vaga, a partir do seu `.tex`, e a mensagem de candidatura |
+| [✉️ mailer](src/services/mailer/README.md) | envia a candidatura por e-mail (SMTP), com o currículo anexado, depois da confirmação no site ou no Discord |
 | [🧩 shared](src/shared/README.md) | código comum: filas (retry e DLQ), banco, contratos e configurações editáveis em tempo de execução |
 
 <a id="tecnologias"></a>
@@ -156,7 +162,7 @@ bun dev                   # todos os serviços, com hot reload
 - **Primeira subida:** o `ollama-init` baixa o modelo de `OLLAMA_MODEL` (padrão `gemma3:4b`). Acompanhe com `docker compose logs -f ollama-init`.
 - **Currículo:** para gerar currículos, envie o seu `.tex` pelo site (Meus currículos › currículo base) ou coloque-o em `data/cv/cv.tex`, e configure o Tectonic, como no [README do cv-updater](src/services/cv-updater/README.md#configuração).
 - **Configurações:** termos de busca, filtros e intervalo são editados pelo site; o `.env` só preenche os valores iniciais (veja [shared](src/shared/README.md#configurações-em-tempo-de-execução)).
-- **Contas:** as credenciais do LinkedIn, do Discord e do GitHub podem ser informadas em Configurações › Contas, sem editar o `.env`; o que for salvo lá vale no lugar do `.env` (veja [shared](src/shared/README.md#credenciais)). Sem elas, os serviços sobem mesmo assim e esperam: o scraper não coleta, as vagas não vão para o Discord e o site diz o que falta.
+- **Contas:** as credenciais do LinkedIn, do Discord, do GitHub e do e-mail (SMTP) podem ser informadas em Configurações › Contas, sem editar o `.env`; o que for salvo lá vale no lugar do `.env` (veja [shared](src/shared/README.md#credenciais)). Sem elas, os serviços sobem mesmo assim e esperam: o scraper não coleta, as vagas não vão para o Discord e o site diz o que falta.
 - **Tudo em containers:** `docker compose --profile app up -d --build`.
 - **Instâncias isoladas:** `bun instance <nome>` sobe a aplicação inteira no Docker num projeto separado, do zero (banco, filas, sessão do LinkedIn, IA e currículo próprios, em `data/instancias/<nome>/`), para testar o onboarding sem mexer na sua instalação. Com o nome de uma que já existe, liga ela de novo com o que foi configurado. `--importar-env` usa uma cópia do seu `.env`; `--parar`, `--apagar` e `bun instance --listar` completam. Roda uma por vez: subir uma desliga as outras e a principal, que volta com `docker compose up -d`.
 - **Coleta periódica ou única:** com o `.env.example`, o scraper fica rodando e coleta a cada `SCRAPER_INTERVAL_MINUTES` (240; depois, vale o intervalo editado pelo site). Com `SCRAPER_INTERVAL_MINUTES=0`, ele coleta uma vez e encerra.
@@ -174,7 +180,7 @@ Painéis, todos só em `127.0.0.1`:
 | --------------------------------------------- | ------------------------------------------------------------------ |
 | `bun dev`                                     | Todos os serviços com `--watch`                                    |
 | `bun dev:scraped`                             | Todos menos o scraper                                              |
-| `bun dev:<serviço>` / `bun start:<serviço>`   | Um serviço (`scraper`, `processing`, `bot`, `cv`, `web`)            |
+| `bun dev:<serviço>` / `bun start:<serviço>`   | Um serviço (`scraper`, `processing`, `bot`, `cv`, `mailer`, `web`)  |
 | `bun scraper:run`                             | Pede uma coleta imediata                                           |
 | `bun scraper:verify <código>`                 | Envia o código de verificação do login                             |
 | `bun db:migrate-jobs`                         | Atualiza as vagas salvas para o formato atual                      |

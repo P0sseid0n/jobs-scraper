@@ -354,43 +354,43 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 		const intro = 'Comece por um modelo: troque os dados pelos seus e valide.'
 		const list = (
 			<ul className="m-0 flex list-none flex-col gap-2.5 p-0">
-					{CV_EXAMPLES.map(example => {
-						const download = `baixar ${example.fileName}`
+				{CV_EXAMPLES.map(example => {
+					const download = `baixar ${example.fileName}`
 
-						return (
-							<li key={example.fileName} className={card({ size: 'sm', className: 'flex flex-col gap-1.5' })}>
-								<div className="flex items-center justify-between gap-3">
-									<span className="flex min-w-0 items-baseline gap-2">
-										<span className="shrink-0 font-semibold">{example.title}</span>
-										<span aria-hidden className="text-muted">
-											·
-										</span>
-										<span className="truncate font-mono text-xs text-muted">{example.fileName}</span>
+					return (
+						<li key={example.fileName} className={card({ size: 'sm', className: 'flex flex-col gap-1.5' })}>
+							<div className="flex items-center justify-between gap-3">
+								<span className="flex min-w-0 items-baseline gap-2">
+									<span className="shrink-0 font-semibold">{example.title}</span>
+									<span aria-hidden className="text-muted">
+										·
 									</span>
-									<a
-										href={exampleDownloadUrl(example)}
-										download={example.fileName}
-										aria-label={download}
-										title={download}
-										className={iconButton({ size: 'xs', className: 'shrink-0 text-muted hover:text-ink' })}
-									>
-										<Icon name="download" size={14} />
-									</a>
+									<span className="truncate font-mono text-xs text-muted">{example.fileName}</span>
+								</span>
+								<a
+									href={exampleDownloadUrl(example)}
+									download={example.fileName}
+									aria-label={download}
+									title={download}
+									className={iconButton({ size: 'xs', className: 'shrink-0 text-muted hover:text-ink' })}
+								>
+									<Icon name="download" size={14} />
+								</a>
+							</div>
+							<div className="flex flex-wrap items-center gap-3.5">
+								<p className="min-w-0 grow basis-60 text-sm text-muted">{example.description}</p>
+								<div className="flex flex-wrap gap-2">
+									<Button variant="ghost" size="sm" onClick={() => loadExample(example)}>
+										usar no editor
+									</Button>
+									<Button variant="ghost" size="sm" href={example.pdfUrl} external>
+										ver PDF
+									</Button>
 								</div>
-								<div className="flex flex-wrap items-center gap-3.5">
-									<p className="min-w-0 grow basis-60 text-sm text-muted">{example.description}</p>
-									<div className="flex flex-wrap gap-2">
-										<Button variant="ghost" size="sm" onClick={() => loadExample(example)}>
-											usar no editor
-										</Button>
-										<Button variant="ghost" size="sm" href={example.pdfUrl} external>
-											ver PDF
-										</Button>
-									</div>
-								</div>
-							</li>
-						)
-					})}
+							</div>
+						</li>
+					)
+				})}
 			</ul>
 		)
 

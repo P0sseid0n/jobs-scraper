@@ -33,7 +33,7 @@ describe('/api/setup', () => {
 
 		expect(status).toEqual({
 			skipOnboarding: false,
-			steps: { profile: false, linkedin: false, cv: false, discord: false, github: false },
+			steps: { profile: false, linkedin: false, cv: false, discord: false, github: false, email: false },
 			ready: false,
 		})
 	})
@@ -60,7 +60,7 @@ describe('/api/setup', () => {
 
 		expect(status).toEqual({
 			skipOnboarding: true,
-			steps: { profile: true, linkedin: true, cv: true, discord: false, github: false },
+			steps: { profile: true, linkedin: true, cv: true, discord: false, github: false, email: false },
 			ready: true,
 		})
 	})

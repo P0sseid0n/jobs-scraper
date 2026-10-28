@@ -205,16 +205,49 @@ export const GithubCredentialsSchema = z.object({
 	token: z.string().trim().min(1).optional(),
 })
 
+/** Campo opcional do formulário: vazio (`""`) conta como não informado. */
+const emptyAsUndefined = <T extends z.ZodType>(schema: T) =>
+	z.preprocess(value => (typeof value === 'string' && value.trim() === '' ? undefined : value), schema.optional())
+
+/** Porta padrão do SMTP (STARTTLS); a 465 usa TLS desde a conexão. */
+export const SMTP_DEFAULT_PORT = 587
+
+/**
+ * O servidor SMTP do envio das candidaturas (Gmail, Outlook e afins, com senha de app). Sem ele, o envio por e-mail
+ * fica desligado nos canais.
+ */
+export const SmtpCredentialsSchema = z.object({
+	host: z
+		.string('Informe o servidor SMTP')
+		.trim()
+		.min(1, 'Informe o servidor SMTP')
+		.regex(/^[a-z\d.-]+$/i, 'Use só o endereço do servidor (ex.: smtp.gmail.com)'),
+	/** Opcional: sem porta, vale a 587. Texto, como os outros campos do formulário. */
+	port: emptyAsUndefined(
+		z
+			.string()
+			.trim()
+			.regex(/^\d{1,5}$/, 'Use o número da porta (ex.: 587 ou 465)')
+			.refine(port => Number(port) >= 1 && Number(port) <= 65_535, 'Porta fora do intervalo 1-65535'),
+	),
+	user: z.string('Informe o usuário').trim().min(1, 'Informe o usuário (em geral, o e-mail)'),
+	password: z.string('Informe a senha').min(1, 'Informe a senha (de app, no Gmail e no Outlook)'),
+	/** Opcional: o remetente ("Nome <email>" ou só o e-mail); sem ele, o `user`. */
+	from: emptyAsUndefined(z.string().trim().max(200, 'Use até 200 caracteres')),
+})
+
 export const CREDENTIAL_SCHEMAS = {
 	linkedin: LinkedinCredentialsSchema,
 	discord: DiscordCredentialsSchema,
 	github: GithubCredentialsSchema,
+	smtp: SmtpCredentialsSchema,
 } as const
 
 export const CredentialsSchema = z.object({
 	linkedin: LinkedinCredentialsSchema.optional(),
 	discord: DiscordCredentialsSchema.optional(),
 	github: GithubCredentialsSchema.optional(),
+	smtp: SmtpCredentialsSchema.optional(),
 })
 
 export type Credentials = z.output<typeof CredentialsSchema>
@@ -228,6 +261,7 @@ export const SECRET_FIELDS = {
 	linkedin: ['password', 'liAt'],
 	discord: ['token'],
 	github: ['token'],
+	smtp: ['password'],
 } as const satisfies { [G in CredentialGroup]: readonly (keyof CredentialsOf<G>)[] }
 
 export type SecretField<G extends CredentialGroup> = (typeof SECRET_FIELDS)[G][number]

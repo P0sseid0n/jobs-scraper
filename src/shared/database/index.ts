@@ -1,5 +1,7 @@
+export * from './application-mail.model'
 export * from './connection'
 export * from './cv-base-version.model'
+export * from './cv-file.model'
 export * from './extraction-feedback.model'
 export * from './job.model'
 export * from './job-image.model'

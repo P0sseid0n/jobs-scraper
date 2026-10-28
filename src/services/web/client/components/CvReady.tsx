@@ -73,15 +73,7 @@ export function CvReady({ cv }: { cv: WebCvRequest }) {
  * O que mudou no currículo. `tone="quiet"` (o histórico em "meus currículos"): sem o marca-texto lime no rótulo e com
  * as tecnologias novas no tom suave; o lime forte fica para o currículo que acabou de ficar pronto.
  */
-export function Changes({
-	changes,
-	fresh,
-	tone = 'highlight',
-}: {
-	changes: CvChanges
-	fresh: boolean
-	tone?: 'highlight' | 'quiet'
-}) {
+export function Changes({ changes, fresh, tone = 'highlight' }: { changes: CvChanges; fresh: boolean; tone?: 'highlight' | 'quiet' }) {
 	const { addedSkills, removedSkills, summary, projects } = changes
 	const quiet = tone === 'quiet'
 

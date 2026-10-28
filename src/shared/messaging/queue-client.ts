@@ -12,10 +12,13 @@ type QueueClientOptions = {
 	logger: Logger
 }
 
+/** A tentativa em andamento: `finalAttempt` diz que, se falhar de novo, a mensagem vai para a DLQ em vez do retry. */
+export type Delivery = { retries: number; finalAttempt: boolean }
+
 type Consumer = {
 	queue: QueueName
 	schema: z.ZodType
-	handler: (payload: unknown) => Promise<void>
+	handler: (payload: unknown, delivery: Delivery) => Promise<void>
 	prefetch: number
 	tag?: string
 }
@@ -121,12 +124,13 @@ export class QueueClient {
 
 	/**
 	 * Consome a fila validando cada mensagem com `schema`. Se o handler terminar sem erro, a mensagem recebe ack.
-	 * Com `bindTo`, a fila também passa a receber os eventos dessa exchange.
+	 * Com `bindTo`, a fila também passa a receber os eventos dessa exchange. O handler recebe também a tentativa
+	 * (`Delivery`), para avisar quem pediu antes de uma falha ir para a DLQ.
 	 */
 	async consume<S extends z.ZodType>(
 		queue: QueueName,
 		schema: S,
-		handler: (payload: z.output<S>) => Promise<void>,
+		handler: (payload: z.output<S>, delivery: Delivery) => Promise<void>,
 		options: { prefetch?: number; bindTo?: ExchangeName } = {},
 	) {
 		await this.assertQueue(queue)
@@ -264,7 +268,7 @@ export class QueueClient {
 
 		try {
 			const payload = parseMessage(consumer, msg)
-			await consumer.handler(payload)
+			await consumer.handler(payload, { retries, finalAttempt: retries >= this.options.maxRetries })
 
 			channel.ack(msg)
 		} catch (error) {

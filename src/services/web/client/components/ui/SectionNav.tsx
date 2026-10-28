@@ -13,7 +13,11 @@ export type SectionNavItem = { id: string; label: string }
  * Atalhos para as seções de uma tela longa, fixos abaixo do cabeçalho. Cada `id` é o de uma seção da tela (com
  * `SECTION_SCROLL_MARGIN`). Marca a última seção cujo topo já passou de um terço da tela (no fim da página, a última).
  */
-export function SectionNav({ sections, label, className }: {
+export function SectionNav({
+	sections,
+	label,
+	className,
+}: {
 	/** Fixa (fora do componente ou num `useMemo`): ela muda o efeito que acompanha a rolagem. */
 	sections: readonly SectionNavItem[]
 	label: string

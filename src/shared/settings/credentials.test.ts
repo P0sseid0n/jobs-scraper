@@ -32,6 +32,15 @@ beforeEach(() => {
 })
 
 describe('credentialsFromEnv', () => {
+	test('a conta de e-mail vem das SMTP_*, com porta e remetente opcionais', () => {
+		expect(
+			fromEnv({ SMTP_HOST: 'smtp.gmail.com', SMTP_PORT: '', SMTP_USER: 'eu@gmail.com', SMTP_PASS: 'senha de app', MAIL_FROM: '' }),
+		).toEqual({
+			smtp: { host: 'smtp.gmail.com', user: 'eu@gmail.com', password: 'senha de app' },
+		})
+		expect(() => fromEnv({ SMTP_HOST: 'smtp.gmail.com', SMTP_USER: 'eu@gmail.com' })).toThrow('SMTP_PASS')
+	})
+
 	test('.env vazio (ou com variáveis em branco): nenhum grupo', () => {
 		expect(fromEnv({})).toEqual({})
 		expect(fromEnv({ LINKEDIN_EMAIL: '', DISCORD_TOKEN: '  ', GITHUB_USERNAME: '' })).toEqual({})

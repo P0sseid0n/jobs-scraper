@@ -16,7 +16,7 @@ import {
 	type SeniorityLevel,
 } from '@shared/contracts'
 
-import type { WebCredentials, WebSettings } from '../../api-types'
+import type { CredentialGroup, WebCredentials, WebSettings } from '../../api-types'
 import { api, RequestError } from '../api'
 import { AccountsSection } from '../components/AccountsSection'
 import { AutoRunsSwitch } from '../components/AutoRunsSwitch'
@@ -34,8 +34,8 @@ import { Hero, Page, pageFrame } from '../components/ui/Page'
 import { pill, PillGroup } from '../components/ui/Pill'
 import { SECTION_SCROLL_MARGIN, SectionNav } from '../components/ui/SectionNav'
 import { SelectMenu, type SelectMenuOption } from '../components/ui/SelectMenu'
-import { Switch } from '../components/ui/Switch'
 import { StatusDot } from '../components/ui/StatusDot'
+import { Switch } from '../components/ui/Switch'
 import { FIELDSET, SECTION_TITLE } from '../components/ui/text'
 import { cx } from '../lib/cx'
 import {
@@ -121,7 +121,16 @@ function draftOf(settings: WebSettings): SettingsDraft {
  * Formulário do perfil profissional, das configurações do scraper e dos filtros das vagas; valem a partir da próxima coleta. As configurações
  * salvas vêm do loader da rota (`routes/configuracoes.tsx`). As contas ficam no fim, cada uma com o próprio botão de salvar.
  */
-export function SettingsView({ initial, credentials }: { initial: WebSettings; credentials: WebCredentials }) {
+export function SettingsView({
+	initial,
+	credentials,
+	account,
+}: {
+	initial: WebSettings
+	credentials: WebCredentials
+	/** A aba de contas que abre selecionada (`?conta=` na URL). */
+	account?: CredentialGroup
+}) {
 	const [loaded, setLoaded] = useState<WebSettings | null>(initial)
 	const [draft, setDraft] = useState<SettingsDraft | null>(() => draftOf(initial))
 	const [serverErrors, setServerErrors] = useState<Record<string, string>>({})
@@ -792,7 +801,7 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 					title="Sair sem salvar?"
 					description={
 						dirtyAccounts.length > 0
-							? `Há alterações não salvas${dirty ? ' nas configurações e' : ''} na conta do ${LIST_FORMAT.format(dirtyAccounts)}; elas vão se perder.`
+							? `Há alterações não salvas${dirty ? ' nas configurações e' : ''} na ${LIST_FORMAT.format(dirtyAccounts)}; elas vão se perder.`
 							: 'As alterações nas configurações ainda não foram salvas e vão se perder.'
 					}
 					confirmLabel="sair sem salvar"
@@ -828,7 +837,13 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 			{draft && renderScraper(draft)}
 			{draft && renderProcessing(draft)}
 			{draft && renderMessage(draft)}
-			<AccountsSection id="contas" className={SECTION_SCROLL_MARGIN} initial={credentials} onDirtyChange={setDirtyAccounts} />
+			<AccountsSection
+				id="contas"
+				className={SECTION_SCROLL_MARGIN}
+				initial={credentials}
+				initialGroup={account}
+				onDirtyChange={setDirtyAccounts}
+			/>
 
 			{draft && (
 				<div data-save-bar className="fixed inset-x-0 bottom-0 z-25 border-t border-line bg-bg max-md:bottom-safe-16">
@@ -849,13 +864,13 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 										: dirty
 											? 'alterações não salvas'
 											: dirtyAccounts.length > 0
-												? `conta do ${LIST_FORMAT.format(dirtyAccounts)} não salva`
+												? `${LIST_FORMAT.format(dirtyAccounts)} não salva`
 												: 'tudo salvo'}
 							</p>
 							{/* O "salvar alterações" não leva as contas: cada uma tem o próprio botão */}
 							{dirtyAccounts.length > 0 && (saveState === 'idle' || saveState === 'saving') && (
 								<p className="text-xs text-muted">
-									{dirty ? `e a conta do ${LIST_FORMAT.format(dirtyAccounts)}: ` : ''}use o “salvar” da conta, em contas
+									{dirty ? `e a ${LIST_FORMAT.format(dirtyAccounts)}: ` : ''}use o “salvar” da conta, em contas
 								</p>
 							)}
 							{(saveState === 'saved' || saveState === 'error') && saveMessage.detail && (

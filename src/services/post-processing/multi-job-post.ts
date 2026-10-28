@@ -191,10 +191,7 @@ function isRoleListHeader(line: string) {
 
 	const header = withoutAccents(cleanTitle(line)).toLowerCase()
 	return (
-		!!header &&
-		header.split(' ').length <= MAX_HEADER_WORDS &&
-		ROLE_LIST_HEADER.test(header) &&
-		!NOT_ROLE_LIST_HEADER.test(header)
+		!!header && header.split(' ').length <= MAX_HEADER_WORDS && ROLE_LIST_HEADER.test(header) && !NOT_ROLE_LIST_HEADER.test(header)
 	)
 }
 

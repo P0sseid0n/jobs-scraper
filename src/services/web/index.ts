@@ -1,7 +1,13 @@
 import { Ollama } from 'ollama'
 import { z } from 'zod'
 
-import { CvBaseValidationResultSchema, CvResultSchema, JobAppliedChangeSchema, ProcessedJobSchema } from '@shared/contracts'
+import {
+	CvBaseValidationResultSchema,
+	CvResultSchema,
+	JobAppliedChangeSchema,
+	MailResultSchema,
+	ProcessedJobSchema,
+} from '@shared/contracts'
 import { Job } from '@shared/database'
 import { onShutdown } from '@shared/lifecycle'
 import { EXCHANGES, QUEUES } from '@shared/messaging'
@@ -30,6 +36,7 @@ import { setJobsViewed, setJobViewed } from './server/job-viewed'
 import { getJob, getJobImage, getRawJob, jobFacets, listJobs } from './server/jobs'
 import { toWebJob, type JobDocument } from './server/jobs-query'
 import { getLinkedinLogin, requestLinkedinLogin, sendVerificationCode } from './server/linkedin-login'
+import { listJobMails, mailSetup, saveMailResult, sendJobMail } from './server/mail'
 import { rewriteCvMessage, undoCvMessage } from './server/message-rewrite'
 import { listRuns, requestRun, scraperStatus } from './server/scraper'
 import { getSettings, putSettings } from './server/settings'
@@ -47,6 +54,7 @@ onShutdown(() => events.close())
 await queue.assertQueue(QUEUES.cvUpdater)
 await queue.assertQueue(QUEUES.cvUpdaterBase)
 await queue.assertQueue(QUEUES.scraper)
+await queue.assertQueue(QUEUES.mailer)
 
 // A fila `web` assina o evento `job-published`, como a do Discord: o site recebe todas as vagas novas
 await queue.consume(
@@ -64,6 +72,7 @@ await queue.consume(
 await queue.consume(QUEUES.webCv, CvResultSchema, result => saveCvResult(result, { events, logger }))
 await queue.consume(QUEUES.webCvBase, CvBaseValidationResultSchema, result => saveCvBaseValidation(result, { events, logger }))
 // Candidatura marcada pelo botão do Discord: o banco já mudou, os navegadores abertos ficam sabendo
+await queue.consume(QUEUES.webMail, MailResultSchema, result => saveMailResult(result, { events, logger }))
 await queue.consume(QUEUES.webApplied, JobAppliedChangeSchema, async change => events.broadcast('applied', change))
 
 const api = <R extends Request>(fn: (req: R) => Promise<Response> | Response) => handler(logger, fn)
@@ -97,6 +106,9 @@ const server = Bun.serve({
 		'/api/jobs/:postId/reposts/:repostId': { DELETE: api(req => ungroupRepost(req, { queue, logger })) },
 		'/api/jobs/:postId/images/:index': { GET: api(getJobImage) },
 		'/api/jobs/:postId/cv': { POST: api(req => requestCv(req, { queue, events, logger })) },
+		'/api/jobs/:postId/mail': { POST: api(req => sendJobMail(req, { queue, events, logger })) },
+		'/api/jobs/:postId/mails': { GET: api(listJobMails) },
+		'/api/mail': { GET: api(mailSetup) },
 		'/api/cv': { GET: api(listCvRequests) },
 		'/api/cv/:requestId': { GET: api(getCvRequest) },
 		'/api/cv/:requestId/pdf': { GET: api(getCvPdf) },

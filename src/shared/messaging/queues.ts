@@ -29,6 +29,12 @@ export const QUEUES = {
 	webCvBase: 'web-cv-base',
 	/** Candidaturas marcadas fora do site (o botão do Discord), para o site avisar os navegadores abertos. */
 	webApplied: 'web-applied',
+	/** Candidaturas para o mailer enviar por e-mail (`MailRequest`). */
+	mailer: 'mailer',
+	/** Resultados dos envios pedidos pelo site (é o `replyTo.queue` dos pedidos dele). */
+	webMail: 'web-mail',
+	/** Resultados dos envios pedidos pelo Discord (é o `replyTo.queue` dos pedidos dele). */
+	discordMail: 'discord-mail',
 } as const
 
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES]

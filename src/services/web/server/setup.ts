@@ -38,6 +38,7 @@ export async function setupStatus({ skipOnboarding, cvTexFile, findActiveCv = fi
 		cv: !!activeCv || cvFile,
 		discord: credentials.discord.source !== null,
 		github: credentials.github.source !== null,
+		email: credentials.smtp.source !== null,
 	}
 
 	return Response.json({

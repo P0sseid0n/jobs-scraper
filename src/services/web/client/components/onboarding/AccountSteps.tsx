@@ -167,3 +167,41 @@ export function ExtrasStep({ eyebrow, credentials, onCredentials, onBack, onNext
 		</div>
 	)
 }
+
+/**
+ * Passo opcional: a conta de e-mail (SMTP) para enviar as candidaturas daqui e pelo Discord, com o currículo anexado,
+ * sempre depois de confirmar. Sem ela, a mensagem continua pronta para copiar.
+ */
+export function EmailStep({ eyebrow, credentials, onCredentials, onBack, onNext }: AccountStepProps) {
+	const saved = credentials.smtp.source !== null
+
+	useStepBar({
+		onBack,
+		primary: { label: saved ? 'continuar' : 'pular por agora', variant: saved ? 'lime' : 'ghost', onClick: onNext },
+	})
+
+	return (
+		<div className="flex flex-col gap-9">
+			<StepHeading
+				eyebrow={eyebrow}
+				title={
+					<>
+						Enviar a candidatura <span className="font-mono font-normal">daqui</span>
+					</>
+				}
+				lead="Com a sua conta de e-mail, o botão “enviar candidatura” manda a mensagem revisada e o currículo da vaga em anexo para o recrutador, sempre depois de você confirmar. É opcional: sem ela, você copia a mensagem e envia pelo seu e-mail."
+			/>
+
+			<Rise order={3} className={card({ size: 'lg', className: 'flex flex-col gap-5' })}>
+				<AccountGroup group="smtp" status={credentials} compact onSaved={onCredentials} />
+			</Rise>
+
+			<Rise order={4}>
+				<FieldHelp>
+					No Gmail: servidor smtp.gmail.com e uma senha de app (Conta Google › Segurança › Senhas de app). No Outlook:
+					smtp.office365.com. O “testar” entra no servidor sem enviar nada.
+				</FieldHelp>
+			</Rise>
+		</div>
+	)
+}

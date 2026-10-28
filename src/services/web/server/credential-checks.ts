@@ -1,5 +1,7 @@
 import type { CredentialsOf } from '@shared/contracts'
 
+import { classifyMailError } from '../../mailer/mail-errors'
+import { createSmtpTransport, senderOf, type MailTransport } from '../../mailer/mail-transport'
 import type { CredentialCheck } from '../api-types'
 
 type Fetch = (url: string, init?: RequestInit) => Promise<Response>
@@ -59,6 +61,23 @@ export async function checkGithub(account: CredentialsOf<'github'>, fetchFn: Fet
 		const repos = `${user.public_repos} ${user.public_repos === 1 ? 'repositório público' : 'repositórios públicos'}`
 		return { ok: true, message: `Usuário ${user.login} encontrado, com ${repos}${account.token ? ', e token aceito' : ''}.` }
 	})
+}
+
+/**
+ * Confere se o servidor SMTP aceita a conexão e o login, sem enviar nenhum e-mail. A mensagem traz o motivo já
+ * classificado (login recusado, servidor fora), nunca a senha nem a resposta crua do servidor.
+ */
+export async function checkSmtp(
+	account: CredentialsOf<'smtp'>,
+	createTransport: (account: CredentialsOf<'smtp'>) => Pick<MailTransport, 'verify'> = createSmtpTransport,
+): Promise<CredentialCheck> {
+	try {
+		await createTransport(account).verify()
+	} catch (error) {
+		return { ok: false, message: classifyMailError(error).reason }
+	}
+
+	return { ok: true, message: `Login aceito em ${account.host}: as candidaturas saem de ${senderOf(account)}.` }
 }
 
 /** Falha de rede ou tempo esgotado vira uma resposta do teste, em vez de erro da API. */

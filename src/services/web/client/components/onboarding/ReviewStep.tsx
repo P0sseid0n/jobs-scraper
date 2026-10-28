@@ -15,7 +15,7 @@ import type { OnboardingStep } from './steps'
 
 type Row = { step: OnboardingStep; title: string; detail: string; done: boolean; optional?: boolean }
 
-/** Passo 5: o resumo do que foi configurado, com "mudar" em cada linha, e a primeira coleta. */
+/** Último passo: o resumo do que foi configurado, com "mudar" em cada linha, e a primeira coleta. */
 export function ReviewStep({
 	eyebrow,
 	setup,
@@ -68,6 +68,15 @@ export function ReviewStep({
 			title: 'GitHub',
 			detail: setup.steps.github ? `Projetos de ${credentials.github.values.username ?? 'você'}.` : 'Não configurado.',
 			done: setup.steps.github,
+			optional: true,
+		},
+		{
+			step: 'email',
+			title: 'E-mail',
+			detail: setup.steps.email
+				? `Candidaturas enviadas daqui, de ${credentials.smtp.values.from ?? credentials.smtp.values.user ?? 'sua conta'}.`
+				: 'Não configurado: você copia a mensagem e envia pelo seu e-mail.',
+			done: setup.steps.email,
 			optional: true,
 		},
 	]
@@ -146,4 +155,4 @@ export function ReviewStep({
 }
 
 // As linhas chegam uma depois da outra, depois do título
-const ROW_STAGGER = ['stagger-4', 'stagger-5', 'stagger-6', 'stagger-7', 'stagger-8']
+const ROW_STAGGER = ['stagger-4', 'stagger-5', 'stagger-6', 'stagger-7', 'stagger-8', 'stagger-9']

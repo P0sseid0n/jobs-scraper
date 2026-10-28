@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 
 import { CV_BASE_TEX_MAX_BYTES, CvBaseValidationRequestSchema, CvRequestSchema } from './cv'
 import { ProcessedJobSchema } from './job'
+import { MailRequestSchema, MailResultSchema } from './mail'
 import { RawPostSchema } from './raw-post'
 
 describe('contratos das filas', () => {
@@ -62,5 +63,37 @@ describe('contratos das filas', () => {
 		expect(CvBaseValidationRequestSchema.safeParse({ ...validation, tex: 'é'.repeat(CV_BASE_TEX_MAX_BYTES / 2 + 1) }).success).toBe(
 			false,
 		)
+	})
+
+	test('MailRequest leva o e-mail revisado, o PDF por referência e a fila de resposta', () => {
+		const request = {
+			mailId: 'm1',
+			postId: 'abc',
+			to: '  rh@acme.com.br ',
+			subject: 'Candidatura\n– Dev Vue',
+			body: '  Olá!\n\nSegue o currículo.  ',
+			attachment: { fileId: 'f1' },
+			requestedBy: 'web',
+			replyTo: { queue: 'web-mail', context: { mailId: 'm1' } },
+			requestedAt: new Date().toISOString(),
+		}
+
+		expect(MailRequestSchema.parse(request)).toMatchObject({
+			to: 'rh@acme.com.br',
+			subject: 'Candidatura – Dev Vue',
+			body: 'Olá!\n\nSegue o currículo.',
+		})
+		expect(MailRequestSchema.safeParse({ ...request, to: 'não é e-mail' }).success).toBe(false)
+		expect(MailRequestSchema.safeParse({ ...request, subject: ' \n ' }).success).toBe(false)
+		expect(MailRequestSchema.safeParse({ ...request, body: '' }).success).toBe(false)
+		// O PDF nunca vai na mensagem: só a referência
+		expect(MailRequestSchema.safeParse({ ...request, attachment: { base64: 'JVBERi0=' } }).success).toBe(false)
+	})
+
+	test('MailResult é enviado ou falhou, com o motivo e o contexto de quem pediu', () => {
+		const result = { mailId: 'm1', postId: 'abc', context: { token: 'x' }, sentAt: null }
+
+		expect(MailResultSchema.safeParse({ ...result, status: 'failed', error: 'SMTP 550' }).success).toBe(true)
+		expect(MailResultSchema.safeParse({ ...result, status: 'sending', error: null }).success).toBe(false)
 	})
 })
