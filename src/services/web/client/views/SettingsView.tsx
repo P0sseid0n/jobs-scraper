@@ -661,51 +661,54 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 					mensagem de candidatura <span className="font-mono text-xs font-normal text-muted">IA</span>
 				</h2>
 
-				<fieldset className={FIELDSET}>
-					<legend className="mb-2.5 p-0 text-sm font-medium">tom</legend>
-					<PillGroup>
-						{MESSAGE_DEFAULT_TONES.map(tone => (
-							<label key={tone} className={pill({ className: 'cursor-pointer' })}>
-								<input
-									type="radio"
-									name="message-tone"
-									className="sr-only"
-									checked={message.tone === tone}
-									onChange={() =>
-										edit(next => {
-											next.message.tone = tone
-										})
-									}
-								/>
-								{MESSAGE_TONE_LABELS[tone]}
-							</label>
-						))}
-					</PillGroup>
-					<FieldHelp>{TONE_HELP[message.tone]}</FieldHelp>
-				</fieldset>
+				{/* Tom e tamanho lado a lado, como na vaga; o tom tem 4 opções e a ajuda mais longa, por isso 2/3 */}
+				<div className="grid grid-cols-3 gap-5 max-md:grid-cols-1">
+					<fieldset className={cx(FIELDSET, 'col-span-2 min-w-0 max-md:col-span-1')}>
+						<legend className="mb-2.5 p-0 text-sm font-medium">tom</legend>
+						<PillGroup>
+							{MESSAGE_DEFAULT_TONES.map(tone => (
+								<label key={tone} className={pill({ className: 'cursor-pointer' })}>
+									<input
+										type="radio"
+										name="message-tone"
+										className="sr-only"
+										checked={message.tone === tone}
+										onChange={() =>
+											edit(next => {
+												next.message.tone = tone
+											})
+										}
+									/>
+									{MESSAGE_TONE_LABELS[tone]}
+								</label>
+							))}
+						</PillGroup>
+						<FieldHelp>{TONE_HELP[message.tone]}</FieldHelp>
+					</fieldset>
 
-				<fieldset className={FIELDSET}>
-					<legend className="mb-2.5 p-0 text-sm font-medium">tamanho</legend>
-					<PillGroup>
-						{MESSAGE_LENGTHS.map(length => (
-							<label key={length} className={pill({ className: 'cursor-pointer' })}>
-								<input
-									type="radio"
-									name="message-length"
-									className="sr-only"
-									checked={message.length === length}
-									onChange={() =>
-										edit(next => {
-											next.message.length = length
-										})
-									}
-								/>
-								{MESSAGE_LENGTH_LABELS[length]}
-							</label>
-						))}
-					</PillGroup>
-					<FieldHelp>{LENGTH_HELP[message.length]}</FieldHelp>
-				</fieldset>
+					<fieldset className={cx(FIELDSET, 'min-w-0')}>
+						<legend className="mb-2.5 p-0 text-sm font-medium">tamanho</legend>
+						<PillGroup>
+							{MESSAGE_LENGTHS.map(length => (
+								<label key={length} className={pill({ className: 'cursor-pointer' })}>
+									<input
+										type="radio"
+										name="message-length"
+										className="sr-only"
+										checked={message.length === length}
+										onChange={() =>
+											edit(next => {
+												next.message.length = length
+											})
+										}
+									/>
+									{MESSAGE_LENGTH_LABELS[length]}
+								</label>
+							))}
+						</PillGroup>
+						<FieldHelp>{LENGTH_HELP[message.length]}</FieldHelp>
+					</fieldset>
+				</div>
 
 				<div className="flex flex-col gap-1.5">
 					<span className="flex items-center justify-between gap-3">
