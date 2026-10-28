@@ -73,6 +73,14 @@ const RUN_STATUS: Record<WebScraperRun['status'], { label: string; tone: BadgeTo
 	failed: { label: 'falha', tone: 'danger', dot: 'current' },
 }
 
+/** A coleta que rodou sem erro, mas não trouxe nenhuma vaga nova depois de a IA ler toda a fila. */
+const NO_JOBS: (typeof RUN_STATUS)[keyof typeof RUN_STATUS] = { label: 'sem vagas', tone: 'muted', dot: 'muted' }
+
+function runStatus(run: WebScraperRun) {
+	const settled = run.status === 'success' && (run.outcomes?.pending ?? 0) === 0
+	return settled && run.newJobs === 0 ? NO_JOBS : RUN_STATUS[run.status]
+}
+
 /** O que mostrar quando a busca de um termo não trouxe posts, pelo tipo do erro. */
 const TERM_ERRORS: Record<NonNullable<WebScraperRunTerm['errorKind']>, { title: string; hint: string }> = {
 	empty: { title: 'sem resultados', hint: 'O LinkedIn não achou posts para este termo. Tente outro termo ou um período maior.' },
@@ -344,14 +352,15 @@ function RunRows({ run, open, onToggle }: { run: WebScraperRun; open: boolean; o
 	const failedTerms = run.terms.filter(term => term.error && term.errorKind !== 'empty').length
 	const emptyTerms = run.terms.filter(term => term.errorKind === 'empty').length
 	const duration = run.finishedAt ? formatDuration(new Date(run.finishedAt).getTime() - new Date(run.startedAt).getTime()) : '–'
+	const status = runStatus(run)
 
 	return (
 		<>
 			<tr className={ROW}>
 				<td className={TD}>
-					<Badge tone={RUN_STATUS[run.status].tone}>
-						<StatusDot tone={RUN_STATUS[run.status].dot} />
-						{RUN_STATUS[run.status].label}
+					<Badge tone={status.tone}>
+						<StatusDot tone={status.dot} />
+						{status.label}
 					</Badge>
 				</td>
 				<td className={TD}>{TRIGGERS[run.trigger]}</td>
