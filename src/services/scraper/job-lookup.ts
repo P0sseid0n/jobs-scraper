@@ -117,7 +117,26 @@ async function externalTarget(page: Page) {
 	return safetyRedirectTarget(url)
 }
 
-/** Lê o topo e a descrição de uma vaga do LinkedIn; em outro site (ou se o layout mudar), o `<main>` ou a página toda. */
+/**
+ * Partes da página com a vaga em sites frequentes nas listas, por domínio. No netvagas: o topo (cargo, empresa),
+ * "Sobre a vaga" (a ficha) e "Descrição"; os cards seguintes são o aviso de redirecionamento, o ATS e dicas de currículo.
+ */
+const SITE_SELECTORS: Record<string, string[]> = {
+	'www.netvagas.com.br': ['.nv-anuncio > article', '.nv-anuncio > article + section', '.nv-anuncio > article + section + section'],
+}
+
+/**
+ * Partes do site que não são a vaga: menu, busca, rodapé, barras laterais e banners. `header` e `footer` só fora de um
+ * `article`, `main` ou `section` (dentro, costumam ser o cabeçalho da própria vaga). `form` fica: em sites ASP.NET, um
+ * `<form>` envolve a página inteira.
+ */
+const SITE_CHROME = 'nav, aside, dialog, [role=banner], [role=navigation], [role=contentinfo], [role=search], [role=dialog]'
+const SITE_HEADER = 'header, footer'
+
+/**
+ * Lê o topo e a descrição de uma vaga do LinkedIn; num site conhecido, as partes da vaga (`SITE_SELECTORS`); em outro
+ * (ou se o layout mudar), o `<main>` ou a página toda, sem o menu, a busca e o rodapé do site.
+ */
 async function readJobPage(page: Page): Promise<ListingPage> {
 	if (canonicalJobUrl(page.url())) {
 		await page.waitForSelector(SELECTORS.jobDescription, { timeout: JOB_PAGE_TIMEOUT_MS }).catch(() => {})
@@ -126,16 +145,28 @@ async function readJobPage(page: Page): Promise<ListingPage> {
 	}
 
 	const text = await page.evaluate(
-		selectors => {
-			const parts = [selectors.jobTopCard, selectors.jobDescription]
+		({ selectors, chrome, header }) => {
+			const parts = selectors
 				.map(selector => document.querySelector<HTMLElement>(selector)?.innerText.trim() ?? '')
 				.filter(Boolean)
+			if (parts.length > 0) return parts.join('\n\n')
 
-			return parts.length > 0
-				? parts.join('\n\n')
-				: ((document.querySelector<HTMLElement>('main') ?? document.body)?.innerText ?? '')
+			// Removidos da própria página (o `innerText` de uma cópia fora dela não tem as quebras de linha); a aba
+			// vai para outro link depois da leitura
+			for (const element of document.querySelectorAll(chrome)) element.remove()
+			for (const element of document.querySelectorAll(header)) {
+				if (!element.parentElement?.closest('article, main, section')) element.remove()
+			}
+
+			return (document.querySelector<HTMLElement>('main') ?? document.body)?.innerText ?? ''
 		},
-		{ jobTopCard: SELECTORS.jobTopCard, jobDescription: SELECTORS.jobDescription },
+		{
+			selectors: canonicalJobUrl(page.url())
+				? [SELECTORS.jobTopCard, SELECTORS.jobDescription]
+				: (SITE_SELECTORS[new URL(page.url()).hostname] ?? []),
+			chrome: SITE_CHROME,
+			header: SITE_HEADER,
+		},
 	)
 
 	return { url: page.url(), text }
