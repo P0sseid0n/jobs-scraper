@@ -151,8 +151,7 @@ describe('keepCompanyIfInPost', () => {
 })
 
 describe('chooseCompany', () => {
-	const cadmus =
-		'Que tal começar a sua jornada com a Cadmus? Desenvolvedor(a) Front-end React Sênior – Remoto. Vem ser Cadmus!'
+	const cadmus = 'Que tal começar a sua jornada com a Cadmus? Desenvolvedor(a) Front-end React Sênior – Remoto. Vem ser Cadmus!'
 	const page = { author: 'Cadmus Soluções em TI', authorIsCompany: true }
 	const person = { author: 'Ana Souza', authorIsCompany: false }
 
@@ -177,13 +176,19 @@ describe('chooseCompany', () => {
 		expect(chooseCompany({ aiCompany: null, ...person }, 'Envie o CV para rh@acmetech.com.br')).toBeNull()
 	})
 
+	test('a página de vagas que reposta a vaga não é a empresa, nem quando a IA a copia', () => {
+		const board = { author: 'Vagas Remotas - Brasil, Europa e EUA', authorIsCompany: true }
+
+		expect(chooseCompany({ aiCompany: 'Vagas Remotas - Brasil, Europa e EUA', ...board }, 'Vaga remota - Dev FullStack')).toBeNull()
+		expect(chooseCompany({ aiCompany: null, ...board }, 'Vaga remota - Dev FullStack')).toBeNull()
+		expect(chooseCompany({ aiCompany: 'Globex', ...board }, 'Dev FullStack na Globex')).toBe('Globex')
+	})
+
 	test('a agência citando o cliente fica com o cliente; o domínio do e-mail desempata', () => {
 		const agency = { author: 'Talentos RH', authorIsCompany: true }
 
 		expect(chooseCompany({ aiCompany: 'Globex', ...agency }, 'Vaga na Globex, remoto')).toBe('Globex')
-		expect(chooseCompany({ aiCompany: 'Globex', ...agency }, 'Vaga na Globex. CV para vagas@talentosrh.com.br')).toBe(
-			'Talentos RH',
-		)
+		expect(chooseCompany({ aiCompany: 'Globex', ...agency }, 'Vaga na Globex. CV para vagas@talentosrh.com.br')).toBe('Talentos RH')
 	})
 })
 
@@ -242,7 +247,18 @@ describe('keepWorkModeInPost', () => {
 	test('descarta a modalidade deduzida do cargo ou de outra modalidade', () => {
 		expect(keepWorkModeInPost('presencial', 'Enfermeiro(a) de Centro Cirúrgico, plantão 12x36')).toBeNull()
 		expect(keepWorkModeInPost('hibrido', 'Desenvolvedor Front-End Pleno – Home Office')).toBeNull()
-		expect(keepWorkModeInPost(null, 'Vaga remota')).toBeNull()
+	})
+
+	test('sem modalidade da IA, fica a única escrita no post', () => {
+		expect(keepWorkModeInPost(null, 'Vaga remota - Pessoa Desenvolvedora FullStack (NodeJS / Angular / Java)')).toBe('remoto')
+		expect(keepWorkModeInPost(null, 'Analista de Dados | Híbrido em São Paulo')).toBe('hibrido')
+		expect(keepWorkModeInPost(null, 'Trabalho no home office, com notebook da empresa')).toBe('remoto')
+	})
+
+	test('sem modalidade da IA, o post sem nenhuma, com mais de uma ou negada fica sem modalidade', () => {
+		expect(keepWorkModeInPost(null, 'Desenvolvedor Java Pleno, CLT')).toBeNull()
+		expect(keepWorkModeInPost(null, 'Temos vagas remotas e presenciais')).toBeNull()
+		expect(keepWorkModeInPost(null, 'A vaga não é remota')).toBeNull()
 	})
 })
 
@@ -299,9 +315,7 @@ Requisitos: Python, Airflow, SQL e AWS. Envie seu currículo pelo link do post.`
 		const internship = 'ESTÁGIO EM INTELIGÊNCIA ARTIFICIAL | REMOTO. A Acme está recrutando para uma vaga de estágio.'
 
 		expect(keepContractTypesInPost([], internship, 'Estágio em Inteligência Artificial')).toEqual(['estagio'])
-		expect(keepContractTypesInPost(null, 'Freelancer Designer, projeto de 2 meses', 'Freelancer Designer')).toEqual([
-			'freelance',
-		])
+		expect(keepContractTypesInPost(null, 'Freelancer Designer, projeto de 2 meses', 'Freelancer Designer')).toEqual(['freelance'])
 		// O cargo sem estágio não muda nada
 		expect(keepContractTypesInPost(null, 'Processo seletivo no estágio final, vaga de Dev Go', 'Dev Go')).toBeNull()
 	})

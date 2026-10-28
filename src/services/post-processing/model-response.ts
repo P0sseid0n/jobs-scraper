@@ -78,7 +78,7 @@ export type CompanySources = { aiCompany: string | null; author: string | null; 
  * escolhida pela IA (1) e no domínio de um e-mail do post (2; e-mail gratuito não conta). Fica a de mais pontos, se
  * chegar a 3: a IA com o e-mail corporativo basta ("Tiviati" de rh@tiviati.com.br, com o nome escrito só ali), com
  * o domínio de um link não (ela tirava "Gupy" de acme.gupy.io); a página da empresa basta (a empresa nem sempre
- * escreve o próprio nome). No empate fica a da IA: a página de uma agência citando o cliente.
+ * escreve o próprio nome), menos a de uma página de vagas, que reposta as de outras empresas. No empate fica a da IA: a página de uma agência citando o cliente.
  * @param text O texto do post (com a transcrição das imagens).
  */
 export function chooseCompany({ aiCompany, author, authorIsCompany }: CompanySources, text: string): string | null {
@@ -87,14 +87,17 @@ export function chooseCompany({ aiCompany, author, authorIsCompany }: CompanySou
 		(keepCompanyIfInPost(name, text) ? 2 : 0) + (domains.some(domain => companyInDomain(name, domain)) ? 2 : 0)
 
 	const candidates: { name: string; points: number }[] = []
-	const ai = aiCompany?.trim()
 	const pageAuthor = authorIsCompany ? author?.trim() : null
+	// Página de vagas que reposta a de outra empresa ("Vagas Remotas - Brasil"): não é a empresa, nem quando a IA a copia
+	const jobBoard = pageAuthor && JOB_BOARD_PAGE.test(normalizeForMatch(pageAuthor)) ? pageAuthor : null
+	const ai = jobBoard && aiCompany && sameCompany(aiCompany, jobBoard) ? null : aiCompany?.trim()
+	const companyPage = jobBoard ? null : pageAuthor
 
 	// A IA citando o próprio autor ("Cadmus" no post da "Cadmus Soluções em TI") é um candidato só, com o nome da página
-	if (ai && pageAuthor && sameCompany(ai, pageAuthor)) candidates.push({ name: pageAuthor, points: 1 + 3 + score(ai) })
+	if (ai && companyPage && sameCompany(ai, companyPage)) candidates.push({ name: companyPage, points: 1 + 3 + score(ai) })
 	else {
 		if (ai) candidates.push({ name: ai, points: 1 + score(ai) })
-		if (pageAuthor) candidates.push({ name: pageAuthor, points: 3 + score(pageAuthor) })
+		if (companyPage) candidates.push({ name: companyPage, points: 3 + score(companyPage) })
 	}
 
 	const best = candidates.reduce<(typeof candidates)[number] | null>(
@@ -103,6 +106,9 @@ export function chooseCompany({ aiCompany, author, authorIsCompany }: CompanySou
 	)
 	return best && best.points >= 3 ? best.name : null
 }
+
+/** Nome de página que divulga vagas de outras empresas: "Vagas Remotas - Brasil", "Remote Jobs BR", "Empregos TI". */
+const JOB_BOARD_PAGE = /(?<![a-z0-9])(vagas?|jobs?|empregos?|oportunidades)(?![a-z0-9])/
 
 /** Mesma empresa escrita mais curta ou mais longa: "Cadmus" e "Cadmus Soluções em TI", "Capitani Group" e "CapitaniGroup". */
 export function sameCompany(a: string, b: string) {
@@ -138,9 +144,7 @@ const FREE_EMAIL = new Set([
 /** O nome junto bate com uma parte do domínio, numa ponta ou na outra: "Cadmus Soluções" ↔ rh@cadmus.com.br. */
 function companyInDomain(name: string, labels: string[]) {
 	const compact = compactName(name)
-	return labels.some(
-		label => label.length >= 4 && compact.length >= 4 && (compact.startsWith(label) || label.startsWith(compact)),
-	)
+	return labels.some(label => label.length >= 4 && compact.length >= 4 && (compact.startsWith(label) || label.startsWith(compact)))
 }
 
 function compactName(name: string) {
@@ -221,19 +225,32 @@ const WORK_MODE_TERMS: Record<WorkMode, RegExp> = {
 	hibrido: /hibrid[oa]|hybrid/,
 }
 
+/** "Não é remoto", "não sendo home office": o termo aparece, mas negado. */
+const NEGATED_WORK_MODE =
+	/(?<![a-z0-9])(nao|not) (e |sera |sendo |a )?(100 ?% ?)?(remot|home ?-?office|hibrid|hybrid|presencia|on-?site)/
+
 /**
  * Mantém a modalidade da IA só se ela estiver escrita no post: o modelo às vezes a deduz do cargo (enfermeiro de
- * centro cirúrgico → presencial). "3 dias presenciais e 2 remotos" também vale como híbrido.
+ * centro cirúrgico → presencial). "3 dias presenciais e 2 remotos" também vale como híbrido. Sem modalidade da IA,
+ * fica a do texto quando ele cita uma só e sem negá-la: o modelo às vezes não vê nem "Vaga remota" na primeira linha.
  */
 export function keepWorkModeInPost(workMode: WorkMode | null, text: string): WorkMode | null {
-	if (!workMode) return null
-
 	const normalizedText = normalizeForMatch(text.normalize('NFKC'))
+	if (!workMode) return workModeInText(normalizedText)
+
 	if (WORK_MODE_TERMS[workMode].test(normalizedText)) return workMode
 	if (workMode === 'hibrido' && WORK_MODE_TERMS.presencial.test(normalizedText) && WORK_MODE_TERMS.remoto.test(normalizedText)) {
 		return workMode
 	}
 	return null
+}
+
+/** A única modalidade citada no texto (já normalizado), ou `null` se ele cita nenhuma, mais de uma ou a nega. */
+function workModeInText(normalizedText: string): WorkMode | null {
+	if (NEGATED_WORK_MODE.test(normalizedText)) return null
+
+	const cited = (Object.keys(WORK_MODE_TERMS) as WorkMode[]).filter(mode => WORK_MODE_TERMS[mode].test(normalizedText))
+	return cited.length === 1 ? (cited[0] ?? null) : null
 }
 
 function skillWords(skill: string) {
