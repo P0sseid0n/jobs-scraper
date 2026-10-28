@@ -222,6 +222,12 @@ const PREVIEWS: Record<string, Preview> = {
 		subtitle: 'com copiar e rolagem (JSON)',
 		body: `h(U.CodeBlock, { label: 'documento no mongodb', onCopy: () => {}, scroll: true, className: 'max-w-md' }, JSON.stringify({ title: 'Desenvolvedor Front-end Pleno', company: 'Acme', workMode: 'remote', technologies: ['React', 'TypeScript'] }, null, 2))`,
 	},
+	FieldScan: {
+		group: 'Feedback',
+		height: 160,
+		subtitle: 'o campo da mensagem carregando',
+		body: `h('div', { className: 'relative grid max-w-md' }, h('textarea', { className: U.field({ className: 'min-h-32 resize-none py-2.5' }), disabled: true, value: '' }), h(U.FieldScan, { label: 'carregando a mensagem', className: 'absolute inset-0' }))`,
+	},
 	Skeleton: {
 		group: 'Feedback',
 		height: 120,

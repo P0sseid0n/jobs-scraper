@@ -18,6 +18,7 @@ import { badge } from './ui/Badge'
 import { Button } from './ui/Button'
 import { DIALOG } from './ui/Dialog'
 import { FieldError, FieldHelp, FieldLabel } from './ui/Field'
+import { FieldScan } from './ui/FieldScan'
 import { field, Input } from './ui/Input'
 import { Notice } from './ui/Notice'
 import { PdfIcon } from './ui/PdfIcon'
@@ -106,7 +107,7 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 	// a mensagem que a IA escreve junto (se a pessoa ainda não editou o modelo: aí o texto dela fica)
 	const awaitingAi = cv?.status === 'pending' && !generated && !edited
 	const bodyLoading = !textReady || awaitingAi
-	const loadingLabel = textReady ? 'a IA está escrevendo a mensagem para a vaga…' : 'carregando a mensagem…'
+	const loadingLabel = textReady ? 'a IA está escrevendo a mensagem para a vaga' : 'carregando a mensagem'
 	// Sem saber ainda se há conta de e-mail, os campos aparecem como editáveis (desligados), no lugar em que vão ficar
 	const editable = canSend || setup === null
 
@@ -316,7 +317,7 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 											}}
 											className={field({ invalid: !!errors.body, className: 'resize-y py-2.5 leading-relaxed' })}
 										/>
-										{bodyLoading && <BodyLoading label={loadingLabel} className="absolute inset-0" />}
+										{bodyLoading && <FieldScan label={loadingLabel} className="absolute inset-0 rounded-sm" />}
 									</div>
 									{errors.body && <FieldError id={`${ids.body}-error`}>{errors.body}</FieldError>}
 								</div>
@@ -336,7 +337,7 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 								</p>
 								{/* Texto corrido, para revisar: sem a fonte mono e com a linha numa largura confortável de ler */}
 								{bodyLoading ? (
-									<BodyLoading label={loadingLabel} className="min-h-40 rounded-sm bg-surface" />
+									<FieldScan label={loadingLabel} className="min-h-40 rounded-sm bg-surface" />
 								) : (
 									<p className="m-0 max-w-prose text-sm leading-relaxed whitespace-pre-wrap wrap-break-word">{body}</p>
 								)}
@@ -484,16 +485,6 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 				</div>
 			</form>
 		</dialog>
-	)
-}
-
-/** O corpo da mensagem carregando, no lugar dele: o spinner e o que se espera. */
-function BodyLoading({ label, className }: { label: string; className?: string }) {
-	return (
-		<div role="status" className={cx('flex items-center justify-center gap-2 text-sm text-muted', className)}>
-			<Icon name="spinner" size={14} />
-			{label}
-		</div>
 	)
 }
 

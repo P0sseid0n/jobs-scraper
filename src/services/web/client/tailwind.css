@@ -266,6 +266,8 @@
 
 	/* O brilho que atravessa os esqueletos (`shimmer`, abaixo) */
 	--animate-shimmer: shimmer 1600ms ease-in-out infinite;
+	/* O campo carregando (`FieldScan`): uma linha horizontal sobe e desce por ele, como um scanner */
+	--animate-field-scan: field-scan 1500ms ease-in-out infinite alternate;
 	/*
 	 * O currículo ajustado para a vaga: a habilidade que saiu ganha um risco da esquerda para a direita
 	 * (`strike-through`, abaixo); a apresentação antiga se desfaz desfocando e a nova chega palavra por palavra; um
@@ -278,6 +280,15 @@
 	/* Login do LinkedIn: o código recusado treme; o check do sucesso é desenhado (no `<path pathLength="1">`) */
 	--animate-shake: shake 420ms ease-in-out;
 	--animate-draw: draw 600ms var(--ease-glide) both;
+
+	@keyframes field-scan {
+		from {
+			top: 0;
+		}
+		to {
+			top: calc(100% - 2px);
+		}
+	}
 
 	@keyframes shimmer {
 		from {
