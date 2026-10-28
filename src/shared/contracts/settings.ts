@@ -152,6 +152,7 @@ export const MESSAGE_DEFAULT_TONES = ['auto', ...MESSAGE_TONES] as const
 export type MessageDefaultTone = (typeof MESSAGE_DEFAULT_TONES)[number]
 
 export const MESSAGE_STYLE_SAMPLE_MAX = 1500
+export const MESSAGE_SIGNATURE_MAX = 500
 
 /** Como a IA escreve o e-mail de candidatura (cv-updater); em cada vaga dá para reescrever com outro tom e tamanho. */
 export const MessageSettingsSchema = z.object({
@@ -159,6 +160,8 @@ export const MessageSettingsSchema = z.object({
 	length: z.enum(MESSAGE_LENGTHS).default('medium'),
 	/** Uma mensagem que a pessoa já mandou: a IA imita o jeito de escrever, sem copiar os fatos. Vazio desliga. */
 	styleSample: z.string().trim().max(MESSAGE_STYLE_SAMPLE_MAX).default(''),
+	/** Linhas coladas no fim de toda mensagem, como estão, sem passar pela IA (ex.: links do GitHub e do LinkedIn). */
+	signature: z.string().trim().max(MESSAGE_SIGNATURE_MAX).default(''),
 })
 
 export type MessageSettings = z.output<typeof MessageSettingsSchema>

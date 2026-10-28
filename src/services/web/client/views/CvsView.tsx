@@ -24,6 +24,7 @@ import { cx } from '../lib/cx'
 import { formatDateTime } from '../lib/format'
 import { jobParams } from '../router'
 import { requestCv, useCvRequests } from '../stores/cv'
+import { useMessageSignature } from '../stores/message-settings'
 import { copyText, notify } from '../stores/toast'
 
 /** Quantas tecnologias que entraram aparecem no resumo do item; o resto vira "+N". */
@@ -112,7 +113,7 @@ function ChangeSummary({ changes }: { changes: CvChanges }) {
 
 /** O e-mail de candidatura que a IA escreveu para a vaga, para copiar. */
 function ApplicationMessageBox({ message }: { message: NonNullable<WebCvRequest['message']> }) {
-	const text = formatApplicationMessage(message)
+	const text = formatApplicationMessage(message, useMessageSignature())
 
 	return (
 		<section className="flex flex-col gap-2.5 rounded-sm bg-surface-2 p-3.5" aria-label="E-mail de candidatura">

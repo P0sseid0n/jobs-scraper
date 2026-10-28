@@ -19,6 +19,15 @@ describe('buildCvDeliveryContent', () => {
 		expect(content).toEndWith('tenho interesse.\n```')
 	})
 
+	test('a assinatura vai no fim da mensagem, dentro do bloco para copiar', () => {
+		const content = buildCvDeliveryContent(
+			{ file, jobTitle: 'Dev Vue', error: null, message },
+			'🔗 GitHub: https://github.com/exemplo',
+		)
+
+		expect(content).toEndWith('tenho interesse.\n\n🔗 GitHub: https://github.com/exemplo\n```')
+	})
+
 	test('sem mensagem (vaga sem e-mail ou IA falhou), só o aviso', () => {
 		expect(buildCvDeliveryContent({ file, jobTitle: 'Dev Vue', error: null, message: null })).toBe(
 			'📄 Currículo ajustado para **Dev Vue**',

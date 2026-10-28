@@ -21,6 +21,7 @@ import {
 import { revealJobDetail } from '../lib/job-opening'
 import { rewriteMessage, undoMessageRewrite, useCvFor, useGeneratedMessage } from '../stores/cv'
 import { removeJob, replaceJob } from '../stores/jobs'
+import { useMessageSignature } from '../stores/message-settings'
 import { copyText, notify } from '../stores/toast'
 import { ContractTypeBadge } from './ContractTypeBadge'
 import { CorrectedBadge } from './CorrectedBadge'
@@ -87,7 +88,9 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 	const generatedRequest = useGeneratedMessage(job.postId)
 	const generated = generatedRequest?.message ?? null
 	const showGenerated = !!generated && !useDefaultMessage
-	const message = generated && showGenerated ? formatApplicationMessage(generated) : applicationMessage(job.title)
+	const signature = useMessageSignature()
+	const message =
+		generated && showGenerated ? formatApplicationMessage(generated, signature) : applicationMessage(job.title, signature)
 	// Mensagens de antes do tom e do tamanho foram escritas no neutro e no tamanho médio
 	const tone = generated?.tone ?? 'neutral'
 	const length = generated?.length ?? 'medium'

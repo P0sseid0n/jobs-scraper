@@ -18,12 +18,16 @@ export function defaultApplicationMessage(jobTitle: string | null): ApplicationM
 	}
 }
 
-/** O e-mail como texto para copiar: "Assunto: …", uma linha em branco e o corpo. */
-export function formatApplicationMessage(message: ApplicationMessageText) {
-	return `Assunto: ${message.subject}\n\n${message.body}`
+/**
+ * O e-mail como texto para copiar: "Assunto: …", uma linha em branco, o corpo e, se houver, a assinatura das
+ * configurações (colada como está: ela nunca passa pela IA, que poderia estragar os links).
+ */
+export function formatApplicationMessage(message: ApplicationMessageText, signature = '') {
+	const footer = signature.trim()
+	return `Assunto: ${message.subject}\n\n${message.body}${footer ? `\n\n${footer}` : ''}`
 }
 
 /** Modelo de mensagem de candidatura por e-mail, oferecido para copiar nos canais (Discord, site). */
-export function applicationMessage(jobTitle: string | null) {
-	return formatApplicationMessage(defaultApplicationMessage(jobTitle))
+export function applicationMessage(jobTitle: string | null, signature = '') {
+	return formatApplicationMessage(defaultApplicationMessage(jobTitle), signature)
 }

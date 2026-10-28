@@ -18,7 +18,7 @@ export function emailFromEmbed(fields: { name: string; value: string }[]) {
 }
 
 /** Monta a resposta ao botão de contato (só quem clicou vê): e-mail, modelo de mensagem e aviso do currículo. */
-export function buildContactReply(email: string | null, jobTitle: string | null, opts: { generatingCv: boolean }) {
+export function buildContactReply(email: string | null, jobTitle: string | null, opts: { generatingCv: boolean; signature?: string }) {
 	if (!email) {
 		return opts.generatingCv ? CV_PENDING_NOTE : 'Essa vaga não tem e-mail de contato.'
 	}
@@ -28,7 +28,7 @@ export function buildContactReply(email: string | null, jobTitle: string | null,
 		'',
 		'Modelo de mensagem para copiar:',
 		'```',
-		applicationMessage(jobTitle),
+		applicationMessage(jobTitle, opts.signature).replaceAll('```', "'''"),
 		'```',
 		...(opts.generatingCv ? ['', CV_PENDING_NOTE] : []),
 	].join('\n')

@@ -56,6 +56,7 @@ import {
 	type SettingsDraft,
 } from '../lib/settings-form'
 import { useFlash } from '../lib/use-flash'
+import { setMessageSettings } from '../stores/message-settings'
 import { notify } from '../stores/toast'
 
 const LIST_FORMAT = new Intl.ListFormat('pt-BR')
@@ -206,6 +207,8 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 			for (const key of dirtyKeys) {
 				const saved = await api.saveSettings(key, draft[key])
 				current = { ...current, [key]: saved }
+				// A assinatura entra nas mensagens para copiar das outras telas sem recarregar
+				if (key === 'message') setMessageSettings(current.message)
 				setLoaded(current)
 			}
 			reset(current)
@@ -653,7 +656,38 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 
 	function renderMessage(d: SettingsDraft) {
 		const message = d.message
-		const sampleLength = message.styleSample.trim().length
+
+		/** Os campos de texto livre do card (o exemplo e a assinatura), com o contador de caracteres. */
+		const textField = (key: 'styleSample' | 'signature', label: string, rows: number, placeholder: string, help: string) => {
+			const length = message[key].trim().length
+
+			return (
+				<div className="flex flex-col gap-1.5">
+					<span className="flex items-center justify-between gap-3">
+						<FieldLabel htmlFor={key}>{label}</FieldLabel>
+						<span className={cx('font-mono text-xs', length > LIMITS[key] ? 'text-danger' : 'text-muted')}>
+							{length} / {LIMITS[key]}
+						</span>
+					</span>
+					<textarea
+						id={key}
+						rows={rows}
+						value={message[key]}
+						placeholder={placeholder}
+						aria-invalid={!!errors[key] || undefined}
+						aria-describedby={errors[key] ? `${key}-error` : `${key}-help`}
+						onChange={event => {
+							const value = event.target.value
+							edit(next => {
+								next.message[key] = value
+							})
+						}}
+						className={field({ invalid: !!errors[key], className: 'resize-y py-2.5 leading-relaxed' })}
+					/>
+					{fieldError(key) ?? <FieldHelp id={`${key}-help`}>{help}</FieldHelp>}
+				</div>
+			)
+		}
 
 		return (
 			<section id="mensagem" className={SETTINGS_CARD} aria-labelledby="message-title">
@@ -710,34 +744,21 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 					</fieldset>
 				</div>
 
-				<div className="flex flex-col gap-1.5">
-					<span className="flex items-center justify-between gap-3">
-						<FieldLabel htmlFor="styleSample">seu jeito de escrever</FieldLabel>
-						<span className={cx('font-mono text-xs', sampleLength > LIMITS.styleSample ? 'text-danger' : 'text-muted')}>
-							{sampleLength} / {LIMITS.styleSample}
-						</span>
-					</span>
-					<textarea
-						id="styleSample"
-						rows={5}
-						value={message.styleSample}
-						placeholder="Opcional. Cole uma mensagem que você já mandou para um recrutador."
-						aria-invalid={!!errors.styleSample || undefined}
-						aria-describedby={errors.styleSample ? 'styleSample-error' : 'styleSample-help'}
-						onChange={event => {
-							const value = event.target.value
-							edit(next => {
-								next.message.styleSample = value
-							})
-						}}
-						className={field({ invalid: !!errors.styleSample, className: 'resize-y py-2.5 leading-relaxed' })}
-					/>
-					{fieldError('styleSample') ?? (
-						<FieldHelp id="styleSample-help">
-							A IA imita a saudação, o tamanho das frases e o calor do texto, sem copiar fatos, nomes ou empresas dele.
-						</FieldHelp>
-					)}
-				</div>
+				{textField(
+					'styleSample',
+					'seu jeito de escrever',
+					5,
+					'Opcional. Cole uma mensagem que você já mandou para um recrutador.',
+					'A IA imita a saudação, as expressões e o fechamento do texto, sem copiar fatos ou empresas dele. Links ficam de fora: eles vão na assinatura.',
+				)}
+
+				{textField(
+					'signature',
+					'assinatura',
+					3,
+					'Opcional. Ex.: GitHub: https://github.com/voce',
+					'Vai no fim de toda mensagem para copiar, exatamente como está, sem passar pela IA: links do GitHub, LinkedIn ou portfólio.',
+				)}
 
 				<Notice tone="info" icon="info">
 					<p className="text-sm">

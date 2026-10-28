@@ -50,6 +50,14 @@ describe('validateDraft (as mesmas regras do servidor)', () => {
 		expect(MessageSettingsSchema.safeParse(value.message).success).toBe(false)
 	})
 
+	test('a assinatura tem o limite do servidor', () => {
+		const value = draft()
+		value.message.signature = 'a'.repeat(501)
+
+		expect(validateDraft(value)).toEqual({ signature: 'Use até 500 caracteres' })
+		expect(MessageSettingsSchema.safeParse(value.message).success).toBe(false)
+	})
+
 	test('o resultado aceito pelo cliente também passa no schema do servidor', () => {
 		const value = draft()
 		value.scraper.searchTerms.push({ term: 'Técnico de Enfermagem', enabled: true })

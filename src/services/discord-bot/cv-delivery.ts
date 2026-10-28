@@ -4,6 +4,7 @@ import { z } from 'zod'
 import type { CvResult } from '@shared/contracts'
 import type { Logger } from '@shared/logging'
 import { PermanentError } from '@shared/messaging'
+import { readSettings } from '@shared/settings'
 import { formatApplicationMessage } from '@shared/templates'
 
 import { isExpiredInteraction, toQueueError } from './discord-errors'
@@ -20,14 +21,14 @@ const CONTENT_MAX = 2000
  * Texto da resposta com o currículo: o aviso e, quando a IA escreveu, a mensagem de candidatura para copiar
  * (no lugar do modelo padrão mostrado no clique).
  */
-export function buildCvDeliveryContent(result: Pick<CvResult, 'file' | 'jobTitle' | 'error' | 'message'>) {
+export function buildCvDeliveryContent(result: Pick<CvResult, 'file' | 'jobTitle' | 'error' | 'message'>, signature = '') {
 	if (!result.file) return `⚠️ Não consegui gerar o currículo: ${result.error ?? 'erro desconhecido'}`
 
 	const header = `📄 Currículo ajustado para **${result.jobTitle ?? 'a vaga'}**`
 	if (!result.message) return header
 
 	// Três crases no texto fechariam o bloco de código antes da hora
-	const message = formatApplicationMessage(result.message).replaceAll('```', "'''")
+	const message = formatApplicationMessage(result.message, signature).replaceAll('```', "'''")
 	const content = `${header}\n\n✉️ Mensagem escrita para esta vaga (revise antes de enviar):\n\`\`\`\n${message}\n\`\`\``
 
 	return content.length <= CONTENT_MAX ? content : header
@@ -38,7 +39,8 @@ export async function deliverCv(client: Client, result: CvResult, logger: Logger
 	const context = DiscordReplyContextSchema.safeParse(result.context)
 	if (!context.success) throw new PermanentError('Resultado de currículo sem a interação do Discord no contexto')
 
-	const content = buildCvDeliveryContent(result)
+	const { signature } = await readSettings('message')
+	const content = buildCvDeliveryContent(result, signature)
 	const files = result.file ? [{ name: result.file.name, data: Buffer.from(result.file.base64, 'base64') }] : undefined
 
 	try {

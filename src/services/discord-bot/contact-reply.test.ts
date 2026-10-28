@@ -35,6 +35,12 @@ describe('botão de contato', () => {
 		expect(reply).toContain(CV_PENDING_NOTE)
 	})
 
+	test('o modelo de mensagem leva a assinatura das configurações', () => {
+		const reply = buildContactReply('rh@acme.com', 'Dev', { generatingCv: false, signature: 'GitHub: https://github.com/exemplo' })
+
+		expect(reply).toContain('Obrigado!\n\nGitHub: https://github.com/exemplo\n```')
+	})
+
 	test('sem e-mail, só o aviso do currículo', () => {
 		expect(buildContactReply(null, 'Dev', { generatingCv: true })).toBe(CV_PENDING_NOTE)
 	})

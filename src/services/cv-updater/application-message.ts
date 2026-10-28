@@ -27,15 +27,18 @@ const MODEL_ATTEMPTS = 3
 type AiOptions = { ollama: Ollama; model: string }
 
 /** O estilo usado quando não há configuração (os padrões de `MessageSettingsSchema`). */
-const DEFAULT_STYLE: MessageSettings = { tone: 'neutral', length: 'medium', styleSample: '' }
+const DEFAULT_STYLE: MessageStyle = { tone: 'neutral', length: 'medium', styleSample: '' }
 
 /**
  * O que a mensagem precisa saber além do currículo e da vaga: o perfil, os requisitos que a pessoa não tem e o estilo
  * das configurações (tom, tamanho e mensagem de exemplo).
  */
-export type MessageContext = { profile?: TailoringProfile; unsupportedSkills?: string[]; style?: MessageSettings }
+export type MessageContext = { profile?: TailoringProfile; unsupportedSkills?: string[]; style?: MessageStyle }
 
-function systemPrompt(style: MessageSettings) {
+/** A assinatura não passa pela IA: ela é colada no fim da mensagem por quem a mostra. */
+type MessageStyle = Omit<MessageSettings, 'signature'>
+
+function systemPrompt(style: MessageStyle) {
 	return `You write the body of a short job application email that a professional (from any field) sends to a recruiter, with the tailored résumé attached.
 
 Return JSON with ${style.tone === 'auto' ? '"tone" and "body"' : '"body"'}, following these rules:

@@ -1,4 +1,4 @@
-import { MESSAGE_STYLE_SAMPLE_MAX } from '@shared/contracts'
+import { MESSAGE_SIGNATURE_MAX, MESSAGE_STYLE_SAMPLE_MAX } from '@shared/contracts'
 
 import type { WebSettings } from '../../api-types'
 
@@ -15,6 +15,7 @@ export const LIMITS = {
 	targetRole: 100,
 	profileLanguages: 10,
 	styleSample: MESSAGE_STYLE_SAMPLE_MAX,
+	signature: MESSAGE_SIGNATURE_MAX,
 } as const
 
 /** O perfil no formulário: área e cargo-alvo ainda não preenchidos ficam como texto vazio. */
@@ -69,6 +70,7 @@ export function validateDraft(draft: SettingsDraft) {
 
 	if (draft.message.styleSample.trim().length > LIMITS.styleSample)
 		errors.styleSample = `Use até ${LIMITS.styleSample.toLocaleString('pt-BR')} caracteres`
+	if (draft.message.signature.trim().length > LIMITS.signature) errors.signature = `Use até ${LIMITS.signature} caracteres`
 
 	return errors
 }

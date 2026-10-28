@@ -3,6 +3,7 @@ import { MessageFlags, type ButtonInteraction } from 'discord.js'
 import type { CvRequest } from '@shared/contracts'
 import type { Logger } from '@shared/logging'
 import { QUEUES, type QueueClient } from '@shared/messaging'
+import { readSettings } from '@shared/settings'
 
 import { buildContactReply, emailFromEmbed, parseContactButton } from './contact-reply'
 import type { DiscordReplyContext } from './cv-delivery'
@@ -19,8 +20,9 @@ export async function handleContactButton(interaction: ButtonInteraction, queue:
 	// Botões antigos não identificam a vaga: só dá para mostrar o contato
 	const generatingCv = postId !== null
 
+	const { signature } = await readSettings('message')
 	await interaction.reply({
-		content: buildContactReply(email, embed?.title ?? null, { generatingCv }),
+		content: buildContactReply(email, embed?.title ?? null, { generatingCv, signature }),
 		flags: MessageFlags.Ephemeral,
 	})
 
