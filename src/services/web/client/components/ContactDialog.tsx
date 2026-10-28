@@ -102,6 +102,14 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 		setNewerSource(false)
 	}, [message.subject, sourceBody, textReady])
 
+	// O corpo fica carregando enquanto os dados não chegam: a assinatura e a conta de e-mail e, com o currículo sendo gerado,
+	// a mensagem que a IA escreve junto (se a pessoa ainda não editou o modelo: aí o texto dela fica)
+	const awaitingAi = cv?.status === 'pending' && !generated && !edited
+	const bodyLoading = !textReady || awaitingAi
+	const loadingLabel = textReady ? 'a IA está escrevendo a mensagem para a vaga…' : 'carregando a mensagem…'
+	// Sem saber ainda se há conta de e-mail, os campos aparecem como editáveis (desligados), no lugar em que vão ficar
+	const editable = canSend || setup === null
+
 	/** Troca o texto pela versão atual da mensagem (descarta o que foi editado). */
 	function adoptSource() {
 		setSubject(message.subject)
@@ -141,7 +149,7 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 
 	async function submit(event: FormEvent) {
 		event.preventDefault()
-		if (!canSend || !readyCv || !textReady) return
+		if (!canSend || !readyCv || bodyLoading) return
 
 		setBusy(true)
 		setErrors({})
@@ -234,7 +242,7 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 				<section aria-label="Mensagem de candidatura" className="flex flex-col gap-3 rounded-sm bg-surface-2 p-3.5">
 					<div className="flex items-center justify-between gap-3">
 						<span className={LABEL}>{showGenerated ? 'mensagem gerada pela IA' : 'modelo de mensagem'}</span>
-						{textReady && (
+						{!bodyLoading && (
 							<CopyButton text={body} what="Texto da mensagem" label="copiar mensagem" size="xs" toastAction={copyAction} />
 						)}
 					</div>
@@ -264,15 +272,9 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 
 					<div
 						className={cx('flex flex-col gap-3', rewriting && 'animate-pulse opacity-55 motion-reduce:animate-none')}
-						aria-busy={!!rewriting || !textReady}
+						aria-busy={!!rewriting || bodyLoading}
 					>
-						{!textReady ? (
-							// Só um instante: a assinatura entra no texto antes de ele virar editável
-							<p className="m-0 flex items-center gap-2 text-sm text-muted" role="status">
-								<Icon name="spinner" size={14} />
-								carregando a mensagem…
-							</p>
-						) : canSend ? (
+						{editable ? (
 							<>
 								<div className="flex flex-col gap-1.5">
 									<div className="flex items-center justify-between gap-2">
@@ -288,7 +290,7 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 									<Input
 										id={ids.subject}
 										value={subject}
-										disabled={!!rewriting}
+										disabled={!!rewriting || bodyLoading}
 										invalid={!!errors.subject}
 										aria-describedby={errors.subject ? `${ids.subject}-error` : undefined}
 										onChange={event => {
@@ -300,19 +302,22 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 								</div>
 								<div className="flex flex-col gap-1.5">
 									<FieldLabel htmlFor={ids.body}>mensagem</FieldLabel>
-									<textarea
-										id={ids.body}
-										rows={9}
-										value={body}
-										disabled={!!rewriting}
-										aria-invalid={!!errors.body || undefined}
-										aria-describedby={errors.body ? `${ids.body}-error` : undefined}
-										onChange={event => {
-											setBody(event.target.value)
-											setEdited(true)
-										}}
-										className={field({ invalid: !!errors.body, className: 'resize-y py-2.5 leading-relaxed' })}
-									/>
+									<div className="relative grid">
+										<textarea
+											id={ids.body}
+											rows={9}
+											value={bodyLoading ? '' : body}
+											disabled={!!rewriting || bodyLoading}
+											aria-invalid={!!errors.body || undefined}
+											aria-describedby={errors.body ? `${ids.body}-error` : undefined}
+											onChange={event => {
+												setBody(event.target.value)
+												setEdited(true)
+											}}
+											className={field({ invalid: !!errors.body, className: 'resize-y py-2.5 leading-relaxed' })}
+										/>
+										{bodyLoading && <BodyLoading label={loadingLabel} className="absolute inset-0" />}
+									</div>
 									{errors.body && <FieldError id={`${ids.body}-error`}>{errors.body}</FieldError>}
 								</div>
 							</>
@@ -330,7 +335,11 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 									/>
 								</p>
 								{/* Texto corrido, para revisar: sem a fonte mono e com a linha numa largura confortável de ler */}
-								<p className="m-0 max-w-prose text-sm leading-relaxed whitespace-pre-wrap wrap-break-word">{body}</p>
+								{bodyLoading ? (
+									<BodyLoading label={loadingLabel} className="min-h-40 rounded-sm bg-surface" />
+								) : (
+									<p className="m-0 max-w-prose text-sm leading-relaxed whitespace-pre-wrap wrap-break-word">{body}</p>
+								)}
 							</>
 						)}
 					</div>
@@ -347,7 +356,7 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 										<Pill
 											key={option}
 											pressed={option === tone}
-											disabled={!!rewriting}
+											disabled={!!rewriting || bodyLoading}
 											onClick={() => option !== tone && changeMessage(option, { tone: option, length })}
 										>
 											{rewriting === option && <Icon name="spinner" size={13} />}
@@ -365,7 +374,7 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 										<Pill
 											key={option}
 											pressed={option === length}
-											disabled={!!rewriting}
+											disabled={!!rewriting || bodyLoading}
 											onClick={() => option !== length && changeMessage(option, { tone, length: option })}
 										>
 											{rewriting === option && <Icon name="spinner" size={13} />}
@@ -378,7 +387,7 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 							<Button
 								variant="ghost"
 								size="sm"
-								disabled={!!rewriting}
+								disabled={!!rewriting || bodyLoading}
 								onClick={() => changeMessage('direct', { tone, length, direct: true })}
 							>
 								<Icon name={rewriting === 'direct' ? 'spinner' : 'refresh'} size={13} />
@@ -464,10 +473,10 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 
 				<div className="flex justify-end gap-2 pt-1">
 					<Button variant="ghost" type="button" disabled={busy} onClick={() => ref.current?.close()}>
-						{canSend ? 'cancelar' : 'fechar'}
+						{editable ? 'cancelar' : 'fechar'}
 					</Button>
-					{canSend && (
-						<Button variant="lime" type="submit" disabled={busy || !readyCv || sending || !!rewriting || !textReady}>
+					{editable && (
+						<Button variant="lime" type="submit" disabled={busy || !readyCv || sending || !!rewriting || bodyLoading}>
 							<Icon name={busy || sending ? 'spinner' : 'mail'} size={14} />
 							{sending ? 'enviando…' : lastSent ? 'enviar de novo' : 'enviar candidatura'}
 						</Button>
@@ -475,6 +484,16 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 				</div>
 			</form>
 		</dialog>
+	)
+}
+
+/** O corpo da mensagem carregando, no lugar dele: o spinner e o que se espera. */
+function BodyLoading({ label, className }: { label: string; className?: string }) {
+	return (
+		<div role="status" className={cx('flex items-center justify-center gap-2 text-sm text-muted', className)}>
+			<Icon name="spinner" size={14} />
+			{label}
+		</div>
 	)
 }
 
