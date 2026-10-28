@@ -657,15 +657,17 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 	function renderMessage(d: SettingsDraft) {
 		const message = d.message
 
-		/** Os campos de texto livre do card (o exemplo e a assinatura), com o contador de caracteres. */
+		/** Os campos de texto livre do card (o exemplo e a assinatura), opcionais e com o contador de caracteres. */
 		const textField = (key: 'styleSample' | 'signature', label: string, rows: number, placeholder: string, help: string) => {
 			const length = message[key].trim().length
 
 			return (
 				<div className="flex flex-col gap-1.5">
 					<span className="flex items-center justify-between gap-3">
-						<FieldLabel htmlFor={key}>{label}</FieldLabel>
-						<span className={cx('font-mono text-xs', length > LIMITS[key] ? 'text-danger' : 'text-muted')}>
+						<FieldLabel htmlFor={key}>
+							{label} <span className="font-normal text-muted">(opcional)</span>
+						</FieldLabel>
+						<span id={`${key}-count`} className={cx('font-mono text-xs', length > LIMITS[key] ? 'text-danger' : 'text-muted')}>
 							{length} / {LIMITS[key]}
 						</span>
 					</span>
@@ -675,7 +677,7 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 						value={message[key]}
 						placeholder={placeholder}
 						aria-invalid={!!errors[key] || undefined}
-						aria-describedby={errors[key] ? `${key}-error` : `${key}-help`}
+						aria-describedby={`${errors[key] ? `${key}-error` : `${key}-help`} ${key}-count`}
 						onChange={event => {
 							const value = event.target.value
 							edit(next => {
@@ -748,25 +750,26 @@ export function SettingsView({ initial, credentials }: { initial: WebSettings; c
 					'styleSample',
 					'seu jeito de escrever',
 					5,
-					'Opcional. Cole uma mensagem que você já mandou para um recrutador.',
+					'Cole uma mensagem que você já mandou para um recrutador.',
 					'A IA imita a saudação, as expressões e o fechamento do texto, sem copiar fatos ou empresas dele. Links ficam de fora: eles vão na assinatura.',
 				)}
+
+				{/* O aviso fala só do que passa pela IA; a assinatura vem depois porque entra no fim, como está */}
+				<Notice tone="info" icon="info">
+					<p className="text-sm">
+						Em qualquer tom, expressões batidas como “agregar valor”, “soluções inovadoras” e “manifestar meu interesse” são
+						recusadas, e a IA escreve de novo. O tom, o tamanho e o exemplo valem para as próximas mensagens; numa vaga, dá para
+						trocar o tom e o tamanho da mensagem já gerada.
+					</p>
+				</Notice>
 
 				{textField(
 					'signature',
 					'assinatura',
 					3,
-					'Opcional. Ex.: GitHub: https://github.com/voce',
-					'Vai no fim de toda mensagem para copiar, exatamente como está, sem passar pela IA: links do GitHub, LinkedIn ou portfólio.',
+					'GitHub: https://github.com/voce\nLinkedIn: https://linkedin.com/in/voce',
+					'Entra no fim de toda mensagem de candidatura, exatamente como está, sem passar pela IA: links do GitHub, LinkedIn ou portfólio. Vale também para as mensagens já geradas.',
 				)}
-
-				<Notice tone="info" icon="info">
-					<p className="text-sm">
-						Em qualquer tom, expressões batidas como “agregar valor”, “soluções inovadoras” e “manifestar meu interesse” são
-						recusadas, e a IA escreve de novo. Vale para as próximas mensagens; numa vaga, dá para trocar o tom e o tamanho da
-						mensagem já gerada.
-					</p>
-				</Notice>
 			</section>
 		)
 	}
