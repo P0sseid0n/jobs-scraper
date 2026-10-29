@@ -19,7 +19,7 @@ import {
 	type MessageLanguage,
 } from '@shared/templates'
 
-import type { WebCvRequest } from '../api-types'
+import type { WebCvRequest, WebImprovedMessage } from '../api-types'
 import { CvRequestRecord, toWebCvRequest } from './cv-request.model'
 import type { EventHub } from './event-hub'
 import { HttpError, readJson } from './http'
@@ -220,6 +220,46 @@ export async function rewriteCvMessage(req: Request & { params: { requestId: str
 	log.info({ tone: request.tone, length: request.length, direct: request.direct }, 'Mensagem de candidatura reescrita')
 
 	return Response.json(result satisfies WebCvRequest)
+}
+
+/** "Melhorar com a IA" no modo modelo: o texto preenchido (sem a assinatura), com o tom e o tamanho pedidos. */
+export const ImproveRequestSchema = RewriteRequestSchema.extend({
+	body: z.string().trim().min(1, 'Escreva a mensagem antes de pedir à IA').max(5000),
+})
+
+/**
+ * `POST /api/jobs/:postId/message`: reescreve com a IA o texto que a pessoa tem na modal (o modelo preenchido ou o que
+ * ela editou), sem guardar nada: quem pediu decide se fica com a versão nova. Se a IA não conseguir, responde 502.
+ */
+export async function improveJobMessage(req: Request & { params: { postId: string } }, { ai, logger }: Omit<Deps, 'events'>) {
+	const { body, ...request } = ImproveRequestSchema.parse(await readJson(req))
+	const job = await Job.findOne(
+		{ postId: req.params.postId },
+		{ title: 1, company: 1, necessaryKnowledge: 1, rawContent: 1, language: 1 },
+	).lean()
+	if (!job) throw new HttpError(404, 'Vaga não encontrada')
+
+	const log = logger.child({ postId: req.params.postId })
+	const { styleSample } = await readSettings('message')
+	const rewritten = await requestRewrite(
+		ai,
+		{ subject: '', body, tone: request.tone, length: request.length },
+		{
+			title: job.title ?? null,
+			company: job.company ?? null,
+			necessaryKnowledge: job.necessaryKnowledge ?? [],
+			rawContent: job.rawContent,
+			language: job.language ?? null,
+		},
+		request,
+		styleSample,
+		log,
+	)
+	if (!rewritten) throw new HttpError(502, 'A IA não conseguiu melhorar a mensagem agora; ela continua como estava.')
+
+	log.info({ tone: request.tone, length: request.length, direct: request.direct }, 'Mensagem do modelo melhorada pela IA')
+
+	return Response.json({ body: rewritten.body } satisfies WebImprovedMessage)
 }
 
 /** `POST /api/cv/:requestId/message/undo`: volta à versão de antes da última reescrita (de novo, refaz). */

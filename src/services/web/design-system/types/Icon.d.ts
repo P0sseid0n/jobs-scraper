@@ -20,6 +20,7 @@ export interface IconProps {
 		| 'filter'
 		| 'trash'
 		| 'plus'
+		| 'link'
 		| 'flag'
 		| 'info'
 		| 'spinner'

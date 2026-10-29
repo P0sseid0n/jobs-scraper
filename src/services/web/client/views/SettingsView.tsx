@@ -6,6 +6,7 @@ import {
 	EXTRACTION_CHECKS,
 	MESSAGE_DEFAULT_TONES,
 	MESSAGE_LENGTHS,
+	MESSAGE_MODES,
 	PROFILE_AREAS,
 	reviewChecksThreshold,
 	SENIORITY_LEVELS,
@@ -13,6 +14,7 @@ import {
 	type DatePostedFilter,
 	type MessageDefaultTone,
 	type MessageLength,
+	type MessageMode,
 	type SeniorityLevel,
 } from '@shared/contracts'
 
@@ -21,6 +23,7 @@ import { api, RequestError } from '../api'
 import { AccountsSection } from '../components/AccountsSection'
 import { AutoRunsSwitch } from '../components/AutoRunsSwitch'
 import { DrawnCheck, Icon } from '../components/Icon'
+import { MessageTemplateEditor } from '../components/MessageTemplateEditor'
 import { Button } from '../components/ui/Button'
 import { card } from '../components/ui/Card'
 import { Combobox } from '../components/ui/Combobox'
@@ -56,7 +59,7 @@ import {
 	type SettingsDraft,
 } from '../lib/settings-form'
 import { useFlash } from '../lib/use-flash'
-import { setMessageSettings } from '../stores/message-settings'
+import { setMessageProfile, setMessageSettings } from '../stores/message-settings'
 import { notify } from '../stores/toast'
 
 const LIST_FORMAT = new Intl.ListFormat('pt-BR')
@@ -86,6 +89,14 @@ const TONE_HELP: Record<MessageDefaultTone, string> = {
 	formal: '“Prezados,” e frases completas, sem exclamações; fecha com “Agradeço a atenção.”',
 	neutral: '“Olá! Tudo bem?”, educado e direto; fecha com “Obrigado!”',
 	casual: '“Oi, pessoal! Tudo bem?”, frases curtas como numa conversa, sem gírias nem emojis; fecha com “Abraço!”',
+}
+
+const MODE_LABELS: Record<MessageMode, string> = { ai: 'pela IA', template: 'pelo modelo' }
+
+const MODE_HELP: Record<MessageMode, string> = {
+	ai: 'A IA escreve uma mensagem para cada vaga, junto com o currículo. Enquanto ela não escreve, vale o modelo abaixo.',
+	template:
+		'A mensagem sai na hora, do modelo abaixo, com os dados da vaga; o currículo fica mais rápido, sem esperar a IA escrever. Na vaga, “melhorar com a IA” reescreve o texto preenchido.',
 }
 
 const LENGTH_HELP: Record<MessageLength, string> = {
@@ -216,8 +227,9 @@ export function SettingsView({
 			for (const key of dirtyKeys) {
 				const saved = await api.saveSettings(key, draft[key])
 				current = { ...current, [key]: saved }
-				// A assinatura entra nas mensagens para copiar das outras telas sem recarregar
+				// A assinatura, o modelo e o perfil (das variáveis) entram nas mensagens das outras telas sem recarregar
 				if (key === 'message') setMessageSettings(current.message)
+				if (key === 'profile') setMessageProfile(current.profile)
 				setLoaded(current)
 			}
 			reset(current)
@@ -703,8 +715,56 @@ export function SettingsView({
 		return (
 			<section id="mensagem" className={SETTINGS_CARD} aria-labelledby="message-title">
 				<h2 id="message-title" className={SECTION_TITLE}>
-					mensagem de candidatura <span className="font-mono text-xs font-normal text-muted">IA</span>
+					mensagem de candidatura{' '}
+					<span className="font-mono text-xs font-normal text-muted">{message.mode === 'ai' ? 'IA' : 'modelo'}</span>
 				</h2>
+
+				<fieldset className={FIELDSET}>
+					<legend className="mb-2.5 p-0 text-sm font-medium">como a mensagem é feita</legend>
+					<PillGroup>
+						{MESSAGE_MODES.map(mode => (
+							<label key={mode} className={pill({ className: 'cursor-pointer' })}>
+								<input
+									type="radio"
+									name="message-mode"
+									className="sr-only"
+									checked={message.mode === mode}
+									onChange={() =>
+										edit(next => {
+											next.message.mode = mode
+										})
+									}
+								/>
+								{MODE_LABELS[mode]}
+							</label>
+						))}
+					</PillGroup>
+					<FieldHelp>{MODE_HELP[message.mode]}</FieldHelp>
+				</fieldset>
+
+				<div className="flex flex-col gap-1">
+					<h3 className="text-base font-semibold">seu modelo</h3>
+					<FieldHelp>
+						{message.mode === 'template'
+							? 'A mensagem de toda vaga sai daqui, com as variáveis trocadas pelos dados da vaga.'
+							: 'Usado enquanto a IA não escreveu a mensagem da vaga, e a um clique na modal do contato.'}
+					</FieldHelp>
+				</div>
+				<MessageTemplateEditor
+					message={message}
+					profile={d.profile}
+					errors={errors}
+					edit={mutate => edit(next => mutate(next.message))}
+				/>
+
+				<div className="flex flex-col gap-1 border-t border-line pt-6">
+					<h3 className="text-base font-semibold">estilo da IA</h3>
+					<FieldHelp>
+						{message.mode === 'ai'
+							? 'Como a IA escreve a mensagem de cada vaga.'
+							: 'Vale para o “melhorar com a IA” da vaga, que reescreve o texto do modelo preenchido.'}
+					</FieldHelp>
+				</div>
 
 				{/* Tom e tamanho lado a lado, como na vaga; o tom tem 4 opções e a ajuda mais longa, por isso 2/3 */}
 				<div className="grid grid-cols-3 gap-5 max-md:grid-cols-1">

@@ -94,6 +94,9 @@ export type WebCvRequest = {
 	finishedAt: string | null
 }
 
+/** A mensagem do modelo melhorada pela IA (`POST /api/jobs/:postId/message`), sem a assinatura; nada é guardado. */
+export type WebImprovedMessage = { body: string }
+
 /** Versão do currículo base (sem o `.tex` nem o PDF, buscados à parte). */
 export type WebCvBaseVersion = {
 	versionId: string

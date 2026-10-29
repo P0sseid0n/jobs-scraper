@@ -21,6 +21,7 @@ import type {
 	WebCvBaseVersion,
 	WebCvBaseVersionWithTex,
 	WebCvRequest,
+	WebImprovedMessage,
 	WebJob,
 	WebMail,
 	WebMailDraft,
@@ -118,6 +119,12 @@ export const api = {
 	rewriteCvMessage: (requestId: string, style: { tone: MessageTone; length: MessageLength; direct?: boolean }) =>
 		request<WebCvRequest>(`/api/cv/${requestId}/message`, { method: 'POST', body: JSON.stringify(style) }),
 	undoCvMessage: (requestId: string) => request<WebCvRequest>(`/api/cv/${requestId}/message/undo`, { method: 'POST' }),
+	/** "Melhorar com a IA" no modo modelo: reescreve o texto enviado (sem a assinatura), sem guardar nada. */
+	improveJobMessage: (postId: string, payload: { body: string; tone: MessageTone; length: MessageLength; direct?: boolean }) =>
+		request<WebImprovedMessage>(`/api/jobs/${encodeURIComponent(postId)}/message`, {
+			method: 'POST',
+			body: JSON.stringify(payload),
+		}),
 
 	/** Se o envio por e-mail está ligado (há conta SMTP) e de qual remetente. */
 	mailSetup: () => request<WebMailSetup>('/api/mail'),

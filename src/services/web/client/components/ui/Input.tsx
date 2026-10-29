@@ -1,4 +1,4 @@
-import type { CSSProperties, InputHTMLAttributes } from 'react'
+import type { ComponentProps, CSSProperties, InputHTMLAttributes } from 'react'
 import type { VariantProps } from 'tailwind-variants'
 
 import { cx, tv } from '../../lib/cx'
@@ -21,7 +21,7 @@ export const FOCUS_WITHIN = 'focus-within:outline-2 focus-within:outline-offset-
 
 export type FieldLook = Omit<VariantProps<typeof field>, 'invalid'> & { invalid?: boolean }
 
-export function Input({ size, invalid, className, ...props }: Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> & FieldLook) {
+export function Input({ size, invalid, className, ...props }: Omit<ComponentProps<'input'>, 'size'> & FieldLook) {
 	return <input aria-invalid={invalid || undefined} {...props} className={field({ size, invalid, className })} />
 }
 

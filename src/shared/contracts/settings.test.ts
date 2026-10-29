@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test'
 import {
 	activeSearchTerms,
 	isProfileComplete,
+	MessageSettingsSchema,
 	PostProcessingSettingsSchema,
 	ProfileSettingsSchema,
 	ScraperSettingsSchema,
@@ -130,5 +131,85 @@ describe('ProfileSettingsSchema', () => {
 
 	test('idiomas: exige o código ISO 639-1', () => {
 		expect(ProfileSettingsSchema.safeParse({ languages: ['português'] }).success).toBe(false)
+	})
+})
+
+describe('MessageSettingsSchema', () => {
+	/** O primeiro erro de cada campo, como a API devolve. */
+	function errorsOf(input: unknown) {
+		const result = MessageSettingsSchema.safeParse(input)
+		if (result.success) return {}
+
+		return Object.fromEntries(result.error.issues.map(issue => [issue.path.join('.'), issue.message]))
+	}
+
+	const template = (body: string, subject = 'Candidatura – {{cargo}}') => ({ template: { subject, body } })
+
+	test('nasce no modo IA, com o modelo padrão e sem variáveis próprias', () => {
+		const settings = MessageSettingsSchema.parse({})
+
+		expect(settings.mode).toBe('ai')
+		expect(settings.template.subject).toBe('Candidatura – {{cargo}}')
+		expect(settings.template.body).toContain('{{cargo}}')
+		expect(settings.variables).toEqual([])
+		expect(settings.fallbacks).toEqual({})
+	})
+
+	test('aceita um modelo com variáveis prontas, próprias e fallbacks', () => {
+		const result = MessageSettingsSchema.safeParse({
+			mode: 'template',
+			...template('Sou {{ meu_nome }}, vi a vaga na {{empresa | sua empresa}}. {{link_github}}'),
+			variables: [
+				{ name: 'meu_nome', description: 'Seu nome', type: 'text', value: 'Carla' },
+				{ name: 'link_github', description: 'GitHub', type: 'link', value: 'https://github.com/carla' },
+			],
+			fallbacks: { local: 'sua cidade' },
+		})
+
+		expect(result.success).toBe(true)
+	})
+
+	test('recusa variável desconhecida no modelo', () => {
+		expect(errorsOf(template('Vi a vaga na {{empressa}}'))['template.body']).toContain('{{empressa}} não existe')
+		expect(errorsOf(template('Olá', '{{vaga}}'))['template.subject']).toContain('{{vaga}} não existe')
+	})
+
+	test('recusa variável de link no assunto, mas aceita na mensagem', () => {
+		expect(errorsOf(template('{{link_da_vaga}}', 'Vaga {{link_da_vaga}}'))['template.subject']).toContain('só funciona na mensagem')
+		expect(errorsOf(template('{{link_da_vaga}}'))).toEqual({})
+	})
+
+	test('recusa nome repetido', () => {
+		const variable = { name: 'contato', type: 'text', value: '(31) 99999-0000' }
+
+		expect(errorsOf({ variables: [variable, { ...variable, value: 'outro' }] })['variables.1.name']).toBe(
+			'Já há uma variável com esse nome',
+		)
+	})
+
+	test('recusa variável própria com o nome de uma pronta', () => {
+		expect(errorsOf({ variables: [{ name: 'empresa', value: 'Minha' }] })['variables.0.name']).toContain('já é uma variável pronta')
+	})
+
+	test('recusa nome fora do snake_case', () => {
+		expect(errorsOf({ variables: [{ name: 'Meu Nome', value: 'Carla' }] })['variables.0.name']).toContain('minúsculas')
+		expect(errorsOf({ variables: [{ name: 'meu_nome', value: 'Carla' }] })).toEqual({})
+	})
+
+	test('recusa link que não é http ou https', () => {
+		const link = (value: string) => ({ variables: [{ name: 'portfolio', type: 'link', value }] })
+
+		expect(errorsOf(link('javascript:alert(1)'))['variables.0.value']).toContain('http')
+		expect(errorsOf(link('github.com/carla'))['variables.0.value']).toContain('http')
+		expect(errorsOf(link('https://carla.dev'))).toEqual({})
+	})
+
+	test('recusa fallback vazio, nas configurações e na própria variável', () => {
+		expect(errorsOf({ fallbacks: { empresa: '  ' } })['fallbacks.empresa']).toContain('apague o fallback')
+		expect(errorsOf(template('Vaga na {{empresa | }}'))['template.body']).toContain('fallback de {{empresa}} está vazio')
+	})
+
+	test('recusa fallback de variável que nunca falta', () => {
+		expect(errorsOf({ fallbacks: { cargo: 'a vaga' } })['fallbacks.cargo']).toContain('nunca falta')
 	})
 })

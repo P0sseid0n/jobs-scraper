@@ -35,8 +35,8 @@ const DEFAULT_STYLE: MessageStyle = { tone: 'neutral', length: 'medium', styleSa
  */
 export type MessageContext = { profile?: TailoringProfile; unsupportedSkills?: string[]; style?: MessageStyle }
 
-/** A assinatura não passa pela IA: ela é colada no fim da mensagem por quem a mostra. */
-type MessageStyle = Omit<MessageSettings, 'signature'>
+/** O estilo da IA (a assinatura não passa por ela: é colada no fim da mensagem por quem a mostra). */
+type MessageStyle = Pick<MessageSettings, 'tone' | 'length' | 'styleSample'>
 
 function systemPrompt(style: MessageStyle) {
 	return `You write the body of a short job application email that a professional (from any field) sends to a recruiter, with the tailored résumé attached.

@@ -1,7 +1,7 @@
 import { MessageFlags, type ButtonInteraction } from 'discord.js'
 
 import type { MailRequest } from '@shared/contracts'
-import { ApplicationMail, createApplicationMail, CvFile, Job, mailBlockers } from '@shared/database'
+import { ApplicationMail, createApplicationMail, CvFile, Job, mailBlockers, type CvFileDraft } from '@shared/database'
 import type { Logger } from '@shared/logging'
 import { QUEUES, type QueueClient } from '@shared/messaging'
 import { loadCredentials } from '@shared/settings'
@@ -25,7 +25,7 @@ async function loadSendable(fileId: string): Promise<{ error: string } | { error
 	return { error: null, file, to: job.recruiterEmail }
 }
 
-type SendableFile = { postId: string; fileName: string; draft: { subject: string; body: string } | null }
+type SendableFile = { postId: string; fileName: string; draft: CvFileDraft | null }
 
 /** "Enviar candidatura" (ou "Tentar de novo"): mostra a confirmação, com o e-mail como vai e o aviso de reenvio. */
 export async function handleMailButton(interaction: ButtonInteraction) {
@@ -50,6 +50,7 @@ export async function handleMailButton(interaction: ButtonInteraction) {
 			body: file.draft!.body,
 			fileName: file.fileName,
 			lastSentAt: sent ? (sent.sentAt ?? sent.requestedAt) : null,
+			fallbacks: file.draft!.fallbacks,
 		}),
 		components: [confirmationRow(fileId, !!sent)],
 		flags: MessageFlags.Ephemeral,

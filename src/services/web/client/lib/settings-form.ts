@@ -1,4 +1,4 @@
-import { MESSAGE_SIGNATURE_MAX, MESSAGE_STYLE_SAMPLE_MAX } from '@shared/contracts'
+import { MESSAGE_SIGNATURE_MAX, MESSAGE_STYLE_SAMPLE_MAX, MessageSettingsSchema } from '@shared/contracts'
 
 import type { WebSettings } from '../../api-types'
 
@@ -71,6 +71,24 @@ export function validateDraft(draft: SettingsDraft) {
 	if (draft.message.styleSample.trim().length > LIMITS.styleSample)
 		errors.styleSample = `Use até ${LIMITS.styleSample.toLocaleString('pt-BR')} caracteres`
 	if (draft.message.signature.trim().length > LIMITS.signature) errors.signature = `Use até ${LIMITS.signature} caracteres`
+
+	// O modelo, as variáveis próprias e os fallbacks: as regras do próprio schema, com as mesmas mensagens do servidor
+	for (const [path, message] of Object.entries(messageTemplateErrors(draft.message))) errors[path] ??= message
+
+	return errors
+}
+
+/** Os erros do modelo de mensagem (`template.body`, `variables.0.name`, `fallbacks.empresa`…), pelo schema compartilhado. */
+export function messageTemplateErrors(message: SettingsDraft['message']) {
+	const errors: Record<string, string> = {}
+	const result = MessageSettingsSchema.safeParse(message)
+	if (result.success) return errors
+
+	for (const issue of result.error.issues) {
+		const [root] = issue.path
+		if (root !== 'template' && root !== 'variables' && root !== 'fallbacks') continue
+		errors[issue.path.join('.')] ??= issue.message
+	}
 
 	return errors
 }

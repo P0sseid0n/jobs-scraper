@@ -37,7 +37,7 @@ import { getJob, getJobImage, getRawJob, jobFacets, listJobs } from './server/jo
 import { toWebJob, type JobDocument } from './server/jobs-query'
 import { getLinkedinLogin, requestLinkedinLogin, sendVerificationCode } from './server/linkedin-login'
 import { listJobMails, mailSetup, saveMailResult, sendJobMail } from './server/mail'
-import { rewriteCvMessage, undoCvMessage } from './server/message-rewrite'
+import { improveJobMessage, rewriteCvMessage, undoCvMessage } from './server/message-rewrite'
 import { listRuns, requestRun, scraperStatus } from './server/scraper'
 import { getSettings, putSettings } from './server/settings'
 import { searchSuggestions, setupStatus } from './server/setup'
@@ -82,6 +82,7 @@ const api = <R extends Request>(fn: (req: R) => Promise<Response> | Response) =>
 const AI_TIMEOUT_SECONDS = 240
 const suggestSearchTerms = api(() => searchSuggestions(ai, logger))
 const rewriteMessage = api<Request & { params: { requestId: string } }>(req => rewriteCvMessage(req, { ai, events, logger }))
+const improveMessage = api<Request & { params: { postId: string } }>(req => improveJobMessage(req, { ai, logger }))
 
 const server = Bun.serve({
 	hostname: config.WEB_HOST,
@@ -108,6 +109,12 @@ const server = Bun.serve({
 		'/api/jobs/:postId/cv': { POST: api(req => requestCv(req, { queue, events, logger })) },
 		'/api/jobs/:postId/mail': { POST: api(req => sendJobMail(req, { queue, events, logger })) },
 		'/api/jobs/:postId/mails': { GET: api(listJobMails) },
+		'/api/jobs/:postId/message': {
+			POST: (req, srv) => {
+				srv.timeout(req, AI_TIMEOUT_SECONDS)
+				return improveMessage(req)
+			},
+		},
 		'/api/mail': { GET: api(mailSetup) },
 		'/api/cv': { GET: api(listCvRequests) },
 		'/api/cv/:requestId': { GET: api(getCvRequest) },

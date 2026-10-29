@@ -35,6 +35,13 @@ describe('confirmação do envio no Discord', () => {
 		expect(content).toContain('o texto completo vai no e-mail')
 	})
 
+	test('diz quais variáveis do modelo a vaga não tinha e usaram o fallback', () => {
+		expect(buildMailConfirmation({ ...mail, fallbacks: ['empresa', 'local'] })).toContain(
+			'ℹ️ A vaga não tem {{empresa}} e {{local}}: entrou o texto do fallback.',
+		)
+		expect(buildMailConfirmation(mail)).not.toContain('fallback')
+	})
+
 	test('três crases no corpo não fecham o bloco antes da hora', () => {
 		expect(buildMailConfirmation({ ...mail, body: 'a ``` b' })).toContain("a ''' b")
 	})

@@ -34,6 +34,17 @@ describe('buildCvDeliveryContent', () => {
 		)
 	})
 
+	test('sem a mensagem da IA, o modelo que ficou sem um valor explica a falta do botão de envio', () => {
+		const content = buildCvDeliveryContent({ file, jobTitle: 'Dev Vue', error: null, message: null }, '', {
+			fallbacks: ['local'],
+			missing: ['empresa'],
+		})
+
+		expect(content).toStartWith('📄 Currículo ajustado para **Dev Vue**\n⚠️ A vaga não tem {{empresa}}')
+		expect(content).toContain('O envio desta vaga fica no site')
+		expect(content).not.toContain('{{local}}')
+	})
+
 	test('crases no texto não quebram o bloco, e mensagem longa demais fica de fora', () => {
 		const withTicks = buildCvDeliveryContent({ file, jobTitle: 'Dev', error: null, message: { ...message, body: 'usa ```code```' } })
 		expect(withTicks.match(/```/g)).toHaveLength(2)

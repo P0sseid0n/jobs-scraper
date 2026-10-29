@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { applicationMessage, formatApplicationBody, formatApplicationMessage } from './application-message'
+import { formatApplicationBody, formatApplicationMessage } from './application-message'
 
 describe('formatApplicationMessage', () => {
 	const message = { subject: 'Candidatura – Dev', body: 'Olá! Tudo bem?\n\nVi a vaga.' }
@@ -14,12 +14,6 @@ describe('formatApplicationMessage', () => {
 
 		expect(formatApplicationMessage(message, `  ${signature}\n`)).toEndWith(`Vi a vaga.\n\n${signature}`)
 		expect(formatApplicationMessage(message, '   ')).toEndWith('Vi a vaga.')
-	})
-
-	test('o modelo padrão também leva a assinatura', () => {
-		expect(applicationMessage('Dev', 'GitHub: https://github.com/exemplo')).toEndWith(
-			'Obrigado!\n\nGitHub: https://github.com/exemplo',
-		)
 	})
 })
 

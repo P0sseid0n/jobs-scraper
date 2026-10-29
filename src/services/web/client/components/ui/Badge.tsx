@@ -18,6 +18,8 @@ export const badge = tv({
 			running: 'bg-lime-soft text-lime-text',
 			ok: 'bg-ok-bg',
 			danger: 'bg-danger-bg text-danger',
+			/** Um alerta discreto ("nem toda vaga tem"). */
+			warn: 'bg-warn-bg text-warn',
 			muted: 'bg-line',
 		},
 		size: {

@@ -1,4 +1,7 @@
-import { applicationMessage } from '@shared/templates'
+import type { MessageMode } from '@shared/contracts'
+import { formatApplicationMessage, type TemplateMessage } from '@shared/templates'
+
+import { templateNotes } from './template-message'
 
 /** Botão de contato/currículo: o custom_id carrega o postId para o cv-updater achar a vaga. */
 export const CONTACT_BUTTON_PREFIX = 'contact:'
@@ -17,8 +20,15 @@ export function emailFromEmbed(fields: { name: string; value: string }[]) {
 	return fields.find(field => field.name === '📧 Contato')?.value ?? null
 }
 
-/** Monta a resposta ao botão de contato (só quem clicou vê): e-mail, modelo de mensagem e aviso do currículo. */
-export function buildContactReply(email: string | null, jobTitle: string | null, opts: { generatingCv: boolean; signature?: string }) {
+/**
+ * Monta a resposta ao botão de contato (só quem clicou vê): e-mail, a mensagem do modelo da pessoa (com os avisos do
+ * que faltou na vaga) e o aviso do currículo. No modo IA, a mensagem escrita para a vaga chega depois, com o currículo.
+ */
+export function buildContactReply(
+	email: string | null,
+	message: TemplateMessage,
+	opts: { generatingCv: boolean; signature?: string; mode?: MessageMode },
+) {
 	if (!email) {
 		return opts.generatingCv ? CV_PENDING_NOTE : 'Essa vaga não tem e-mail de contato.'
 	}
@@ -26,10 +36,11 @@ export function buildContactReply(email: string | null, jobTitle: string | null,
 	return [
 		`📧 **E-mail do recrutador:** ${email}`,
 		'',
-		'Modelo de mensagem para copiar:',
+		opts.mode === 'template' ? 'Mensagem do seu modelo para copiar:' : 'Modelo de mensagem para copiar:',
 		'```',
-		applicationMessage(jobTitle, opts.signature).replaceAll('```', "'''"),
+		formatApplicationMessage(message, opts.signature).replaceAll('```', "'''"),
 		'```',
+		...templateNotes(message),
 		...(opts.generatingCv ? ['', CV_PENDING_NOTE] : []),
 	].join('\n')
 }

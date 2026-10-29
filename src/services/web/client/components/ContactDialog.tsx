@@ -1,15 +1,15 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 
 import { MESSAGE_LENGTHS, MESSAGE_TONES, type MessageLength, type MessageTone } from '@shared/contracts'
-import { defaultApplicationMessage, formatApplicationBody } from '@shared/templates'
+import { DEFAULT_TEMPLATE, formatApplicationBody, templateMessage, unresolvedMissing } from '@shared/templates'
 
 import type { WebJob, WebMail } from '../../api-types'
-import { cvPdfUrl, RequestError } from '../api'
+import { api, cvPdfUrl, RequestError } from '../api'
 import { cx } from '../lib/cx'
 import { formatDateTime, MESSAGE_LENGTH_LABELS, MESSAGE_TONE_LABELS } from '../lib/format'
 import { rewriteMessage, undoMessageRewrite, useCvFor, useGeneratedMessage, useReadyCvFor } from '../stores/cv'
 import { sendApplication, useJobMails, useMailSetup } from '../stores/mail'
-import { useMessageSignatureState } from '../stores/message-settings'
+import { useMessageSettingsState } from '../stores/message-settings'
 import { notify, type ToastAction } from '../stores/toast'
 import { CopyButton } from './CopyButton'
 import { CvButton } from './CvButton'
@@ -29,7 +29,18 @@ import { RouteLink, TextLink } from './ui/TextLink'
 /** Uma das opções de reescrita da mensagem (tom, tamanho): o rótulo e as pills na mesma linha; no celular, um embaixo do outro. */
 const MESSAGE_OPTION = 'flex items-center gap-2 max-sm:flex-col max-sm:items-start max-sm:gap-1.5'
 
-type ContactJob = Pick<WebJob, 'postId' | 'title'>
+/** A vaga: o id e os dados que preenchem as variáveis do modelo (`{{empresa}}`, `{{local}}`…). */
+type ContactJob = Pick<
+	WebJob,
+	'postId' | 'title' | 'company' | 'location' | 'workMode' | 'necessaryKnowledge' | 'applyLink' | 'postLink' | 'author'
+>
+
+const LIST_FORMAT = new Intl.ListFormat('pt-BR')
+
+/** Os nomes como aparecem no modelo: "{{empresa}} e {{local}}". */
+function variableList(names: readonly string[]) {
+	return LIST_FORMAT.format(names.map(name => `{{${name}}}`))
+}
 
 type ContactDialogProps = {
 	job: ContactJob
@@ -47,7 +58,8 @@ type ContactDialogProps = {
 
 /**
  * O contato com o recrutador numa modal (`<dialog>` nativo: foco preso, Esc fecha): o destinatário, o assunto e a
- * mensagem (a gerada pela IA para a vaga, ou o modelo padrão), com as opções de reescrita e os botões de copiar.
+ * mensagem (a gerada pela IA para a vaga, ou o modelo da pessoa preenchido na hora), com as opções de reescrita e os
+ * botões de copiar. No modelo, avisa o que a vaga não tinha (o que usou o fallback e o que ficou marcado no texto).
  * Com a conta de e-mail (SMTP) configurada, o assunto e a mensagem viram campos editáveis e dá para enviar daqui, com o
  * currículo pronto anexado, só depois de clicar em "enviar"; sem ela, só copiar.
  */
@@ -60,7 +72,7 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 	const mails = useJobMails(job.postId)
 	const cv = useCvFor(job.postId)
 	const readyCv = useReadyCvFor(job.postId)
-	const { signature, status: signatureStatus, retry: retrySignature } = useMessageSignatureState()
+	const { settings: messageSettings, profile, signature, status: signatureStatus, retry: retrySignature } = useMessageSettingsState()
 	// Só com a assinatura lida (ou sem jeito de ler) e a conta de e-mail conhecida o texto é montado: assim a assinatura não
 	// chega depois da edição, e a modal não troca de "só copiar" para editável na frente da pessoa
 	const textReady = signatureStatus !== 'loading' && setup !== null
@@ -68,13 +80,17 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 	const lastSent = mails.find(mail => mail.status === 'sent') ?? null
 	const sending = mails[0]?.status === 'sending'
 
-	// A mensagem gerada pela IA vem no lugar do modelo padrão, que continua a um clique
-	const [useDefaultMessage, setUseDefaultMessage] = useState(false)
-	const [rewriting, setRewriting] = useState<MessageTone | MessageLength | 'direct' | 'undo' | null>(null)
+	// No modo IA, a mensagem gerada pela IA vem no lugar do modelo, que continua a um clique; no modo modelo, o contrário
+	// (a da IA só existe se o currículo foi gerado antes, no modo IA)
+	const mode = messageSettings?.mode ?? 'ai'
+	const [swapped, setSwapped] = useState(false)
+	const [rewriting, setRewriting] = useState<MessageTone | MessageLength | 'direct' | 'undo' | 'improve' | null>(null)
 	const generatedRequest = useGeneratedMessage(job.postId)
 	const generated = generatedRequest?.message ?? null
-	const showGenerated = !!generated && !useDefaultMessage
-	const message = generated && showGenerated ? generated : defaultApplicationMessage(job.title)
+	const showGenerated = !!generated && (mode === 'ai') !== swapped
+	// Sem as configurações (a leitura falhou), vale o modelo padrão
+	const filled = templateMessage(messageSettings ?? { template: DEFAULT_TEMPLATE, fallbacks: {}, variables: [] }, job, profile ?? {})
+	const message = generated && showGenerated ? generated : filled
 	// Mensagens de antes do tom e do tamanho foram escritas no neutro e no tamanho médio
 	const tone = generated?.tone ?? 'neutral'
 	const length = generated?.length ?? 'medium'
@@ -105,7 +121,7 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 
 	// O corpo fica carregando enquanto os dados não chegam: a assinatura e a conta de e-mail e, com o currículo sendo gerado,
 	// a mensagem que a IA escreve junto (se a pessoa ainda não editou o modelo: aí o texto dela fica)
-	const awaitingAi = cv?.status === 'pending' && !generated && !edited
+	const awaitingAi = mode === 'ai' && cv?.status === 'pending' && !generated && !edited
 	const bodyLoading = !textReady || awaitingAi
 	const loadingLabel = textReady ? 'a IA está escrevendo a mensagem para a vaga…' : 'carregando a mensagem…'
 	// Os campos esperando (dados chegando ou a IA reescrevendo) ficam só de leitura, com o `FieldScan` no corpo, e não
@@ -123,6 +139,12 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 		setNewerSource(false)
 	}
 
+	// O que a vaga não tinha e o modelo não tem fallback: fica marcado no texto (`[empresa]`), e o envio espera a pessoa
+	// completar ou apagar o trecho
+	const unresolved = showGenerated ? [] : unresolvedMissing(filled.missing, subject, body)
+	// O corpo antes do "melhorar com a IA", para desfazer
+	const [beforeImprove, setBeforeImprove] = useState<string | null>(null)
+
 	const [errors, setErrors] = useState<Record<string, string>>({})
 	const [busy, setBusy] = useState(false)
 	const recipientFixed = recipientReadOnly || !canSend
@@ -139,6 +161,7 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 		if (!generatedRequest || rewriting) return
 
 		setRewriting(kind)
+		setBeforeImprove(null)
 		// Pedido daqui: a versão nova substitui o texto, mesmo editado (a modal avisa)
 		adoptNext.current = true
 		try {
@@ -152,9 +175,37 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 		}
 	}
 
+	/**
+	 * "Melhorar com a IA": reescreve o texto atual (sem a assinatura, que volta no fim como está), com o tom e o tamanho
+	 * das configurações. Nada é guardado: a versão nova só fica nos campos, e "desfazer" volta à de antes.
+	 */
+	async function improveMessage() {
+		if (rewriting || !messageSettings) return
+
+		const footer = signature.trim()
+		const signed = !!footer && body.endsWith(`\n\n${footer}`)
+		const text = signed ? body.slice(0, -(footer.length + 2)) : body
+
+		setRewriting('improve')
+		try {
+			const improved = await api.improveJobMessage(job.postId, {
+				body: text,
+				tone: messageSettings.tone === 'auto' ? 'neutral' : messageSettings.tone,
+				length: messageSettings.length,
+			})
+			setBeforeImprove(body)
+			setBody(formatApplicationBody({ subject, body: improved.body }, signed ? footer : ''))
+			setEdited(true)
+		} catch (error) {
+			notify(error instanceof RequestError ? error.message : 'Não consegui melhorar a mensagem', 'error')
+		} finally {
+			setRewriting(null)
+		}
+	}
+
 	async function submit(event: FormEvent) {
 		event.preventDefault()
-		if (!canSend || !readyCv || bodyLoading) return
+		if (!canSend || !readyCv || bodyLoading || unresolved.length > 0) return
 
 		setBusy(true)
 		setErrors({})
@@ -259,7 +310,7 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 				<section aria-label="Mensagem de candidatura" className="flex flex-col gap-3 rounded-sm bg-surface-2 p-3.5">
 					{/* De onde vem o texto, com a troca entre a mensagem da IA e o modelo (sem a da IA, a área do currículo, abaixo, explica que ela vem com ele) */}
 					<div className="flex items-center justify-between gap-3">
-						<span className={LABEL}>{showGenerated ? 'mensagem gerada pela IA' : 'modelo de mensagem'}</span>
+						<span className={LABEL}>{showGenerated ? 'mensagem gerada pela IA' : 'mensagem do seu modelo'}</span>
 						{generated && (
 							<TextLink
 								className="text-xs"
@@ -267,13 +318,34 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 								onClick={() => {
 									// Pedido daqui: a outra versão substitui o texto, mesmo editado
 									adoptNext.current = true
-									setUseDefaultMessage(!useDefaultMessage)
+									setSwapped(!swapped)
+									setBeforeImprove(null)
 								}}
 							>
-								{showGenerated ? 'usar o modelo padrão' : 'usar a mensagem da IA'}
+								{showGenerated ? 'usar o seu modelo' : 'usar a mensagem da IA'}
 							</TextLink>
 						)}
 					</div>
+
+					{/* O que a vaga não tinha: o que ficou marcado no texto (e segura o envio) e o que entrou pelo fallback */}
+					{!showGenerated && textReady && unresolved.length > 0 && (
+						<Notice tone="warn" icon="alert" className="text-sm">
+							<p className="m-0">
+								A vaga não tem {variableList(unresolved)}, e o modelo não tem fallback: troque{' '}
+								{LIST_FORMAT.format(unresolved.map(name => `[${name}]`))} no texto antes de enviar. Para as próximas vagas,
+								defina um fallback em{' '}
+								<RouteLink className="text-sm" to="/configuracoes" hash="mensagem">
+									Configurações › Mensagem
+								</RouteLink>
+								.
+							</p>
+						</Notice>
+					)}
+					{!showGenerated && textReady && filled.fallbacks.length > 0 && (
+						<Notice tone="info" icon="info" className="text-sm">
+							<p className="m-0">A vaga não tem {variableList(filled.fallbacks)}: entrou o texto do fallback.</p>
+						</Notice>
+					)}
 
 					{signatureStatus === 'failed' && (
 						<Notice tone="warn" icon="alert" className="text-sm">
@@ -470,6 +542,45 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 							</div>
 						</div>
 					)}
+
+					{!showGenerated && messageSettings && (
+						// O modelo sai sem a IA; ela pode reescrever o texto preenchido, com o tom e o tamanho das configurações
+						<div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t border-line-strong pt-3">
+							<div className="flex items-center gap-2 text-muted text-xs">
+								<Button
+									variant="ghost"
+									size="sm"
+									disabled={!!rewriting || bodyLoading || unresolved.length > 0}
+									onClick={improveMessage}
+								>
+									<Icon name={rewriting === 'improve' ? 'spinner' : 'refresh'} size={13} />
+									melhorar com a IA
+								</Button>
+								{beforeImprove !== null && (
+									<>
+										{' · '}
+										<TextLink
+											className="text-xs"
+											disabled={!!rewriting}
+											onClick={() => {
+												setBody(beforeImprove)
+												setBeforeImprove(null)
+											}}
+										>
+											desfazer
+										</TextLink>
+									</>
+								)}
+							</div>
+							<span role="status" className="text-muted text-xs">
+								{rewriting === 'improve'
+									? 'a IA está reescrevendo…'
+									: unresolved.length > 0
+										? 'complete o que faltou antes de pedir à IA'
+										: 'a IA reescreve o texto atual, sem inventar fatos'}
+							</span>
+						</div>
+					)}
 				</section>
 
 				{/* O currículo é escolha de quem abriu: com ele vêm o anexo e a mensagem escrita pela IA para a vaga */}
@@ -499,11 +610,17 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 					) : (
 						<div className="flex flex-wrap items-center gap-3">
 							<FieldHelp className="min-w-0 basis-60 grow text-xs">
-								{cv?.status === 'pending'
-									? 'Gerando o currículo ajustado para a vaga: a mensagem da IA chega junto.'
-									: canSend
-										? 'Gere o currículo ajustado para a vaga: ele vai anexado ao e-mail, e a IA escreve a mensagem junto.'
-										: 'Gere o currículo ajustado para a vaga: a IA escreve a mensagem junto, e o PDF fica para você anexar.'}
+								{mode === 'template'
+									? cv?.status === 'pending'
+										? 'Gerando o currículo ajustado para a vaga.'
+										: canSend
+											? 'Gere o currículo ajustado para a vaga: ele vai anexado ao e-mail.'
+											: 'Gere o currículo ajustado para a vaga: o PDF fica para você anexar.'
+									: cv?.status === 'pending'
+										? 'Gerando o currículo ajustado para a vaga: a mensagem da IA chega junto.'
+										: canSend
+											? 'Gere o currículo ajustado para a vaga: ele vai anexado ao e-mail, e a IA escreve a mensagem junto.'
+											: 'Gere o currículo ajustado para a vaga: a IA escreve a mensagem junto, e o PDF fica para você anexar.'}
 								{cv?.status === 'failed' && <span className="block text-danger">O último falhou: {cv.error}</span>}
 							</FieldHelp>
 							<CvButton job={job} className="shrink-0" />
@@ -516,7 +633,11 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 						{editable ? 'cancelar' : 'fechar'}
 					</Button>
 					{editable && (
-						<Button variant="lime" type="submit" disabled={busy || !readyCv || sending || !!rewriting || bodyLoading}>
+						<Button
+							variant="lime"
+							type="submit"
+							disabled={busy || !readyCv || sending || !!rewriting || bodyLoading || unresolved.length > 0}
+						>
 							<Icon name={busy || sending ? 'spinner' : 'mail'} size={14} />
 							{sending ? 'enviando…' : lastSent ? 'enviar de novo' : 'enviar candidatura'}
 						</Button>

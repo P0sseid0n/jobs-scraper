@@ -7,6 +7,7 @@ import { readSettings } from '@shared/settings'
 
 import { buildContactReply, emailFromEmbed, parseContactButton } from './contact-reply'
 import type { DiscordReplyContext } from './cv-delivery'
+import { loadTemplateMessage } from './template-message'
 
 /**
  * Trata o clique em "Contato do recrutador"/"Gerar currículo": responde com o contato (só quem clicou vê)
@@ -20,9 +21,12 @@ export async function handleContactButton(interaction: ButtonInteraction, queue:
 	// Botões antigos não identificam a vaga: só dá para mostrar o contato
 	const generatingCv = postId !== null
 
-	const { signature } = await readSettings('message')
+	const [{ signature, mode }, message] = await Promise.all([
+		readSettings('message'),
+		loadTemplateMessage(postId, embed?.title ?? null),
+	])
 	await interaction.reply({
-		content: buildContactReply(email, embed?.title ?? null, { generatingCv, signature }),
+		content: buildContactReply(email, message, { generatingCv, signature, mode }),
 		flags: MessageFlags.Ephemeral,
 	})
 

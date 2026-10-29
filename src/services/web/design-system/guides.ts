@@ -25,7 +25,7 @@ export const GUIDES: Record<string, string> = {
 - Um \`div\` flex com \`gap-1.5\`: coloque as \`Pill\` dentro, normalmente com um rótulo \`LABEL\` acima ("modalidade").`,
 	Badge: `Cápsula pequena de texto (tecnologia, regime, status, contador); \`tone\` dá a cor.
 
-- \`tone\`: \`neutral\` (padrão, tecnologias), \`lime\` (novidade, contador), \`running\` (em andamento), \`ok\`, \`danger\`, \`muted\` (pausado) e \`plain\` (sem fundo, com \`bordered\`).
+- \`tone\`: \`neutral\` (padrão, tecnologias), \`lime\` (novidade, contador), \`running\` (em andamento), \`ok\`, \`danger\`, \`warn\` (alerta discreto: "nem toda vaga tem"), \`muted\` (pausado) e \`plain\` (sem fundo, com \`bordered\`).
 - \`size\`: \`md\` padrão; \`xs\` para contador sobre um ícone; \`lg\` com cara de botão (o status do scraper, com um \`StatusDot\`).
 - \`bordered\`: \`true\` ou \`"dashed"\` (para algo que falta: "sem e-mail").
 - Texto sempre em mono, minúsculo ou como a tecnologia se escreve ("TypeScript"). Em lista, use \`BadgeList\`.`,
@@ -97,6 +97,14 @@ export const GUIDES: Record<string, string> = {
 - Controlado: \`value\` (as palavras) e \`onChange(palavras)\`; \`max\` limita a quantidade e \`maxLength\` (50) o tamanho de cada uma.
 - Por padrão tudo vira minúsculas; \`keepCase\` mantém a grafia digitada ("Vue.js").
 - Dê um \`FieldLabel\` com o mesmo \`id\`.`,
+	VariablePicker: `Painel "Variáveis disponíveis" de um editor de modelo com variáveis (\`{{empresa}}\`): cada item é um botão que insere a variável.
+
+- Fica logo abaixo dos campos do modelo. Quem usa guarda o último campo focado e, em \`onInsert(nome)\`, insere \`{{nome}}\` na posição do cursor (\`insertVariable\`, em \`client/lib/template-editor.ts\`) e devolve o foco ao campo; sem campo focado antes, no fim da mensagem.
+- O clique não tira o foco do campo; pelo teclado, Tab chega aos itens e Enter ou Espaço inserem.
+- \`groups\`: "da vaga", "do perfil" e "suas" (as variáveis próprias, que entram assim que são criadas). Grade de duas colunas, uma no celular.
+- \`linkDisabled\` quando o campo focado é o assunto: as de link ficam desativadas, com "só na mensagem".
+- \`mayBeMissing\` mostra o selo "nem toda vaga tem" (variável da vaga sem fallback); \`hint\` mostra o fallback.
+- \`howTo\` vira o link "como funciona", com um exemplo de modelo e o resultado.`,
 	FieldLabel: `Nome do campo, acima dele; \`htmlFor\` é o \`id\` do campo.
 
 - Rótulo, campo e explicação ficam juntos num \`<div className={FIELDSET}>\` (coluna com \`gap-2.5\`).

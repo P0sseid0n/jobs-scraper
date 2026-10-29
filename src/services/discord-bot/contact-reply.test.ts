@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
 import type { JobPublished } from '@shared/contracts'
+import { DEFAULT_TEMPLATE, templateMessage } from '@shared/templates'
 
 import { buildContactReply, CONTACT_BUTTON_PREFIX, CV_PENDING_NOTE, emailFromEmbed, parseContactButton } from './contact-reply'
 import { buildJobCard } from './job-card'
@@ -27,22 +28,44 @@ const job: JobPublished = {
 	imageText: null,
 }
 
+/** O modelo das configurações preenchido para a vaga, como o bot monta. */
+function filled(template = DEFAULT_TEMPLATE, fallbacks: Record<string, string> = {}, data: Partial<JobPublished> = {}) {
+	return templateMessage({ template, fallbacks, variables: [] }, { ...job, ...data }, { area: 'TI', targetRole: 'Dev' })
+}
+
 describe('botão de contato', () => {
 	test('resposta traz e-mail, modelo de mensagem e aviso do currículo', () => {
-		const reply = buildContactReply('rh@citiustech.com', 'Lead Engineer', { generatingCv: true })
+		const reply = buildContactReply('rh@citiustech.com', filled(), { generatingCv: true })
 		expect(reply).toContain('rh@citiustech.com')
-		expect(reply).toContain('Candidatura – Lead Engineer')
+		expect(reply).toContain('Modelo de mensagem para copiar:')
+		expect(reply).toContain('Candidatura – Lead Engineer - Vue.js')
 		expect(reply).toContain(CV_PENDING_NOTE)
 	})
 
 	test('o modelo de mensagem leva a assinatura das configurações', () => {
-		const reply = buildContactReply('rh@acme.com', 'Dev', { generatingCv: false, signature: 'GitHub: https://github.com/exemplo' })
+		const reply = buildContactReply('rh@acme.com', filled(), {
+			generatingCv: false,
+			signature: 'GitHub: https://github.com/exemplo',
+		})
 
 		expect(reply).toContain('Obrigado!\n\nGitHub: https://github.com/exemplo\n```')
 	})
 
+	test('no modo modelo, a mensagem preenchida avisa o que usou fallback e o que faltou', () => {
+		const template = { subject: '{{cargo}}', body: 'Vi a vaga na {{empresa}}, em {{local}}.' }
+		const reply = buildContactReply('rh@acme.com', filled(template, { local: 'sua cidade' }, { company: null, location: null }), {
+			generatingCv: false,
+			mode: 'template',
+		})
+
+		expect(reply).toContain('Mensagem do seu modelo para copiar:')
+		expect(reply).toContain('Vi a vaga na [empresa], em sua cidade.')
+		expect(reply).toContain('ℹ️ A vaga não tem {{local}}: entrou o texto do fallback.')
+		expect(reply).toContain('⚠️ A vaga não tem {{empresa}}, e o modelo não tem fallback')
+	})
+
 	test('sem e-mail, só o aviso do currículo', () => {
-		expect(buildContactReply(null, 'Dev', { generatingCv: true })).toBe(CV_PENDING_NOTE)
+		expect(buildContactReply(null, filled(), { generatingCv: true })).toBe(CV_PENDING_NOTE)
 	})
 
 	test('custom_id novo traz o postId; o antigo trazia o e-mail', () => {

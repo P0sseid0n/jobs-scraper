@@ -4,7 +4,7 @@ export interface BadgeProps {
 	id?: string
 	style?: React.CSSProperties
 	children?: React.ReactNode
-	tone?: 'plain' | 'neutral' | 'lime' | 'running' | 'ok' | 'danger' | 'muted'
+	tone?: 'plain' | 'neutral' | 'lime' | 'running' | 'ok' | 'danger' | 'warn' | 'muted'
 	size?: 'xs' | 'sm' | 'md' | 'lg'
 	bordered?: boolean | 'dashed'
 }

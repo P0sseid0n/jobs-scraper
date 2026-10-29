@@ -122,16 +122,19 @@ async function generateCv(request: CvRequest) {
 	const name = pdfFileName(job)
 	await savePdf(name, pdf)
 
-	// Só com e-mail de contato: sem ele, a candidatura é pelo site da vaga ou pelo post, e a mensagem não seria usada
-	const message = job.recruiterEmail
-		? await requestApplicationMessage(
-				{ ollama, model: config.OLLAMA_MODEL },
-				cv,
-				job,
-				{ profile, unsupportedSkills: report.unsupportedSkills, style: await readSettings('message') },
-				log,
-			)
-		: null
+	// Só com e-mail de contato: sem ele, a candidatura é pelo site da vaga ou pelo post, e a mensagem não seria usada. No
+	// modo modelo, quem mostra a mensagem preenche o modelo da pessoa na hora, e a IA fica só com o currículo
+	const style = await readSettings('message')
+	const message =
+		job.recruiterEmail && style.mode === 'ai'
+			? await requestApplicationMessage(
+					{ ollama, model: config.OLLAMA_MODEL },
+					cv,
+					job,
+					{ profile, unsupportedSkills: report.unsupportedSkills, style },
+					log,
+				)
+			: null
 
 	await reply({
 		jobTitle: job.title,

@@ -1,5 +1,16 @@
 import { z } from 'zod'
 
+import {
+	BUILT_IN_VARIABLES,
+	DEFAULT_TEMPLATE,
+	OPTIONAL_VARIABLE_NAMES,
+	TEMPLATE_VARIABLE_TYPES,
+	templateTokens,
+	templateVariables,
+	VARIABLE_NAME,
+	type TemplateVariable,
+} from '../templates/message-template'
+
 /**
  * Configurações editáveis em tempo de execução (por outras fontes). Ficam na coleção `settings`
  * do MongoDB, um documento por serviço; o `.env` só define os valores iniciais.
@@ -153,18 +164,142 @@ export type MessageDefaultTone = (typeof MESSAGE_DEFAULT_TONES)[number]
 
 export const MESSAGE_STYLE_SAMPLE_MAX = 1500
 export const MESSAGE_SIGNATURE_MAX = 500
+export const MESSAGE_SUBJECT_MAX = 200
+export const MESSAGE_TEMPLATE_MAX = 3000
+export const MAX_OWN_VARIABLES = 20
+export const OWN_VARIABLE_LIMITS = { name: 40, description: 60, value: 300 } as const
+export const FALLBACK_MAX = 100
 
-/** Como a IA escreve o e-mail de candidatura (cv-updater); em cada vaga dá para reescrever com outro tom e tamanho. */
-export const MessageSettingsSchema = z.object({
-	tone: z.enum(MESSAGE_DEFAULT_TONES).default('neutral'),
-	length: z.enum(MESSAGE_LENGTHS).default('medium'),
-	/** Uma mensagem que a pessoa já mandou: a IA imita o jeito de escrever, sem copiar os fatos. Vazio desliga. */
-	styleSample: z.string().trim().max(MESSAGE_STYLE_SAMPLE_MAX).default(''),
-	/** Linhas coladas no fim de toda mensagem, como estão, sem passar pela IA (ex.: links do GitHub e do LinkedIn). */
-	signature: z.string().trim().max(MESSAGE_SIGNATURE_MAX).default(''),
+/** `ai`: a IA escreve a mensagem de cada vaga junto com o currículo. `template`: o modelo da pessoa, preenchido na hora. */
+export const MESSAGE_MODES = ['ai', 'template'] as const
+export type MessageMode = (typeof MESSAGE_MODES)[number]
+
+const OwnVariableSchema = z.object({
+	name: z
+		.string()
+		.trim()
+		.min(1, 'Dê um nome à variável')
+		.max(OWN_VARIABLE_LIMITS.name, `Use até ${OWN_VARIABLE_LIMITS.name} caracteres`)
+		.regex(VARIABLE_NAME, 'Use minúsculas sem acento, números e _ entre as palavras (ex.: meu_nome)'),
+	description: z
+		.string()
+		.trim()
+		.max(OWN_VARIABLE_LIMITS.description, `Use até ${OWN_VARIABLE_LIMITS.description} caracteres`)
+		.default(''),
+	type: z.enum(TEMPLATE_VARIABLE_TYPES).default('text'),
+	value: z
+		.string()
+		.trim()
+		.min(1, 'Informe o valor')
+		.max(OWN_VARIABLE_LIMITS.value, `Use até ${OWN_VARIABLE_LIMITS.value} caracteres`),
 })
 
+const HTTP_LINK = /^https?:\/\/[^\s/$.?#][^\s]*$/i
+
+/**
+ * Como a mensagem de candidatura é feita (pela IA, no cv-updater, ou pelo modelo da pessoa) e o estilo da IA, que vale
+ * também para reescrever a mensagem numa vaga ("melhorar com a IA").
+ */
+export const MessageSettingsSchema = z
+	.object({
+		mode: z.enum(MESSAGE_MODES).default('ai'),
+		tone: z.enum(MESSAGE_DEFAULT_TONES).default('neutral'),
+		length: z.enum(MESSAGE_LENGTHS).default('medium'),
+		/** Uma mensagem que a pessoa já mandou: a IA imita o jeito de escrever, sem copiar os fatos. Vazio desliga. */
+		styleSample: z.string().trim().max(MESSAGE_STYLE_SAMPLE_MAX).default(''),
+		/** Linhas coladas no fim de toda mensagem, como estão, sem passar pela IA (ex.: links do GitHub e do LinkedIn). */
+		signature: z.string().trim().max(MESSAGE_SIGNATURE_MAX).default(''),
+		/**
+		 * O modelo, com variáveis (`{{empresa}}`): a mensagem no modo `template` e, no modo `ai`, a usada enquanto a IA não
+		 * escreveu a da vaga.
+		 */
+		template: z
+			.object({
+				subject: z
+					.string()
+					.trim()
+					.min(1, 'Escreva o assunto')
+					.max(MESSAGE_SUBJECT_MAX, `Use até ${MESSAGE_SUBJECT_MAX} caracteres`),
+				body: z
+					.string()
+					.trim()
+					.min(1, 'Escreva a mensagem')
+					.max(MESSAGE_TEMPLATE_MAX, `Use até ${MESSAGE_TEMPLATE_MAX.toLocaleString('pt-BR')} caracteres`),
+			})
+			.default(DEFAULT_TEMPLATE),
+		/** As variáveis da pessoa (`{{meu_nome}}`, `{{link_github}}`), com um valor fixo. */
+		variables: z.array(OwnVariableSchema).max(MAX_OWN_VARIABLES, `Use no máximo ${MAX_OWN_VARIABLES} variáveis`).default([]),
+		/** O texto usado quando a vaga não tem o valor de uma variável que pode faltar (`empresa` → "a sua empresa"). */
+		fallbacks: z
+			.record(
+				z.string(),
+				z
+					.string()
+					.trim()
+					.min(1, 'Escreva o texto usado quando a vaga não tem o valor, ou apague o fallback')
+					.max(FALLBACK_MAX, `Use até ${FALLBACK_MAX} caracteres`),
+			)
+			.default({}),
+	})
+	.superRefine((settings, ctx) => {
+		const builtIn = new Set(BUILT_IN_VARIABLES.map(variable => variable.name))
+		const seen = new Set<string>()
+
+		settings.variables.forEach((variable, index) => {
+			if (builtIn.has(variable.name)) {
+				ctx.addIssue({
+					code: 'custom',
+					path: ['variables', index, 'name'],
+					message: `{{${variable.name}}} já é uma variável pronta: use outro nome`,
+				})
+			} else if (seen.has(variable.name)) {
+				ctx.addIssue({ code: 'custom', path: ['variables', index, 'name'], message: 'Já há uma variável com esse nome' })
+			}
+			seen.add(variable.name)
+
+			if (variable.type === 'link' && !HTTP_LINK.test(variable.value)) {
+				ctx.addIssue({
+					code: 'custom',
+					path: ['variables', index, 'value'],
+					message: 'Use um link que comece com http:// ou https://',
+				})
+			}
+		})
+
+		for (const name of Object.keys(settings.fallbacks)) {
+			if (!OPTIONAL_VARIABLE_NAMES.includes(name)) {
+				ctx.addIssue({ code: 'custom', path: ['fallbacks', name], message: `{{${name}}} nunca falta: não precisa de fallback` })
+			}
+		}
+
+		const variables = new Map(templateVariables(settings.variables).map(variable => [variable.name, variable]))
+		for (const field of ['subject', 'body'] as const) {
+			const problem = templateProblem(settings.template[field], field, variables)
+			if (problem) ctx.addIssue({ code: 'custom', path: ['template', field], message: problem })
+		}
+	})
+
 export type MessageSettings = z.output<typeof MessageSettingsSchema>
+
+/** O primeiro problema das variáveis escritas no assunto ou na mensagem do modelo, ou `null`. */
+function templateProblem(text: string, field: 'subject' | 'body', variables: Map<string, TemplateVariable>) {
+	for (const token of templateTokens(text)) {
+		const variable = variables.get(token.name)
+		if (!variable) {
+			return token.name
+				? `A variável {{${token.name}}} não existe: confira o nome ou crie em “suas variáveis”`
+				: 'Há uma variável sem nome ({{ }}): escreva o nome dentro das chaves'
+		}
+		if (field === 'subject' && variable.type === 'link') {
+			return `{{${token.name}}} é um link e só funciona na mensagem: tire do assunto`
+		}
+		if (token.fallback === '') {
+			return `O fallback de {{${token.name}}} está vazio: escreva o texto depois da barra ou tire a barra`
+		}
+	}
+
+	return null
+}
 
 /** Schema de cada documento da coleção `settings`, pelo `_id`. */
 export const SETTINGS_SCHEMAS = {

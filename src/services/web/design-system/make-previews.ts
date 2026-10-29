@@ -176,6 +176,32 @@ const PREVIEWS: Record<string, Preview> = {
 	return h('div', { className: 'flex max-w-xl flex-col gap-1.5' }, h(U.FieldLabel, { htmlFor: 'kw' }, 'Tecnologias de interesse'), h(U.KeywordInput, { id: 'kw', value: s[0], max: 20, onChange: s[1] }))
 })`,
 	},
+	VariablePicker: {
+		group: 'Forms',
+		height: 420,
+		subtitle: 'variáveis clicáveis de um modelo, com o selo de quem pode faltar',
+		body: `h(function Demo() {
+	var s = React.useState('Vi a vaga de ')
+	return h('div', { className: 'flex max-w-2xl flex-col gap-3' },
+		h(U.Input, { 'aria-label': 'Mensagem', value: s[0], onChange: function (e) { s[1](e.target.value) } }),
+		h(U.VariablePicker, {
+			groups: [
+				{ label: 'da vaga', variables: [
+					{ name: 'cargo', description: 'Título da vaga', type: 'text' },
+					{ name: 'empresa', description: 'Nome da empresa', type: 'text', hint: 'sem empresa na vaga: a sua empresa' },
+					{ name: 'local', description: 'Cidade ou região da vaga', type: 'text', mayBeMissing: true },
+					{ name: 'link_da_vaga', description: 'Link da vaga ou do post', type: 'link', mayBeMissing: true }
+				] },
+				{ label: 'suas', variables: [
+					{ name: 'meu_nome', description: 'Seu nome', type: 'text' },
+					{ name: 'link_github', description: 'Link do GitHub', type: 'link' }
+				] }
+			],
+			onInsert: function (name) { s[1](s[0] + '{{' + name + '}}') },
+			howTo: h('p', { className: 'm-0 text-sm' }, 'Escreva a variável entre chaves duplas: {{empresa}}.')
+		}))
+})`,
+	},
 	FieldLabel: {
 		group: 'Forms',
 		height: 110,

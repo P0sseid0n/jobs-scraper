@@ -11,6 +11,8 @@ import {
 
 import type { MailResult } from '@shared/contracts'
 
+import { templateNotes } from './template-message'
+
 /** "Enviar candidatura": abre a confirmação. O custom_id carrega o `fileId` do currículo guardado (coleção `cv_files`). */
 export const MAIL_BUTTON_PREFIX = 'mail:'
 /** "Confirmar envio", na confirmação: só ele envia. */
@@ -53,8 +55,16 @@ export function confirmationRow(fileId: string, resend: boolean) {
 /**
  * A confirmação do envio (só quem clicou vê): para quem, o assunto, o corpo e o anexo, como vão no e-mail, e o aviso
  * quando a vaga já recebeu candidatura. Corpo longo demais para o Discord aparece cortado (o e-mail leva inteiro).
+ * `fallbacks`: as variáveis do modelo que a vaga não tinha e usaram o fallback, avisadas antes de confirmar.
  */
-export function buildMailConfirmation(mail: { to: string; subject: string; body: string; fileName: string; lastSentAt: Date | null }) {
+export function buildMailConfirmation(mail: {
+	to: string
+	subject: string
+	body: string
+	fileName: string
+	lastSentAt: Date | null
+	fallbacks?: string[]
+}) {
 	// Três crases no texto fechariam o bloco de código antes da hora
 	const body = mail.body.replaceAll('```', "'''")
 	const cut = body.length > BODY_PREVIEW_MAX
@@ -74,6 +84,7 @@ export function buildMailConfirmation(mail: { to: string; subject: string; body:
 		cut ? `${body.slice(0, BODY_PREVIEW_MAX).trimEnd()}\n[…]` : body,
 		'```',
 		`📎 ${mail.fileName}${cut ? ' · o texto completo vai no e-mail' : ''}`,
+		...templateNotes({ fallbacks: mail.fallbacks ?? [], missing: [] }),
 		'',
 		'Nada é enviado sem o “Confirmar envio”. Para mudar o texto, use o site.',
 	].join('\n')
