@@ -18,7 +18,8 @@ Funciona para currículos de qualquer área. A área e o cargo-alvo do perfil (C
 
   Projetos que já estão no `.tex` usam o texto que você escreveu; os outros ganham uma descrição gerada a partir do README. Forks, arquivados e os de `GITHUB_EXCLUDE_REPOS` ficam de fora. Sem GitHub, ficam os projetos do `.tex`, reordenados. Sem a seção de projetos no `.tex`, o GitHub não é consultado.
 - **Experiência:** os bullets são reordenados por relevância. Nenhum é criado ou removido.
-- **Mensagem de candidatura** (só em vagas com e-mail): a IA escreve o e-mail a partir do currículo ajustado, citando o cargo, a empresa, competências da vaga que estão no currículo e um projeto ou experiência relacionada, no idioma do post. Regras descartam placeholders, anos de experiência, tecnologias do catálogo que não estão no currículo nem na vaga e requisitos da vaga que a pessoa não tem. Se a IA falhar, fica o modelo padrão.
+
+A mensagem de candidatura não passa por aqui: ela sai do modelo da pessoa (Configurações › Mensagem), preenchido por quem a mostra (site e Discord).
 
 O PDF começa com os 2 primeiros projetos e ganha o próximo enquanto continuar em uma página. Se nem com 2 couber, volta a apresentação original. Os PDFs ficam em `data/cv/generated/`.
 

@@ -7,7 +7,7 @@ import type { WebJob, WebMail } from '../../api-types'
 import { api, cvPdfUrl, RequestError } from '../api'
 import { cx } from '../lib/cx'
 import { formatDateTime, MESSAGE_LENGTH_LABELS, MESSAGE_TONE_LABELS } from '../lib/format'
-import { rewriteMessage, undoMessageRewrite, useCvFor, useGeneratedMessage, useReadyCvFor } from '../stores/cv'
+import { useCvFor, useReadyCvFor } from '../stores/cv'
 import { sendApplication, useJobMails, useMailSetup } from '../stores/mail'
 import { useMessageSettingsState } from '../stores/message-settings'
 import { notify, type ToastAction } from '../stores/toast'
@@ -26,7 +26,7 @@ import { Pill, PillGroup } from './ui/Pill'
 import { LABEL } from './ui/text'
 import { RouteLink, TextLink } from './ui/TextLink'
 
-/** Uma das opções de reescrita da mensagem (tom, tamanho): o rótulo e as pills na mesma linha; no celular, um embaixo do outro. */
+/** Uma das opções do "melhorar com a IA" (tom, tamanho): o rótulo e as pills na mesma linha; no celular, um embaixo do outro. */
 const MESSAGE_OPTION = 'flex items-center gap-2 max-sm:flex-col max-sm:items-start max-sm:gap-1.5'
 
 /** A vaga: o id e os dados que preenchem as variáveis do modelo (`{{empresa}}`, `{{local}}`…). */
@@ -58,8 +58,8 @@ type ContactDialogProps = {
 
 /**
  * O contato com o recrutador numa modal (`<dialog>` nativo: foco preso, Esc fecha): o destinatário, o assunto e a
- * mensagem (a gerada pela IA para a vaga, ou o modelo da pessoa preenchido na hora), com as opções de reescrita e os
- * botões de copiar. No modelo, avisa o que a vaga não tinha (o que usou o fallback e o que ficou marcado no texto).
+ * mensagem (o modelo da pessoa, preenchido na hora com os dados da vaga), o "melhorar com a IA" e os botões de copiar.
+ * Avisa o que a vaga não tinha (o que usou o fallback e o que ficou marcado no texto).
  * Com a conta de e-mail (SMTP) configurada, o assunto e a mensagem viram campos editáveis e dá para enviar daqui, com o
  * currículo pronto anexado, só depois de clicar em "enviar"; sem ela, só copiar.
  */
@@ -80,54 +80,40 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 	const lastSent = mails.find(mail => mail.status === 'sent') ?? null
 	const sending = mails[0]?.status === 'sending'
 
-	// No modo IA, a mensagem gerada pela IA vem no lugar do modelo, que continua a um clique; no modo modelo, o contrário
-	// (a da IA só existe se o currículo foi gerado antes, no modo IA)
-	const mode = messageSettings?.mode ?? 'ai'
-	const [swapped, setSwapped] = useState(false)
-	const [rewriting, setRewriting] = useState<MessageTone | MessageLength | 'direct' | 'undo' | 'improve' | null>(null)
-	const generatedRequest = useGeneratedMessage(job.postId)
-	const generated = generatedRequest?.message ?? null
-	const showGenerated = !!generated && (mode === 'ai') !== swapped
+	const [rewriting, setRewriting] = useState<'improve' | 'direct' | null>(null)
+	// O estilo do "melhorar com a IA", escolhido na hora
+	const [tone, setTone] = useState<MessageTone>('neutral')
+	const [length, setLength] = useState<MessageLength>('medium')
 	// Sem as configurações (a leitura falhou), vale o modelo padrão
-	const filled = templateMessage(messageSettings ?? { template: DEFAULT_TEMPLATE, fallbacks: {}, variables: [] }, job, profile ?? {})
-	const message = generated && showGenerated ? generated : filled
-	// Mensagens de antes do tom e do tamanho foram escritas no neutro e no tamanho médio
-	const tone = generated?.tone ?? 'neutral'
-	const length = generated?.length ?? 'medium'
+	const message = templateMessage(messageSettings ?? { template: DEFAULT_TEMPLATE, fallbacks: {}, variables: [] }, job, profile ?? {})
 	const sourceBody = formatApplicationBody(message, signature)
 
-	// O texto nos campos começa com a mensagem da IA (ou o modelo), com a assinatura. Quando ela muda por um pedido daqui
-	// (reescrever, desfazer, trocar de modelo), o texto é trocado; quando muda sozinha (a mensagem da IA que chegou com o
-	// currículo, a assinatura lida de novo), só se a pessoa ainda não editou: senão, fica a oferta de usar a nova
+	// O texto nos campos começa com o modelo preenchido, com a assinatura. Quando ele muda sozinho (as configurações ou a
+	// assinatura lidas de novo), o texto só é trocado se a pessoa ainda não editou: senão, fica a oferta de usar o novo
 	const [to, setTo] = useState(recipient)
 	const [subject, setSubject] = useState(message.subject)
 	const [body, setBody] = useState(sourceBody)
 	const [edited, setEdited] = useState(false)
 	const [newerSource, setNewerSource] = useState(false)
-	const adoptNext = useRef(false)
 	useEffect(() => {
 		if (!textReady) return
-		if (edited && !adoptNext.current) {
+		if (edited) {
 			setNewerSource(true)
 			return
 		}
 
-		adoptNext.current = false
 		setSubject(message.subject)
 		setBody(sourceBody)
 		setEdited(false)
 		setNewerSource(false)
 	}, [message.subject, sourceBody, textReady])
 
-	// O corpo fica carregando enquanto os dados não chegam: a assinatura e a conta de e-mail e, com o currículo sendo gerado,
-	// a mensagem que a IA escreve junto (se a pessoa ainda não editou o modelo: aí o texto dela fica)
-	const awaitingAi = mode === 'ai' && cv?.status === 'pending' && !generated && !edited
-	const bodyLoading = !textReady || awaitingAi
-	const loadingLabel = textReady ? 'a IA está escrevendo a mensagem para a vaga…' : 'carregando a mensagem…'
-	// Os campos esperando (dados chegando ou a IA reescrevendo) ficam só de leitura, com o `FieldScan` no corpo, e não
-	// desligados: o visual de desligado é para o que não se pode usar, não para o que ainda está chegando
+	// O corpo fica carregando enquanto os dados não chegam (a assinatura e a conta de e-mail). Os campos esperando (dados
+	// chegando ou a IA reescrevendo) ficam só de leitura, com o `FieldScan` no corpo, e não desligados: o visual de
+	// desligado é para o que não se pode usar, não para o que ainda está chegando
+	const bodyLoading = !textReady
 	const fieldsBusy = bodyLoading || !!rewriting
-	const busyLabel = rewriting ? 'a IA está reescrevendo a mensagem…' : loadingLabel
+	const busyLabel = rewriting ? 'a IA está reescrevendo a mensagem…' : 'carregando a mensagem…'
 	// Sem saber ainda se há conta de e-mail, os campos aparecem como editáveis (desligados), no lugar em que vão ficar
 	const editable = canSend || setup === null
 
@@ -141,7 +127,7 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 
 	// O que a vaga não tinha e o modelo não tem fallback: fica marcado no texto (`[empresa]`), e o envio espera a pessoa
 	// completar ou apagar o trecho
-	const unresolved = showGenerated ? [] : unresolvedMissing(filled.missing, subject, body)
+	const unresolved = unresolvedMissing(message.missing, subject, body)
 	// O corpo antes do "melhorar com a IA", para desfazer
 	const [beforeImprove, setBeforeImprove] = useState<string | null>(null)
 
@@ -153,46 +139,21 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 		ref.current?.showModal()
 	}, [])
 
-	/** Pede à IA outra versão da mensagem (ou desfaz a última); se ela não conseguir, a mensagem continua a mesma. */
-	async function changeMessage(
-		kind: NonNullable<typeof rewriting>,
-		style: { tone: MessageTone; length: MessageLength; direct?: boolean } | null,
-	) {
-		if (!generatedRequest || rewriting) return
-
-		setRewriting(kind)
-		setBeforeImprove(null)
-		// Pedido daqui: a versão nova substitui o texto, mesmo editado (a modal avisa)
-		adoptNext.current = true
-		try {
-			if (style) await rewriteMessage(generatedRequest.requestId, style)
-			else await undoMessageRewrite(generatedRequest.requestId)
-		} catch (error) {
-			adoptNext.current = false
-			notify(error instanceof RequestError ? error.message : 'Não consegui reescrever a mensagem', 'error')
-		} finally {
-			setRewriting(null)
-		}
-	}
-
 	/**
-	 * "Melhorar com a IA": reescreve o texto atual (sem a assinatura, que volta no fim como está), com o tom e o tamanho
-	 * das configurações. Nada é guardado: a versão nova só fica nos campos, e "desfazer" volta à de antes.
+	 * "Melhorar com a IA": reescreve o texto atual (sem a assinatura, que volta no fim como está) no tom e no tamanho
+	 * escolhidos e, com `direct`, mais direto. Nada é guardado: a versão nova só fica nos campos, e "desfazer" volta à de
+	 * antes.
 	 */
-	async function improveMessage() {
-		if (rewriting || !messageSettings) return
+	async function improveMessage(kind: 'improve' | 'direct') {
+		if (rewriting) return
 
 		const footer = signature.trim()
 		const signed = !!footer && body.endsWith(`\n\n${footer}`)
 		const text = signed ? body.slice(0, -(footer.length + 2)) : body
 
-		setRewriting('improve')
+		setRewriting(kind)
 		try {
-			const improved = await api.improveJobMessage(job.postId, {
-				body: text,
-				tone: messageSettings.tone === 'auto' ? 'neutral' : messageSettings.tone,
-				length: messageSettings.length,
-			})
+			const improved = await api.improveJobMessage(job.postId, { body: text, tone, length, direct: kind === 'direct' })
 			setBeforeImprove(body)
 			setBody(formatApplicationBody({ subject, body: improved.body }, signed ? footer : ''))
 			setEdited(true)
@@ -308,27 +269,10 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 				</div>
 
 				<section aria-label="Mensagem de candidatura" className="flex flex-col gap-3 rounded-sm bg-surface-2 p-3.5">
-					{/* De onde vem o texto, com a troca entre a mensagem da IA e o modelo (sem a da IA, a área do currículo, abaixo, explica que ela vem com ele) */}
-					<div className="flex items-center justify-between gap-3">
-						<span className={LABEL}>{showGenerated ? 'mensagem gerada pela IA' : 'mensagem do seu modelo'}</span>
-						{generated && (
-							<TextLink
-								className="text-xs"
-								disabled={!!rewriting}
-								onClick={() => {
-									// Pedido daqui: a outra versão substitui o texto, mesmo editado
-									adoptNext.current = true
-									setSwapped(!swapped)
-									setBeforeImprove(null)
-								}}
-							>
-								{showGenerated ? 'usar o seu modelo' : 'usar a mensagem da IA'}
-							</TextLink>
-						)}
-					</div>
+					<span className={LABEL}>mensagem do seu modelo</span>
 
 					{/* O que a vaga não tinha: o que ficou marcado no texto (e segura o envio) e o que entrou pelo fallback */}
-					{!showGenerated && textReady && unresolved.length > 0 && (
+					{textReady && unresolved.length > 0 && (
 						<Notice tone="warn" icon="alert" className="text-sm">
 							<p className="m-0">
 								A vaga não tem {variableList(unresolved)}, e o modelo não tem fallback: troque{' '}
@@ -341,9 +285,9 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 							</p>
 						</Notice>
 					)}
-					{!showGenerated && textReady && filled.fallbacks.length > 0 && (
+					{textReady && message.fallbacks.length > 0 && (
 						<Notice tone="info" icon="info" className="text-sm">
-							<p className="m-0">A vaga não tem {variableList(filled.fallbacks)}: entrou o texto do fallback.</p>
+							<p className="m-0">A vaga não tem {variableList(message.fallbacks)}: entrou o texto do fallback.</p>
 						</Notice>
 					)}
 
@@ -361,7 +305,7 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 					{newerSource && (
 						<Notice tone="warn" icon="info" className="text-sm">
 							<p className="m-0">
-								A mensagem mudou enquanto você editava (chegou a da IA, ou a assinatura).{' '}
+								O modelo ou a assinatura mudaram enquanto você editava.{' '}
 								<TextLink className="text-sm" onClick={adoptSource}>
 									usar a nova
 								</TextLink>{' '}
@@ -469,92 +413,53 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 						)}
 					</div>
 
-					{showGenerated && (
-						// Reescreve a mensagem já gerada: o tom e o tamanho escolhidos ficam ligados
-						<div className="flex flex-wrap items-center gap-x-5 gap-y-2.5 border-t border-line-strong pt-3">
-							<div className={MESSAGE_OPTION}>
-								<span id={ids.tone} className={LABEL}>
-									tom
-								</span>
-								<PillGroup role="group" aria-labelledby={ids.tone}>
-									{MESSAGE_TONES.map(option => (
-										<Pill
-											key={option}
-											pressed={option === tone}
-											disabled={!!rewriting || bodyLoading}
-											onClick={() => option !== tone && changeMessage(option, { tone: option, length })}
-										>
-											{rewriting === option && <Icon name="spinner" size={13} />}
-											{MESSAGE_TONE_LABELS[option]}
-										</Pill>
-									))}
-								</PillGroup>
-							</div>
-							<div className={MESSAGE_OPTION}>
-								<span id={ids.length} className={LABEL}>
-									tamanho
-								</span>
-								<PillGroup role="group" aria-labelledby={ids.length}>
-									{MESSAGE_LENGTHS.map(option => (
-										<Pill
-											key={option}
-											pressed={option === length}
-											disabled={!!rewriting || bodyLoading}
-											onClick={() => option !== length && changeMessage(option, { tone, length: option })}
-										>
-											{rewriting === option && <Icon name="spinner" size={13} />}
-											{MESSAGE_LENGTH_LABELS[option]}
-										</Pill>
-									))}
-								</PillGroup>
-							</div>
-							{/* As ações de reescrita juntas: "mais direta" (cada clique reescreve de novo, mais enxuta) e desfazer a última;
-							 * à direita, o status (o aviso de que reescrever troca o texto só aparece depois de editar) */}
-							<div className="flex basis-full flex-wrap items-center justify-between gap-x-3 gap-y-1">
-								<div className="flex items-center gap-2 text-muted text-xs">
-									<Button
-										variant="ghost"
-										size="sm"
-										disabled={!!rewriting || bodyLoading}
-										onClick={() => changeMessage('direct', { tone, length, direct: true })}
-									>
-										<Icon name={rewriting === 'direct' ? 'spinner' : 'refresh'} size={13} />
-										deixar mais direta
-									</Button>
-									{generatedRequest?.previousMessage && (
-										<>
-											{' · '}
-											<TextLink className="text-xs" disabled={!!rewriting} onClick={() => changeMessage('undo', null)}>
-												desfazer
-											</TextLink>
-										</>
-									)}
-								</div>
-								<span role="status" className="text-muted text-xs">
-									{rewriting && rewriting !== 'undo'
-										? 'a IA está reescrevendo…'
-										: !canSend
-											? 'revise antes de enviar'
-											: edited
-												? 'reescrever troca o que você editou'
-												: ''}
-								</span>
-							</div>
+					{/* A IA só entra a pedido: reescreve o texto atual no tom e no tamanho escolhidos, sem inventar fatos */}
+					<div className="flex flex-wrap items-center gap-x-5 gap-y-2.5 border-t border-line-strong pt-3">
+						<div className={MESSAGE_OPTION}>
+							<span id={ids.tone} className={LABEL}>
+								tom
+							</span>
+							<PillGroup role="group" aria-labelledby={ids.tone}>
+								{MESSAGE_TONES.map(option => (
+									<Pill key={option} pressed={option === tone} disabled={!!rewriting} onClick={() => setTone(option)}>
+										{MESSAGE_TONE_LABELS[option]}
+									</Pill>
+								))}
+							</PillGroup>
 						</div>
-					)}
-
-					{!showGenerated && messageSettings && (
-						// O modelo sai sem a IA; ela pode reescrever o texto preenchido, com o tom e o tamanho das configurações
-						<div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t border-line-strong pt-3">
-							<div className="flex items-center gap-2 text-muted text-xs">
+						<div className={MESSAGE_OPTION}>
+							<span id={ids.length} className={LABEL}>
+								tamanho
+							</span>
+							<PillGroup role="group" aria-labelledby={ids.length}>
+								{MESSAGE_LENGTHS.map(option => (
+									<Pill key={option} pressed={option === length} disabled={!!rewriting} onClick={() => setLength(option)}>
+										{MESSAGE_LENGTH_LABELS[option]}
+									</Pill>
+								))}
+							</PillGroup>
+						</div>
+						{/* As ações juntas: melhorar, "mais direta" (cada clique reescreve de novo, mais enxuta) e desfazer a última;
+						 * à direita, o status */}
+						<div className="flex basis-full flex-wrap items-center justify-between gap-x-3 gap-y-1">
+							<div className="flex flex-wrap items-center gap-2 text-muted text-xs">
 								<Button
 									variant="ghost"
 									size="sm"
 									disabled={!!rewriting || bodyLoading || unresolved.length > 0}
-									onClick={improveMessage}
+									onClick={() => improveMessage('improve')}
 								>
 									<Icon name={rewriting === 'improve' ? 'spinner' : 'refresh'} size={13} />
 									melhorar com a IA
+								</Button>
+								<Button
+									variant="ghost"
+									size="sm"
+									disabled={!!rewriting || bodyLoading || unresolved.length > 0}
+									onClick={() => improveMessage('direct')}
+								>
+									<Icon name={rewriting === 'direct' ? 'spinner' : 'refresh'} size={13} />
+									deixar mais direta
 								</Button>
 								{beforeImprove !== null && (
 									<>
@@ -573,17 +478,17 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 								)}
 							</div>
 							<span role="status" className="text-muted text-xs">
-								{rewriting === 'improve'
+								{rewriting
 									? 'a IA está reescrevendo…'
 									: unresolved.length > 0
 										? 'complete o que faltou antes de pedir à IA'
 										: 'a IA reescreve o texto atual, sem inventar fatos'}
 							</span>
 						</div>
-					)}
+					</div>
 				</section>
 
-				{/* O currículo é escolha de quem abriu: com ele vêm o anexo e a mensagem escrita pela IA para a vaga */}
+				{/* O currículo é escolha de quem abriu: ele vai anexado ao e-mail */}
 				<section aria-label="Currículo" className="flex flex-col gap-2.5 rounded-sm border border-line p-2.5">
 					{readyCv ? (
 						<div className="flex items-center gap-3">
@@ -610,17 +515,11 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 					) : (
 						<div className="flex flex-wrap items-center gap-3">
 							<FieldHelp className="min-w-0 basis-60 grow text-xs">
-								{mode === 'template'
-									? cv?.status === 'pending'
-										? 'Gerando o currículo ajustado para a vaga.'
-										: canSend
-											? 'Gere o currículo ajustado para a vaga: ele vai anexado ao e-mail.'
-											: 'Gere o currículo ajustado para a vaga: o PDF fica para você anexar.'
-									: cv?.status === 'pending'
-										? 'Gerando o currículo ajustado para a vaga: a mensagem da IA chega junto.'
-										: canSend
-											? 'Gere o currículo ajustado para a vaga: ele vai anexado ao e-mail, e a IA escreve a mensagem junto.'
-											: 'Gere o currículo ajustado para a vaga: a IA escreve a mensagem junto, e o PDF fica para você anexar.'}
+								{cv?.status === 'pending'
+									? 'Gerando o currículo ajustado para a vaga.'
+									: canSend
+										? 'Gere o currículo ajustado para a vaga: ele vai anexado ao e-mail.'
+										: 'Gere o currículo ajustado para a vaga: o PDF fica para você anexar.'}
 								{cv?.status === 'failed' && <span className="block text-danger">O último falhou: {cv.error}</span>}
 							</FieldHelp>
 							<CvButton job={job} className="shrink-0" />

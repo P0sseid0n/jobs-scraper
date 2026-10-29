@@ -1,22 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import {
-	cleanMessageBody,
-	fillSampleName,
-	messageStyleRules,
-	messageTextProblem,
-	newProperNouns,
-	sampleName,
-	styleSampleSection,
-} from './message-style'
-
-// A mensagem de exemplo de uma pessoa real (links trocados)
-const sample = `Olá! Me chamo Matheus e gostaria de me candidatar à vaga Engenheiro de Dados Senior.
-Vi a oportunidade no LinkedIn e me interessei bastante.
-Segue ele em anexo. Fico à disposição para conversar!
-
-🔗 GitHub: https://github.com/exemplo
-💼 LinkedIn: https://linkedin.com/in/exemplo`
+import { cleanMessageBody, messageStyleRules, messageTextProblem, newProperNouns } from './message-style'
 
 // O texto que motivou as regras de estilo, gerado pela IA para uma vaga real (empresa e projeto trocados)
 const clicheBody = `Olá! Tudo bem?
@@ -70,39 +54,8 @@ describe('messageStyleRules', () => {
 		expect(rules).not.toContain('Prezados')
 	})
 
-	test('o automático explica os três tons para a IA escolher', () => {
-		const rules = messageStyleRules('auto', 'short')
-
-		expect(rules).toContain('return it in "tone"')
-		for (const greeting of ['Prezados,', 'Olá! Tudo bem?', 'Oi, pessoal! Tudo bem?']) expect(rules).toContain(greeting)
-		expect(rules).toContain('at most 350 characters')
-	})
-})
-
-describe('mensagem de exemplo', () => {
-	test('com exemplo, a abertura e o fechamento vêm dele, não do tom', () => {
-		const rules = messageStyleRules('neutral', 'medium', sample)
-
-		expect(rules).toContain(
-			'Open like the sample does ("Olá! Me chamo Matheus e gostaria de me candidatar à vaga Engenheiro de Dados Senior.")',
-		)
-		expect(rules).toContain('Close like the sample does ("Segue ele em anexo. Fico à disposição para conversar!")')
-		expect(rules).not.toContain('Greet with')
-	})
-
-	test('as linhas com link ficam de fora (a IA copiaria o link)', () => {
-		const [section] = styleSampleSection(sample)
-
-		expect(section).toEndWith('Segue ele em anexo. Fico à disposição para conversar!')
-		expect(section).not.toContain('https://')
-	})
-
-	test('o nome com que a pessoa se apresenta preenche o "[Nome]" do modelo', () => {
-		expect(sampleName(sample)).toBe('Matheus')
-		expect(sampleName('My name is Ana and I saw the role.')).toBe('Ana')
-		expect(fillSampleName('Olá! Me chamo [Nome] e vi a vaga. [Seu nome]', sample)).toBe('Olá! Me chamo Matheus e vi a vaga. Matheus')
-		// Sem nome no exemplo, o placeholder fica (e a validação recusa)
-		expect(fillSampleName('Me chamo [Nome].', 'Oi! Vi a vaga.')).toBe('Me chamo [Nome].')
+	test('o tamanho curto pede no máximo 350 caracteres', () => {
+		expect(messageStyleRules('formal', 'short')).toContain('at most 350 characters')
 	})
 })
 

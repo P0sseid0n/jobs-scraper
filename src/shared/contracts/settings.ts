@@ -150,7 +150,7 @@ export function isProfileComplete(profile: ProfileSettings) {
 	return !!profile.area && !!profile.targetRole
 }
 
-/** Tons do e-mail de candidatura escrito pela IA. */
+/** Tons do "melhorar com a IA" da mensagem de candidatura. */
 export const MESSAGE_TONES = ['formal', 'neutral', 'casual'] as const
 export type MessageTone = (typeof MESSAGE_TONES)[number]
 
@@ -158,21 +158,12 @@ export type MessageTone = (typeof MESSAGE_TONES)[number]
 export const MESSAGE_LENGTHS = ['short', 'medium'] as const
 export type MessageLength = (typeof MESSAGE_LENGTHS)[number]
 
-/** O tom padrão pode ser `auto`: a IA escolhe pelo post (formal num banco, descontraído numa startup). */
-export const MESSAGE_DEFAULT_TONES = ['auto', ...MESSAGE_TONES] as const
-export type MessageDefaultTone = (typeof MESSAGE_DEFAULT_TONES)[number]
-
-export const MESSAGE_STYLE_SAMPLE_MAX = 1500
 export const MESSAGE_SIGNATURE_MAX = 500
 export const MESSAGE_SUBJECT_MAX = 200
 export const MESSAGE_TEMPLATE_MAX = 3000
 export const MAX_OWN_VARIABLES = 20
 export const OWN_VARIABLE_LIMITS = { name: 40, description: 60, value: 300 } as const
 export const FALLBACK_MAX = 100
-
-/** `ai`: a IA escreve a mensagem de cada vaga junto com o currículo. `template`: o modelo da pessoa, preenchido na hora. */
-export const MESSAGE_MODES = ['ai', 'template'] as const
-export type MessageMode = (typeof MESSAGE_MODES)[number]
 
 const OwnVariableSchema = z.object({
 	name: z
@@ -197,22 +188,15 @@ const OwnVariableSchema = z.object({
 const HTTP_LINK = /^https?:\/\/[^\s/$.?#][^\s]*$/i
 
 /**
- * Como a mensagem de candidatura é feita (pela IA, no cv-updater, ou pelo modelo da pessoa) e o estilo da IA, que vale
- * também para reescrever a mensagem numa vaga ("melhorar com a IA").
+ * A mensagem de candidatura: o modelo da pessoa, preenchido na hora com os dados da vaga, e a assinatura. A IA só entra
+ * quando a pessoa pede, na vaga ("melhorar com a IA"). Os campos do estilo da IA de antes (`mode`, `tone`, `length`,
+ * `styleSample`) que ainda estejam salvos são ignorados.
  */
 export const MessageSettingsSchema = z
 	.object({
-		mode: z.enum(MESSAGE_MODES).default('ai'),
-		tone: z.enum(MESSAGE_DEFAULT_TONES).default('neutral'),
-		length: z.enum(MESSAGE_LENGTHS).default('medium'),
-		/** Uma mensagem que a pessoa já mandou: a IA imita o jeito de escrever, sem copiar os fatos. Vazio desliga. */
-		styleSample: z.string().trim().max(MESSAGE_STYLE_SAMPLE_MAX).default(''),
 		/** Linhas coladas no fim de toda mensagem, como estão, sem passar pela IA (ex.: links do GitHub e do LinkedIn). */
 		signature: z.string().trim().max(MESSAGE_SIGNATURE_MAX).default(''),
-		/**
-		 * O modelo, com variáveis (`{{empresa}}`): a mensagem no modo `template` e, no modo `ai`, a usada enquanto a IA não
-		 * escreveu a da vaga.
-		 */
+		/** O modelo, com variáveis (`{{empresa}}`): a mensagem de toda vaga sai dele. */
 		template: z
 			.object({
 				subject: z

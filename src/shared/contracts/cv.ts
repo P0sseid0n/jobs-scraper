@@ -1,7 +1,5 @@
 import { z } from 'zod'
 
-import { MESSAGE_LENGTHS, MESSAGE_TONES } from './settings'
-
 /**
  * Para onde o resultado do currículo volta: a fila de quem pediu e um contexto que o cv-updater devolve sem
  * interpretar (ex.: o token da interação do Discord). Assim qualquer canal pode pedir currículo.
@@ -20,18 +18,6 @@ export const CvRequestSchema = z.object({
 })
 
 export type CvRequest = z.infer<typeof CvRequestSchema>
-
-/**
- * E-mail de candidatura sugerido para a vaga (gerado pela IA no cv-updater), com o tom e o tamanho em que foi escrito.
- * Mensagens de antes desses campos ficam com `null`.
- */
-export const ApplicationMessageSchema = z.object({
-	subject: z.string().min(1),
-	body: z.string().min(1),
-	tone: z.enum(MESSAGE_TONES).nullable().default(null),
-	length: z.enum(MESSAGE_LENGTHS).nullable().default(null),
-})
-export type ApplicationMessage = z.infer<typeof ApplicationMessageSchema>
 
 /** O que o currículo da vaga mudou em relação ao currículo base (o site mostra o ajuste). */
 export const CvChangesSchema = z.object({
@@ -53,11 +39,6 @@ export const CvResultSchema = z.object({
 	jobTitle: z.string().nullable(),
 	file: z.object({ name: z.string().min(1), base64: z.string().min(1) }).nullable(),
 	error: z.string().nullable(),
-	/**
-	 * E-mail de candidatura escrito para a vaga, quando ela tem e-mail de contato e a IA respondeu algo válido;
-	 * `null` nos outros casos (os canais mostram o modelo padrão). O padrão aceita resultados de antes do campo.
-	 */
-	message: ApplicationMessageSchema.nullable().default(null),
 	/** O ajuste feito para a vaga, com o currículo gerado; `null` na falha. O padrão aceita resultados de antes do campo. */
 	changes: CvChangesSchema.nullable().default(null),
 	/**

@@ -1,4 +1,4 @@
-import type { ContractType, DatePostedFilter, MessageDefaultTone, MessageLength, ProcessedJob } from '@shared/contracts'
+import type { ContractType, DatePostedFilter, MessageLength, MessageTone, ProcessedJob } from '@shared/contracts'
 
 import type { WebJob } from '../../api-types'
 
@@ -114,9 +114,8 @@ export const DATE_POSTED_LABELS: Record<DatePostedFilter, string> = {
 	any: 'Qualquer data',
 }
 
-/** Os tons da mensagem de candidatura; `auto` só existe como padrão das configurações. */
-export const MESSAGE_TONE_LABELS: Record<MessageDefaultTone, string> = {
-	auto: 'automático',
+/** Os tons do "melhorar com a IA". */
+export const MESSAGE_TONE_LABELS: Record<MessageTone, string> = {
 	formal: 'formal',
 	neutral: 'neutro',
 	casual: 'descontraído',

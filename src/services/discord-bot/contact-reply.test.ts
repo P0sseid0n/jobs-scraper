@@ -37,7 +37,7 @@ describe('botão de contato', () => {
 	test('resposta traz e-mail, modelo de mensagem e aviso do currículo', () => {
 		const reply = buildContactReply('rh@citiustech.com', filled(), { generatingCv: true })
 		expect(reply).toContain('rh@citiustech.com')
-		expect(reply).toContain('Modelo de mensagem para copiar:')
+		expect(reply).toContain('Mensagem do seu modelo para copiar:')
 		expect(reply).toContain('Candidatura – Lead Engineer - Vue.js')
 		expect(reply).toContain(CV_PENDING_NOTE)
 	})
@@ -51,11 +51,10 @@ describe('botão de contato', () => {
 		expect(reply).toContain('Obrigado!\n\nGitHub: https://github.com/exemplo\n```')
 	})
 
-	test('no modo modelo, a mensagem preenchida avisa o que usou fallback e o que faltou', () => {
+	test('a mensagem preenchida avisa o que usou fallback e o que faltou', () => {
 		const template = { subject: '{{cargo}}', body: 'Vi a vaga na {{empresa}}, em {{local}}.' }
 		const reply = buildContactReply('rh@acme.com', filled(template, { local: 'sua cidade' }, { company: null, location: null }), {
 			generatingCv: false,
-			mode: 'template',
 		})
 
 		expect(reply).toContain('Mensagem do seu modelo para copiar:')

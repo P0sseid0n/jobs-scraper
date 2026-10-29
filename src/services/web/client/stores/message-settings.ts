@@ -46,12 +46,6 @@ export function setMessageProfile(profile: WebSettings['profile']) {
 	settings.set(current => ({ ...current, profile, status: current.value ? 'ready' : current.status }))
 }
 
-/** A assinatura colada no fim das mensagens para copiar (vazia até carregar ou quando não há). */
-export function useMessageSignature() {
-	load()
-	return useStore(settings).value?.signature ?? ''
-}
-
 /**
  * As configurações da mensagem e o perfil, e se já foram lidos, para quem monta um texto editável e não pode trocá-lo
  * depois que a pessoa começou a editar (a modal do contato): espera `ready`, ou avisa em `failed` e oferece `retry`.

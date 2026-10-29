@@ -42,14 +42,6 @@ describe('validateDraft (as mesmas regras do servidor)', () => {
 		expect(Object.keys(validateDraft(value))).toEqual(['minJobsPerRun', 'intervalMinutes', 'duplicateWindowDays'])
 	})
 
-	test('a mensagem de exemplo tem o limite do servidor', () => {
-		const value = draft()
-		value.message.styleSample = 'a'.repeat(1501)
-
-		expect(validateDraft(value)).toEqual({ styleSample: 'Use até 1.500 caracteres' })
-		expect(MessageSettingsSchema.safeParse(value.message).success).toBe(false)
-	})
-
 	test('a assinatura tem o limite do servidor', () => {
 		const value = draft()
 		value.message.signature = 'a'.repeat(501)

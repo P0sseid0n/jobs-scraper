@@ -145,19 +145,30 @@ describe('MessageSettingsSchema', () => {
 
 	const template = (body: string, subject = 'Candidatura – {{cargo}}') => ({ template: { subject, body } })
 
-	test('nasce no modo IA, com o modelo padrão e sem variáveis próprias', () => {
+	test('nasce com o modelo padrão e sem variáveis próprias', () => {
 		const settings = MessageSettingsSchema.parse({})
 
-		expect(settings.mode).toBe('ai')
 		expect(settings.template.subject).toBe('Candidatura – {{cargo}}')
 		expect(settings.template.body).toContain('{{cargo}}')
 		expect(settings.variables).toEqual([])
 		expect(settings.fallbacks).toEqual({})
 	})
 
+	test('ignora o estilo da IA salvo antes (modo, tom, tamanho e exemplo)', () => {
+		const settings = MessageSettingsSchema.parse({
+			mode: 'ai',
+			tone: 'auto',
+			length: 'short',
+			styleSample: 'Oi',
+			signature: 'GitHub',
+		})
+
+		expect(settings).not.toContainKeys(['mode', 'tone', 'length', 'styleSample'])
+		expect(settings.signature).toBe('GitHub')
+	})
+
 	test('aceita um modelo com variáveis prontas, próprias e fallbacks', () => {
 		const result = MessageSettingsSchema.safeParse({
-			mode: 'template',
 			...template('Sou {{ meu_nome }}, vi a vaga na {{empresa | sua empresa}}. {{link_github}}'),
 			variables: [
 				{ name: 'meu_nome', description: 'Seu nome', type: 'text', value: 'Carla' },

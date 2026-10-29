@@ -3,7 +3,6 @@
  * vai para o bundle do cliente).
  */
 import type {
-	ApplicationMessage,
 	ContractType,
 	CredentialGroup,
 	CredentialsStatus,
@@ -79,10 +78,6 @@ export type WebCvRequest = {
 	status: CvStatus
 	fileName: string | null
 	error: string | null
-	/** E-mail de candidatura gerado pela IA para a vaga (só com e-mail de contato e resposta válida da IA). */
-	message: ApplicationMessage | null
-	/** A mensagem de antes da última reescrita pelo site, para desfazer; `null` se ela não foi reescrita. */
-	previousMessage: ApplicationMessage | null
 	/** O que o currículo mudou para a vaga (só nos prontos; pedidos de antes do campo não o têm). */
 	changes: CvChanges | null
 	/**

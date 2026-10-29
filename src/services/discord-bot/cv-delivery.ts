@@ -6,7 +6,7 @@ import { Job, saveCvFile } from '@shared/database'
 import type { Logger } from '@shared/logging'
 import { PermanentError } from '@shared/messaging'
 import { loadCredentials, readSettings } from '@shared/settings'
-import { formatApplicationBody, formatApplicationMessage, type TemplateMessage } from '@shared/templates'
+import { formatApplicationBody, type TemplateMessage } from '@shared/templates'
 
 import { isExpiredInteraction, toQueueError } from './discord-errors'
 import { sendApplicationRow } from './mail-reply'
@@ -17,32 +17,19 @@ export const DiscordReplyContextSchema = z.object({ applicationId: z.string().mi
 
 export type DiscordReplyContext = z.infer<typeof DiscordReplyContextSchema>
 
-// Limite de caracteres de uma mensagem do Discord
-const CONTENT_MAX = 2000
-
 /**
- * Texto da resposta com o currículo: o aviso e, quando a IA escreveu, a mensagem de candidatura para copiar
- * (no lugar do modelo mostrado no clique). Sem ela, vale o modelo (`template`), e a resposta repete o aviso do que
- * faltou nele: sem fallback, o envio fica no site.
+ * Texto da resposta com o currículo: o aviso e, se o modelo ficou sem algum valor da vaga, o que faltou (explica por
+ * que não há o botão de envio: sem fallback, o envio fica no site). A mensagem do modelo já veio no clique.
  */
 export function buildCvDeliveryContent(
-	result: Pick<CvResult, 'file' | 'jobTitle' | 'error' | 'message'>,
-	signature = '',
-	template: Pick<TemplateMessage, 'fallbacks' | 'missing'> | null = null,
+	result: Pick<CvResult, 'file' | 'jobTitle' | 'error'>,
+	template: Pick<TemplateMessage, 'missing'> | null = null,
 ) {
 	if (!result.file) return `⚠️ Não consegui gerar o currículo: ${result.error ?? 'erro desconhecido'}`
 
 	const header = `📄 Currículo ajustado para **${result.jobTitle ?? 'a vaga'}**`
-	if (!result.message) {
-		// O que usou o fallback já foi avisado no clique; o que faltou volta aqui, porque explica a falta do botão de envio
-		return [header, ...(template?.missing.length ? templateNotes({ fallbacks: [], missing: template.missing }) : [])].join('\n')
-	}
-
-	// Três crases no texto fechariam o bloco de código antes da hora
-	const message = formatApplicationMessage(result.message, signature).replaceAll('```', "'''")
-	const content = `${header}\n\n✉️ Mensagem escrita para esta vaga (revise antes de enviar):\n\`\`\`\n${message}\n\`\`\``
-
-	return content.length <= CONTENT_MAX ? content : header
+	// O que usou o fallback já foi avisado no clique
+	return [header, ...(template?.missing.length ? templateNotes({ fallbacks: [], missing: template.missing }) : [])].join('\n')
 }
 
 /**
@@ -53,14 +40,12 @@ export async function deliverCv(client: Client, result: CvResult, logger: Logger
 	const context = DiscordReplyContextSchema.safeParse(result.context)
 	if (!context.success) throw new PermanentError('Resultado de currículo sem a interação do Discord no contexto')
 
-	const { signature } = await readSettings('message')
-	// Sem a mensagem da IA (modo modelo, vaga sem e-mail, IA que falhou), o e-mail sugerido é o modelo preenchido
-	const template = result.message ? null : await loadTemplateMessage(result.postId, result.jobTitle)
-	const content = buildCvDeliveryContent(result, signature, template)
+	const [{ signature }, template] = await Promise.all([readSettings('message'), loadTemplateMessage(result.postId, result.jobTitle)])
+	const content = buildCvDeliveryContent(result, template)
 	const pdf = result.file ? Buffer.from(result.file.base64, 'base64') : null
 	const files = result.file && pdf ? [{ name: result.file.name, data: pdf }] : undefined
 	// Com variável sem valor e sem fallback, o texto precisa ser completado: o envio fica no site
-	const sendable = result.file && pdf && !template?.missing.length
+	const sendable = result.file && pdf && template.missing.length === 0
 	const fileId = sendable ? await keepForMail(result, result.file!.name, pdf, signature, template) : null
 
 	try {
@@ -83,22 +68,21 @@ export async function deliverCv(client: Client, result: CvResult, logger: Logger
 }
 
 /**
- * Guarda o PDF e o e-mail sugerido (a mensagem da IA ou o modelo preenchido, com a assinatura) para o "Enviar
+ * Guarda o PDF e o e-mail sugerido (o modelo preenchido, com a assinatura) para o "Enviar
  * candidatura": o Discord não guarda o arquivo em outro lugar. `null` (sem botão) se a vaga não tem e-mail ou não há
  * conta de e-mail.
  */
-async function keepForMail(result: CvResult, fileName: string, pdf: Buffer, signature: string, template: TemplateMessage | null) {
+async function keepForMail(result: CvResult, fileName: string, pdf: Buffer, signature: string, template: TemplateMessage) {
 	const [job, account] = await Promise.all([
 		Job.findOne({ postId: result.postId }, { recruiterEmail: 1 }).lean(),
 		loadCredentials('smtp'),
 	])
 	if (!job?.recruiterEmail || !account) return null
 
-	const message = result.message ?? template!
 	const draft = {
-		subject: message.subject,
-		body: formatApplicationBody(message, signature),
-		fallbacks: template?.fallbacks ?? [],
+		subject: template.subject,
+		body: formatApplicationBody(template, signature),
+		fallbacks: template.fallbacks,
 	}
 
 	return saveCvFile({ postId: result.postId, fileName, pdf, draft })

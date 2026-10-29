@@ -5,7 +5,6 @@ import type { CvChanges } from '@shared/contracts'
 
 import type { WebCvBaseVersion, WebCvRequest } from '../../api-types'
 import { cvBasePdfUrl, cvPdfUrl } from '../api'
-import { ApplicationEmail } from '../components/ApplicationEmail'
 import { Changes } from '../components/CvReady'
 import { Icon } from '../components/Icon'
 import { Badge } from '../components/ui/Badge'
@@ -108,11 +107,6 @@ function ChangeSummary({ changes }: { changes: CvChanges }) {
 			)}
 		</span>
 	)
-}
-
-/** O e-mail de candidatura que a IA escreveu para a vaga, para copiar. */
-function ApplicationMessageBox({ message }: { message: NonNullable<WebCvRequest['message']> }) {
-	return <ApplicationEmail label="e-mail de candidatura" aria-label="E-mail de candidatura" message={message} />
 }
 
 type CvItemProps = {
@@ -239,7 +233,6 @@ function CvItem({ request, outdated, latest }: CvItemProps) {
 			{expanded && (
 				<div id={detailsId} className="flex flex-col gap-3 animate-panel-in motion-reduce:animate-none">
 					{changes && <Changes changes={changes} fresh={false} tone="quiet" />}
-					{ready && request.message && <ApplicationMessageBox message={request.message} />}
 					<div className="flex flex-wrap gap-2">
 						<ButtonLink variant="ghost" size="sm" to="/vagas/$id" params={jobParams(request.postId)}>
 							<Icon name="briefcase" size={14} />

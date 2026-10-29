@@ -4,17 +4,11 @@ import { useEffect, useMemo, useRef, useState, type FormEvent, type InputHTMLAtt
 import {
 	DATE_POSTED_FILTERS,
 	EXTRACTION_CHECKS,
-	MESSAGE_DEFAULT_TONES,
-	MESSAGE_LENGTHS,
-	MESSAGE_MODES,
 	PROFILE_AREAS,
 	reviewChecksThreshold,
 	SENIORITY_LEVELS,
 	suggestedRoles,
 	type DatePostedFilter,
-	type MessageDefaultTone,
-	type MessageLength,
-	type MessageMode,
 	type SeniorityLevel,
 } from '@shared/contracts'
 
@@ -39,16 +33,9 @@ import { SECTION_SCROLL_MARGIN, SectionNav } from '../components/ui/SectionNav'
 import { SelectMenu, type SelectMenuOption } from '../components/ui/SelectMenu'
 import { StatusDot } from '../components/ui/StatusDot'
 import { Switch } from '../components/ui/Switch'
-import { FIELDSET, SECTION_TITLE } from '../components/ui/text'
+import { SECTION_TITLE } from '../components/ui/text'
 import { cx } from '../lib/cx'
-import {
-	DATE_POSTED_LABELS,
-	formatInterval,
-	LANGUAGE_NAMES,
-	languageLabel,
-	MESSAGE_LENGTH_LABELS,
-	MESSAGE_TONE_LABELS,
-} from '../lib/format'
+import { DATE_POSTED_LABELS, formatInterval, LANGUAGE_NAMES, languageLabel } from '../lib/format'
 import { shakeInvalid } from '../lib/motion'
 import {
 	duplicateSimilarityHint,
@@ -82,27 +69,6 @@ const SENIORITY_OPTIONS: SelectMenuOption<SeniorityLevel | ''>[] = [
 	{ value: '', label: 'Não informar' },
 	...SENIORITY_LEVELS.map(value => ({ value, label: SENIORITY_LABELS[value] })),
 ]
-
-/** O que cada tom padrão faz, mostrado embaixo das opções. */
-const TONE_HELP: Record<MessageDefaultTone, string> = {
-	auto: 'A IA escolhe pela vaga: formal para bancos, órgãos públicos e empresas tradicionais; descontraído para startups e posts informais; neutro no resto.',
-	formal: '“Prezados,” e frases completas, sem exclamações; fecha com “Agradeço a atenção.”',
-	neutral: '“Olá! Tudo bem?”, educado e direto; fecha com “Obrigado!”',
-	casual: '“Oi, pessoal! Tudo bem?”, frases curtas como numa conversa, sem gírias nem emojis; fecha com “Abraço!”',
-}
-
-const MODE_LABELS: Record<MessageMode, string> = { ai: 'pela IA', template: 'pelo modelo' }
-
-const MODE_HELP: Record<MessageMode, string> = {
-	ai: 'A IA escreve uma mensagem para cada vaga, junto com o currículo. Enquanto ela não escreve, vale o modelo abaixo.',
-	template:
-		'A mensagem sai na hora, do modelo abaixo, com os dados da vaga; o currículo fica mais rápido, sem esperar a IA escrever. Na vaga, “melhorar com a IA” reescreve o texto preenchido.',
-}
-
-const LENGTH_HELP: Record<MessageLength, string> = {
-	short: 'Umas 3 frases, para mandar por mensagem direta no LinkedIn.',
-	medium: '2 ou 3 parágrafos, para o e-mail ao recrutador.',
-}
 
 const SETTINGS_CARD = card({ size: 'lg', className: cx('flex flex-col gap-6.5', SECTION_SCROLL_MARGIN) })
 
@@ -677,79 +643,20 @@ export function SettingsView({
 
 	function renderMessage(d: SettingsDraft) {
 		const message = d.message
-
-		/** Os campos de texto livre do card (o exemplo e a assinatura), opcionais e com o contador de caracteres. */
-		const textField = (key: 'styleSample' | 'signature', label: string, rows: number, placeholder: string, help: string) => {
-			const length = message[key].trim().length
-
-			return (
-				<div className="flex flex-col gap-1.5">
-					<span className="flex items-center justify-between gap-3">
-						<FieldLabel htmlFor={key}>
-							{label} <span className="font-normal text-muted">(opcional)</span>
-						</FieldLabel>
-						<span id={`${key}-count`} className={cx('font-mono text-xs', length > LIMITS[key] ? 'text-danger' : 'text-muted')}>
-							{length} / {LIMITS[key]}
-						</span>
-					</span>
-					<textarea
-						id={key}
-						rows={rows}
-						value={message[key]}
-						placeholder={placeholder}
-						aria-invalid={!!errors[key] || undefined}
-						aria-describedby={`${errors[key] ? `${key}-error` : `${key}-help`} ${key}-count`}
-						onChange={event => {
-							const value = event.target.value
-							edit(next => {
-								next.message[key] = value
-							})
-						}}
-						className={field({ invalid: !!errors[key], className: 'resize-y py-2.5 leading-relaxed' })}
-					/>
-					{fieldError(key) ?? <FieldHelp id={`${key}-help`}>{help}</FieldHelp>}
-				</div>
-			)
-		}
+		const signatureLength = message.signature.trim().length
 
 		return (
 			<section id="mensagem" className={SETTINGS_CARD} aria-labelledby="message-title">
-				<h2 id="message-title" className={SECTION_TITLE}>
-					mensagem de candidatura{' '}
-					<span className="font-mono text-xs font-normal text-muted">{message.mode === 'ai' ? 'IA' : 'modelo'}</span>
-				</h2>
-
-				<fieldset className={FIELDSET}>
-					<legend className="mb-2.5 p-0 text-sm font-medium">como a mensagem é feita</legend>
-					<PillGroup>
-						{MESSAGE_MODES.map(mode => (
-							<label key={mode} className={pill({ className: 'cursor-pointer' })}>
-								<input
-									type="radio"
-									name="message-mode"
-									className="sr-only"
-									checked={message.mode === mode}
-									onChange={() =>
-										edit(next => {
-											next.message.mode = mode
-										})
-									}
-								/>
-								{MODE_LABELS[mode]}
-							</label>
-						))}
-					</PillGroup>
-					<FieldHelp>{MODE_HELP[message.mode]}</FieldHelp>
-				</fieldset>
-
 				<div className="flex flex-col gap-1">
-					<h3 className="text-base font-semibold">seu modelo</h3>
+					<h2 id="message-title" className={SECTION_TITLE}>
+						mensagem de candidatura
+					</h2>
 					<FieldHelp>
-						{message.mode === 'template'
-							? 'A mensagem de toda vaga sai daqui, com as variáveis trocadas pelos dados da vaga.'
-							: 'Usado enquanto a IA não escreveu a mensagem da vaga, e a um clique na modal do contato.'}
+						A mensagem de toda vaga sai do seu modelo, com as variáveis trocadas pelos dados da vaga. Na vaga, “melhorar com a
+						IA” reescreve o texto preenchido no tom e no tamanho que você escolher.
 					</FieldHelp>
 				</div>
+
 				<MessageTemplateEditor
 					message={message}
 					profile={d.profile}
@@ -757,88 +664,40 @@ export function SettingsView({
 					edit={mutate => edit(next => mutate(next.message))}
 				/>
 
-				<div className="flex flex-col gap-1 border-t border-line pt-6">
-					<h3 className="text-base font-semibold">estilo da IA</h3>
-					<FieldHelp>
-						{message.mode === 'ai'
-							? 'Como a IA escreve a mensagem de cada vaga.'
-							: 'Vale para o “melhorar com a IA” da vaga, que reescreve o texto do modelo preenchido.'}
-					</FieldHelp>
+				<div className="flex flex-col gap-1.5">
+					<span className="flex items-center justify-between gap-3">
+						<FieldLabel htmlFor="signature">
+							assinatura <span className="font-normal text-muted">(opcional)</span>
+						</FieldLabel>
+						<span
+							id="signature-count"
+							className={cx('font-mono text-xs', signatureLength > LIMITS.signature ? 'text-danger' : 'text-muted')}
+						>
+							{signatureLength} / {LIMITS.signature}
+						</span>
+					</span>
+					<textarea
+						id="signature"
+						rows={3}
+						value={message.signature}
+						placeholder={'GitHub: https://github.com/voce\nLinkedIn: https://linkedin.com/in/voce'}
+						aria-invalid={!!errors.signature || undefined}
+						aria-describedby={`${errors.signature ? 'signature-error' : 'signature-help'} signature-count`}
+						onChange={event => {
+							const value = event.target.value
+							edit(next => {
+								next.message.signature = value
+							})
+						}}
+						className={field({ invalid: !!errors.signature, className: 'resize-y py-2.5 leading-relaxed' })}
+					/>
+					{fieldError('signature') ?? (
+						<FieldHelp id="signature-help">
+							Entra no fim de toda mensagem de candidatura, exatamente como está, sem passar pela IA: links do GitHub, LinkedIn
+							ou portfólio.
+						</FieldHelp>
+					)}
 				</div>
-
-				{/* Tom e tamanho lado a lado, como na vaga; o tom tem 4 opções e a ajuda mais longa, por isso 2/3 */}
-				<div className="grid grid-cols-3 gap-5 max-md:grid-cols-1">
-					<fieldset className={cx(FIELDSET, 'col-span-2 min-w-0 max-md:col-span-1')}>
-						<legend className="mb-2.5 p-0 text-sm font-medium">tom</legend>
-						<PillGroup>
-							{MESSAGE_DEFAULT_TONES.map(tone => (
-								<label key={tone} className={pill({ className: 'cursor-pointer' })}>
-									<input
-										type="radio"
-										name="message-tone"
-										className="sr-only"
-										checked={message.tone === tone}
-										onChange={() =>
-											edit(next => {
-												next.message.tone = tone
-											})
-										}
-									/>
-									{MESSAGE_TONE_LABELS[tone]}
-								</label>
-							))}
-						</PillGroup>
-						<FieldHelp>{TONE_HELP[message.tone]}</FieldHelp>
-					</fieldset>
-
-					<fieldset className={cx(FIELDSET, 'min-w-0')}>
-						<legend className="mb-2.5 p-0 text-sm font-medium">tamanho</legend>
-						<PillGroup>
-							{MESSAGE_LENGTHS.map(length => (
-								<label key={length} className={pill({ className: 'cursor-pointer' })}>
-									<input
-										type="radio"
-										name="message-length"
-										className="sr-only"
-										checked={message.length === length}
-										onChange={() =>
-											edit(next => {
-												next.message.length = length
-											})
-										}
-									/>
-									{MESSAGE_LENGTH_LABELS[length]}
-								</label>
-							))}
-						</PillGroup>
-						<FieldHelp>{LENGTH_HELP[message.length]}</FieldHelp>
-					</fieldset>
-				</div>
-
-				{textField(
-					'styleSample',
-					'seu jeito de escrever',
-					5,
-					'Cole uma mensagem que você já mandou para um recrutador.',
-					'A IA imita a saudação, as expressões e o fechamento do texto, sem copiar fatos ou empresas dele. Links ficam de fora: eles vão na assinatura.',
-				)}
-
-				{/* O aviso fala só do que passa pela IA; a assinatura vem depois porque entra no fim, como está */}
-				<Notice tone="info" icon="info">
-					<p className="text-sm">
-						Em qualquer tom, expressões batidas como “agregar valor”, “soluções inovadoras” e “manifestar meu interesse” são
-						recusadas, e a IA escreve de novo. O tom, o tamanho e o exemplo valem para as próximas mensagens; numa vaga, dá para
-						trocar o tom e o tamanho da mensagem já gerada.
-					</p>
-				</Notice>
-
-				{textField(
-					'signature',
-					'assinatura',
-					3,
-					'GitHub: https://github.com/voce\nLinkedIn: https://linkedin.com/in/voce',
-					'Entra no fim de toda mensagem de candidatura, exatamente como está, sem passar pela IA: links do GitHub, LinkedIn ou portfólio. Vale também para as mensagens já geradas.',
-				)}
 			</section>
 		)
 	}

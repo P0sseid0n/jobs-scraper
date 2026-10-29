@@ -116,10 +116,7 @@ export const api = {
 	cvRequests: () => request<WebCvRequest[]>('/api/cv'),
 	cvRequest: (requestId: string) => request<WebCvRequest>(`/api/cv/${requestId}`),
 	/** Reescreve com a IA a mensagem do currículo no tom e no tamanho pedidos (ou mais direta); a anterior fica para desfazer. */
-	rewriteCvMessage: (requestId: string, style: { tone: MessageTone; length: MessageLength; direct?: boolean }) =>
-		request<WebCvRequest>(`/api/cv/${requestId}/message`, { method: 'POST', body: JSON.stringify(style) }),
-	undoCvMessage: (requestId: string) => request<WebCvRequest>(`/api/cv/${requestId}/message/undo`, { method: 'POST' }),
-	/** "Melhorar com a IA" no modo modelo: reescreve o texto enviado (sem a assinatura), sem guardar nada. */
+	/** "Melhorar com a IA": reescreve o texto enviado (sem a assinatura) no estilo pedido, sem guardar nada. */
 	improveJobMessage: (postId: string, payload: { body: string; tone: MessageTone; length: MessageLength; direct?: boolean }) =>
 		request<WebImprovedMessage>(`/api/jobs/${encodeURIComponent(postId)}/message`, {
 			method: 'POST',

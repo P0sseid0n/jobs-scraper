@@ -21,12 +21,9 @@ export async function handleContactButton(interaction: ButtonInteraction, queue:
 	// Botões antigos não identificam a vaga: só dá para mostrar o contato
 	const generatingCv = postId !== null
 
-	const [{ signature, mode }, message] = await Promise.all([
-		readSettings('message'),
-		loadTemplateMessage(postId, embed?.title ?? null),
-	])
+	const [{ signature }, message] = await Promise.all([readSettings('message'), loadTemplateMessage(postId, embed?.title ?? null)])
 	await interaction.reply({
-		content: buildContactReply(email, message, { generatingCv, signature, mode }),
+		content: buildContactReply(email, message, { generatingCv, signature }),
 		flags: MessageFlags.Ephemeral,
 	})
 

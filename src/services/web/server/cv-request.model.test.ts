@@ -25,21 +25,11 @@ test('sem resposta do cv-updater no prazo, aparece como falha com o motivo', () 
 	expect(result).toMatchObject({ status: 'failed', error: CV_TIMEOUT_ERROR, requestedAt: requestedAt.toISOString() })
 })
 
-test('mensagem gerada pela IA vai junto; pedidos antigos, sem o campo, ficam sem mensagem', () => {
-	const message = { subject: 'Candidatura – Dev', body: 'Olá! Tudo bem?', tone: 'casual', length: 'short' } as const
+test('a mensagem que a IA escrevia nos pedidos antigos fica de fora', () => {
+	const old = { ...doc, status: 'ready' as const, message: { subject: 'Candidatura – Dev', body: 'Olá!' } }
 
-	expect(toWebCvRequest({ ...doc, status: 'ready', message }).message).toEqual(message)
-	expect(toWebCvRequest(doc).message).toBeNull()
-})
-
-test('mensagem de antes do tom e do tamanho fica com eles em null; a versão anterior vai junto para desfazer', () => {
-	const message = { subject: 'Candidatura – Dev', body: 'Olá! Tudo bem?' }
-	const previousMessage = { ...message, tone: 'formal', length: 'medium' } as const
-	const result = toWebCvRequest({ ...doc, status: 'ready', message, previousMessage })
-
-	expect(result.message).toEqual({ ...message, tone: null, length: null })
-	expect(result.previousMessage).toEqual(previousMessage)
-	expect(toWebCvRequest(doc).previousMessage).toBeNull()
+	expect(toWebCvRequest(old)).not.toHaveProperty('message')
+	expect(toWebCvRequest(old)).not.toHaveProperty('previousMessage')
 })
 
 test('o ajuste feito para a vaga vai junto; pedidos antigos, sem o campo, ficam sem ele', () => {

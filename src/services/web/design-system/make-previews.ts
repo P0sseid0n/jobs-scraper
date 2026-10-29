@@ -252,7 +252,7 @@ const PREVIEWS: Record<string, Preview> = {
 		group: 'Feedback',
 		height: 160,
 		subtitle: 'o campo da mensagem carregando',
-		body: `h('div', { className: 'relative grid max-w-md' }, h('textarea', { className: U.field({ className: 'min-h-32 resize-none py-2.5' }), readOnly: true, 'aria-busy': true, value: '' }), h(U.FieldScan, { label: 'a IA está escrevendo a mensagem para a vaga…', className: 'absolute inset-0' }))`,
+		body: `h('div', { className: 'relative grid max-w-md' }, h('textarea', { className: U.field({ className: 'min-h-32 resize-none py-2.5' }), readOnly: true, 'aria-busy': true, value: '' }), h(U.FieldScan, { label: 'a IA está reescrevendo a mensagem…', className: 'absolute inset-0' }))`,
 	},
 	Skeleton: {
 		group: 'Feedback',

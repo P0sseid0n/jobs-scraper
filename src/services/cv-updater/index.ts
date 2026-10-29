@@ -16,7 +16,6 @@ import { QUEUES } from '@shared/messaging'
 import { startService } from '@shared/service'
 import { loadCredentials, readSettings } from '@shared/settings'
 
-import { requestApplicationMessage } from './application-message'
 import { checkBaseResume, loadBaseResume, MissingBaseResumeError, validateBaseTex, type BaseResume } from './base-resume'
 import { cvUpdaterEnv } from './config'
 import { cvChanges } from './cv-changes'
@@ -62,7 +61,6 @@ async function generateCv(request: CvRequest) {
 			jobTitle: null,
 			file: null,
 			error: 'Não encontrei essa vaga no banco de dados.',
-			message: null,
 			changes: null,
 			base: null,
 		})
@@ -76,7 +74,7 @@ async function generateCv(request: CvRequest) {
 		if (!(error instanceof MissingBaseResumeError)) throw error
 
 		log.warn('Currículo pedido sem currículo base configurado')
-		await reply({ jobTitle: job.title, file: null, error: error.message, message: null, changes: null, base: null })
+		await reply({ jobTitle: job.title, file: null, error: error.message, changes: null, base: null })
 		return
 	}
 
@@ -111,7 +109,6 @@ async function generateCv(request: CvRequest) {
 			jobTitle: job.title,
 			file: null,
 			error: 'O LaTeX do currículo não compilou. Veja os logs do cv-updater.',
-			message: null,
 			changes: null,
 			base: null,
 		})
@@ -122,25 +119,10 @@ async function generateCv(request: CvRequest) {
 	const name = pdfFileName(job)
 	await savePdf(name, pdf)
 
-	// Só com e-mail de contato: sem ele, a candidatura é pelo site da vaga ou pelo post, e a mensagem não seria usada. No
-	// modo modelo, quem mostra a mensagem preenche o modelo da pessoa na hora, e a IA fica só com o currículo
-	const style = await readSettings('message')
-	const message =
-		job.recruiterEmail && style.mode === 'ai'
-			? await requestApplicationMessage(
-					{ ollama, model: config.OLLAMA_MODEL },
-					cv,
-					job,
-					{ profile, unsupportedSkills: report.unsupportedSkills, style },
-					log,
-				)
-			: null
-
 	await reply({
 		jobTitle: job.title,
 		file: { name, base64: pdf.toString('base64') },
 		error: null,
-		message,
 		changes: cvChanges(base.model, resume, report),
 		base: { versionId },
 	})
@@ -151,7 +133,6 @@ async function generateCv(request: CvRequest) {
 			baseVersion: versionId ?? 'arquivo',
 			added: report.addedSkills.map(entry => entry.skill),
 			removed: report.removedSkills,
-			message: !!message,
 		},
 		'Currículo enviado',
 	)

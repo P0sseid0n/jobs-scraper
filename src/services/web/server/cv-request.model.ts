@@ -1,11 +1,8 @@
 import mongoose, { Schema } from 'mongoose'
 
-import { MESSAGE_LENGTHS, MESSAGE_TONES, type ApplicationMessage, type CvChanges } from '@shared/contracts'
+import type { CvChanges } from '@shared/contracts'
 
 import { CV_STATUSES, type CvStatus, type WebCvRequest } from '../api-types'
-
-/** Mensagens de antes do tom e do tamanho não têm esses campos. */
-type StoredMessage = Omit<ApplicationMessage, 'tone' | 'length'> & Partial<Pick<ApplicationMessage, 'tone' | 'length'>>
 
 type CvRequestDocument = {
 	requestId: string
@@ -16,10 +13,6 @@ type CvRequestDocument = {
 	fileName: string | null
 	pdf: Buffer | null
 	error: string | null
-	/** E-mail de candidatura gerado pela IA; pedidos de antes do campo não o têm. */
-	message?: StoredMessage | null
-	/** A versão de antes da última reescrita pelo site (tom, tamanho, "mais direta"), para desfazer. */
-	previousMessage?: StoredMessage | null
 	/** O ajuste feito para a vaga; pedidos de antes do campo não o têm. */
 	changes?: CvChanges | null
 	/** De qual currículo base o PDF saiu (`versionId` `null`: o arquivo); `null` na falha e nos pedidos de antes do campo. */
@@ -30,17 +23,10 @@ type CvRequestDocument = {
 
 const HISTORY_DAYS = 90
 
-const messageSchema = new Schema(
-	{
-		subject: { type: String, required: true },
-		body: { type: String, required: true },
-		tone: { type: String, enum: [...MESSAGE_TONES, null], default: null },
-		length: { type: String, enum: [...MESSAGE_LENGTHS, null], default: null },
-	},
-	{ _id: false },
-)
-
-/** Currículos pedidos pelo site, com o PDF: a lista "Meus currículos" baixa de novo sem gerar outro. */
+/**
+ * Currículos pedidos pelo site, com o PDF: a lista "Meus currículos" baixa de novo sem gerar outro. Os pedidos de quando
+ * a IA escrevia a mensagem da vaga ainda guardam `message` e `previousMessage`, que ficam de fora (o schema não os tem).
+ */
 const cvRequestSchema = new Schema<CvRequestDocument>(
 	{
 		requestId: { type: String, required: true, unique: true },
@@ -51,8 +37,6 @@ const cvRequestSchema = new Schema<CvRequestDocument>(
 		fileName: { type: String, default: null },
 		pdf: { type: Buffer, default: null },
 		error: { type: String, default: null },
-		message: { type: messageSchema, default: null },
-		previousMessage: { type: messageSchema, default: null },
 		changes: {
 			type: new Schema(
 				{
@@ -94,8 +78,6 @@ export function toWebCvRequest(doc: Omit<CvRequestDocument, 'pdf'>, now = new Da
 		status: timedOut ? 'failed' : doc.status,
 		fileName: doc.fileName,
 		error: timedOut ? CV_TIMEOUT_ERROR : doc.error,
-		message: toWebMessage(doc.message),
-		previousMessage: toWebMessage(doc.previousMessage),
 		changes: doc.changes
 			? {
 					addedSkills: [...doc.changes.addedSkills],
@@ -108,8 +90,4 @@ export function toWebCvRequest(doc: Omit<CvRequestDocument, 'pdf'>, now = new Da
 		requestedAt: doc.requestedAt.toISOString(),
 		finishedAt: doc.finishedAt?.toISOString() ?? null,
 	}
-}
-
-function toWebMessage(message: StoredMessage | null | undefined): ApplicationMessage | null {
-	return message ? { subject: message.subject, body: message.body, tone: message.tone ?? null, length: message.length ?? null } : null
 }

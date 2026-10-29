@@ -17,15 +17,15 @@ O botão "☑️ Já me candidatei" marca a vaga no banco (`appliedAt`, o mesmo 
 
 ## Currículo
 
-O botão "📧 Contato do recrutador" (ou "📄 Gerar currículo", quando a vaga não tem e-mail) responde só para quem clicou, com o contato. O pedido vai para o [cv-updater](../cv-updater/README.md) e, segundos depois, chega o PDF do currículo ajustado à vaga. Quando a vaga tem e-mail, vem junto uma mensagem de candidatura escrita para ela.
+O botão "📧 Contato do recrutador" (ou "📄 Gerar currículo", quando a vaga não tem e-mail) responde só para quem clicou, com o contato e a mensagem de candidatura do modelo da pessoa (Configurações › Mensagem), já preenchida com os dados da vaga, e avisa o que a vaga não tinha (o que entrou pelo fallback e o que ficou marcado, como `[empresa]`). O pedido vai para o [cv-updater](../cv-updater/README.md) e, segundos depois, chega o PDF do currículo ajustado à vaga.
 
 O pedido guarda no contexto o token da interação do Discord, e o resultado volta pela fila `discord-cv`.
 
 ## Enviar a candidatura por e-mail
 
-Com e-mail de contato na vaga e a conta de e-mail (SMTP) configurada no site ou no `.env`, a resposta com o currículo traz o botão "✉️ Enviar candidatura". Ele mostra, só para quem clicou, o e-mail como vai sair (para quem, assunto, corpo e o PDF anexo) e só envia com "📤 Confirmar envio"; "Cancelar" descarta. Se a vaga já recebeu candidatura por e-mail (pelo site ou pelo Discord), a confirmação avisa antes, e o botão vira "Enviar de novo".
+Com e-mail de contato na vaga e a conta de e-mail (SMTP) configurada no site ou no `.env`, a resposta com o currículo traz o botão "✉️ Enviar candidatura". Ele mostra, só para quem clicou, o e-mail como vai sair (para quem, assunto, corpo e o PDF anexo) e só envia com "📤 Confirmar envio"; "Cancelar" descarta. Se a vaga já recebeu candidatura por e-mail (pelo site ou pelo Discord), a confirmação avisa antes, e o botão vira "Enviar de novo". Se o modelo ficou sem um valor da vaga e sem fallback, o botão não aparece: o texto precisa ser completado, e o envio fica no site.
 
-O currículo entregue fica guardado na coleção `cv_files` (30 dias), com a mensagem sugerida, e o pedido vai para o [mailer](../mailer/README.md) com o `fileId`. O resultado volta pela fila `discord-mail` e aparece na própria confirmação: enviada, ou o motivo da falha com "🔁 Tentar de novo". Para mudar o texto antes de enviar, use o site.
+O currículo entregue fica guardado na coleção `cv_files` (30 dias), com a mensagem do modelo preenchida, e o pedido vai para o [mailer](../mailer/README.md) com o `fileId`. O resultado volta pela fila `discord-mail` e aparece na própria confirmação: enviada, ou o motivo da falha com "🔁 Tentar de novo". Para mudar o texto antes de enviar, use o site.
 
 ## Variáveis
 
