@@ -10,6 +10,7 @@ import {
 	VARIABLE_NAME,
 	type TemplateJob,
 	type TemplatePart,
+	type TemplateToken,
 } from '@shared/templates'
 
 import { cx } from '../lib/cx'
@@ -93,6 +94,7 @@ export function MessageTemplateEditor({ message, profile, errors, edit, revealEr
 	const subjectRef = useRef<HTMLInputElement>(null)
 	const bodyRef = useRef<HTMLTextAreaElement>(null)
 	const mirrorRef = useRef<HTMLDivElement>(null)
+	const subjectMirrorRef = useRef<HTMLDivElement>(null)
 	// O último campo focado recebe a variável clicada no painel; sem nenhum ainda, ela entra no fim da mensagem
 	const [lastField, setLastField] = useState<TemplateField | null>(null)
 	const [sample, setSample] = useState<Sample>('partial')
@@ -201,27 +203,44 @@ export function MessageTemplateEditor({ message, profile, errors, edit, revealEr
 		<div className="flex flex-col gap-5">
 			<div className="flex flex-col gap-1.5">
 				<FieldLabel htmlFor={ids.subject}>assunto</FieldLabel>
-				<Input
-					ref={subjectRef}
-					id={ids.subject}
-					value={template.subject}
-					invalid={!!errors['template.subject']}
-					aria-describedby={errors['template.subject'] ? `${ids.subject}-error` : undefined}
-					onFocus={() => setLastField('subject')}
-					onChange={event => {
-						const value = event.target.value
-						edit(next => {
-							next.template.subject = value
-						})
-					}}
-				/>
+				{/* As variáveis ficam destacadas atrás do texto, como na mensagem; o espelho rola na horizontal com o campo */}
+				<div className="relative">
+					<div
+						ref={subjectMirrorRef}
+						aria-hidden="true"
+						className={field({
+							className:
+								'pointer-events-none absolute inset-0 flex items-center overflow-hidden border-transparent whitespace-pre text-transparent',
+						})}
+					>
+						<span>{highlight(template.subject, withoutFallback(template.subject))}</span>
+					</div>
+					<Input
+						ref={subjectRef}
+						id={ids.subject}
+						value={template.subject}
+						invalid={!!errors['template.subject']}
+						aria-describedby={errors['template.subject'] ? `${ids.subject}-error` : undefined}
+						onFocus={() => setLastField('subject')}
+						onScroll={event => {
+							if (subjectMirrorRef.current) subjectMirrorRef.current.scrollLeft = event.currentTarget.scrollLeft
+						}}
+						onChange={event => {
+							const value = event.target.value
+							edit(next => {
+								next.template.subject = value
+							})
+						}}
+						className="relative w-full bg-transparent"
+					/>
+				</div>
 				{errors['template.subject'] && <FieldError id={`${ids.subject}-error`}>{errors['template.subject']}</FieldError>}
 			</div>
 
 			<div className="flex flex-col gap-1.5">
 				<FieldLabel htmlFor={ids.body}>mensagem</FieldLabel>
-				{/* As variáveis que podem faltar e ainda não têm fallback ficam destacadas atrás do texto (um espelho do campo,
-				 * com o texto transparente), que rola junto com ele */}
+				{/* As variáveis ficam destacadas atrás do texto (um espelho do campo, com o texto transparente), que rola junto
+				 * com ele; as que podem faltar e ainda não têm fallback, em laranja */}
 				<div className="relative">
 					<div
 						ref={mirrorRef}
@@ -679,14 +698,18 @@ function EditorDialogBox({
 	)
 }
 
-/** O texto do campo com as variáveis destacadas (as que podem faltar e não têm fallback), para o espelho atrás dele. */
-function highlight(text: string, tokens: { start: number; end: number }[]) {
+/**
+ * O texto do campo com as variáveis destacadas, para o espelho atrás dele: em verde, e em laranja as que podem faltar e
+ * não têm fallback (`warnings`).
+ */
+function highlight(text: string, warnings: TemplateToken[]) {
 	const nodes: ReactNode[] = []
 	let last = 0
-	for (const token of tokens) {
+	for (const token of templateTokens(text)) {
+		const warn = warnings.some(warning => warning.start === token.start)
 		nodes.push(text.slice(last, token.start))
 		nodes.push(
-			<mark key={token.start} className="rounded-xs bg-warn-bg text-transparent">
+			<mark key={token.start} className={cx('rounded-xs text-transparent', warn ? 'bg-warn-bg' : 'bg-lime-soft')}>
 				{text.slice(token.start, token.end)}
 			</mark>,
 		)
