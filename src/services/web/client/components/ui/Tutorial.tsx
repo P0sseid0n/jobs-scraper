@@ -47,6 +47,10 @@ type TutorialProps = {
 	scene?: (path: string, step: TutorialStep) => ReactNode
 	/** Mostra o botão de fechar; o Esc dentro do tutorial também fecha. */
 	onClose?: () => void
+	/** O nome do botão de fechar, quando fechar faz mais que fechar este (ex.: esconde os tutoriais de todas as contas). */
+	closeLabel?: string
+	/** No último passo, o botão no lugar do "próximo" (ex.: "ir para os campos"), que leva para o que vem depois. */
+	done?: { label: string; onClick: () => void }
 	className?: string
 }
 
@@ -55,12 +59,24 @@ type TutorialProps = {
  * lado e, do outro, o que fazer e o link para a página certa do serviço. Os números no topo levam a qualquer passo; com
  * mais de um caminho, as abas escolhem o caminho (ou quem usa, com `path`).
  */
-export function Tutorial({ id, title, intro, paths, path, highlight, scene, onClose, className }: TutorialProps) {
+export function Tutorial({
+	id,
+	title,
+	intro,
+	paths,
+	path,
+	highlight,
+	scene,
+	onClose,
+	closeLabel = 'Fechar o passo a passo',
+	done,
+	className,
+}: TutorialProps) {
 	const [selected, setSelected] = useState(path ?? paths[0]?.id ?? '')
 	const [current, setCurrent] = useState(0)
 	// O passo novo entra pelo lado para onde se andou, como os passos do onboarding
 	const [direction, setDirection] = useState<'next' | 'back'>('next')
-	const stage = useRef<HTMLDivElement>(null)
+	const stage = useRef<HTMLElement>(null)
 
 	const active = paths.find(item => item.id === selected) ?? paths[0]
 	const steps = active?.steps ?? []
@@ -158,10 +174,17 @@ export function Tutorial({ id, title, intro, paths, path, highlight, scene, onCl
 					<Icon name="back" />
 					anterior
 				</Button>
-				<Button variant="ghost" size="sm" disabled={index === steps.length - 1} onClick={() => go(index + 1, true)}>
-					próximo
-					<Icon name="forward" />
-				</Button>
+				{index === steps.length - 1 && done ? (
+					<Button variant="ghost" size="sm" onClick={done.onClick}>
+						{done.label}
+						<Icon name="forward" />
+					</Button>
+				) : (
+					<Button variant="ghost" size="sm" disabled={index === steps.length - 1} onClick={() => go(index + 1, true)}>
+						próximo
+						<Icon name="forward" />
+					</Button>
+				)}
 			</div>
 		</>
 	)
@@ -179,11 +202,14 @@ export function Tutorial({ id, title, intro, paths, path, highlight, scene, onCl
 				<div className="flex min-w-0 flex-col gap-1">
 					<h2 id={titleId} className="text-base font-semibold">
 						{title}
+						{/* Sem as abas, o título diz qual caminho está na tela (ex.: o provedor escolhido na conta) */}
+						{!tabs && paths.length > 1 && active && <span className="font-normal text-muted"> · {active.label}</span>}
 					</h2>
-					{intro && <p className="text-sm text-pretty text-muted">{intro}</p>}
+					{/* No estreito (celular), sem a introdução: o título e os passos bastam, e os campos ficam mais perto */}
+					{intro && <p className="text-sm text-pretty text-muted @max-xl:hidden">{intro}</p>}
 				</div>
 				{onClose && (
-					<IconButton label="Fechar o passo a passo" size="sm" className="-mt-1 -mr-1.5" onClick={onClose}>
+					<IconButton label={closeLabel} size="sm" className="-mt-1 -mr-1.5" onClick={onClose}>
 						<Icon name="close" />
 					</IconButton>
 				)}
@@ -231,7 +257,7 @@ function Stage({
 	highlighted,
 	scene,
 }: {
-	ref: Ref<HTMLDivElement>
+	ref: Ref<HTMLElement>
 	step: TutorialStep
 	number: number
 	total: number
@@ -240,10 +266,10 @@ function Stage({
 	scene: ReactNode
 }) {
 	return (
-		<div
+		<article
 			ref={ref}
 			tabIndex={-1}
-			aria-current={highlighted ? 'step' : undefined}
+			aria-label={`Passo ${number} de ${total}: ${step.title}`}
 			className={cx(
 				'grid items-center gap-5 rounded-md outline-none motion-reduce:animate-none',
 				!!scene && '@xl:grid-cols-2',
@@ -252,10 +278,7 @@ function Stage({
 		>
 			{scene}
 			<div className={cx('flex min-w-0 flex-col gap-2', highlighted && 'rounded-md bg-lime-soft p-3 ring-1 ring-lime-accent')}>
-				<p className="font-mono text-xs text-muted">
-					passo {number} de {total}
-					{highlighted && <span className="text-lime-text"> · costuma resolver o erro</span>}
-				</p>
+				{highlighted && <p className="font-mono text-xs text-lime-text">este passo costuma resolver o erro</p>}
 				<p className="text-base font-semibold text-balance">{step.title}</p>
 				{step.text && <p className="text-sm text-pretty text-muted">{step.text}</p>}
 				{step.values && (
@@ -274,7 +297,7 @@ function Stage({
 					</TextLink>
 				)}
 			</div>
-		</div>
+		</article>
 	)
 }
 
@@ -288,6 +311,8 @@ export function TutorialDialog({ onClose, ...props }: Omit<TutorialProps, 'onClo
 
 	useEffect(() => {
 		ref.current?.showModal()
+		// O showModal foca a seção do tutorial (focável, sem contorno): o foco vai para o fechar, como nas outras modais
+		ref.current?.querySelector<HTMLElement>('button[aria-label]')?.focus()
 	}, [])
 
 	return (
@@ -300,7 +325,22 @@ export function TutorialDialog({ onClose, ...props }: Omit<TutorialProps, 'onClo
 			// Clique no fundo escurecido (fora do conteúdo) fecha
 			onClick={event => event.target === ref.current && ref.current.close()}
 		>
-			<Tutorial {...props} id={id} className="px-5 pt-4 pb-5" onClose={() => ref.current?.close()} />
+			<Tutorial
+				{...props}
+				id={id}
+				className="px-5 pt-4 pb-5"
+				onClose={() => ref.current?.close()}
+				// O último passo fecha a modal e devolve a pessoa aos campos
+				done={
+					props.done && {
+						label: props.done.label,
+						onClick: () => {
+							ref.current?.close()
+							props.done?.onClick()
+						},
+					}
+				}
+			/>
 		</dialog>
 	)
 }

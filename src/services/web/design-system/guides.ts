@@ -143,7 +143,9 @@ export const GUIDES: Record<string, string> = {
 	Tutorial: `O passo a passo para configurar algo fora do site (as contas do LinkedIn, Discord, GitHub e e-mail): um passo por vez, na horizontal, com a animação do passo ao lado do texto e o link para a página certa de cada serviço.
 
 - Os números no topo levam a qualquer passo; "anterior" e "próximo" andam um. O passo novo entra pelo lado para onde se andou.
-- \`scene\` desenha a animação de cada passo: uma janela simplificada do serviço, nas cores do site, com o cursor indo ao lugar certo, em loop (as cenas das contas ficam em \`AccountTutorialScenes.tsx\`). Com pouco espaço, ela fica acima do texto; com movimento reduzido, parada no fim.
+- \`scene\` desenha a animação de cada passo: uma janela simplificada do serviço, nas cores do site, com o cursor indo ao lugar certo (as cenas das contas ficam em \`AccountTutorialScenes.tsx\`). Ela toca uma vez, em uns 3 s, e para no fim; o botão na barra da janela toca de novo. Nada de loop: distrai quem preenche os campos ao lado. Com pouco espaço, a cena fica acima do texto e a introdução some; com movimento reduzido, ela já aparece parada no fim.
+- \`done\` troca o "próximo" do último passo por um botão que leva adiante ("ir para os campos"). \`closeLabel\` dá o nome do fechar quando ele faz mais que fechar (no onboarding, esconde os tutoriais de todas as contas).
+- Na modal, o foco começa no fechar; ao trocar de passo, vai para o passo, que tem o nome "Passo 2 de 4: …" para o leitor de tela.
 - \`paths\`: um caminho por jeito de fazer (canal de texto e fórum); com mais de um, viram abas. Quando a tela já tem a escolha (o provedor da conta de e-mail), passe \`path\`: as abas somem, para não haver duas escolhas da mesma coisa.
 - Cada passo tem \`title\` (o que fazer, uma linha), \`text\` (onde clicar), \`link\` (abre em outra aba, com "↗") e \`values\` (o que copiar, em mono).
 - \`notice\` no caminho mostra um aviso antes dos passos, para quem ele não serve (o Outlook pessoal).

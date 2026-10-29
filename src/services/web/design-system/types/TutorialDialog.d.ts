@@ -9,6 +9,8 @@ export interface TutorialDialogProps {
 	path?: string
 	highlight?: string
 	scene?: (path: string, step: TutorialStep) => React.ReactNode
+	/** No último passo: fecha a modal e chama `onClick` (ex.: leva o foco ao primeiro campo). */
+	done?: { label: string; onClick: () => void }
 	/** Também chamado no Esc e no clique fora. */
 	onClose: () => void
 }

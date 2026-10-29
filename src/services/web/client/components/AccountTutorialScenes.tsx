@@ -1,36 +1,43 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 
 import type { CredentialGroup } from '../../api-types'
 import { cx } from '../lib/cx'
-import { Cursor, Swap, Typed, useDemoRound } from './demo-parts'
+import { Cursor, Swap, Typed } from './demo-parts'
 import { Icon } from './Icon'
-
-/** Uma volta da cena até recomeçar: uns 3 s montando e o resto parada no fim, para dar tempo de ler. */
-const ROUND_MS = 7000
+import { IconButton } from './ui/IconButton'
 
 const POP = 'animate-pop-in motion-reduce:animate-none'
 
 /**
  * A janela do serviço, desenhada com as cores do site: a barra com o endereço e a tela simplificada, com só o que o passo
- * usa. Toca em loop; decorativa (o texto do passo diz o mesmo).
+ * usa. Toca uma vez, em uns 3 s, e para no fim: em loop, distrairia quem preenche os campos ao lado (e o movimento que
+ * passa de 5 s precisa de pausa). "Ver de novo" toca outra vez. Decorativa: o texto do passo diz o mesmo.
  */
 function SceneWindow({ address, children }: { address: string; children: ReactNode }) {
-	const { round, leaving } = useDemoRound(ROUND_MS)
+	// Cada volta nova remonta a tela (a `key`) e reinicia as animações
+	const [round, setRound] = useState(0)
 
 	return (
-		<div aria-hidden="true" className="flex h-52 flex-col overflow-hidden rounded-md border border-line bg-bg text-ink select-none">
-			<div className="flex items-center gap-2 border-b border-line bg-surface-2 px-3 py-1.5">
-				<span className="flex gap-1">
+		<div className="flex h-48 flex-col overflow-hidden rounded-md border border-line bg-bg text-ink select-none">
+			<div className="flex items-center gap-2 border-b border-line bg-surface-2 py-1 pr-1 pl-3">
+				<span aria-hidden="true" className="flex gap-1">
 					<span className="size-1.5 rounded-full bg-line-strong" />
 					<span className="size-1.5 rounded-full bg-line-strong" />
 					<span className="size-1.5 rounded-full bg-line-strong" />
 				</span>
-				<span className="min-w-0 truncate rounded-pill bg-surface px-2.5 py-0.5 font-mono text-xs text-muted">{address}</span>
+				<span aria-hidden="true" className="min-w-0 truncate rounded-pill bg-surface px-2.5 py-0.5 font-mono text-xs text-muted">
+					{address}
+				</span>
+				<IconButton
+					label="Ver a animação de novo"
+					size="xs"
+					className="ml-auto text-muted motion-reduce:hidden"
+					onClick={() => setRound(value => value + 1)}
+				>
+					<Icon name="refresh" size={12} />
+				</IconButton>
 			</div>
-			<div
-				key={round}
-				className={cx('relative flex grow flex-col gap-3 p-4 text-sm transition-opacity duration-500', leaving && 'opacity-0')}
-			>
+			<div key={round} aria-hidden="true" className="relative flex grow flex-col gap-2.5 p-3 text-sm">
 				{children}
 			</div>
 		</div>
@@ -107,7 +114,7 @@ function AppPassword({ value, delay }: { value: string; delay: string }) {
 const EMAIL_SCENES: Record<string, Record<string, () => ReactNode>> = {
 	gmail: {
 		'two-step': () => (
-			<SceneWindow address="myaccount.google.com › Segurança">
+			<SceneWindow address="myaccount.google.com">
 				<span className="flex flex-col">
 					<span className="font-semibold">Verificação em duas etapas</span>
 					<span className="text-xs text-muted">Um segundo passo para entrar na conta</span>
@@ -125,7 +132,7 @@ const EMAIL_SCENES: Record<string, Record<string, () => ReactNode>> = {
 			</SceneWindow>
 		),
 		'app-password': () => (
-			<SceneWindow address="myaccount.google.com › Senhas de app">
+			<SceneWindow address="myaccount.google.com">
 				<span className="relative flex items-end gap-2">
 					<Field label="nome do app" className="grow">
 						<Typed delay="stagger-3">jobs-scraper</Typed>
@@ -139,7 +146,7 @@ const EMAIL_SCENES: Record<string, Record<string, () => ReactNode>> = {
 			</SceneWindow>
 		),
 		fields: () => (
-			<SceneWindow address="jobs/scraper › contas › e-mail">
+			<SceneWindow address="jobs/scraper">
 				<span className="grid grid-cols-2 gap-2">
 					<Field label="usuário">
 						<Typed delay="stagger-3">voce@gmail.com</Typed>
@@ -158,7 +165,7 @@ const EMAIL_SCENES: Record<string, Record<string, () => ReactNode>> = {
 			</SceneWindow>
 		),
 		refused: () => (
-			<SceneWindow address="jobs/scraper › contas › e-mail">
+			<SceneWindow address="jobs/scraper">
 				<Result tone="danger">o Gmail recusou o login (SMTP 535 5.7.8)</Result>
 				<Field label="senha">
 					<span className="flex items-center gap-2">
@@ -178,7 +185,7 @@ const EMAIL_SCENES: Record<string, Record<string, () => ReactNode>> = {
 	},
 	outlook: {
 		'smtp-auth': () => (
-			<SceneWindow address="admin.microsoft.com › Usuários ativos">
+			<SceneWindow address="admin.microsoft.com">
 				<span className="font-semibold">Gerenciar aplicativos de email</span>
 				<span className="relative flex flex-col gap-1.5 text-xs">
 					{['IMAP', 'POP'].map(app => (
@@ -205,7 +212,7 @@ const EMAIL_SCENES: Record<string, Record<string, () => ReactNode>> = {
 			</SceneWindow>
 		),
 		'app-password': () => (
-			<SceneWindow address="mysignins.microsoft.com › Informações de segurança">
+			<SceneWindow address="mysignins.microsoft.com">
 				<span className="relative self-start">
 					<Pill press="stagger-12">
 						<Icon name="plus" size={12} />
@@ -222,7 +229,7 @@ const EMAIL_SCENES: Record<string, Record<string, () => ReactNode>> = {
 			</SceneWindow>
 		),
 		fields: () => (
-			<SceneWindow address="jobs/scraper › contas › e-mail › avançado">
+			<SceneWindow address="jobs/scraper">
 				<span className="grid grid-cols-2 gap-2">
 					<Field label="usuário">
 						<Typed delay="stagger-3">voce@empresa.com.br</Typed>
@@ -242,7 +249,7 @@ const EMAIL_SCENES: Record<string, Record<string, () => ReactNode>> = {
 			</SceneWindow>
 		),
 		refused: () => (
-			<SceneWindow address="jobs/scraper › contas › e-mail">
+			<SceneWindow address="jobs/scraper">
 				<Result tone="danger">o servidor recusou o login (SMTP 535 5.7.139)</Result>
 				<span className={cx('flex items-center gap-1.5 text-xs text-muted', POP, 'stagger-10')}>
 					<Icon name="chevron" size={14} />

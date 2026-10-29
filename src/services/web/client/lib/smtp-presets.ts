@@ -32,8 +32,8 @@ export type SmtpProviderChoice = SmtpPreset['id'] | 'outlook' | 'other'
 /** As opções da escolha, na ordem em que aparecem. */
 export const SMTP_PROVIDER_OPTIONS: { id: SmtpProviderChoice; label: string }[] = [
 	{ id: GMAIL_PRESET.id, label: `${GMAIL_PRESET.label} (recomendado)` },
-	{ id: 'outlook', label: 'Outlook de trabalho ou escola' },
-	{ id: 'other', label: 'outro provedor' },
+	{ id: 'outlook', label: 'Outlook (trabalho)' },
+	{ id: 'other', label: 'outro' },
 ]
 
 /** O provedor recomendado do usuário digitado (`ana@gmail.com` → Gmail), ou `null`. */

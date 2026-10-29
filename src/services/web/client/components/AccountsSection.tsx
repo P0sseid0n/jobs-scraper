@@ -486,6 +486,25 @@ export function AccountGroup({
 		)
 	}
 
+	// A escolha do provedor do e-mail escolhe também o caminho do tutorial: no onboarding, fica antes dele
+	const providerGuide = group === 'smtp' && (
+		<SmtpProviderGuide
+			values={draft as Record<string, string>}
+			provider={smtpProvider}
+			onChoose={next => {
+				setSmtpProvider(next)
+				// Fora do Gmail, o servidor não sai do e-mail (ou pode não sair): ele fica no "avançado"
+				if (next !== GMAIL_PRESET.id) setAdvancedOpen(true)
+			}}
+		/>
+	)
+
+	/** O último passo do tutorial leva ao primeiro campo da conta. */
+	const toFields = {
+		label: 'ir para os campos',
+		onClick: () => requestAnimationFrame(() => document.getElementById(`${group}-${mainFields[0]?.name}`)?.focus()),
+	}
+
 	// O que cada conta pede: os campos, o testar e o salvar
 	const fields = (
 		<>
@@ -495,17 +514,7 @@ export function AccountGroup({
 				</Notice>
 			)}
 
-			{group === 'smtp' && (
-				<SmtpProviderGuide
-					values={draft as Record<string, string>}
-					provider={smtpProvider}
-					onChoose={next => {
-						setSmtpProvider(next)
-						// Fora do Gmail, o servidor não sai do e-mail (ou pode não sair): ele fica no "avançado"
-						if (next !== GMAIL_PRESET.id) setAdvancedOpen(true)
-					}}
-				/>
-			)}
+			{!compact && providerGuide}
 
 			<div className={FIELD_GRID}>{mainFields.map(renderField)}</div>
 
@@ -592,9 +601,16 @@ export function AccountGroup({
 			{dialog && (
 				<TutorialDialog
 					{...ACCOUNT_TUTORIALS[group]}
+					// O provedor fica atrás da modal: ela diz como trocar de caminho
+					intro={
+						group === 'smtp'
+							? `${ACCOUNT_TUTORIALS.smtp.intro} Para outro provedor, feche e troque a escolha na conta.`
+							: ACCOUNT_TUTORIALS[group].intro
+					}
 					path={tutorialPath}
 					highlight={dialog.step}
 					scene={(path, step) => accountScene(group, path, step.id)}
+					done={toFields}
 					onClose={() => setDialog(null)}
 				/>
 			)}
@@ -630,7 +646,9 @@ export function AccountGroup({
 			{compact ? (
 				// O tutorial fica acima dos campos, na largura toda: um passo por vez, com a animação ao lado do texto
 				<div className="flex flex-col gap-6">
+					{providerGuide}
 					{panelOpen ? (
+						// Sem moldura própria (já está dentro do cartão): só a linha que o separa dos campos
 						<Tutorial
 							id={tutorialId}
 							{...ACCOUNT_TUTORIALS[group]}
@@ -638,7 +656,9 @@ export function AccountGroup({
 							highlight={highlight}
 							scene={(path, step) => accountScene(group, path, step.id)}
 							onClose={closePanel}
-							className="rounded-md border border-line p-4"
+							closeLabel="Esconder os tutoriais das contas (voltam em “como configurar”)"
+							done={toFields}
+							className="border-b border-line pb-6"
 						/>
 					) : (
 						<Button id={`${tutorialId}-open`} variant="ghost" size="sm" className="self-start" onClick={() => showTutorial()}>
@@ -657,8 +677,9 @@ export function AccountGroup({
 
 /**
  * O topo da conta de e-mail: a escolha do provedor (o Gmail, recomendado, o Outlook de trabalho ou escola, ou outro),
- * que também escolhe o caminho do tutorial, e o aviso das contas pessoais da Microsoft, que não aceitam senha no SMTP. O aviso não impede de salvar: pode ser uma conta de trabalho. Os passos da
- * senha de app ficam no tutorial da conta (`account-tutorials.ts`).
+ * que também escolhe o caminho do tutorial, e o aviso das contas pessoais da Microsoft, que não aceitam senha no SMTP.
+ * O aviso não impede de salvar: pode ser uma conta de trabalho. Os passos da senha de app ficam no tutorial da conta
+ * (`account-tutorials.ts`).
  */
 function SmtpProviderGuide({
 	values,

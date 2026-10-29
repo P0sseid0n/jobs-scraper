@@ -38,6 +38,10 @@ export interface TutorialProps {
 	scene?: (path: string, step: TutorialStep) => React.ReactNode
 	/** Mostra o botão de fechar; o Esc dentro do tutorial também fecha. */
 	onClose?: () => void
+	/** O nome do botão de fechar, quando fechar faz mais que fechar este (ex.: esconde os tutoriais de todas as contas). */
+	closeLabel?: string
+	/** No último passo, o botão no lugar do "próximo" (ex.: "ir para os campos"). */
+	done?: { label: string; onClick: () => void }
 	className?: string
 }
 
