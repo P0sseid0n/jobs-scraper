@@ -195,7 +195,6 @@ export function EmailStep({ eyebrow, credentials, onCredentials, onBack, onNext 
 			<Rise order={3} className={card({ size: 'lg', className: 'flex flex-col gap-5' })}>
 				<AccountGroup group="smtp" status={credentials} compact onSaved={onCredentials} />
 			</Rise>
-
 		</div>
 	)
 }

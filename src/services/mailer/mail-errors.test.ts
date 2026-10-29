@@ -29,7 +29,8 @@ describe('classifyMailError', () => {
 
 		expect(result).toEqual({
 			kind: 'permanent',
-			reason: 'O servidor SMTP recusou o login (SMTP 535 5.7.3): confira o usuário e a senha (de app, no Gmail) da conta de e-mail.',
+			reason:
+				'O servidor SMTP recusou o login (SMTP 535 5.7.3): confira o usuário e a senha (de app, no Gmail) da conta de e-mail.',
 		})
 		expect(classifyMailError(smtpError('EENVELOPE', 534)).kind).toBe('permanent')
 		expect(classifyMailError(smtpError('EAUTH')).reason).toStartWith('O servidor SMTP recusou o login:')
@@ -53,7 +54,8 @@ describe('classifyMailError', () => {
 	})
 
 	test('o Gmail recusando a senha normal (535 5.7.8) pede a senha de app, com o link', () => {
-		const response = '535-5.7.8 Username and Password not accepted. For more information, go to 535 5.7.8  https://support.google.com/mail/?p=BadCredentials a1-20020a05 - gsmtp'
+		const response =
+			'535-5.7.8 Username and Password not accepted. For more information, go to 535 5.7.8  https://support.google.com/mail/?p=BadCredentials a1-20020a05 - gsmtp'
 
 		expect(classifyMailError(Object.assign(smtpError('EAUTH', 535, `Invalid login: ${response}`), { response }))).toEqual({
 			kind: 'permanent',

@@ -295,7 +295,7 @@ export const SmtpCredentialsSchema = z
 				? `Informe o servidor SMTP, mas a Microsoft não aceita senha no SMTP das contas pessoais (${domain}): use uma conta do Gmail`
 				: domain
 					? `Informe o servidor SMTP: não conheço o de ${domain}`
-				: 'Informe o servidor SMTP (ou use o e-mail inteiro no usuário, para ele ser deduzido)',
+					: 'Informe o servidor SMTP (ou use o e-mail inteiro no usuário, para ele ser deduzido)',
 		})
 	})
 

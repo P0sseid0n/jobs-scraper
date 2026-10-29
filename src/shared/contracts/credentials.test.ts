@@ -5,8 +5,8 @@ import {
 	credentialStatus,
 	DiscordCredentialsSchema,
 	GithubCredentialsSchema,
-	LinkedinCredentialsSchema,
 	isMicrosoftPersonalAccount,
+	LinkedinCredentialsSchema,
 	SmtpCredentialsSchema,
 	smtpHostOf,
 } from './settings'
@@ -61,7 +61,10 @@ describe('SmtpCredentialsSchema', () => {
 
 		expect(issues('ana@empresa.com.br')).toEqual([['host', 'Informe o servidor SMTP: não conheço o de empresa.com.br']])
 		expect(issues('ana@outlook.com')).toEqual([
-			['host', 'Informe o servidor SMTP, mas a Microsoft não aceita senha no SMTP das contas pessoais (outlook.com): use uma conta do Gmail'],
+			[
+				'host',
+				'Informe o servidor SMTP, mas a Microsoft não aceita senha no SMTP das contas pessoais (outlook.com): use uma conta do Gmail',
+			],
 		])
 		expect(issues('ana')).toEqual([['host', 'Informe o servidor SMTP (ou use o e-mail inteiro no usuário, para ele ser deduzido)']])
 		expect(SmtpCredentialsSchema.safeParse({ host: 'smtp.empresa.com.br', user: 'ana@empresa.com.br', password: 'x' }).success).toBe(
