@@ -105,7 +105,7 @@ export const GUIDES: Record<string, string> = {
 - \`linkDisabled\` quando o campo focado é o assunto: as de link ficam desativadas, com "só na mensagem".
 - Cada item mostra o nome em cima e a descrição embaixo, com um "+" no hover e no foco.
 - \`mayBeMissing\` põe um ponto de alerta no item (variável da vaga sem fallback), explicado uma vez ao lado do nome do grupo ("nem toda vaga tem"); \`hint\` mostra o fallback.
-- \`action\` de um grupo vira um botão pequeno ao lado do nome dele (\`icon\`, \`detail\` e o selo "corrigir" com \`invalid\`); com \`empty\` e sem variáveis, o grupo vira um botão tracejado que faz o mesmo.
+- \`action\` de um grupo vira um botão pequeno ao lado do nome dele (\`icon\`, \`detail\`, por extenso para o leitor de tela em \`detailLabel\`, e o selo "corrigir" com \`invalid\`); com \`empty\` e sem variáveis, o grupo vira um botão tracejado que faz o mesmo.
 - \`howTo\` vira o link "como funciona", com um exemplo de modelo e o resultado.`,
 	FieldLabel: `Nome do campo, acima dele; \`htmlFor\` é o \`id\` do campo.
 

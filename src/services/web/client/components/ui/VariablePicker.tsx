@@ -31,6 +31,8 @@ export type VariablePickerAction = {
 	icon?: IconName
 	/** Um complemento depois do rótulo (ex.: "2/6"). */
 	detail?: string
+	/** O complemento por extenso, só para o leitor de tela (ex.: "2 de 6 definidos"). */
+	detailLabel?: string
 	/** Há erro no que o atalho abre: ganha o selo "corrigir". */
 	invalid?: boolean
 }
@@ -123,7 +125,12 @@ export function VariablePicker({ groups, onInsert, linkDisabled = false, howTo, 
 										>
 											{group.action.icon && <Icon name={group.action.icon} size={14} />}
 											{group.action.label}
-											{group.action.detail && <span className="font-mono text-muted">{group.action.detail}</span>}
+											{group.action.detail && (
+												<span aria-hidden={group.action.detailLabel ? true : undefined} className="font-mono text-muted">
+													{group.action.detail}
+												</span>
+											)}
+											{group.action.detailLabel && <span className="sr-only">{group.action.detailLabel}</span>}
 											{group.action.invalid && <span className={badge({ tone: 'warn', size: 'xs' })}>corrigir</span>}
 										</Button>
 									)}

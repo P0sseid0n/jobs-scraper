@@ -149,6 +149,7 @@ export function MessageTemplateEditor({ message, profile, errors, edit, revealEr
 			action: {
 				label: 'fallbacks',
 				detail: `${fallbackCount}/${OPTIONAL_JOB_VARIABLES.length}`,
+				detailLabel: `${fallbackCount} de ${OPTIONAL_JOB_VARIABLES.length} definidos`,
 				invalid: errorsIn('fallbacks'),
 				onClick: () => setDialog('fallbacks'),
 			},
