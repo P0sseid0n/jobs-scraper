@@ -22,6 +22,7 @@ export interface IconProps {
 		| 'plus'
 		| 'link'
 		| 'flag'
+		| 'chat'
 		| 'share'
 		| 'info'
 		| 'spinner'

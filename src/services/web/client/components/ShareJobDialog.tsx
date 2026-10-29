@@ -3,6 +3,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { jobShareSubject, jobShareText, type ShareJob } from '@shared/templates'
 
 import { cx } from '../lib/cx'
+import { useCoarsePointer } from '../lib/media'
 import { notify } from '../stores/toast'
 import { CopyButton } from './CopyButton'
 import { Icon } from './Icon'
@@ -11,20 +12,37 @@ import { DIALOG } from './ui/Dialog'
 import { FieldHelp, FieldLabel } from './ui/Field'
 import { IconButton } from './ui/IconButton'
 import { field } from './ui/Input'
+import { LABEL } from './ui/text'
+import { TextLink } from './ui/TextLink'
 
 /** O compartilhamento nativo do sistema (celular e alguns desktops); sem ele, o botão nem aparece. */
 const CAN_SHARE = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
 
+/** O `*negrito*` do WhatsApp: um trecho entre asteriscos, sem quebra de linha. */
+const BOLD = /\*([^*\n]+)\*/g
+
+/** O texto como o WhatsApp mostra: o que está entre asteriscos vira negrito, sem eles. */
+function WhatsAppText({ text }: { text: string }) {
+	const parts = text.split(BOLD)
+	// No `split` com grupo, os trechos ímpares são o miolo de cada `*…*`
+	return parts.map((part, index) => (index % 2 === 1 ? <strong key={index}>{part}</strong> : part))
+}
+
 /**
  * Indicar a vaga a alguém: o texto montado com os dados públicos dela (nada do jobs-scraper nem da pessoa), editável,
- * e os jeitos de mandar: copiar, WhatsApp, e-mail e o compartilhar do sistema. Todos usam o texto como está no campo.
+ * com a prévia de como chega, e os jeitos de mandar: WhatsApp, e-mail, o compartilhar do sistema e copiar. Todos usam o
+ * texto como está no campo.
  */
 export function ShareJobDialog({ job, onClose }: { job: ShareJob; onClose: () => void }) {
 	const ref = useRef<HTMLDialogElement>(null)
 	const titleId = useId()
 	const textId = useId()
-	const [text, setText] = useState(() => jobShareText(job))
+	const generated = jobShareText(job)
+	const [text, setText] = useState(generated)
 	const empty = !text.trim()
+	// No celular, o compartilhar do sistema é o jeito comum de mandar: vira a ação principal no lugar do copiar
+	const coarse = useCoarsePointer()
+	const sharePrimary = CAN_SHARE && coarse
 
 	useEffect(() => {
 		ref.current?.showModal()
@@ -38,6 +56,13 @@ export function ShareJobDialog({ job, onClose }: { job: ShareJob; onClose: () =>
 			if (!(error instanceof DOMException && error.name === 'AbortError')) notify('Não consegui abrir o compartilhamento', 'error')
 		}
 	}
+
+	const shareButton = (variant: 'ghost' | 'lime') => (
+		<Button variant={variant} disabled={empty} onClick={share}>
+			<Icon name="share" size={14} />
+			compartilhar
+		</Button>
+	)
 
 	return (
 		// biome-ignore lint/a11y/useKeyWithClickEvents: pelo teclado, o Esc já fecha o <dialog>
@@ -63,45 +88,72 @@ export function ShareJobDialog({ job, onClose }: { job: ShareJob; onClose: () =>
 					<span className="font-semibold">{job.title}</span>
 					{job.company && <span className="text-muted"> · {job.company}</span>}
 				</p>
-				<FieldHelp>
-					Vão só os dados públicos da vaga e os links dela: quem recebe não precisa do jobs-scraper. Edite à vontade antes de
-					mandar.
-				</FieldHelp>
+				<FieldHelp>Só os dados públicos da vaga: quem recebe não precisa do jobs-scraper.</FieldHelp>
 			</div>
 
 			{/* Cada formato do compartilhamento é uma seção do meio (a imagem da vaga entra aqui, ao lado do texto) */}
 			<div className="flex min-h-0 grow flex-col gap-4 overflow-y-auto px-5 py-4">
 				<div className="flex flex-col gap-1.5">
-					<FieldLabel htmlFor={textId}>texto</FieldLabel>
+					{/* Na linha do rótulo, o copiar só com o ícone (como nos campos do contato) e o "restaurar" depois de editar */}
+					<div className="flex items-center justify-between gap-2">
+						<FieldLabel htmlFor={textId}>texto</FieldLabel>
+						<div className="flex items-center gap-3">
+							{text !== generated && (
+								<TextLink className="text-xs font-mono" onClick={() => setText(generated)}>
+									restaurar texto
+								</TextLink>
+							)}
+							{!empty && (
+								<CopyButton icon text={text} what="Texto da vaga" label="copiar texto" className="text-muted hover:text-ink" />
+							)}
+						</div>
+					</div>
+					{/* Cresce com o texto, até um limite: depois disso, rola */}
 					<textarea
 						id={textId}
-						rows={10}
 						value={text}
 						onChange={event => setText(event.target.value)}
-						className={field({ className: 'resize-y py-2.5 leading-relaxed' })}
+						className={field({ className: 'resize-y py-2.5 leading-relaxed field-sizing-content min-h-24 max-h-72' })}
 					/>
-					<FieldHelp className="text-xs">O *negrito* vira negrito no WhatsApp.</FieldHelp>
 				</div>
+
+				{!empty && (
+					<section className="flex flex-col gap-1.5" aria-label="Prévia">
+						<h3 className={LABEL}>como chega no whatsapp</h3>
+						<p className="m-0 rounded-sm bg-surface-2 px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap wrap-anywhere">
+							<WhatsAppText text={text} />
+						</p>
+					</section>
+				)}
+
+				<section className="flex flex-col gap-1.5" aria-label="Enviar por">
+					<h3 className={LABEL}>enviar por</h3>
+					<div className="flex flex-wrap gap-2">
+						<Button variant="ghost" href={`https://wa.me/?text=${encodeURIComponent(text)}`} target="_blank" rel="noreferrer">
+							<Icon name="chat" size={14} />
+							WhatsApp
+						</Button>
+						<Button
+							variant="ghost"
+							href={`mailto:?subject=${encodeURIComponent(jobShareSubject(job))}&body=${encodeURIComponent(text)}`}
+						>
+							<Icon name="mail" size={14} />
+							e-mail
+						</Button>
+						{CAN_SHARE && !sharePrimary && shareButton('ghost')}
+					</div>
+				</section>
 			</div>
 
-			<div className="flex flex-wrap items-center justify-end gap-2 border-t border-line px-5 py-3.5">
-				<Button variant="ghost" href={`https://wa.me/?text=${encodeURIComponent(text)}`} external>
-					WhatsApp
+			<div className="flex justify-end gap-2 border-t border-line px-5 py-3.5">
+				<Button variant="ghost" onClick={() => ref.current?.close()}>
+					fechar
 				</Button>
-				<Button
-					variant="ghost"
-					href={`mailto:?subject=${encodeURIComponent(jobShareSubject(job))}&body=${encodeURIComponent(text)}`}
-				>
-					<Icon name="mail" size={14} />
-					e-mail
-				</Button>
-				{CAN_SHARE && (
-					<Button variant="ghost" disabled={empty} onClick={share}>
-						<Icon name="share" size={14} />
-						compartilhar
-					</Button>
+				{sharePrimary ? (
+					shareButton('lime')
+				) : (
+					<CopyButton variant="lime" text={text} what="Texto da vaga" label="copiar texto" disabled={empty} />
 				)}
-				<CopyButton variant="lime" text={text} what="Texto da vaga" label="copiar texto" disabled={empty} />
 			</div>
 		</dialog>
 	)

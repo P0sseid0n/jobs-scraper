@@ -15,3 +15,10 @@ export const wideLayout = mediaStore('(min-width: 1100px)')
 export function useWideLayout() {
 	return useStore(wideLayout)
 }
+
+/** Toque como entrada principal (celular, tablet): ali o compartilhar do sistema é o jeito comum de mandar algo. */
+export const coarsePointer = mediaStore('(pointer: coarse)')
+
+export function useCoarsePointer() {
+	return useStore(coarsePointer)
+}
