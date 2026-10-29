@@ -144,6 +144,7 @@ export const GUIDES: Record<string, string> = {
 
 - \`paths\`: um caminho por jeito de fazer (Gmail e Outlook, canal de texto e fórum); com mais de um, viram abas (\`Tabs\`).
 - Cada passo tem \`title\` (o que fazer, uma linha), \`text\` (onde clicar), \`link\` (abre em outra aba, com "↗") e \`values\` (o que copiar, em mono).
+- \`notice\` no caminho mostra um aviso antes dos passos, para quem ele não serve (o Outlook pessoal).
 - \`highlight\` destaca um passo e leva o foco até ele: use quando algo falhou e um passo resolve (o login recusado aponta para a senha de app).
 - Com \`onClose\`, mostra o "fechar" e o Esc fecha. O conteúdo das contas fica em \`client/lib/account-tutorials.ts\`, um lugar só para o onboarding e as configurações.
 - Ao lado de um formulário (o onboarding), dê a borda: \`rounded-md border border-line p-4\`. Numa modal, use \`TutorialDialog\`.`,

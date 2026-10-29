@@ -262,7 +262,7 @@ const PREVIEWS: Record<string, Preview> = {
 		{ id: 'app-password', title: 'Crie uma senha de app', text: 'Dê um nome (ex.: jobs-scraper) e copie a senha de 16 letras.', link: { href: 'https://myaccount.google.com/apppasswords', label: 'abrir as senhas de app' } },
 		{ id: 'fields', title: 'Preencha a conta', values: [{ label: 'usuário', value: 'voce@gmail.com' }, { label: 'porta', value: '587' }] }
 	] },
-	{ id: 'outlook', label: 'Outlook', steps: [{ id: 'personal', title: 'Conta pessoal: use o Gmail', text: 'A Microsoft não aceita senha no SMTP das contas pessoais.' }] }
+	{ id: 'outlook', label: 'Outlook', notice: 'Só contas de trabalho ou escola: a Microsoft não aceita senha no SMTP das contas pessoais.', steps: [{ id: 'smtp-auth', title: 'Peça ao administrador para liberar o SMTP AUTH' }] }
 ] })`,
 	},
 	TutorialDialog: {

@@ -619,7 +619,8 @@ export function AccountGroup({
 			)}
 
 			{compact ? (
-				// O tutorial vem antes no HTML (acima dos campos no celular) e vai para a direita no desktop
+				// O tutorial vem antes no HTML (acima dos campos no celular, com a altura limitada para os campos ficarem à vista) e vai
+				// para a direita no desktop
 				<div className="grid items-start gap-6 lg:grid-cols-5">
 					{panelOpen ? (
 						<Tutorial
@@ -628,7 +629,7 @@ export function AccountGroup({
 							path={tutorialPathFor(group, draft as Record<string, string>)}
 							highlight={highlight}
 							onClose={closePanel}
-							className="rounded-md border border-line p-4 outline-none lg:order-last lg:col-span-2"
+							className="rounded-md border border-line p-4 outline-none max-lg:max-h-96 max-lg:overflow-y-auto lg:order-last lg:col-span-2"
 						/>
 					) : (
 						<Button
@@ -652,9 +653,9 @@ export function AccountGroup({
 }
 
 /**
- * O topo da conta de e-mail: a escolha do provedor (o Gmail, recomendado, com os passos da senha de app, ou outro) e o
- * aviso das contas pessoais da Microsoft, que não aceitam senha no SMTP. O aviso não impede de salvar: pode ser uma conta
- * de trabalho.
+ * O topo da conta de e-mail: a escolha do provedor (o Gmail, recomendado, ou outro) e o aviso das contas pessoais da
+ * Microsoft, que não aceitam senha no SMTP. O aviso não impede de salvar: pode ser uma conta de trabalho. Os passos da
+ * senha de app ficam no tutorial da conta (`account-tutorials.ts`).
  */
 function SmtpProviderGuide({
 	values,
@@ -700,23 +701,6 @@ function SmtpProviderGuide({
 						</TextLink>
 						. Contas Microsoft 365 de trabalho ou escola funcionam se o administrador liberar o SMTP AUTH.
 					</p>
-				</Notice>
-			)}
-
-			{provider === GMAIL_PRESET.id && (
-				<Notice tone="info" icon="info">
-					<ol className="m-0 flex list-decimal flex-col gap-1 pl-4 text-sm">
-						<li>Use o seu endereço @gmail.com no usuário: o servidor e a porta saem dele.</li>
-						<li>Ligue a verificação em duas etapas na Conta Google.</li>
-						<li>
-							Abra{' '}
-							<TextLink className="text-sm" href={GMAIL_PRESET.appPasswordsUrl} external>
-								{GMAIL_PRESET.appPasswordsPath}
-							</TextLink>{' '}
-							e crie uma para “jobs-scraper”.
-						</li>
-						<li>Cole a senha de 16 letras em “senha de app”, abaixo.</li>
-					</ol>
 				</Notice>
 			)}
 		</div>

@@ -4,6 +4,7 @@ import { cx } from '../../lib/cx'
 import { Icon } from '../Icon'
 import { DIALOG } from './Dialog'
 import { IconButton } from './IconButton'
+import { Notice } from './Notice'
 import { TabPanel, Tabs } from './Tabs'
 import { TextLink } from './TextLink'
 
@@ -20,7 +21,13 @@ export type TutorialStep = {
 }
 
 /** Um caminho do tutorial (ex.: Gmail ou Outlook); com mais de um, cada caminho vira uma aba. */
-export type TutorialPath = { id: string; label: string; steps: TutorialStep[] }
+export type TutorialPath = {
+	id: string
+	label: string
+	/** Um aviso antes dos passos: para quem o caminho não serve (ex.: as contas pessoais da Microsoft). */
+	notice?: string
+	steps: TutorialStep[]
+}
 
 type TutorialProps = {
 	/** Prefixo dos ids das abas e dos passos: único na tela. */
@@ -99,23 +106,38 @@ export function Tutorial({ id, title, intro, paths, path, highlight, onClose, cl
 
 			{paths.map(item => {
 				const list = (
-					<ol
-						ref={item.id === selected ? steps : undefined}
-						className="m-0 flex list-none flex-col gap-1 p-0"
-						aria-label={paths.length > 1 ? undefined : 'Passos'}
-					>
-						{item.steps.map((step, index) => (
-							<Step key={step.id} step={step} number={index + 1} highlighted={step.id === highlight} />
-						))}
-					</ol>
+					<>
+						{item.notice && (
+							<Notice tone="warn" icon="alert">
+								<p className="text-sm">{item.notice}</p>
+							</Notice>
+						)}
+						<ol
+							ref={item.id === selected ? steps : undefined}
+							className="m-0 flex list-none flex-col gap-1 p-0"
+							aria-label={paths.length > 1 ? undefined : 'Passos'}
+						>
+							{item.steps.map((step, index) => (
+								<Step key={step.id} step={step} number={index + 1} highlighted={step.id === highlight} />
+							))}
+						</ol>
+					</>
 				)
 
 				return paths.length > 1 ? (
-					<TabPanel key={item.id} tabsId={`${id}-paths`} value={item.id} selected={item.id === selected}>
+					<TabPanel
+						key={item.id}
+						tabsId={`${id}-paths`}
+						value={item.id}
+						selected={item.id === selected}
+						className="flex flex-col gap-3"
+					>
 						{list}
 					</TabPanel>
 				) : (
-					<div key={item.id}>{list}</div>
+					<div key={item.id} className="flex flex-col gap-3">
+						{list}
+					</div>
 				)
 			})}
 		</section>

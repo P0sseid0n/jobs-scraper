@@ -14,6 +14,8 @@ export interface TutorialStep {
 export interface TutorialPath {
 	id: string
 	label: string
+	/** Um aviso antes dos passos: para quem o caminho não serve (ex.: as contas pessoais da Microsoft). */
+	notice?: string
 	steps: TutorialStep[]
 }
 

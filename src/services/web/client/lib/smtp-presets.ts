@@ -1,27 +1,21 @@
-import { GMAIL_APP_PASSWORDS_URL, smtpHostFor } from '@shared/contracts'
+import { smtpHostFor } from '@shared/contracts'
 
 /**
- * Um provedor recomendado na conta de e-mail, com o caminho para a senha de app. O servidor e a porta não precisam ser
- * preenchidos: saem do domínio do e-mail (`smtpHostFor`), na 587. Para incluir outro que aceite senha de app (Zoho,
- * Brevo), basta um item aqui e o domínio dele em `SMTP_PROVIDER_HOSTS`.
+ * Um provedor recomendado na conta de e-mail (os passos da senha de app ficam no tutorial da conta). O servidor e a
+ * porta não precisam ser preenchidos: saem do domínio do e-mail (`smtpHostFor`), na 587. Para incluir outro que aceite
+ * senha de app (Zoho, Brevo), basta um item aqui e o domínio dele em `SMTP_PROVIDER_HOSTS`.
  */
 export type SmtpPreset = {
 	id: string
 	label: string
 	/** O servidor dele, para reconhecer o usuário digitado. */
 	host: string
-	/** Onde criar a senha de app. */
-	appPasswordsUrl: string
-	/** O caminho até a página de senhas de app, para quem não usar o link. */
-	appPasswordsPath: string
 }
 
 export const GMAIL_PRESET: SmtpPreset = {
 	id: 'gmail',
 	label: 'Gmail',
 	host: 'smtp.gmail.com',
-	appPasswordsUrl: GMAIL_APP_PASSWORDS_URL,
-	appPasswordsPath: 'Conta Google › Segurança › Senhas de app',
 }
 
 export const SMTP_PRESETS = [GMAIL_PRESET]

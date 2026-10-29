@@ -189,20 +189,18 @@ export const ACCOUNT_TUTORIALS: Record<CredentialGroup, AccountTutorial> = {
 			{
 				id: 'outlook',
 				label: 'Outlook',
+				notice:
+					'Só contas de trabalho ou escola (Microsoft 365). A Microsoft não aceita senha, nem senha de app, no SMTP das contas pessoais (Outlook, Hotmail e Live): para essas, use o Gmail.',
 				steps: [
 					{
-						id: 'personal',
-						title: 'Conta pessoal: use o Gmail',
-						text: 'A Microsoft não aceita senha, nem senha de app, no SMTP das contas pessoais (Outlook, Hotmail e Live): o teste e o envio falham. Para essas, crie uma senha de app no Gmail.',
-					},
-					{
-						id: 'work',
-						title: 'Conta de trabalho ou escola (Microsoft 365)',
-						text: 'Funciona se o administrador liberar o SMTP AUTH para a sua caixa. Peça a ele, se o teste disser que o login foi recusado.',
+						id: 'smtp-auth',
+						title: 'Peça ao administrador para liberar o SMTP AUTH',
+						text: 'No Microsoft 365, o envio por SMTP vem desligado. O administrador liga no Centro de administração › Usuários › a sua conta › Email › Gerenciar aplicativos de email › SMTP autenticado.',
+						link: { href: 'https://admin.microsoft.com', label: 'abrir o Centro de administração' },
 					},
 					{
 						id: 'app-password',
-						title: 'Use uma senha de app, se a conta tiver verificação em duas etapas',
+						title: 'Crie uma senha de app, se a conta tiver verificação em duas etapas',
 						text: 'Em Informações de segurança, adicione um método do tipo Senha de aplicativo e copie a senha. Sem a verificação em duas etapas, vale a senha da conta.',
 						link: { href: 'https://mysignins.microsoft.com/security-info', label: 'abrir as informações de segurança' },
 					},
@@ -212,9 +210,15 @@ export const ACCOUNT_TUTORIALS: Record<CredentialGroup, AccountTutorial> = {
 						text: 'Com domínio próprio, o servidor não sai do e-mail: informe em “avançado”.',
 						values: [
 							{ label: 'usuário', value: 'voce@empresa.com.br' },
+							{ label: 'senha de app', value: 'a criada no passo 2' },
 							{ label: 'servidor', value: 'smtp.office365.com' },
 							{ label: 'porta', value: '587' },
 						],
+					},
+					{
+						id: 'refused',
+						title: 'Se o teste disser que o login foi recusado',
+						text: 'Confira se o usuário é o e-mail inteiro e a senha. Com o código 5.7.139, o SMTP AUTH ainda está desligado para a sua caixa (ou a conta é pessoal).',
 					},
 				],
 			},
