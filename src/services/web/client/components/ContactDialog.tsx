@@ -30,8 +30,6 @@ import { RouteLink, TextLink } from './ui/TextLink'
 
 /** Uma das opções do "melhorar com a IA" (tom, tamanho): o rótulo e as pills na mesma linha; no celular, um embaixo do outro. */
 const MESSAGE_OPTION = 'flex items-center gap-2 max-sm:flex-col max-sm:items-start max-sm:gap-1.5'
-/** O rótulo dela, com a mesma largura nas duas: as pills de tom e de tamanho começam alinhadas. */
-const OPTION_LABEL = cx(LABEL, 'shrink-0 sm:w-16')
 
 /** A vaga: o id e os dados que preenchem as variáveis do modelo (`{{empresa}}`, `{{local}}`…). */
 type ContactJob = Pick<
@@ -96,7 +94,6 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 	// O estilo do "melhorar com a IA", escolhido na hora
 	const [tone, setTone] = useState<MessageTone>('neutral')
 	const [length, setLength] = useState<MessageLength>('medium')
-	const [direct, setDirect] = useState(false)
 	// Sem as configurações (a leitura falhou), vale o modelo padrão
 	const message = templateMessage(messageSettings ?? { template: DEFAULT_TEMPLATE, fallbacks: {}, variables: [] }, job, profile ?? {})
 	const sourceBody = message.body
@@ -176,15 +173,15 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 	)
 
 	/**
-	 * "Melhorar com a IA": reescreve o texto atual no tom e no tamanho escolhidos e, com `direct`, mais direto. Nada é
-	 * guardado: a versão nova só fica nos campos, e "desfazer" volta à de antes.
+	 * "Melhorar com a IA": reescreve o texto atual no tom e no tamanho escolhidos. Nada é guardado: a versão nova só
+	 * fica nos campos, e "desfazer" volta à de antes.
 	 */
 	async function improveMessage() {
 		if (rewriting) return
 
 		setRewriting(true)
 		try {
-			const improved = await api.improveJobMessage(job.postId, { body, tone, length, direct })
+			const improved = await api.improveJobMessage(job.postId, { body, tone, length })
 			setBeforeImprove(body)
 			setBody(improved.body)
 			setEdited(true)
@@ -486,12 +483,14 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 								</span>
 							</div>
 							<Disclosure
-								summary={`estilo: ${MESSAGE_TONE_LABELS[tone]}, ${MESSAGE_LENGTH_LABELS[length]}${direct ? ', mais direta' : ''}`}
+								summary={`estilo: ${MESSAGE_TONE_LABELS[tone]}, ${MESSAGE_LENGTH_LABELS[length]}`}
 								className="text-xs"
 							>
 								<div className="flex flex-col gap-2.5 pt-1">
+									{/* Tom e tamanho lado a lado; sem espaço, o tamanho desce para a linha de baixo */}
+									<div className="flex flex-wrap items-center gap-x-5 gap-y-2.5">
 									<div className={MESSAGE_OPTION}>
-										<span id={ids.tone} className={OPTION_LABEL}>
+										<span id={ids.tone} className={LABEL}>
 											tom
 										</span>
 										<PillGroup role="group" aria-labelledby={ids.tone}>
@@ -503,7 +502,7 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 										</PillGroup>
 									</div>
 									<div className={MESSAGE_OPTION}>
-										<span id={ids.length} className={OPTION_LABEL}>
+										<span id={ids.length} className={LABEL}>
 											tamanho
 										</span>
 										<PillGroup role="group" aria-labelledby={ids.length}>
@@ -512,11 +511,8 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 													{MESSAGE_LENGTH_LABELS[option]}
 												</Pill>
 											))}
-											{/* Liga e desliga: com ela, cada "melhorar" corta mais rodeios */}
-											<Pill pressed={direct} disabled={rewriting} onClick={() => setDirect(value => !value)}>
-												mais direta
-											</Pill>
 										</PillGroup>
+									</div>
 									</div>
 									<p className="m-0">A IA reescreve o texto atual nesse estilo, sem inventar fatos.</p>
 								</div>

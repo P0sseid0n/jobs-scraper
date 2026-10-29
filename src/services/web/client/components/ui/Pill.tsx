@@ -17,6 +17,8 @@ export const pill = tv({
 		'has-checked:border-ink has-checked:bg-ink has-checked:text-bg',
 		// O foco do checkbox de dentro vai na pill inteira: o contorno dele sumiria sobre a pill ligada
 		'has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-focus **:focus-visible:outline-none',
+		// Desativada (ex.: enquanto a IA reescreve): apagada, ligada ou não, como o resto dos controles desativados
+		'disabled:cursor-not-allowed disabled:opacity-50',
 		OUTLINED,
 		PRESS,
 	],
