@@ -1,6 +1,7 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 
 import { cx } from '../../lib/cx'
+import { Cursor, Swap, useDemoRound } from '../demo-parts'
 import { Icon } from '../Icon'
 import { badge, BadgeList } from '../ui/Badge'
 import { card } from '../ui/Card'
@@ -10,37 +11,6 @@ const RISE = 'animate-rise-in motion-reduce:animate-none'
 
 /** Uma volta até começar a sumir: uns 8 s montando e uns 12 s parada no fim, com o e-mail enviado. */
 const ROUND_MS = 20000
-const FADE_MS = 500
-
-/**
- * O que está em andamento e, depois, o resultado, no mesmo lugar: o primeiro sai por cima e o segundo sobe de baixo,
- * como a troca de texto dos botões. Com movimento reduzido, só o resultado.
- */
-function Swap({ working, done, outDelay, inDelay }: { working: ReactNode; done: ReactNode; outDelay: string; inDelay: string }) {
-	return (
-		<span className="grid">
-			<span className={cx('col-start-1 row-start-1 flex items-center gap-1.5 animate-text-out motion-reduce:hidden', outDelay)}>
-				{working}
-			</span>
-			<span className={cx('col-start-1 row-start-1 flex items-center gap-1.5 animate-text-in motion-reduce:animate-none', inDelay)}>
-				{done}
-			</span>
-		</span>
-	)
-}
-
-/** A seta do mouse, que chega no botão, clica e some (sem movimento, não aparece). */
-function Cursor() {
-	return (
-		<svg
-			aria-hidden="true"
-			viewBox="0 0 24 24"
-			className="pointer-events-none absolute top-1/2 left-3/4 size-5 origin-top-left animate-cursor-click motion-reduce:hidden stagger-60"
-		>
-			<path d="M5 3l14 8-6 1.5L10 19z" className="fill-ink stroke-surface" strokeWidth="1.5" strokeLinejoin="round" />
-		</svg>
-	)
-}
 
 /** Um trecho do post que a IA lê: o marca-texto passa por cima, um trecho depois do outro. */
 function Mark({ delay, children }: { delay: string; children: ReactNode }) {
@@ -62,21 +32,7 @@ function Mark({ delay, children }: { delay: string; children: ReactNode }) {
  * loop: parada no fim, com tudo na tela, ficaria texto demais ao lado dos passos. A cada volta some devagar e monta de novo (a `key` nova reinicia as animações); com movimento reduzido, fica pronta.
  */
 export function WelcomeDemo() {
-	const [round, setRound] = useState(0)
-	const [leaving, setLeaving] = useState(false)
-
-	useEffect(() => {
-		if (matchMedia('(prefers-reduced-motion: reduce)').matches) return
-		const fade = setTimeout(() => setLeaving(true), ROUND_MS)
-		const next = setTimeout(() => {
-			setLeaving(false)
-			setRound(value => value + 1)
-		}, ROUND_MS + FADE_MS)
-		return () => {
-			clearTimeout(fade)
-			clearTimeout(next)
-		}
-	}, [round])
+	const { round, leaving } = useDemoRound(ROUND_MS)
 
 	return (
 		<figure
@@ -205,7 +161,7 @@ export function WelcomeDemo() {
 							}
 						/>
 					</span>
-					<Cursor />
+					<Cursor className="top-1/2 left-3/4 stagger-60" />
 				</span>
 			</div>
 		</figure>

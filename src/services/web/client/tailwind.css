@@ -189,6 +189,17 @@
 	/* O cursor que chega no botão da vaga, clica e some; o botão afunda no clique */
 	--animate-cursor-click: cursor-click 1600ms var(--ease-glide) both;
 	--animate-press-once: press-once 240ms ease-out both;
+	/* O texto digitado nas cenas dos tutoriais das contas: aparece da esquerda para a direita, aos saltos, como teclas */
+	--animate-type-in: type-in 900ms steps(14) both;
+
+	@keyframes type-in {
+		from {
+			clip-path: inset(0 100% 0 0);
+		}
+		to {
+			clip-path: inset(0 0 0 0);
+		}
+	}
 
 	@keyframes cursor-click {
 		0% {

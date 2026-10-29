@@ -4,14 +4,15 @@ import { isMicrosoftPersonalAccount, smtpHostFor } from '@shared/contracts'
 
 import type { CredentialCheck, CredentialGroup, WebCredentials } from '../../api-types'
 import { api, RequestError } from '../api'
-import { ACCOUNT_TUTORIALS, tutorialPathFor } from '../lib/account-tutorials'
+import { ACCOUNT_TUTORIALS } from '../lib/account-tutorials'
 import { cx } from '../lib/cx'
 import { shakeInvalid } from '../lib/motion'
-import { GMAIL_PRESET, initialSmtpProvider, type SmtpProviderChoice } from '../lib/smtp-presets'
+import { GMAIL_PRESET, initialSmtpProvider, SMTP_PROVIDER_OPTIONS, type SmtpProviderChoice } from '../lib/smtp-presets'
 import { useStore } from '../lib/store'
 import { useFlash } from '../lib/use-flash'
 import { accountTutorialOpen } from '../stores/account-tutorial'
 import { notify } from '../stores/toast'
+import { accountScene } from './AccountTutorialScenes'
 import { DrawnCheck, Icon } from './Icon'
 import { LinkedinLoginStatus, useLinkedinLogin } from './LinkedinLogin'
 import { Badge } from './ui/Badge'
@@ -341,6 +342,9 @@ export function AccountGroup({
 	const [dialog, setDialog] = useState<{ step?: string } | null>(null)
 	const [highlight, setHighlight] = useState<string>()
 	const panelOpen = useStore(accountTutorialOpen)
+	// O provedor do e-mail é a única escolha da conta: o tutorial mostra o caminho dele, sem abas próprias
+	const [smtpProvider, setSmtpProvider] = useState<SmtpProviderChoice>(() => initialSmtpProvider(status.smtp.values))
+	const tutorialPath = group === 'smtp' ? smtpProvider : undefined
 	const tutorialId = `${group}-tutorial`
 
 	/** Abre o tutorial, com o passo que resolve a falha do teste em destaque. */
@@ -494,8 +498,12 @@ export function AccountGroup({
 			{group === 'smtp' && (
 				<SmtpProviderGuide
 					values={draft as Record<string, string>}
-					saved={status.smtp.values}
-					onOtherProvider={() => setAdvancedOpen(true)}
+					provider={smtpProvider}
+					onChoose={next => {
+						setSmtpProvider(next)
+						// Fora do Gmail, o servidor não sai do e-mail (ou pode não sair): ele fica no "avançado"
+						if (next !== GMAIL_PRESET.id) setAdvancedOpen(true)
+					}}
 				/>
 			)}
 
@@ -584,8 +592,9 @@ export function AccountGroup({
 			{dialog && (
 				<TutorialDialog
 					{...ACCOUNT_TUTORIALS[group]}
-					path={tutorialPathFor(group, draft as Record<string, string>)}
+					path={tutorialPath}
 					highlight={dialog.step}
+					scene={(path, step) => accountScene(group, path, step.id)}
 					onClose={() => setDialog(null)}
 				/>
 			)}
@@ -619,31 +628,25 @@ export function AccountGroup({
 			)}
 
 			{compact ? (
-				// O tutorial vem antes no HTML (acima dos campos no celular, com a altura limitada para os campos ficarem à vista) e vai
-				// para a direita no desktop
-				<div className="grid items-start gap-6 lg:grid-cols-5">
+				// O tutorial fica acima dos campos, na largura toda: um passo por vez, com a animação ao lado do texto
+				<div className="flex flex-col gap-6">
 					{panelOpen ? (
 						<Tutorial
 							id={tutorialId}
 							{...ACCOUNT_TUTORIALS[group]}
-							path={tutorialPathFor(group, draft as Record<string, string>)}
+							path={tutorialPath}
 							highlight={highlight}
+							scene={(path, step) => accountScene(group, path, step.id)}
 							onClose={closePanel}
-							className="rounded-md border border-line p-4 outline-none max-lg:max-h-96 max-lg:overflow-y-auto lg:order-last lg:col-span-2"
+							className="rounded-md border border-line p-4"
 						/>
 					) : (
-						<Button
-							id={`${tutorialId}-open`}
-							variant="ghost"
-							size="sm"
-							className="justify-self-start lg:col-span-5"
-							onClick={() => showTutorial()}
-						>
+						<Button id={`${tutorialId}-open`} variant="ghost" size="sm" className="self-start" onClick={() => showTutorial()}>
 							<Icon name="info" />
 							como configurar
 						</Button>
 					)}
-					<div className={cx('flex min-w-0 flex-col gap-5', panelOpen ? 'lg:col-span-3' : 'lg:col-span-5')}>{fields}</div>
+					<div className="flex min-w-0 flex-col gap-5">{fields}</div>
 				</div>
 			) : (
 				fields
@@ -653,27 +656,20 @@ export function AccountGroup({
 }
 
 /**
- * O topo da conta de e-mail: a escolha do provedor (o Gmail, recomendado, ou outro) e o aviso das contas pessoais da
- * Microsoft, que não aceitam senha no SMTP. O aviso não impede de salvar: pode ser uma conta de trabalho. Os passos da
+ * O topo da conta de e-mail: a escolha do provedor (o Gmail, recomendado, o Outlook de trabalho ou escola, ou outro),
+ * que também escolhe o caminho do tutorial, e o aviso das contas pessoais da Microsoft, que não aceitam senha no SMTP. O aviso não impede de salvar: pode ser uma conta de trabalho. Os passos da
  * senha de app ficam no tutorial da conta (`account-tutorials.ts`).
  */
 function SmtpProviderGuide({
 	values,
-	saved,
-	onOtherProvider,
+	provider,
+	onChoose,
 }: {
 	values: Record<string, string>
-	saved: { user: string | null; host: string | null }
-	/** "outro provedor" abre o "avançado", onde fica o servidor. */
-	onOtherProvider: () => void
+	provider: SmtpProviderChoice
+	onChoose: (next: SmtpProviderChoice) => void
 }) {
-	const [provider, setProvider] = useState<SmtpProviderChoice>(() => initialSmtpProvider(saved))
 	const labelId = useId()
-
-	function choose(next: SmtpProviderChoice) {
-		setProvider(next)
-		if (next === 'other') onOtherProvider()
-	}
 
 	return (
 		<div className="flex flex-col gap-3">
@@ -682,12 +678,11 @@ function SmtpProviderGuide({
 					provedor
 				</span>
 				<PillGroup role="group" aria-labelledby={labelId}>
-					<Pill pressed={provider === GMAIL_PRESET.id} onClick={() => choose(GMAIL_PRESET.id)}>
-						{GMAIL_PRESET.label} (recomendado)
-					</Pill>
-					<Pill pressed={provider === 'other'} onClick={() => choose('other')}>
-						outro provedor
-					</Pill>
+					{SMTP_PROVIDER_OPTIONS.map(option => (
+						<Pill key={option.id} pressed={provider === option.id} onClick={() => onChoose(option.id)}>
+							{option.label}
+						</Pill>
+					))}
 				</PillGroup>
 			</div>
 
@@ -696,7 +691,7 @@ function SmtpProviderGuide({
 					<p className="text-sm">
 						A Microsoft não aceita senha, nem senha de app, no SMTP das contas pessoais (Outlook, Hotmail e Live): o teste e o
 						envio vão falhar.{' '}
-						<TextLink className="text-sm" onClick={() => choose(GMAIL_PRESET.id)}>
+						<TextLink className="text-sm" onClick={() => onChoose(GMAIL_PRESET.id)}>
 							usar o Gmail
 						</TextLink>
 						. Contas Microsoft 365 de trabalho ou escola funcionam se o administrador liberar o SMTP AUTH.

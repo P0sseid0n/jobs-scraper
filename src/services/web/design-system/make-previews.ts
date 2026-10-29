@@ -255,7 +255,7 @@ const PREVIEWS: Record<string, Preview> = {
 	Tutorial: {
 		group: 'Feedback',
 		height: 420,
-		subtitle: 'dois caminhos em abas, um passo em destaque',
+		subtitle: 'um passo por vez, com o caminho em abas e o passo em destaque',
 		body: `h(U.Tutorial, { id: 'smtp-tutorial', title: 'Como configurar o e-mail', intro: 'O envio usa uma senha de app, não a senha normal da conta.', highlight: 'app-password', onClose: function () {}, className: 'max-w-md rounded-md border border-line p-4', paths: [
 	{ id: 'gmail', label: 'Gmail', steps: [
 		{ id: 'two-step', title: 'Ligue a verificação em duas etapas', text: 'Sem ela, o Google não deixa criar a senha de app.', link: { href: 'https://myaccount.google.com/signinoptions/two-step-verification', label: 'abrir a verificação em duas etapas' } },

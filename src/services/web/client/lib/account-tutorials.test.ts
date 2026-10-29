@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 
 import type { CredentialGroup } from '../../api-types'
-import { ACCOUNT_TUTORIALS, tutorialPathFor } from './account-tutorials'
+import { ACCOUNT_TUTORIALS } from './account-tutorials'
+import { SMTP_PROVIDER_OPTIONS } from './smtp-presets'
 
 /** Os passos que o teste de cada conta aponta na falha (`step`, em `server/credential-checks.ts`). */
 const CHECK_STEPS: Partial<Record<CredentialGroup, string[]>> = {
@@ -29,9 +30,8 @@ describe('ACCOUNT_TUTORIALS', () => {
 		}
 	})
 
-	test('o e-mail pessoal da Microsoft abre o caminho do Outlook', () => {
-		expect(tutorialPathFor('smtp', { user: 'ana@hotmail.com' })).toBe('outlook')
-		expect(tutorialPathFor('smtp', { user: 'ana@gmail.com' })).toBeUndefined()
-		expect(tutorialPathFor('discord', {})).toBeUndefined()
+	test('cada opção do provedor do e-mail tem o seu caminho no tutorial', () => {
+		const paths = ACCOUNT_TUTORIALS.smtp.paths.map(path => path.id)
+		expect(paths).toEqual(SMTP_PROVIDER_OPTIONS.map(option => option.id))
 	})
 })

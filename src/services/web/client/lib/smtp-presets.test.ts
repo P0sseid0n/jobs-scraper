@@ -25,6 +25,11 @@ describe('initialSmtpProvider', () => {
 		expect(initialSmtpProvider({ user: 'ana@gmail.com', host: 'smtp.gmail.com' })).toBe('gmail')
 	})
 
+	test('a conta da Microsoft abre no Outlook: a de trabalho pelo servidor, a pessoal pelo domínio', () => {
+		expect(initialSmtpProvider({ user: 'ana@empresa.com.br', host: 'smtp.office365.com' })).toBe('outlook')
+		expect(initialSmtpProvider({ user: 'ana@hotmail.com', host: null })).toBe('outlook')
+	})
+
 	test('a conta de outro lugar (ou um Gmail com servidor próprio) abre em "outro provedor"', () => {
 		expect(initialSmtpProvider({ user: 'ana@empresa.com.br', host: 'smtp.empresa.com.br' })).toBe('other')
 		expect(initialSmtpProvider({ user: 'ana@gmail.com', host: 'smtp.relay.com' })).toBe('other')

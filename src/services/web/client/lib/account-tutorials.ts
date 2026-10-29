@@ -1,4 +1,4 @@
-import { GMAIL_APP_PASSWORDS_URL, isMicrosoftPersonalAccount } from '@shared/contracts'
+import { GMAIL_APP_PASSWORDS_URL } from '@shared/contracts'
 
 import type { CredentialGroup } from '../../api-types'
 import type { TutorialPath, TutorialStep } from '../components/ui/Tutorial'
@@ -222,12 +222,32 @@ export const ACCOUNT_TUTORIALS: Record<CredentialGroup, AccountTutorial> = {
 					},
 				],
 			},
+			{
+				id: 'other',
+				label: 'outro provedor',
+				steps: [
+					{
+						id: 'app-password',
+						title: 'Crie uma senha de app no seu provedor',
+						text: 'Quase todos (Yahoo, iCloud, Zoho) pedem a verificação em duas etapas ligada e uma senha de app para programas de fora. Procure por “senha de app” na segurança da sua conta.',
+					},
+					{
+						id: 'fields',
+						title: 'Preencha a conta',
+						text: 'No Yahoo e no iCloud, o servidor sai do e-mail. Nos outros, informe o servidor SMTP em “avançado”, como está na ajuda do provedor.',
+						values: [
+							{ label: 'usuário', value: 'o e-mail inteiro' },
+							{ label: 'senha de app', value: 'a criada no passo 1' },
+							{ label: 'porta', value: '587 (STARTTLS) ou 465 (TLS)' },
+						],
+					},
+					{
+						id: 'refused',
+						title: 'Se o teste disser que o login foi recusado',
+						text: 'Confira o usuário, a senha de app e o servidor. O código SMTP da mensagem (ex.: 535 5.7.8) ajuda a procurar na ajuda do provedor.',
+					},
+				],
+			},
 		],
 	},
-}
-
-/** O caminho do tutorial que combina com o que foi digitado na conta (o e-mail da Microsoft abre o do Outlook). */
-export function tutorialPathFor(group: CredentialGroup, values: Record<string, string>) {
-	if (group === 'smtp' && isMicrosoftPersonalAccount(values)) return 'outlook'
-	return undefined
 }

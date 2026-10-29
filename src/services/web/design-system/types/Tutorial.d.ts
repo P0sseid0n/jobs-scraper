@@ -20,8 +20,9 @@ export interface TutorialPath {
 }
 
 /**
- * O passo a passo para configurar algo fora do site, em passos numerados, com o link para a página certa de cada
- * serviço. Com mais de um caminho, as abas escolhem o caminho.
+ * O passo a passo para configurar algo fora do site: um passo por vez, na horizontal, com a animação do passo de um
+ * lado e, do outro, o que fazer e o link para a página certa do serviço. Os números no topo levam a qualquer passo; com
+ * mais de um caminho, as abas escolhem o caminho (ou quem usa, com `path`).
  */
 export interface TutorialProps {
 	/** Prefixo dos ids das abas e dos passos, e o `id` da seção (focável): único na tela. */
@@ -29,10 +30,12 @@ export interface TutorialProps {
 	title: string
 	intro?: React.ReactNode
 	paths: TutorialPath[]
-	/** O caminho que abre escolhido (o primeiro, sem ele); acompanha quando muda. */
+	/** O caminho escolhido fora do tutorial (ex.: o provedor da conta de e-mail): sem as abas. Sem ele, as abas escolhem. */
 	path?: string
-	/** O passo em destaque: recebe o foco e fica à vista ao mudar. */
+	/** O passo em destaque: vai para ele, com o foco, ao mudar (ex.: o teste que falhou aponta o passo que resolve). */
 	highlight?: string
+	/** A animação do passo, ao lado do texto (acima dele, no estreito); sem ela, só o texto. */
+	scene?: (path: string, step: TutorialStep) => React.ReactNode
 	/** Mostra o botão de fechar; o Esc dentro do tutorial também fecha. */
 	onClose?: () => void
 	className?: string

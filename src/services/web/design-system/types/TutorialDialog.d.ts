@@ -8,6 +8,7 @@ export interface TutorialDialogProps {
 	paths: TutorialPath[]
 	path?: string
 	highlight?: string
+	scene?: (path: string, step: TutorialStep) => React.ReactNode
 	/** Também chamado no Esc e no clique fora. */
 	onClose: () => void
 }

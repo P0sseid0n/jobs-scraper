@@ -140,9 +140,11 @@ export const GUIDES: Record<string, string> = {
 
 - Abre ao montar. \`title\` é a pergunta ("Sair sem salvar?"), \`description\` a consequência; \`confirmLabel\` e \`cancelLabel\` dizem o que cada botão faz ("sair sem salvar" / "continuar editando"), nunca "sim" e "não".
 - \`onConfirm\` e \`onCancel\` são obrigatórios.`,
-	Tutorial: `O passo a passo para configurar algo fora do site (as contas do LinkedIn, Discord, GitHub e e-mail), em passos numerados com o link para a página certa de cada serviço.
+	Tutorial: `O passo a passo para configurar algo fora do site (as contas do LinkedIn, Discord, GitHub e e-mail): um passo por vez, na horizontal, com a animação do passo ao lado do texto e o link para a página certa de cada serviço.
 
-- \`paths\`: um caminho por jeito de fazer (Gmail e Outlook, canal de texto e fórum); com mais de um, viram abas (\`Tabs\`).
+- Os números no topo levam a qualquer passo; "anterior" e "próximo" andam um. O passo novo entra pelo lado para onde se andou.
+- \`scene\` desenha a animação de cada passo: uma janela simplificada do serviço, nas cores do site, com o cursor indo ao lugar certo, em loop (as cenas das contas ficam em \`AccountTutorialScenes.tsx\`). Com pouco espaço, ela fica acima do texto; com movimento reduzido, parada no fim.
+- \`paths\`: um caminho por jeito de fazer (canal de texto e fórum); com mais de um, viram abas. Quando a tela já tem a escolha (o provedor da conta de e-mail), passe \`path\`: as abas somem, para não haver duas escolhas da mesma coisa.
 - Cada passo tem \`title\` (o que fazer, uma linha), \`text\` (onde clicar), \`link\` (abre em outra aba, com "↗") e \`values\` (o que copiar, em mono).
 - \`notice\` no caminho mostra um aviso antes dos passos, para quem ele não serve (o Outlook pessoal).
 - \`highlight\` destaca um passo e leva o foco até ele: use quando algo falhou e um passo resolve (o login recusado aponta para a senha de app).
