@@ -444,8 +444,43 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 							)}
 						</div>
 
-						{/* A IA só entra a pedido: reescreve o texto atual no estilo escolhido (recolhido, para não pesar na tela) */}
+						{/* A IA só entra a pedido: primeiro o estilo (recolhido, para não pesar na tela), depois o botão que reescreve o texto atual nele */}
 						<div className="flex flex-col gap-2 border-t border-line-strong pt-3">
+							<Disclosure
+								summary={`estilo: ${MESSAGE_TONE_LABELS[tone]}, ${MESSAGE_LENGTH_LABELS[length]}`}
+								className="text-xs"
+							>
+								<div className="flex flex-col gap-2.5 pt-1">
+									{/* Tom e tamanho lado a lado; sem espaço, o tamanho desce para a linha de baixo */}
+									<div className="flex flex-wrap items-center gap-x-5 gap-y-2.5">
+										<div className={MESSAGE_OPTION}>
+											<span id={ids.tone} className={LABEL}>
+												tom
+											</span>
+											<PillGroup role="group" aria-labelledby={ids.tone}>
+												{MESSAGE_TONES.map(option => (
+													<Pill key={option} pressed={option === tone} disabled={rewriting} onClick={() => setTone(option)}>
+														{MESSAGE_TONE_LABELS[option]}
+													</Pill>
+												))}
+											</PillGroup>
+										</div>
+										<div className={MESSAGE_OPTION}>
+											<span id={ids.length} className={LABEL}>
+												tamanho
+											</span>
+											<PillGroup role="group" aria-labelledby={ids.length}>
+												{MESSAGE_LENGTHS.map(option => (
+													<Pill key={option} pressed={option === length} disabled={rewriting} onClick={() => setLength(option)}>
+														{MESSAGE_LENGTH_LABELS[option]}
+													</Pill>
+												))}
+											</PillGroup>
+										</div>
+									</div>
+									<p className="m-0">A IA reescreve o texto atual nesse estilo, sem inventar fatos.</p>
+								</div>
+							</Disclosure>
 							<div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
 								<div className="flex flex-wrap items-center gap-2 text-muted text-xs">
 									<Button
@@ -482,41 +517,6 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 											: ''}
 								</span>
 							</div>
-							<Disclosure
-								summary={`estilo: ${MESSAGE_TONE_LABELS[tone]}, ${MESSAGE_LENGTH_LABELS[length]}`}
-								className="text-xs"
-							>
-								<div className="flex flex-col gap-2.5 pt-1">
-									{/* Tom e tamanho lado a lado; sem espaço, o tamanho desce para a linha de baixo */}
-									<div className="flex flex-wrap items-center gap-x-5 gap-y-2.5">
-									<div className={MESSAGE_OPTION}>
-										<span id={ids.tone} className={LABEL}>
-											tom
-										</span>
-										<PillGroup role="group" aria-labelledby={ids.tone}>
-											{MESSAGE_TONES.map(option => (
-												<Pill key={option} pressed={option === tone} disabled={rewriting} onClick={() => setTone(option)}>
-													{MESSAGE_TONE_LABELS[option]}
-												</Pill>
-											))}
-										</PillGroup>
-									</div>
-									<div className={MESSAGE_OPTION}>
-										<span id={ids.length} className={LABEL}>
-											tamanho
-										</span>
-										<PillGroup role="group" aria-labelledby={ids.length}>
-											{MESSAGE_LENGTHS.map(option => (
-												<Pill key={option} pressed={option === length} disabled={rewriting} onClick={() => setLength(option)}>
-													{MESSAGE_LENGTH_LABELS[option]}
-												</Pill>
-											))}
-										</PillGroup>
-									</div>
-									</div>
-									<p className="m-0">A IA reescreve o texto atual nesse estilo, sem inventar fatos.</p>
-								</div>
-							</Disclosure>
 						</div>
 					</section>
 
