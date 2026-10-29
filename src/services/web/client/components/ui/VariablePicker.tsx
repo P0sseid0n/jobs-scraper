@@ -3,9 +3,12 @@ import { useId, type ReactNode } from 'react'
 import { cx } from '../../lib/cx'
 import { useStore } from '../../lib/store'
 import { variablePickerOpen } from '../../stores/variable-picker'
-import { Icon } from '../Icon'
+import { Icon, type IconName } from '../Icon'
 import { badge } from './Badge'
+import { Button } from './Button'
 import { Disclosure } from './Disclosure'
+import { pill } from './Pill'
+import { StatusDot } from './StatusDot'
 import { LABEL } from './text'
 
 /** Uma variável do painel: o nome (sem as chaves), a descrição curta e o tipo. */
@@ -14,7 +17,7 @@ export type VariablePickerItem = {
 	description: string
 	/** `link`: só funciona na mensagem; ganha a marca de link e fica desativada com `linkDisabled`. */
 	type: 'text' | 'link'
-	/** Pode faltar e ainda não tem fallback: mostra o selo "nem toda vaga tem". */
+	/** Pode faltar e ainda não tem fallback: ganha o ponto de alerta, explicado uma vez ("nem toda vaga tem") ao lado do grupo. */
 	mayBeMissing?: boolean
 	/** Uma dica abaixo da descrição (ex.: o fallback: "sem empresa na vaga: a sua empresa"). */
 	hint?: string
@@ -24,7 +27,9 @@ export type VariablePickerItem = {
 export type VariablePickerAction = {
 	label: string
 	onClick: () => void
-	/** Um complemento depois do rótulo (ex.: "2 de 6 definidos"). */
+	/** O ícone antes do rótulo (ex.: `plus` em "criar"). */
+	icon?: IconName
+	/** Um complemento depois do rótulo (ex.: "2/6"). */
 	detail?: string
 	/** Há erro no que o atalho abre: ganha o selo "corrigir". */
 	invalid?: boolean
@@ -35,7 +40,7 @@ export type VariablePickerGroup = {
 	label: string
 	variables: VariablePickerItem[]
 	action?: VariablePickerAction
-	/** O texto do grupo sem variáveis (só aparece com o atalho). */
+	/** O grupo sem variáveis vira um botão tracejado com este texto, que faz o mesmo que o atalho (e o substitui). */
 	empty?: string
 }
 
@@ -52,8 +57,9 @@ type VariablePickerProps = {
 
 /**
  * O painel "Variáveis disponíveis" de um editor de modelo: as variáveis em grade (duas colunas, uma no celular),
- * agrupadas, cada uma um botão que insere a variável. O clique não tira o foco do campo (o cursor fica onde estava);
- * pelo teclado, Tab chega aos itens e Enter ou Espaço inserem. O título mostra e esconde o painel (lembrado entre visitas).
+ * agrupadas, cada uma um botão que insere a variável (nome em cima, descrição embaixo, e um "+" no hover e no foco).
+ * O clique não tira o foco do campo (o cursor fica onde estava); pelo teclado, Tab chega aos itens e Enter ou Espaço
+ * inserem. O título mostra e esconde o painel (lembrado entre visitas).
  */
 export function VariablePicker({ groups, onInsert, linkDisabled = false, howTo, className }: VariablePickerProps) {
 	const titleId = useId()
@@ -83,7 +89,7 @@ export function VariablePicker({ groups, onInsert, linkDisabled = false, howTo, 
 				</h3>
 				<p className="text-xs text-muted">
 					{open
-						? 'Clique para inserir no último campo selecionado. Variáveis de link funcionam apenas na mensagem.'
+						? 'Clique para inserir no último campo selecionado.'
 						: 'Abra para inserir uma variável com um clique, criar as suas ou definir os fallbacks.'}
 				</p>
 			</div>
@@ -91,66 +97,102 @@ export function VariablePicker({ groups, onInsert, linkDisabled = false, howTo, 
 			<div id={listId} hidden={!open} className="flex flex-col gap-3">
 				{groups
 					.filter(group => group.variables.length > 0 || group.action)
-					.map(group => (
-						<div key={group.label} className="flex flex-col gap-1">
-							<div className="flex flex-wrap items-center justify-between gap-x-3">
-								<span className={LABEL}>{group.label}</span>
-								{group.action && (
+					.map(group => {
+						const emptyAction = group.variables.length === 0 && group.empty ? group.action : undefined
+
+						return (
+							<div key={group.label} className="flex flex-col gap-1">
+								<div className="flex min-h-8 flex-wrap items-center justify-between gap-x-3 gap-y-1">
+									<span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+										<span className={LABEL}>{group.label}</span>
+										{group.variables.some(variable => variable.mayBeMissing) && (
+											<span className="flex items-center gap-1.5 text-xs text-muted">
+												<StatusDot className="text-warn" />
+												nem toda vaga tem
+											</span>
+										)}
+									</span>
+									{group.action && !emptyAction && (
+										<Button
+											variant="ghost"
+											size="sm"
+											aria-haspopup="dialog"
+											// O clique não tira o foco do campo: ao fechar a modal, o cursor volta para onde estava
+											onMouseDown={event => event.preventDefault()}
+											onClick={group.action.onClick}
+										>
+											{group.action.icon && <Icon name={group.action.icon} size={14} />}
+											{group.action.label}
+											{group.action.detail && <span className="font-mono text-muted">{group.action.detail}</span>}
+											{group.action.invalid && <span className={badge({ tone: 'warn', size: 'xs' })}>corrigir</span>}
+										</Button>
+									)}
+								</div>
+								{emptyAction && (
 									<button
 										type="button"
 										aria-haspopup="dialog"
-										// O clique não tira o foco do campo: ao fechar a modal, o cursor volta para onde estava
 										onMouseDown={event => event.preventDefault()}
-										onClick={group.action.onClick}
-										className="flex min-h-6 items-center gap-1.5 rounded-sm px-1.5 text-xs text-muted transition hover:text-ink"
+										onClick={emptyAction.onClick}
+										className={pill({ shape: 'row', className: 'w-full gap-2 border-dashed bg-transparent text-muted hover:text-ink' })}
 									>
-										<span className="underline underline-offset-3">{group.action.label}</span>
-										{group.action.detail && <span className="font-mono">{group.action.detail}</span>}
-										{group.action.invalid && <span className={badge({ tone: 'warn', size: 'xs' })}>corrigir</span>}
+										<Icon name="plus" size={14} />
+										{group.empty}
 									</button>
 								)}
-							</div>
-							{group.variables.length === 0 && group.empty && <p className="px-2 text-sm text-muted">{group.empty}</p>}
-							<ul className="m-0 grid list-none grid-cols-2 gap-x-3 gap-y-0.5 p-0 max-sm:grid-cols-1">
-								{group.variables.map(variable => {
-									const disabled = linkDisabled && variable.type === 'link'
+								<ul className="m-0 grid list-none grid-cols-2 gap-x-3 gap-y-0.5 p-0 max-sm:grid-cols-1">
+									{group.variables.map(variable => {
+										const disabled = linkDisabled && variable.type === 'link'
 
-									return (
-										<li key={variable.name} className="min-w-0">
-											<button
-												type="button"
-												disabled={disabled}
-												// O clique não tira o foco do campo: a variável entra onde o cursor está
-												onMouseDown={event => event.preventDefault()}
-												onClick={() => onInsert(variable.name)}
-												className={cx(
-													'flex w-full min-w-0 flex-col items-start gap-0.5 rounded-sm px-2 py-1.5 text-left text-sm transition',
-													'hover:bg-surface focus-visible:bg-surface disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:bg-transparent',
-												)}
-											>
-												<span className="flex max-w-full flex-wrap items-center gap-x-2 gap-y-1">
-													<span className="font-mono break-all text-lime-text">{`{{${variable.name}}}`}</span>
-													{variable.type === 'link' && (
-														<>
-															<Icon name="link" size={13} className="text-muted" />
-															<span className="sr-only">(link)</span>
-														</>
+										return (
+											<li key={variable.name} className="min-w-0">
+												<button
+													type="button"
+													disabled={disabled}
+													// O clique não tira o foco do campo: a variável entra onde o cursor está
+													onMouseDown={event => event.preventDefault()}
+													onClick={() => onInsert(variable.name)}
+													className={cx(
+														'group flex w-full min-w-0 items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm transition',
+														'hover:bg-surface focus-visible:bg-surface disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:bg-transparent',
 													)}
-													<span className="text-muted">{variable.description}</span>
-													{variable.mayBeMissing && (
-														<span className={badge({ tone: 'warn', size: 'xs' })}>nem toda vaga tem</span>
+												>
+													<span className="flex min-w-0 flex-1 flex-col gap-0.5">
+														<span className="flex max-w-full items-center gap-1.5">
+															<span className="font-mono break-all text-lime-text">{`{{${variable.name}}}`}</span>
+															{variable.type === 'link' && (
+																<>
+																	<Icon name="link" size={13} className="text-muted" />
+																	<span className="sr-only">(link)</span>
+																</>
+															)}
+															{variable.mayBeMissing && (
+																<>
+																	<StatusDot className="text-warn" />
+																	<span className="sr-only">(nem toda vaga tem)</span>
+																</>
+															)}
+														</span>
+														<span className="text-xs text-muted">{variable.description}</span>
+														{(disabled || variable.hint) && (
+															<span className="text-xs text-muted">{disabled ? 'só na mensagem' : variable.hint}</span>
+														)}
+													</span>
+													{!disabled && (
+														<Icon
+															name="plus"
+															size={14}
+															className="text-muted opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 motion-reduce:transition-none"
+														/>
 													)}
-												</span>
-												{(disabled || variable.hint) && (
-													<span className="text-xs text-muted">{disabled ? 'só na mensagem' : variable.hint}</span>
-												)}
-											</button>
-										</li>
-									)
-								})}
-							</ul>
-						</div>
-					))}
+												</button>
+											</li>
+										)
+									})}
+								</ul>
+							</div>
+						)
+					})}
 
 				{howTo && <Disclosure summary="como funciona">{howTo}</Disclosure>}
 			</div>

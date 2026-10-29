@@ -103,7 +103,9 @@ export const GUIDES: Record<string, string> = {
 - O clique não tira o foco do campo; pelo teclado, Tab chega aos itens e Enter ou Espaço inserem.
 - \`groups\`: "da vaga", "do perfil" e "suas" (as variáveis próprias, que entram assim que são criadas). Grade de duas colunas, uma no celular.
 - \`linkDisabled\` quando o campo focado é o assunto: as de link ficam desativadas, com "só na mensagem".
-- \`mayBeMissing\` mostra o selo "nem toda vaga tem" (variável da vaga sem fallback); \`hint\` mostra o fallback.
+- Cada item mostra o nome em cima e a descrição embaixo, com um "+" no hover e no foco.
+- \`mayBeMissing\` põe um ponto de alerta no item (variável da vaga sem fallback), explicado uma vez ao lado do nome do grupo ("nem toda vaga tem"); \`hint\` mostra o fallback.
+- \`action\` de um grupo vira um botão pequeno ao lado do nome dele (\`icon\`, \`detail\` e o selo "corrigir" com \`invalid\`); com \`empty\` e sem variáveis, o grupo vira um botão tracejado que faz o mesmo.
 - \`howTo\` vira o link "como funciona", com um exemplo de modelo e o resultado.`,
 	FieldLabel: `Nome do campo, acima dele; \`htmlFor\` é o \`id\` do campo.
 

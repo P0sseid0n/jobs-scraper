@@ -179,7 +179,7 @@ const PREVIEWS: Record<string, Preview> = {
 	VariablePicker: {
 		group: 'Forms',
 		height: 420,
-		subtitle: 'variáveis clicáveis de um modelo, com o selo de quem pode faltar',
+		subtitle: 'variáveis clicáveis de um modelo, com o ponto de quem pode faltar',
 		body: `h(function Demo() {
 	var s = React.useState('Vi a vaga de ')
 	return h('div', { className: 'flex max-w-2xl flex-col gap-3' },

@@ -4,7 +4,7 @@ export interface VariablePickerItem {
 	description: string
 	/** `link`: só funciona na mensagem; ganha a marca de link e fica desativada com `linkDisabled`. */
 	type: 'text' | 'link'
-	/** Pode faltar e ainda não tem fallback: mostra o selo "nem toda vaga tem". */
+	/** Pode faltar e ainda não tem fallback: ganha o ponto de alerta, explicado uma vez ("nem toda vaga tem") ao lado do grupo. */
 	mayBeMissing?: boolean
 	/** Uma dica abaixo da descrição (ex.: o fallback). */
 	hint?: string

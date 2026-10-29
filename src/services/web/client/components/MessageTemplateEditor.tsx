@@ -148,7 +148,7 @@ export function MessageTemplateEditor({ message, profile, errors, edit, revealEr
 			label: 'da vaga',
 			action: {
 				label: 'fallbacks',
-				detail: `${fallbackCount} de ${OPTIONAL_JOB_VARIABLES.length} definidos`,
+				detail: `${fallbackCount}/${OPTIONAL_JOB_VARIABLES.length}`,
 				invalid: errorsIn('fallbacks'),
 				onClick: () => setDialog('fallbacks'),
 			},
@@ -171,10 +171,12 @@ export function MessageTemplateEditor({ message, profile, errors, edit, revealEr
 			})),
 			action: {
 				label: variables.length ? 'editar' : 'criar',
+				icon: variables.length ? undefined : 'plus',
 				invalid: errorsIn('variables'),
 				onClick: () => setDialog('variables'),
 			},
-			empty: 'Nenhuma ainda: crie as suas, como o seu nome ou o link do GitHub.',
+			// Sem nenhuma (nem rascunho com erro), o grupo vira o botão tracejado de criar
+			empty: variables.length ? undefined : 'Criar variável, como o seu nome ou o link do GitHub',
 		},
 	]
 
