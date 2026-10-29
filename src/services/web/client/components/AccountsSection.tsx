@@ -30,6 +30,18 @@ type FieldDef = {
 	help?: string
 	type?: 'email'
 	inputMode?: 'numeric'
+	/**
+	 * Quantos quartos da linha o campo ocupa (padrão: metade). Ex.: o servidor largo com a porta estreita ao lado, ou o
+	 * campo sozinho na linha inteira, para não sobrar meia linha vazia. No celular, todos ocupam a linha.
+	 */
+	span?: keyof typeof FIELD_SPANS
+}
+
+const FIELD_SPANS = {
+	1: 'col-span-1',
+	2: 'col-span-2',
+	3: 'col-span-3',
+	4: 'col-span-4',
 }
 
 type GroupDef = {
@@ -41,6 +53,8 @@ type GroupDef = {
 	missing?: string
 	/** Testada pela API das credenciais (o LinkedIn tem o teste próprio, `LinkedinLogin`). */
 	testable: boolean
+	/** O que o teste faz, junto dos botões (como a dica ao lado do "testar login" do LinkedIn). */
+	testHelp?: string
 	fields: FieldDef[]
 }
 
@@ -96,16 +110,18 @@ const GROUPS: Record<CredentialGroup, GroupDef> = {
 	smtp: {
 		title: 'E-mail',
 		account: 'conta de e-mail',
-		note: 'Usada pelo mailer para enviar as candidaturas, pelo site e pelo Discord, sempre depois da sua confirmação. O teste faz o login sem enviar nada.',
+		note: 'Usada pelo mailer para enviar as candidaturas, pelo site e pelo Discord, sempre depois da sua confirmação.',
 		testable: true,
+		testHelp: 'O teste faz o login sem enviar nada.',
 		fields: [
-			{ name: 'host', label: 'servidor SMTP', placeholder: 'ex.: smtp.gmail.com' },
+			{ name: 'host', label: 'servidor SMTP', placeholder: 'ex.: smtp.gmail.com', span: 3 },
 			{
 				name: 'port',
 				label: 'porta',
 				inputMode: 'numeric',
 				placeholder: '587',
 				help: 'Opcional: 587 (STARTTLS) por padrão; use 465 para TLS direto.',
+				span: 1,
 			},
 			{ name: 'user', label: 'usuário', type: 'email', placeholder: 'voce@gmail.com' },
 			{
@@ -119,6 +135,7 @@ const GROUPS: Record<CredentialGroup, GroupDef> = {
 				label: 'remetente',
 				placeholder: 'ex.: Ana Souza <voce@gmail.com>',
 				help: 'Opcional: o nome e o e-mail que o recrutador vê. Vazio usa o usuário.',
+				span: 4,
 			},
 		],
 	},
@@ -335,10 +352,11 @@ export function AccountGroup({
 				/>
 			)}
 
+			{/* O selo fica sempre à direita, na primeira linha: a nota quebra linha ao lado dele em vez de empurrá-lo para baixo */}
 			{!compact && (
-				<div className="flex flex-wrap items-center justify-between gap-3">
-					<FieldHelp>{config.note}</FieldHelp>
-					<Badge tone={badge.tone} title={'title' in badge ? badge.title : undefined}>
+				<div className="flex items-start justify-between gap-3">
+					<FieldHelp className="min-w-0">{config.note}</FieldHelp>
+					<Badge className="shrink-0" tone={badge.tone} title={'title' in badge ? badge.title : undefined}>
 						{badge.label}
 					</Badge>
 				</div>
@@ -350,7 +368,7 @@ export function AccountGroup({
 				</Notice>
 			)}
 
-			<div className="grid grid-cols-2 gap-5 max-md:grid-cols-1">
+			<div className="grid grid-cols-4 gap-5 max-md:grid-cols-1">
 				{config.fields.map(field => {
 					const id = `${group}-${field.name}`
 					const isRemoved = removed.includes(field.name)
@@ -358,8 +376,12 @@ export function AccountGroup({
 					const help = isRemoved ? 'Será removido ao salvar.' : field.help
 
 					return (
-						<div key={field.name} className="flex flex-col gap-1.5">
-							<FieldLabel htmlFor={id}>{field.label}</FieldLabel>
+						<div key={field.name} className={cx('flex flex-col gap-1.5 max-md:col-span-1', FIELD_SPANS[field.span ?? 2])}>
+							{/* O segredo salvo fica dito ao lado do rótulo, e não só no placeholder, que some ao digitar */}
+							<div className="flex items-center gap-2">
+								<FieldLabel htmlFor={id}>{field.label}</FieldLabel>
+								{hasSaved && !isRemoved && <span className="text-xs text-muted">salvo · vazio mantém</span>}
+							</div>
 							<div className="flex items-center gap-2.5">
 								<Input
 									id={id}
@@ -371,7 +393,7 @@ export function AccountGroup({
 									value={draft[field.name] ?? ''}
 									disabled={isRemoved}
 									placeholder={
-										hasSaved ? '•••••••• salvo · vazio mantém' : (field.placeholder ?? (field.optional ? 'opcional' : ''))
+										hasSaved ? '••••••••' : (field.placeholder ?? (field.optional ? 'opcional' : ''))
 									}
 									invalid={!!errors[field.name]}
 									aria-describedby={errors[field.name] ? `${id}-error` : help ? `${id}-help` : undefined}
@@ -407,42 +429,49 @@ export function AccountGroup({
 				})}
 			</div>
 
-			<div className="flex flex-wrap items-center gap-3">
-				{/* Salvo, o check desenhado aparece no botão por um instante */}
-				<Button
-					variant="lime"
-					disabled={(!dirty && !savedFlash) || busy !== null}
-					onClick={savedFlash ? undefined : () => run('save')}
-				>
-					{busy === 'save' ? (
-						<>
-							<Icon name="spinner" />
-							salvando…
-						</>
-					) : savedFlash ? (
-						<>
-							<DrawnCheck />
-							salvo
-						</>
-					) : (
-						'salvar'
+			{/*
+			 * Como a barra de salvar da página: as ações à direita, o "descartar" sempre no lugar (desligado sem alteração) e o
+			 * "salvar" por último; o "apagar do site" fica sozinho do outro lado, longe do testar e do salvar
+			 */}
+			<div className="flex flex-col gap-2">
+				<div className="flex flex-wrap items-center gap-3">
+					{current.source === 'database' && (
+						<Button variant="ghost" disabled={busy !== null} onClick={() => setConfirmDelete(true)}>
+							apagar do site
+						</Button>
 					)}
-				</Button>
-				{config.testable && (
-					<Button variant="ghost" disabled={busy !== null || (current.source === null && !dirty)} onClick={() => run('test')}>
-						{busy === 'test' ? 'testando…' : 'testar'}
-					</Button>
-				)}
-				{current.source === 'database' && (
-					<Button variant="ghost" disabled={busy !== null} onClick={() => setConfirmDelete(true)}>
-						apagar do site
-					</Button>
-				)}
-				{dirty && (
-					<Button variant="ghost" disabled={busy !== null} onClick={() => reset(status)}>
-						descartar
-					</Button>
-				)}
+					<div className="ml-auto flex flex-wrap items-center justify-end gap-3">
+						{config.testable && (
+							<Button variant="ghost" disabled={busy !== null || (current.source === null && !dirty)} onClick={() => run('test')}>
+								{busy === 'test' ? 'testando…' : 'testar'}
+							</Button>
+						)}
+						<Button variant="ghost" disabled={!dirty || busy !== null} onClick={() => reset(status)}>
+							descartar
+						</Button>
+						{/* Salvo, o check desenhado aparece no botão por um instante */}
+						<Button
+							variant="lime"
+							disabled={(!dirty && !savedFlash) || busy !== null}
+							onClick={savedFlash ? undefined : () => run('save')}
+						>
+							{busy === 'save' ? (
+								<>
+									<Icon name="spinner" />
+									salvando…
+								</>
+							) : savedFlash ? (
+								<>
+									<DrawnCheck />
+									salvo
+								</>
+							) : (
+								'salvar'
+							)}
+						</Button>
+					</div>
+				</div>
+				{config.testHelp && <FieldHelp className="text-right">{config.testHelp}</FieldHelp>}
 			</div>
 
 			<div role="status" className="empty:hidden">
