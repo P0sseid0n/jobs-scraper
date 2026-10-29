@@ -20,8 +20,24 @@ export type VariablePickerItem = {
 	hint?: string
 }
 
-/** Um grupo do painel ("da vaga", "do perfil", "suas"); grupo vazio não aparece. */
-export type VariablePickerGroup = { label: string; variables: VariablePickerItem[] }
+/** O atalho de um grupo, ao lado do nome dele (ex.: "editar" nas variáveis próprias, que abre a modal delas). */
+export type VariablePickerAction = {
+	label: string
+	onClick: () => void
+	/** Um complemento depois do rótulo (ex.: "2 de 6 definidos"). */
+	detail?: string
+	/** Há erro no que o atalho abre: ganha o selo "corrigir". */
+	invalid?: boolean
+}
+
+/** Um grupo do painel ("da vaga", "do perfil", "suas"); grupo vazio e sem atalho não aparece. */
+export type VariablePickerGroup = {
+	label: string
+	variables: VariablePickerItem[]
+	action?: VariablePickerAction
+	/** O texto do grupo sem variáveis (só aparece com o atalho). */
+	empty?: string
+}
 
 type VariablePickerProps = {
 	groups: VariablePickerGroup[]
@@ -68,16 +84,33 @@ export function VariablePicker({ groups, onInsert, linkDisabled = false, howTo, 
 				<p className="text-xs text-muted">
 					{open
 						? 'Clique para inserir no último campo selecionado. Variáveis de link funcionam apenas na mensagem.'
-						: 'Abra para inserir uma variável com um clique.'}
+						: 'Abra para inserir uma variável com um clique, criar as suas ou definir os fallbacks.'}
 				</p>
 			</div>
 
 			<div id={listId} hidden={!open} className="flex flex-col gap-3">
 				{groups
-					.filter(group => group.variables.length > 0)
+					.filter(group => group.variables.length > 0 || group.action)
 					.map(group => (
 						<div key={group.label} className="flex flex-col gap-1">
-							<span className={LABEL}>{group.label}</span>
+							<div className="flex flex-wrap items-center justify-between gap-x-3">
+								<span className={LABEL}>{group.label}</span>
+								{group.action && (
+									<button
+										type="button"
+										aria-haspopup="dialog"
+										// O clique não tira o foco do campo: ao fechar a modal, o cursor volta para onde estava
+										onMouseDown={event => event.preventDefault()}
+										onClick={group.action.onClick}
+										className="flex min-h-6 items-center gap-1.5 rounded-sm px-1.5 text-xs text-muted transition hover:text-ink"
+									>
+										<span className="underline underline-offset-3">{group.action.label}</span>
+										{group.action.detail && <span className="font-mono">{group.action.detail}</span>}
+										{group.action.invalid && <span className={badge({ tone: 'warn', size: 'xs' })}>corrigir</span>}
+									</button>
+								)}
+							</div>
+							{group.variables.length === 0 && group.empty && <p className="px-2 text-sm text-muted">{group.empty}</p>}
 							<ul className="m-0 grid list-none grid-cols-2 gap-x-3 gap-y-0.5 p-0 max-sm:grid-cols-1">
 								{group.variables.map(variable => {
 									const disabled = linkDisabled && variable.type === 'link'

@@ -14,10 +14,12 @@ import {
 
 import { cx } from '../lib/cx'
 import { insertVariable, type TemplateField } from '../lib/template-editor'
+import { variablePickerOpen } from '../stores/variable-picker'
 import { Icon } from './Icon'
 import { badge } from './ui/Badge'
 import { Button } from './ui/Button'
 import { DIALOG } from './ui/Dialog'
+import { Disclosure } from './ui/Disclosure'
 import { FieldError, FieldHelp, FieldLabel } from './ui/Field'
 import { IconButton } from './ui/IconButton'
 import { field, Input } from './ui/Input'
@@ -32,6 +34,8 @@ type MessageTemplateEditorProps = {
 	profile: { area: string; targetRole: string }
 	/** Os erros por caminho do campo, como os da API ("template.body", "variables.0.name"). */
 	errors: Record<string, string>
+	/** Uma tentativa de salvar falhou: mostra também os erros das variáveis que a pessoa acabou de criar. */
+	revealErrors: boolean
 	/** Altera as configurações da mensagem no rascunho. */
 	edit: (mutate: (message: MessageSettings) => void) => void
 }
@@ -60,6 +64,14 @@ function sampleJob(sample: Sample, targetRole: string): TemplateJob {
 
 const OPTIONAL_JOB_VARIABLES = JOB_VARIABLES.filter(variable => variable.optional)
 
+/** Os exemplos da modal de variáveis próprias vazia: um clique cria a variável com o nome e a descrição. */
+const OWN_VARIABLE_EXAMPLES = [
+	{ name: 'meu_nome', description: 'Seu nome', type: 'text' },
+	{ name: 'meu_telefone', description: 'Seu telefone', type: 'text' },
+	{ name: 'link_github', description: 'Seu GitHub', type: 'link' },
+	{ name: 'link_linkedin', description: 'Seu LinkedIn', type: 'link' },
+] as const
+
 /** As modais do editor: as variáveis próprias e os fallbacks, que ficam fora da tela para o modelo e a prévia caberem. */
 type EditorDialog = 'variables' | 'fallbacks'
 
@@ -67,8 +79,8 @@ type EditorDialog = 'variables' | 'fallbacks'
  * O editor do modelo de mensagem, em Configurações › Mensagem: o assunto e a mensagem com o painel "Variáveis
  * disponíveis", a prévia numa vaga de exemplo e, em modais, as variáveis próprias e os fallbacks das que podem faltar.
  */
-export function MessageTemplateEditor({ message, profile, errors, edit }: MessageTemplateEditorProps) {
-	const ids = { subject: useId(), body: useId(), warning: useId() }
+export function MessageTemplateEditor({ message, profile, errors, edit, revealErrors }: MessageTemplateEditorProps) {
+	const ids = { subject: useId(), body: useId(), warning: useId(), own: useId() }
 	const subjectRef = useRef<HTMLInputElement>(null)
 	const bodyRef = useRef<HTMLTextAreaElement>(null)
 	const mirrorRef = useRef<HTMLDivElement>(null)
@@ -76,6 +88,8 @@ export function MessageTemplateEditor({ message, profile, errors, edit }: Messag
 	const [lastField, setLastField] = useState<TemplateField | null>(null)
 	const [sample, setSample] = useState<Sample>('partial')
 	const [dialog, setDialog] = useState<EditorDialog | null>(null)
+	// As variáveis recém-criadas (pelo índice): sem erro até a pessoa sair da linha delas ou tentar salvar
+	const [fresh, setFresh] = useState<ReadonlySet<number>>(new Set())
 
 	const { template, fallbacks, variables } = message
 	const ownVariables = variables.filter(variable => VARIABLE_NAME.test(variable.name.trim()))
@@ -107,9 +121,37 @@ export function MessageTemplateEditor({ message, profile, errors, edit }: Messag
 	const unsafe = [...new Set([...withoutFallback(template.subject), ...withoutFallback(template.body)].map(token => token.name))]
 	const bodyWarnings = withoutFallback(template.body)
 
+	// Os erros de cada modal, para o atalho que a abre avisar (a modal fechada não mostra o campo errado)
+	const errorsIn = (root: string) =>
+		Object.keys(errors).some(path => (path === root || path.startsWith(`${root}.`)) && !hiddenError(path))
+	const fallbackCount = OPTIONAL_JOB_VARIABLES.filter(variable => fallbacks[variable.name]?.trim()).length
+	const dialogErrors = errorsIn('variables') || errorsIn('fallbacks')
+
+	// Depois de uma tentativa de salvar, nenhuma linha é mais nova: os erros dela ficam à vista
+	useEffect(() => {
+		if (revealErrors) setFresh(new Set())
+	}, [revealErrors])
+
+	// Com erro numa modal, o painel abre: é nele que ficam os atalhos com o selo "corrigir"
+	useEffect(() => {
+		if (dialogErrors) variablePickerOpen.set(true)
+	}, [dialogErrors])
+
+	/** O erro é de uma variável recém-criada, que a pessoa ainda não terminou de preencher. */
+	function hiddenError(path: string) {
+		const [root, index] = path.split('.')
+		return !revealErrors && root === 'variables' && index !== undefined && fresh.has(Number(index))
+	}
+
 	const groups: VariablePickerGroup[] = [
 		{
 			label: 'da vaga',
+			action: {
+				label: 'fallbacks',
+				detail: `${fallbackCount} de ${OPTIONAL_JOB_VARIABLES.length} definidos`,
+				invalid: errorsIn('fallbacks'),
+				onClick: () => setDialog('fallbacks'),
+			},
 			variables: JOB_VARIABLES.map(variable => {
 				const fallback = fallbacks[variable.name]?.trim()
 				return {
@@ -127,12 +169,14 @@ export function MessageTemplateEditor({ message, profile, errors, edit }: Messag
 				description: variable.description.trim() || (variable.type === 'link' ? 'Seu link' : 'Seu texto'),
 				type: variable.type,
 			})),
+			action: {
+				label: variables.length ? 'editar' : 'criar',
+				invalid: errorsIn('variables'),
+				onClick: () => setDialog('variables'),
+			},
+			empty: 'Nenhuma ainda: crie as suas, como o seu nome ou o link do GitHub.',
 		},
 	]
-
-	// Os erros de cada modal, para o botão que a abre avisar (a modal fechada não mostra o campo errado)
-	const errorsIn = (root: string) => Object.keys(errors).some(path => path === root || path.startsWith(`${root}.`))
-	const fallbackCount = OPTIONAL_JOB_VARIABLES.filter(variable => fallbacks[variable.name]?.trim()).length
 
 	const values = templateValues(sampleJob(sample, profile.targetRole), profile, ownVariables)
 	const subjectParts = templateParts(template.subject, values, fallbacks)
@@ -222,23 +266,22 @@ export function MessageTemplateEditor({ message, profile, errors, edit }: Messag
 
 			<VariablePicker groups={groups} onInsert={insert} linkDisabled={lastField === 'subject'} howTo={<HowTo />} />
 
-			<div className="flex flex-wrap gap-2.5">
-				{editorButton('variables', 'suas variáveis', variables.length)}
-				{editorButton('fallbacks', 'quando a vaga não tem', fallbackCount)}
-			</div>
-
 			{dialog === 'variables' && (
 				<EditorDialogBox
 					title="suas variáveis"
 					help="Valores fixos que entram em toda mensagem, como o seu nome, o contato ou links. Use minúsculas sem acento e _ no nome (ex.: meu_nome, link_github). As de link só funcionam na mensagem."
-					onClose={() => setDialog(null)}
+					// Fechada a modal, as linhas novas que ficaram para trás mostram o que falta
+					onClose={() => {
+						setDialog(null)
+						setFresh(new Set())
+					}}
 				>
 					{renderOwnVariables()}
 				</EditorDialogBox>
 			)}
 			{dialog === 'fallbacks' && (
 				<EditorDialogBox
-					title="quando a vaga não tem"
+					title="fallbacks: quando a vaga não tem"
 					help="O texto que entra no lugar da variável quando a IA não achou o dado no post. Vazio, a variável fica marcada na mensagem e o envio espera você completar."
 					onClose={() => setDialog(null)}
 				>
@@ -279,81 +322,129 @@ export function MessageTemplateEditor({ message, profile, errors, edit }: Messag
 	function renderOwnVariables() {
 		return (
 			<div className={FIELDSET}>
+				{variables.length === 0 && (
+					<div className="flex flex-col gap-2 rounded-sm border border-dashed border-line p-3.5">
+						<p className="text-sm text-muted">Nenhuma variável ainda. Comece por um exemplo ou crie do zero:</p>
+						<ul className="m-0 flex list-none flex-wrap gap-2 p-0">
+							{OWN_VARIABLE_EXAMPLES.map(example => (
+								<li key={example.name}>
+									<button
+										type="button"
+										onClick={() => addVariable(example)}
+										className="flex min-h-8 items-center gap-2 rounded-sm border border-line px-2.5 text-sm transition hover:bg-surface-2"
+									>
+										<span className="font-mono text-lime-text">{`{{${example.name}}}`}</span>
+										{example.type === 'link' && <Icon name="link" size={13} className="text-muted" />}
+										<span className="text-muted">{example.description}</span>
+									</button>
+								</li>
+							))}
+						</ul>
+					</div>
+				)}
 				{variables.length > 0 && (
 					<ul className="m-0 flex list-none flex-col gap-3 p-0">
 						{variables.map((variable, index) => {
 							const path = `variables.${index}`
-							const rowError = errors[`${path}.name`] ?? errors[`${path}.value`] ?? errors[`${path}.description`]
+							const at = (key: string) => (hiddenError(`${path}.${key}`) ? undefined : errors[`${path}.${key}`])
+							const rowError = at('name') ?? at('value') ?? at('description')
+							const fieldId = (key: string) => `${ids.own}-${index}-${key}`
 
 							return (
-								<li key={index} className="flex flex-col gap-1.5 rounded-sm border border-line p-3">
+								<li
+									key={index}
+									className="flex flex-col gap-2.5 rounded-sm border border-line p-3"
+									// Ao sair da linha, ela deixa de ser nova: os erros dela passam a aparecer
+									onBlur={event => {
+										if (!event.currentTarget.contains(event.relatedTarget)) settle(index)
+									}}
+								>
 									<div className="grid grid-cols-2 gap-2.5 max-sm:grid-cols-1">
-										<Input
-											aria-label={`Nome da variável ${index + 1}`}
-											className="font-mono"
-											placeholder="meu_nome"
-											maxLength={OWN_VARIABLE_LIMITS.name}
-											value={variable.name}
-											invalid={!!errors[`${path}.name`]}
-											onChange={event => {
-												const value = event.target.value
-												edit(next => {
-													next.variables[index]!.name = value
-												})
-											}}
-										/>
-										<Input
-											aria-label={`Descrição da variável ${index + 1}`}
-											placeholder="Seu nome"
-											maxLength={OWN_VARIABLE_LIMITS.description}
-											value={variable.description}
-											invalid={!!errors[`${path}.description`]}
-											onChange={event => {
-												const value = event.target.value
-												edit(next => {
-													next.variables[index]!.description = value
-												})
-											}}
-										/>
+										<div className="flex flex-col gap-1">
+											<label htmlFor={fieldId('name')} className={LABEL}>
+												nome
+											</label>
+											<Input
+												id={fieldId('name')}
+												aria-label={`Nome da variável ${index + 1}`}
+												className="font-mono"
+												placeholder="meu_nome"
+												maxLength={OWN_VARIABLE_LIMITS.name}
+												value={variable.name}
+												invalid={!!at('name')}
+												onChange={event => {
+													const value = event.target.value
+													edit(next => {
+														next.variables[index]!.name = value
+													})
+												}}
+											/>
+										</div>
+										<div className="flex flex-col gap-1">
+											<label htmlFor={fieldId('description')} className={LABEL}>
+												descrição (no painel)
+											</label>
+											<Input
+												id={fieldId('description')}
+												aria-label={`Descrição da variável ${index + 1}`}
+												placeholder="Seu nome"
+												maxLength={OWN_VARIABLE_LIMITS.description}
+												value={variable.description}
+												invalid={!!at('description')}
+												onChange={event => {
+													const value = event.target.value
+													edit(next => {
+														next.variables[index]!.description = value
+													})
+												}}
+											/>
+										</div>
 									</div>
-									<div className="flex items-center gap-2.5 max-sm:flex-wrap">
-										<PillGroup role="group" aria-label={`Tipo da variável ${index + 1}`} className="shrink-0 flex-nowrap">
-											{(['text', 'link'] as const).map(type => (
-												<Pill
-													key={type}
-													pressed={variable.type === type}
-													onClick={() =>
-														edit(next => {
-															next.variables[index]!.type = type
-														})
-													}
-												>
-													{type === 'link' && <Icon name="link" size={13} />}
-													{type === 'text' ? 'texto' : 'link'}
-												</Pill>
-											))}
-										</PillGroup>
-										<Input
-											aria-label={`Valor da variável ${index + 1}`}
-											className={cx('grow', variable.type === 'link' && 'font-mono')}
-											placeholder={variable.type === 'link' ? 'https://github.com/voce' : 'Carla Lima'}
-											maxLength={OWN_VARIABLE_LIMITS.value}
-											value={variable.value}
-											invalid={!!errors[`${path}.value`]}
-											onChange={event => {
-												const value = event.target.value
-												edit(next => {
-													next.variables[index]!.value = value
-												})
-											}}
-										/>
+									<div className="flex items-end gap-2.5 max-sm:flex-wrap">
+										<div className="flex shrink-0 flex-col gap-1">
+											<span className={LABEL} aria-hidden>
+												tipo
+											</span>
+											<PillGroup role="group" aria-label={`Tipo da variável ${index + 1}`} className="flex-nowrap">
+												{(['text', 'link'] as const).map(type => (
+													<Pill
+														key={type}
+														pressed={variable.type === type}
+														onClick={() =>
+															edit(next => {
+																next.variables[index]!.type = type
+															})
+														}
+													>
+														{type === 'link' && <Icon name="link" size={13} />}
+														{type === 'text' ? 'texto' : 'link'}
+													</Pill>
+												))}
+											</PillGroup>
+										</div>
+										<div className="flex grow flex-col gap-1">
+											<label htmlFor={fieldId('value')} className={LABEL}>
+												valor (o que entra na mensagem)
+											</label>
+											<Input
+												id={fieldId('value')}
+												aria-label={`Valor da variável ${index + 1}`}
+												className={cx(variable.type === 'link' && 'font-mono')}
+												placeholder={variable.type === 'link' ? 'https://github.com/voce' : 'Carla Lima'}
+												maxLength={OWN_VARIABLE_LIMITS.value}
+												value={variable.value}
+												invalid={!!at('value')}
+												onChange={event => {
+													const value = event.target.value
+													edit(next => {
+														next.variables[index]!.value = value
+													})
+												}}
+											/>
+										</div>
 										<IconButton
 											label={`Apagar a variável ${variable.name || index + 1}`}
-											onClick={() =>
-												edit(next => {
-													next.variables.splice(index, 1)
-												})
-											}
+											onClick={() => removeVariable(index)}
 										>
 											<Icon name="trash" />
 										</IconButton>
@@ -370,11 +461,7 @@ export function MessageTemplateEditor({ message, profile, errors, edit }: Messag
 					size="sm"
 					className="self-start"
 					disabled={variables.length >= MAX_OWN_VARIABLES}
-					onClick={() =>
-						edit(next => {
-							next.variables.push({ name: '', description: '', type: 'text', value: '' })
-						})
-					}
+					onClick={() => addVariable()}
 				>
 					<Icon name="plus" size={14} />
 					adicionar variável
@@ -383,51 +470,104 @@ export function MessageTemplateEditor({ message, profile, errors, edit }: Messag
 		)
 	}
 
-	function renderFallbacks() {
-		return (
-			<div className="grid grid-cols-2 gap-x-5 gap-y-3 max-md:grid-cols-1">
-				{OPTIONAL_JOB_VARIABLES.map(variable => {
-					const id = `fallback-${variable.name}`
-					const error = errors[`fallbacks.${variable.name}`]
-
-					return (
-						<div key={variable.name} className="flex flex-col gap-1.5">
-							<FieldLabel htmlFor={id}>
-								<span className="font-mono text-lime-text">{`{{${variable.name}}}`}</span>{' '}
-								<span className="font-normal text-muted">{variable.description}</span>
-							</FieldLabel>
-							<Input
-								id={id}
-								placeholder={`sem fallback: fica [${variable.name}]`}
-								value={fallbacks[variable.name] ?? ''}
-								invalid={!!error}
-								aria-describedby={error ? `${id}-error` : undefined}
-								onChange={event => {
-									const value = event.target.value
-									edit(next => {
-										if (value.trim()) next.fallbacks[variable.name] = value
-										else delete next.fallbacks[variable.name]
-									})
-								}}
-							/>
-							{error && <FieldError id={`${id}-error`}>{error}</FieldError>}
-						</div>
-					)
-				})}
-			</div>
-		)
+	/** Cria uma variável (vazia ou de um exemplo) e leva o foco ao primeiro campo que falta preencher. */
+	function addVariable(example?: (typeof OWN_VARIABLE_EXAMPLES)[number]) {
+		const index = variables.length
+		edit(next => {
+			next.variables.push({
+				name: example?.name ?? '',
+				description: example?.description ?? '',
+				type: example?.type ?? 'text',
+				value: '',
+			})
+		})
+		setFresh(previous => new Set(previous).add(index))
+		requestAnimationFrame(() => document.getElementById(`${ids.own}-${index}-${example ? 'value' : 'name'}`)?.focus())
 	}
 
-	/** O botão que abre uma das modais, com quantas já estão definidas e o aviso de erro dentro dela. */
-	function editorButton(target: EditorDialog, label: string, count: number) {
-		const invalid = errorsIn(target)
+	/** Apaga a variável; as novas depois dela descem um índice. */
+	function removeVariable(index: number) {
+		edit(next => {
+			next.variables.splice(index, 1)
+		})
+		setFresh(previous => new Set([...previous].filter(item => item !== index).map(item => (item > index ? item - 1 : item))))
+	}
+
+	/** A linha deixa de ser nova (a pessoa saiu dela). */
+	function settle(index: number) {
+		setFresh(previous => {
+			if (!previous.has(index)) return previous
+			const next = new Set(previous)
+			next.delete(index)
+			return next
+		})
+	}
+
+	function renderFallbacks() {
+		// As que o modelo usa vêm primeiro e ganham o selo: são as que valem a pena definir
+		const used = new Set([...templateTokens(template.subject), ...templateTokens(template.body)].map(token => token.name))
+		const ordered = [...OPTIONAL_JOB_VARIABLES].sort((a, b) => Number(used.has(b.name)) - Number(used.has(a.name)))
+		const partial = templateValues(sampleJob('partial', profile.targetRole), profile, ownVariables)
 
 		return (
-			<Button variant="ghost" size="sm" aria-haspopup="dialog" onClick={() => setDialog(target)}>
-				{label}
-				{count > 0 && <span className="font-mono text-muted">{count}</span>}
-				{invalid && <span className={badge({ tone: 'warn', size: 'xs' })}>corrigir</span>}
-			</Button>
+			<div className="flex flex-col gap-5">
+				{!ordered.some(variable => used.has(variable.name)) && (
+					<p className="text-sm text-muted">
+						Seu modelo ainda não usa nenhuma destas variáveis: o fallback só entra quando ela estiver no assunto ou na mensagem.
+					</p>
+				)}
+				<div className="grid grid-cols-2 gap-x-5 gap-y-3 max-md:grid-cols-1">
+					{ordered.map(variable => {
+						const id = `fallback-${variable.name}`
+						const error = errors[`fallbacks.${variable.name}`]
+
+						return (
+							<div key={variable.name} className="flex flex-col gap-1.5">
+								<FieldLabel htmlFor={id}>
+									<span className="font-mono text-lime-text">{`{{${variable.name}}}`}</span>{' '}
+									<span className="font-normal text-muted">{variable.description}</span>
+									{used.has(variable.name) && (
+										<>
+											{' '}
+											<span className={badge({ tone: 'running', size: 'xs' })}>no seu modelo</span>
+										</>
+									)}
+								</FieldLabel>
+								<Input
+									id={id}
+									placeholder={`sem fallback: fica [${variable.name}]`}
+									value={fallbacks[variable.name] ?? ''}
+									invalid={!!error}
+									aria-describedby={error ? `${id}-error` : undefined}
+									onChange={event => {
+										const value = event.target.value
+										edit(next => {
+											if (value.trim()) next.fallbacks[variable.name] = value
+											else delete next.fallbacks[variable.name]
+										})
+									}}
+								/>
+								{error && <FieldError id={`${id}-error`}>{error}</FieldError>}
+							</div>
+						)
+					})}
+				</div>
+
+				{/* O efeito na hora, numa vaga sem os dados que costumam faltar: a prévia da tela fica atrás da modal */}
+				<section aria-label="Prévia numa vaga sem empresa e local" className="flex flex-col gap-2 rounded-sm bg-surface-2 p-3.5">
+					<span className={LABEL}>prévia numa vaga {SAMPLE_LABELS.partial}</span>
+					<p className="m-0 text-sm font-semibold wrap-break-word">
+						{renderParts(templateParts(template.subject, partial, fallbacks))}
+					</p>
+					<p className="m-0 max-h-48 overflow-y-auto text-sm leading-relaxed whitespace-pre-wrap wrap-break-word">
+						{renderParts(templateParts(template.body, partial, fallbacks))}
+					</p>
+				</section>
+
+				<Disclosure summary="como funciona">
+					<HowTo />
+				</Disclosure>
+			</div>
 		)
 	}
 }
@@ -535,9 +675,9 @@ function HowTo() {
 				contato de uma vaga, ela vira o dado da vaga.
 			</p>
 			<p className="m-0">
-				<strong>Fallback</strong> é o texto usado quando a vaga não tem o dado. Defina no botão “quando a vaga não tem”, abaixo, ou
-				na própria variável, depois de uma barra: <code className="font-mono text-lime-text">{'{{empresa | a sua empresa}}'}</code>{' '}
-				(o da variável vale mais).
+				<strong>Fallback</strong> é o texto usado quando a vaga não tem o dado. Defina em “fallbacks”, no grupo “da vaga” do painel
+				de variáveis, ou na própria variável, depois de uma barra:{' '}
+				<code className="font-mono text-lime-text">{'{{empresa | a sua empresa}}'}</code> (o da variável vale mais).
 			</p>
 			<p className="m-0">
 				Sem o dado e sem fallback, a variável fica marcada na mensagem, como <code className="font-mono">[empresa]</code>, e o

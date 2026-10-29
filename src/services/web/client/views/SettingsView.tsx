@@ -660,6 +660,7 @@ export function SettingsView({
 					message={message}
 					profile={d.profile}
 					errors={errors}
+					revealErrors={saveState === 'error'}
 					edit={mutate => edit(next => mutate(next.message))}
 				/>
 			</section>
