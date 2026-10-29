@@ -1,4 +1,4 @@
-import { useId, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 
 import { MAX_OWN_VARIABLES, OWN_VARIABLE_LIMITS, type MessageSettings } from '@shared/contracts'
 import {
@@ -15,7 +15,9 @@ import {
 import { cx } from '../lib/cx'
 import { insertVariable, type TemplateField } from '../lib/template-editor'
 import { Icon } from './Icon'
+import { badge } from './ui/Badge'
 import { Button } from './ui/Button'
+import { DIALOG } from './ui/Dialog'
 import { FieldError, FieldHelp, FieldLabel } from './ui/Field'
 import { IconButton } from './ui/IconButton'
 import { field, Input } from './ui/Input'
@@ -58,9 +60,12 @@ function sampleJob(sample: Sample, targetRole: string): TemplateJob {
 
 const OPTIONAL_JOB_VARIABLES = JOB_VARIABLES.filter(variable => variable.optional)
 
+/** As modais do editor: as variáveis próprias e os fallbacks, que ficam fora da tela para o modelo e a prévia caberem. */
+type EditorDialog = 'variables' | 'fallbacks'
+
 /**
  * O editor do modelo de mensagem, em Configurações › Mensagem: o assunto e a mensagem com o painel "Variáveis
- * disponíveis", as variáveis próprias, os fallbacks das variáveis que podem faltar e a prévia numa vaga de exemplo.
+ * disponíveis", a prévia numa vaga de exemplo e, em modais, as variáveis próprias e os fallbacks das que podem faltar.
  */
 export function MessageTemplateEditor({ message, profile, errors, edit }: MessageTemplateEditorProps) {
 	const ids = { subject: useId(), body: useId(), warning: useId() }
@@ -70,6 +75,7 @@ export function MessageTemplateEditor({ message, profile, errors, edit }: Messag
 	// O último campo focado recebe a variável clicada no painel; sem nenhum ainda, ela entra no fim da mensagem
 	const [lastField, setLastField] = useState<TemplateField | null>(null)
 	const [sample, setSample] = useState<Sample>('partial')
+	const [dialog, setDialog] = useState<EditorDialog | null>(null)
 
 	const { template, fallbacks, variables } = message
 	const ownVariables = variables.filter(variable => VARIABLE_NAME.test(variable.name.trim()))
@@ -123,6 +129,10 @@ export function MessageTemplateEditor({ message, profile, errors, edit }: Messag
 			})),
 		},
 	]
+
+	// Os erros de cada modal, para o botão que a abre avisar (a modal fechada não mostra o campo errado)
+	const errorsIn = (root: string) => Object.keys(errors).some(path => path === root || path.startsWith(`${root}.`))
+	const fallbackCount = OPTIONAL_JOB_VARIABLES.filter(variable => fallbacks[variable.name]?.trim()).length
 
 	const values = templateValues(sampleJob(sample, profile.targetRole), profile, ownVariables)
 	const subjectParts = templateParts(template.subject, values, fallbacks)
@@ -197,7 +207,14 @@ export function MessageTemplateEditor({ message, profile, errors, edit }: Messag
 						<Icon name="alert" size={14} className="mt-0.5" />
 						<span>
 							{unsafe.map(name => `{{${name}}}`).join(', ')}: nem toda vaga tem. Sem fallback, a mensagem dessas vagas fica com
-							um buraco marcado ([{unsafe[0]}]) e o envio espera você completar.
+							um buraco marcado ([{unsafe[0]}]) e o envio espera você completar.{' '}
+							<button
+								type="button"
+								className="underline underline-offset-3 hover:text-ink"
+								onClick={() => setDialog('fallbacks')}
+							>
+								definir fallback
+							</button>
 						</span>
 					</p>
 				)}
@@ -205,8 +222,29 @@ export function MessageTemplateEditor({ message, profile, errors, edit }: Messag
 
 			<VariablePicker groups={groups} onInsert={insert} linkDisabled={lastField === 'subject'} howTo={<HowTo />} />
 
-			{renderOwnVariables()}
-			{renderFallbacks()}
+			<div className="flex flex-wrap gap-2.5">
+				{editorButton('variables', 'suas variáveis', variables.length)}
+				{editorButton('fallbacks', 'quando a vaga não tem', fallbackCount)}
+			</div>
+
+			{dialog === 'variables' && (
+				<EditorDialogBox
+					title="suas variáveis"
+					help="Valores fixos que entram em toda mensagem, como o seu nome, o contato ou links. Use minúsculas sem acento e _ no nome (ex.: meu_nome, link_github). As de link só funcionam na mensagem."
+					onClose={() => setDialog(null)}
+				>
+					{renderOwnVariables()}
+				</EditorDialogBox>
+			)}
+			{dialog === 'fallbacks' && (
+				<EditorDialogBox
+					title="quando a vaga não tem"
+					help="O texto que entra no lugar da variável quando a IA não achou o dado no post. Vazio, a variável fica marcada na mensagem e o envio espera você completar."
+					onClose={() => setDialog(null)}
+				>
+					{renderFallbacks()}
+				</EditorDialogBox>
+			)}
 
 			{/* A prévia numa vaga de exemplo: mostra onde o fallback entrou e o que ficaria faltando */}
 			<section aria-label="Prévia da mensagem" className="flex flex-col gap-3 rounded-sm border border-line p-3.5">
@@ -240,12 +278,7 @@ export function MessageTemplateEditor({ message, profile, errors, edit }: Messag
 
 	function renderOwnVariables() {
 		return (
-			<fieldset className={FIELDSET}>
-				<legend className="mb-2.5 p-0 text-sm font-medium">suas variáveis</legend>
-				<FieldHelp>
-					Valores fixos que entram em toda mensagem, como o seu nome, o contato ou links. Use minúsculas sem acento e _ no nome
-					(ex.: meu_nome, link_github). As de link só funcionam na mensagem.
-				</FieldHelp>
+			<div className={FIELDSET}>
 				{variables.length > 0 && (
 					<ul className="m-0 flex list-none flex-col gap-3 p-0">
 						{variables.map((variable, index) => {
@@ -346,51 +379,111 @@ export function MessageTemplateEditor({ message, profile, errors, edit }: Messag
 					<Icon name="plus" size={14} />
 					adicionar variável
 				</Button>
-			</fieldset>
+			</div>
 		)
 	}
 
 	function renderFallbacks() {
 		return (
-			<fieldset className={FIELDSET}>
-				<legend className="mb-2.5 p-0 text-sm font-medium">quando a vaga não tem</legend>
-				<FieldHelp>
-					O texto que entra no lugar da variável quando a IA não achou o dado no post. Vazio, a variável fica marcada na mensagem
-					e o envio espera você completar.
-				</FieldHelp>
-				<div className="grid grid-cols-2 gap-x-5 gap-y-3 max-md:grid-cols-1">
-					{OPTIONAL_JOB_VARIABLES.map(variable => {
-						const id = `fallback-${variable.name}`
-						const error = errors[`fallbacks.${variable.name}`]
+			<div className="grid grid-cols-2 gap-x-5 gap-y-3 max-md:grid-cols-1">
+				{OPTIONAL_JOB_VARIABLES.map(variable => {
+					const id = `fallback-${variable.name}`
+					const error = errors[`fallbacks.${variable.name}`]
 
-						return (
-							<div key={variable.name} className="flex flex-col gap-1.5">
-								<FieldLabel htmlFor={id}>
-									<span className="font-mono text-lime-text">{`{{${variable.name}}}`}</span>{' '}
-									<span className="font-normal text-muted">{variable.description}</span>
-								</FieldLabel>
-								<Input
-									id={id}
-									placeholder={`sem fallback: fica [${variable.name}]`}
-									value={fallbacks[variable.name] ?? ''}
-									invalid={!!error}
-									aria-describedby={error ? `${id}-error` : undefined}
-									onChange={event => {
-										const value = event.target.value
-										edit(next => {
-											if (value.trim()) next.fallbacks[variable.name] = value
-											else delete next.fallbacks[variable.name]
-										})
-									}}
-								/>
-								{error && <FieldError id={`${id}-error`}>{error}</FieldError>}
-							</div>
-						)
-					})}
-				</div>
-			</fieldset>
+					return (
+						<div key={variable.name} className="flex flex-col gap-1.5">
+							<FieldLabel htmlFor={id}>
+								<span className="font-mono text-lime-text">{`{{${variable.name}}}`}</span>{' '}
+								<span className="font-normal text-muted">{variable.description}</span>
+							</FieldLabel>
+							<Input
+								id={id}
+								placeholder={`sem fallback: fica [${variable.name}]`}
+								value={fallbacks[variable.name] ?? ''}
+								invalid={!!error}
+								aria-describedby={error ? `${id}-error` : undefined}
+								onChange={event => {
+									const value = event.target.value
+									edit(next => {
+										if (value.trim()) next.fallbacks[variable.name] = value
+										else delete next.fallbacks[variable.name]
+									})
+								}}
+							/>
+							{error && <FieldError id={`${id}-error`}>{error}</FieldError>}
+						</div>
+					)
+				})}
+			</div>
 		)
 	}
+
+	/** O botão que abre uma das modais, com quantas já estão definidas e o aviso de erro dentro dela. */
+	function editorButton(target: EditorDialog, label: string, count: number) {
+		const invalid = errorsIn(target)
+
+		return (
+			<Button variant="ghost" size="sm" aria-haspopup="dialog" onClick={() => setDialog(target)}>
+				{label}
+				{count > 0 && <span className="font-mono text-muted">{count}</span>}
+				{invalid && <span className={badge({ tone: 'warn', size: 'xs' })}>corrigir</span>}
+			</Button>
+		)
+	}
+}
+
+/**
+ * A modal de uma parte do editor (`<dialog>` nativo: foco preso, Esc fecha). As mudanças vão direto ao rascunho da tela,
+ * então fechar não perde nada; o "salvar" continua sendo o das Configurações.
+ */
+function EditorDialogBox({
+	title,
+	help,
+	onClose,
+	children,
+}: {
+	title: string
+	help: string
+	onClose: () => void
+	children: ReactNode
+}) {
+	const ref = useRef<HTMLDialogElement>(null)
+	const titleId = useId()
+
+	useEffect(() => {
+		ref.current?.showModal()
+	}, [])
+
+	return (
+		// biome-ignore lint/a11y/useKeyWithClickEvents: pelo teclado, o Esc já fecha o <dialog>
+		<dialog
+			ref={ref}
+			// Aberta, vira coluna: o meio rola e o topo e o rodapé ficam à vista
+			className={cx(DIALOG, 'w-180 open:flex open:flex-col')}
+			aria-labelledby={titleId}
+			onClose={onClose}
+			// Clique no fundo escurecido (fora do conteúdo) fecha
+			onClick={event => event.target === ref.current && ref.current.close()}
+		>
+			<div className="flex flex-col gap-1 border-b border-line px-5 pt-4 pb-3.5">
+				<div className="flex items-center justify-between gap-3">
+					<h2 id={titleId} className="text-lg font-bold">
+						{title}
+					</h2>
+					<IconButton label="Fechar" size="sm" onClick={() => ref.current?.close()}>
+						<Icon name="close" size={16} />
+					</IconButton>
+				</div>
+				<FieldHelp>{help}</FieldHelp>
+			</div>
+			<div className="min-h-0 grow overflow-y-auto px-5 py-4">{children}</div>
+			<div className="flex justify-end border-t border-line px-5 py-3.5">
+				<Button variant="lime" onClick={() => ref.current?.close()}>
+					pronto
+				</Button>
+			</div>
+		</dialog>
+	)
 }
 
 /** O texto do campo com as variáveis destacadas (as que podem faltar e não têm fallback), para o espelho atrás dele. */
@@ -442,9 +535,9 @@ function HowTo() {
 				contato de uma vaga, ela vira o dado da vaga.
 			</p>
 			<p className="m-0">
-				<strong>Fallback</strong> é o texto usado quando a vaga não tem o dado. Defina em “quando a vaga não tem”, abaixo, ou na
-				própria variável, depois de uma barra: <code className="font-mono text-lime-text">{'{{empresa | a sua empresa}}'}</code> (o
-				da variável vale mais).
+				<strong>Fallback</strong> é o texto usado quando a vaga não tem o dado. Defina no botão “quando a vaga não tem”, abaixo, ou
+				na própria variável, depois de uma barra: <code className="font-mono text-lime-text">{'{{empresa | a sua empresa}}'}</code>{' '}
+				(o da variável vale mais).
 			</p>
 			<p className="m-0">
 				Sem o dado e sem fallback, a variável fica marcada na mensagem, como <code className="font-mono">[empresa]</code>, e o
