@@ -17,7 +17,6 @@ import { DrawnCheck, Icon } from './Icon'
 import { LinkedinLoginStatus, useLinkedinLogin } from './LinkedinLogin'
 import { Badge } from './ui/Badge'
 import { Button } from './ui/Button'
-import { card } from './ui/Card'
 import { ConfirmDialog } from './ui/Dialog'
 import { Disclosure } from './ui/Disclosure'
 import { FieldError, FieldHelp, FieldLabel } from './ui/Field'
@@ -25,8 +24,9 @@ import { IconButton } from './ui/IconButton'
 import { Input } from './ui/Input'
 import { Notice } from './ui/Notice'
 import { Pill, PillGroup } from './ui/Pill'
+import { SectionCard } from './ui/SectionCard'
 import { TabPanel, Tabs } from './ui/Tabs'
-import { LABEL, SECTION_TITLE } from './ui/text'
+import { LABEL } from './ui/text'
 import { TextLink } from './ui/TextLink'
 import { Tutorial, TutorialDialog } from './ui/Tutorial'
 
@@ -217,7 +217,6 @@ export function AccountsSection({
 	initial,
 	initialGroup = 'linkedin',
 	onDirtyChange,
-	className,
 	...props
 }: {
 	initial: WebCredentials
@@ -243,21 +242,17 @@ export function AccountsSection({
 	}
 
 	return (
-		<section
+		<SectionCard
 			{...props}
-			className={card({ size: 'lg', className: cx('flex flex-col gap-6.5', className) })}
-			aria-labelledby="accounts-title"
-		>
-			<div className="flex flex-col gap-1.5">
-				<h2 id="accounts-title" className={SECTION_TITLE}>
-					contas <span className="font-mono text-xs font-normal text-muted">credenciais</span>
-				</h2>
-				<FieldHelp>
+			title="contas"
+			tag="credenciais"
+			description={
+				<>
 					Ficam no MongoDB desta máquina e valem no lugar das do <code className="font-mono">.env</code>. Os segredos salvos não
 					são mostrados: deixe o campo vazio para manter o atual.
-				</FieldHelp>
-			</div>
-
+				</>
+			}
+		>
 			<div className="flex flex-col gap-6">
 				<Tabs id="accounts" label="Contas" items={TABS} selected={selected} onSelect={setSelected} />
 
@@ -273,7 +268,7 @@ export function AccountsSection({
 					</TabPanel>
 				))}
 			</div>
-		</section>
+		</SectionCard>
 	)
 }
 

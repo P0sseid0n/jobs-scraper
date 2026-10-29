@@ -29,11 +29,11 @@ import { KeywordInput } from '../components/ui/KeywordInput'
 import { Notice } from '../components/ui/Notice'
 import { Hero, Page, pageFrame } from '../components/ui/Page'
 import { pill, PillGroup } from '../components/ui/Pill'
+import { SectionCard } from '../components/ui/SectionCard'
 import { SECTION_SCROLL_MARGIN, SectionNav } from '../components/ui/SectionNav'
 import { SelectMenu, type SelectMenuOption } from '../components/ui/SelectMenu'
 import { StatusDot } from '../components/ui/StatusDot'
 import { Switch } from '../components/ui/Switch'
-import { SECTION_TITLE } from '../components/ui/text'
 import { cx } from '../lib/cx'
 import { DATE_POSTED_LABELS, formatInterval, LANGUAGE_NAMES, languageLabel } from '../lib/format'
 import { shakeInvalid } from '../lib/motion'
@@ -69,8 +69,6 @@ const SENIORITY_OPTIONS: SelectMenuOption<SeniorityLevel | ''>[] = [
 	{ value: '', label: 'Não informar' },
 	...SENIORITY_LEVELS.map(value => ({ value, label: SENIORITY_LABELS[value] })),
 ]
-
-const SETTINGS_CARD = card({ size: 'lg', className: cx('flex flex-col gap-6.5', SECTION_SCROLL_MARGIN) })
 
 /** Os atalhos do `SectionNav`: o `id` de cada seção da tela. */
 const SECTIONS = [
@@ -275,11 +273,7 @@ export function SettingsView({
 		const suggestions = { area: Object.keys(PROFILE_AREAS), targetRole: suggestedRoles(profile.area) }
 
 		return (
-			<section id="perfil" className={SETTINGS_CARD} aria-labelledby="profile-title">
-				<h2 id="profile-title" className={SECTION_TITLE}>
-					perfil <span className="font-mono text-xs font-normal text-muted">profissional</span>
-				</h2>
-
+			<SectionCard id="perfil" className={SECTION_SCROLL_MARGIN} title="perfil" tag="profissional">
 				<div className="grid grid-cols-2 gap-5 max-md:grid-cols-1">
 					{(
 						[
@@ -359,7 +353,7 @@ export function SettingsView({
 					Usado para buscar e ler vagas da sua área. Enquanto área e cargo-alvo estão vazios, o sistema continua supondo vagas de
 					desenvolvimento.
 				</FieldHelp>
-			</section>
+			</SectionCard>
 		)
 	}
 
@@ -367,16 +361,17 @@ export function SettingsView({
 		const terms = d.scraper.searchTerms
 
 		return (
-			<section id="coleta" className={SETTINGS_CARD} aria-labelledby="scraper-title">
-				<div className="flex items-center justify-between gap-3 flex-wrap">
-					<h2 id="scraper-title" className={SECTION_TITLE}>
-						coleta <span className="font-mono text-xs font-normal text-muted">scraper</span>
-					</h2>
+			<SectionCard
+				id="coleta"
+				className={SECTION_SCROLL_MARGIN}
+				title="coleta"
+				tag="scraper"
+				aside={
 					<span className="font-mono text-muted text-xs">
 						{terms.length} / {LIMITS.searchTerms} termos
 					</span>
-				</div>
-
+				}
+			>
 				<fieldset className="flex flex-col gap-2.5">
 					<legend className="mb-2.5 p-0 text-sm font-medium">termos de busca</legend>
 					<ul className="flex flex-col gap-1.5 m-0 list-none p-0">
@@ -486,7 +481,7 @@ export function SettingsView({
 						)}
 					</div>
 				</div>
-			</section>
+			</SectionCard>
 		)
 	}
 
@@ -495,11 +490,7 @@ export function SettingsView({
 		const languages = [...new Set([...Object.keys(LANGUAGE_NAMES), ...p.allowedLanguages])]
 
 		return (
-			<section id="filtros" className={SETTINGS_CARD} aria-labelledby="processing-title">
-				<h2 id="processing-title" className={SECTION_TITLE}>
-					filtros das vagas <span className="font-mono text-xs font-normal text-muted">pós-processamento</span>
-				</h2>
-
+			<SectionCard id="filtros" className={SECTION_SCROLL_MARGIN} title="filtros das vagas" tag="pós-processamento">
 				<div className="flex flex-col gap-1.5">
 					<span className="flex items-center justify-between gap-3">
 						<FieldLabel htmlFor="reviewChecksPercent">pedir para conferir o post a partir de</FieldLabel>
@@ -637,7 +628,7 @@ export function SettingsView({
 						)}
 					</div>
 				</div>
-			</section>
+			</SectionCard>
 		)
 	}
 
@@ -645,17 +636,17 @@ export function SettingsView({
 		const message = d.message
 
 		return (
-			<section id="mensagem" className={SETTINGS_CARD} aria-labelledby="message-title">
-				<div className="flex flex-col gap-1">
-					<h2 id="message-title" className={SECTION_TITLE}>
-						mensagem de candidatura
-					</h2>
-					<FieldHelp>
+			<SectionCard
+				id="mensagem"
+				className={SECTION_SCROLL_MARGIN}
+				title="mensagem de candidatura"
+				description={
+					<>
 						A mensagem de toda vaga sai do seu modelo, com as variáveis trocadas pelos dados da vaga. Na vaga, “melhorar com a
 						IA” reescreve o texto preenchido no tom e no tamanho que você escolher.
-					</FieldHelp>
-				</div>
-
+					</>
+				}
+			>
 				<MessageTemplateEditor
 					message={message}
 					profile={d.profile}
@@ -663,7 +654,7 @@ export function SettingsView({
 					revealErrors={saveState === 'error'}
 					edit={mutate => edit(next => mutate(next.message))}
 				/>
-			</section>
+			</SectionCard>
 		)
 	}
 

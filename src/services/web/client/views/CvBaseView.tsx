@@ -17,6 +17,7 @@ import { iconButton } from '../components/ui/IconButton'
 import { field } from '../components/ui/Input'
 import { Notice } from '../components/ui/Notice'
 import { Hero, Page } from '../components/ui/Page'
+import { SectionCard } from '../components/ui/SectionCard'
 import { SECTION_TITLE } from '../components/ui/text'
 import { activeVersion, formatKilobytes, texBytes, upsertVersion } from '../lib/cv-base'
 import { CV_EXAMPLES, exampleDownloadUrl, type CvExample } from '../lib/cv-examples'
@@ -26,7 +27,6 @@ import { formatDateTime } from '../lib/format'
 import { connected, onLive } from '../stores/live'
 import { notify } from '../stores/toast'
 
-const SECTION_CARD = card({ size: 'lg', className: 'flex flex-col gap-5' })
 const MAX_SIZE = formatKilobytes(CV_BASE_TEX_MAX_BYTES)
 
 /** `activeForm`: os dados do formulário da versão ativa, quando ela veio dele. */
@@ -264,12 +264,10 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 
 	function renderActive() {
 		return (
-			<section className={SECTION_CARD} aria-labelledby="cv-base-active">
-				<div className="flex flex-wrap items-center justify-between gap-3">
-					<h2 id="cv-base-active" className={SECTION_TITLE}>
-						versão ativa
-					</h2>
-					{active && (
+			<SectionCard
+				title="versão ativa"
+				aside={
+					active && (
 						<div className="flex gap-2">
 							<Button variant="ghost" size="sm" onClick={() => edit(active)}>
 								{editLabel(active)}
@@ -278,9 +276,9 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 								abrir PDF
 							</Button>
 						</div>
-					)}
-				</div>
-
+					)
+				}
+			>
 				{active ? (
 					<>
 						<p className="font-mono text-xs text-muted">
@@ -302,7 +300,7 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 						currículo pelo site.
 					</Notice>
 				)}
-			</section>
+			</SectionCard>
 		)
 	}
 
@@ -412,25 +410,17 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 		}
 
 		return (
-			<section className={SECTION_CARD} aria-labelledby="cv-base-examples">
-				<div className="flex flex-col gap-1.5">
-					<h2 id="cv-base-examples" className={SECTION_TITLE}>
-						modelos
-					</h2>
-					<p className="text-sm text-muted">{intro}</p>
-				</div>
+			<SectionCard title="modelos" description={intro}>
 				{list}
-			</section>
+			</SectionCard>
 		)
 	}
 
 	function renderEditor() {
 		return (
-			<section className={SECTION_CARD} aria-labelledby="cv-base-new">
-				<div className="flex flex-wrap items-center justify-between gap-3">
-					<h2 id="cv-base-new" className={SECTION_TITLE}>
-						nova versão
-					</h2>
+			<SectionCard
+				title="nova versão"
+				aside={
 					<div className="flex flex-wrap gap-2">
 						<Button variant="ghost" size="sm" onClick={() => setFormOpen(true)}>
 							preencher com formulário
@@ -439,10 +429,10 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 							<Icon name="file" size={14} />
 							carregar .tex
 						</Button>
+						<input ref={fileInput} type="file" accept=".tex,text/x-tex,application/x-tex" hidden onChange={loadFile} />
 					</div>
-					<input ref={fileInput} type="file" accept=".tex,text/x-tex,application/x-tex" hidden onChange={loadFile} />
-				</div>
-
+				}
+			>
 				{formDirty && (
 					<p className="font-mono text-xs text-muted">
 						formulário com alterações não validadas: {form.contact.name.trim() || 'sem nome'} · {form.sections.length}{' '}
@@ -499,16 +489,13 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 				</div>
 
 				{candidate && renderCandidate(candidate)}
-			</section>
+			</SectionCard>
 		)
 	}
 
 	function renderHistory() {
 		return (
-			<section className={SECTION_CARD} aria-labelledby="cv-base-history">
-				<h2 id="cv-base-history" className={SECTION_TITLE}>
-					histórico
-				</h2>
+			<SectionCard title="histórico">
 				<ul className="m-0 flex list-none flex-col gap-2.5 p-0">
 					{versions.map(version => {
 						const isActive = version.versionId === active?.versionId
@@ -564,7 +551,7 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 					})}
 				</ul>
 				<FieldHelp>Versões que nunca foram ativadas saem do histórico depois de 7 dias.</FieldHelp>
-			</section>
+			</SectionCard>
 		)
 	}
 
