@@ -99,7 +99,7 @@ export function ShareJobDialog({ job, onClose }: { job: ShareJob; onClose: () =>
 						<FieldLabel htmlFor={textId}>texto</FieldLabel>
 						<div className="flex items-center gap-3">
 							{text !== generated && (
-								<TextLink className="text-xs font-mono" onClick={() => setText(generated)}>
+								<TextLink className="text-xs" onClick={() => setText(generated)}>
 									restaurar texto
 								</TextLink>
 							)}
@@ -113,14 +113,15 @@ export function ShareJobDialog({ job, onClose }: { job: ShareJob; onClose: () =>
 						id={textId}
 						value={text}
 						onChange={event => setText(event.target.value)}
-						className={field({ className: 'resize-y py-2.5 leading-relaxed field-sizing-content min-h-24 max-h-72' })}
+						className={field({ multiline: true, grow: true })}
 					/>
 				</div>
 
 				{!empty && (
-					<section className="flex flex-col gap-1.5" aria-label="Prévia">
-						<h3 className={LABEL}>como chega no whatsapp</h3>
-						<p className="m-0 rounded-sm bg-surface-2 px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap wrap-anywhere">
+					// A mesma caixa das prévias do editor do modelo de mensagem
+					<section aria-label="Prévia no WhatsApp" className="flex flex-col gap-2 rounded-sm bg-surface-2 p-3.5">
+						<span className={LABEL}>como chega no whatsapp</span>
+						<p className="m-0 text-sm leading-relaxed whitespace-pre-wrap wrap-anywhere">
 							<WhatsAppText text={text} />
 						</p>
 					</section>
@@ -129,7 +130,7 @@ export function ShareJobDialog({ job, onClose }: { job: ShareJob; onClose: () =>
 				<section className="flex flex-col gap-1.5" aria-label="Enviar por">
 					<h3 className={LABEL}>enviar por</h3>
 					<div className="flex flex-wrap gap-2">
-						<Button variant="ghost" href={`https://wa.me/?text=${encodeURIComponent(text)}`} target="_blank" rel="noreferrer">
+						<Button variant="ghost" href={`https://wa.me/?text=${encodeURIComponent(text)}`} external externalIcon={false}>
 							<Icon name="chat" size={14} />
 							WhatsApp
 						</Button>

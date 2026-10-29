@@ -856,7 +856,7 @@ function TextField({
 					aria-invalid={!!error || undefined}
 					aria-describedby={describedBy}
 					onChange={event => onChange(event.target.value)}
-					className={field({ invalid: !!error, className: 'resize-y py-2.5 leading-relaxed' })}
+					className={field({ invalid: !!error, multiline: true })}
 				/>
 			) : (
 				<Input

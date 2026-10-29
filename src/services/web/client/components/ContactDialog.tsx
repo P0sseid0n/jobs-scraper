@@ -148,17 +148,18 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 
 	// Por que o "enviar" está desligado, ao lado dele: o primeiro motivo que a pessoa pode resolver. Carregando ou
 	// enviando, não há o que explicar
-	const sendBlocker = !canSend || bodyLoading
-		? null
-		: rewriting
-			? 'Espere a IA terminar de reescrever.'
-			: unresolved.length > 0
-				? `Troque ${LIST_FORMAT.format(unresolved.map(name => `[${name}]`))} no texto para enviar.`
-				: !readyCv
-					? cv?.status === 'pending'
-						? 'O currículo ainda está sendo gerado: ele vai anexado.'
-						: 'Gere o currículo para enviar: ele vai anexado.'
-					: null
+	const sendBlocker =
+		!canSend || bodyLoading
+			? null
+			: rewriting
+				? 'Espere a IA terminar de reescrever.'
+				: unresolved.length > 0
+					? `Troque ${LIST_FORMAT.format(unresolved.map(name => `[${name}]`))} no texto para enviar.`
+					: !readyCv
+						? cv?.status === 'pending'
+							? 'O currículo ainda está sendo gerado: ele vai anexado.'
+							: 'Gere o currículo para enviar: ele vai anexado.'
+						: null
 
 	useEffect(() => {
 		ref.current?.showModal()
@@ -271,8 +272,8 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 					{lastSent && (
 						<Notice tone="warn" icon="alert" className="text-sm">
 							<p className="m-0">
-								Esta vaga já recebeu sua candidatura por e-mail ({formatDateTime(lastSent.sentAt ?? lastSent.requestedAt)}, para{' '}
-								{lastSent.to}). Enviar de novo manda outro e-mail.
+								Esta vaga já recebeu sua candidatura por e-mail ({formatDateTime(lastSent.sentAt ?? lastSent.requestedAt)},
+								para {lastSent.to}). Enviar de novo manda outro e-mail.
 							</p>
 						</Notice>
 					)}
@@ -400,16 +401,16 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 										<div className="relative grid">
 											<textarea
 												id={ids.body}
-												rows={9}
 												value={fieldsBusy ? '' : body}
 												readOnly={fieldsBusy}
 												aria-busy={fieldsBusy}
 												aria-invalid={!!errors.body || undefined}
 												aria-describedby={
-													[errors.body && `${ids.body}-error`, hasFallbacks && ids.fallbacks].filter(Boolean).join(' ') || undefined
+													[errors.body && `${ids.body}-error`, hasFallbacks && ids.fallbacks].filter(Boolean).join(' ') ||
+													undefined
 												}
 												onChange={event => editBody(event.target.value)}
-												className={field({ invalid: !!errors.body, className: 'resize-y py-2.5 leading-relaxed' })}
+												className={field({ invalid: !!errors.body, multiline: true, grow: true })}
 											/>
 											{fieldsBusy && <FieldScan label={busyLabel} className="absolute inset-0 rounded-sm" />}
 										</div>
@@ -459,7 +460,12 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 											</span>
 											<PillGroup role="group" aria-labelledby={ids.tone}>
 												{MESSAGE_TONES.map(option => (
-													<Pill key={option} pressed={option === tone} disabled={rewriting} onClick={() => setTone(option)}>
+													<Pill
+														key={option}
+														pressed={option === tone}
+														disabled={rewriting}
+														onClick={() => setTone(option)}
+													>
 														{MESSAGE_TONE_LABELS[option]}
 													</Pill>
 												))}
@@ -471,7 +477,12 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 											</span>
 											<PillGroup role="group" aria-labelledby={ids.length}>
 												{MESSAGE_LENGTHS.map(option => (
-													<Pill key={option} pressed={option === length} disabled={rewriting} onClick={() => setLength(option)}>
+													<Pill
+														key={option}
+														pressed={option === length}
+														disabled={rewriting}
+														onClick={() => setLength(option)}
+													>
 														{MESSAGE_LENGTH_LABELS[option]}
 													</Pill>
 												))}

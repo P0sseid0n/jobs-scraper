@@ -8,6 +8,8 @@ export interface ButtonProps {
 	href?: string
 	/** Só com `href`: abre em outra aba e mostra o ícone de link externo. */
 	external?: boolean
+	/** `false`: sem o ícone de link externo, quando o botão já tem o seu. */
+	externalIcon?: boolean
 	type?: 'button' | 'submit' | 'reset'
 	disabled?: boolean
 	onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void

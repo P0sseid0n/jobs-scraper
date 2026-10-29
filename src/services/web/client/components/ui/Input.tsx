@@ -12,6 +12,10 @@ export const field = tv({
 		/** `sm`: nos filtros, ao lado do texto. `md`: nos formulários. */
 		size: { sm: 'min-h-8 px-2 py-0 text-sm', md: 'min-h-11 px-3 py-0 text-sm' },
 		invalid: { true: 'border-danger' },
+		/** Num `<textarea>`: o texto com respiro, e a pessoa pode puxar a altura. */
+		multiline: { true: 'resize-y py-2.5 leading-relaxed' },
+		/** Num `<textarea>` de mensagem: cresce com o texto, até um limite (depois rola). */
+		grow: { true: 'field-sizing-content min-h-44 max-h-80' },
 	},
 	defaultVariants: { size: 'md' },
 })
@@ -19,7 +23,7 @@ export const field = tv({
 /** Contorno de foco de um contêiner com um campo sem borda dentro (o mesmo do `:focus-visible` dos campos). */
 export const FOCUS_WITHIN = 'focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus'
 
-export type FieldLook = Omit<VariantProps<typeof field>, 'invalid'> & { invalid?: boolean }
+export type FieldLook = Omit<VariantProps<typeof field>, 'invalid' | 'multiline' | 'grow'> & { invalid?: boolean }
 
 export function Input({ size, invalid, className, ...props }: Omit<ComponentProps<'input'>, 'size'> & FieldLook) {
 	return <input aria-invalid={invalid || undefined} {...props} className={field({ size, invalid, className })} />

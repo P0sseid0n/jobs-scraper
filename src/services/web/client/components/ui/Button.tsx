@@ -49,16 +49,19 @@ type LinkProps = {
 	href: string
 	/** Abre em outra aba (sem dar acesso a esta página) e mostra o ícone de link externo antes do texto. */
 	external?: boolean
+	/** `false`: sem o ícone de link externo, quando o botão já tem o seu (ex.: o de conversa do WhatsApp); o aviso de outra aba para o leitor de tela continua. */
+	externalIcon?: boolean
 } & AnchorHTMLAttributes<HTMLAnchorElement>
 
-type ButtonProps = ButtonLook & (LinkProps | ({ href?: never; external?: never } & ButtonHTMLAttributes<HTMLButtonElement>))
+type ButtonProps = ButtonLook &
+	(LinkProps | ({ href?: never; external?: never; externalIcon?: never } & ButtonHTMLAttributes<HTMLButtonElement>))
 
 /** Botão com texto; com `href`, vira um link com a mesma cara. Quando o texto muda, a troca é animada. */
-export function Button({ variant, size, className, external, children, ...props }: ButtonProps) {
+export function Button({ variant, size, className, external, externalIcon = true, children, ...props }: ButtonProps) {
 	const classes = button({ variant, size, className })
 	const motion = useButtonMotion<HTMLElement>(
 		<>
-			{external && <Icon name="external" size={size === 'lg' ? 16 : 14} />}
+			{external && externalIcon && <Icon name="external" size={size === 'lg' ? 16 : 14} />}
 			{children}
 			{external && <span className="sr-only">{NEW_TAB_NOTICE}</span>}
 		</>,
