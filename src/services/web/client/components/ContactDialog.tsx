@@ -219,14 +219,26 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 				)}
 
 				<div className="flex flex-col gap-1.5">
-					<FieldLabel htmlFor={ids.to}>para</FieldLabel>
+					{/* Cada campo tem o botão de copiar só com o ícone, na linha do rótulo */}
+					<div className="flex items-center justify-between gap-2">
+						<FieldLabel htmlFor={ids.to}>para</FieldLabel>
+						{recipientFixed && (
+							<CopyButton
+								icon
+								text={recipient}
+								what="E-mail"
+								label="copiar e-mail"
+								toastAction={copyAction}
+								className="text-muted hover:text-ink"
+							/>
+						)}
+					</div>
 					{recipientFixed ? (
 						// Só para ver e copiar: o destinatário é o contato da vaga
-						<div className="flex min-w-0 items-center gap-2 rounded-sm border border-line py-1.5 pr-1.5 pl-3 text-sm">
-							<output id={ids.to} className="block grow truncate font-mono">
+						<div className="flex min-h-11 min-w-0 items-center rounded-sm border border-line px-3 text-sm">
+							<output id={ids.to} className="block truncate font-mono">
 								{recipient}
 							</output>
-							<CopyButton text={recipient} what="E-mail" toastAction={copyAction} />
 						</div>
 					) : (
 						<>
@@ -245,10 +257,21 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 				</div>
 
 				<section aria-label="Mensagem de candidatura" className="flex flex-col gap-3 rounded-sm bg-surface-2 p-3.5">
+					{/* De onde vem o texto, com a troca entre a mensagem da IA e o modelo (sem a da IA, a área do currículo, abaixo, explica que ela vem com ele) */}
 					<div className="flex items-center justify-between gap-3">
 						<span className={LABEL}>{showGenerated ? 'mensagem gerada pela IA' : 'modelo de mensagem'}</span>
-						{!bodyLoading && (
-							<CopyButton text={body} what="Texto da mensagem" label="copiar mensagem" size="xs" toastAction={copyAction} />
+						{generated && (
+							<TextLink
+								className="text-xs"
+								disabled={!!rewriting}
+								onClick={() => {
+									// Pedido daqui: a outra versão substitui o texto, mesmo editado
+									adoptNext.current = true
+									setUseDefaultMessage(!useDefaultMessage)
+								}}
+							>
+								{showGenerated ? 'usar o modelo padrão' : 'usar a mensagem da IA'}
+							</TextLink>
 						)}
 					</div>
 
@@ -304,7 +327,19 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 									{errors.subject && <FieldError id={`${ids.subject}-error`}>{errors.subject}</FieldError>}
 								</div>
 								<div className="flex flex-col gap-1.5">
-									<FieldLabel htmlFor={ids.body}>mensagem</FieldLabel>
+									<div className="flex items-center justify-between gap-2">
+										<FieldLabel htmlFor={ids.body}>mensagem</FieldLabel>
+										{!bodyLoading && (
+											<CopyButton
+												icon
+												text={body}
+												what="Texto da mensagem"
+												label="copiar mensagem"
+												toastAction={copyAction}
+												className="text-muted hover:text-ink"
+											/>
+										)}
+									</div>
 									<div className="relative grid">
 										<textarea
 											id={ids.body}
@@ -338,6 +373,19 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 										label="copiar assunto"
 										className="shrink-0 self-center text-muted hover:text-ink"
 									/>
+								</p>
+								<p className="m-0 flex items-center gap-2">
+									<span className={LABEL}>mensagem</span>
+									{!bodyLoading && (
+										<CopyButton
+											icon
+											text={body}
+											what="Texto da mensagem"
+											label="copiar mensagem"
+											toastAction={copyAction}
+											className="text-muted hover:text-ink"
+										/>
+									)}
 								</p>
 								{/* Texto corrido, para revisar: sem a fonte mono e com a linha numa largura confortável de ler */}
 								{fieldsBusy ? (
@@ -388,51 +436,38 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 									))}
 								</PillGroup>
 							</div>
-							{/* Uma ação, não uma opção: cada clique reescreve de novo, mais enxuta */}
-							<Button
-								variant="ghost"
-								size="sm"
-								disabled={!!rewriting || bodyLoading}
-								onClick={() => changeMessage('direct', { tone, length, direct: true })}
-							>
-								<Icon name={rewriting === 'direct' ? 'spinner' : 'refresh'} size={13} />
-								deixar mais direta
-							</Button>
-						</div>
-					)}
-
-					{/* Sem mensagem da IA, a área do currículo, abaixo, explica que ela vem com ele */}
-					{generated && (
-						<div className="flex items-center justify-between gap-3 text-muted text-xs">
-							<span role="status">
-								{rewriting && rewriting !== 'undo' ? (
-									'a IA está reescrevendo…'
-								) : showGenerated ? (
-									<>
-										{canSend ? 'reescrever troca o que você editou' : 'revise antes de enviar'}
-										{generatedRequest?.previousMessage && (
-											<>
-												{' · '}
-												<TextLink className="text-xs" disabled={!!rewriting} onClick={() => changeMessage('undo', null)}>
-													desfazer
-												</TextLink>
-											</>
-										)}
-									</>
-								) : (
-									''
-								)}
-							</span>
-							<TextLink
-								className="text-xs"
-								onClick={() => {
-									// Pedido daqui: a outra versão substitui o texto, mesmo editado
-									adoptNext.current = true
-									setUseDefaultMessage(!useDefaultMessage)
-								}}
-							>
-								{showGenerated ? 'usar o modelo padrão' : 'usar a mensagem da IA'}
-							</TextLink>
+							{/* As ações de reescrita juntas: "mais direta" (cada clique reescreve de novo, mais enxuta) e desfazer a última;
+							 * à direita, o status (o aviso de que reescrever troca o texto só aparece depois de editar) */}
+							<div className="flex basis-full flex-wrap items-center justify-between gap-x-3 gap-y-1">
+								<div className="flex items-center gap-2 text-muted text-xs">
+									<Button
+										variant="ghost"
+										size="sm"
+										disabled={!!rewriting || bodyLoading}
+										onClick={() => changeMessage('direct', { tone, length, direct: true })}
+									>
+										<Icon name={rewriting === 'direct' ? 'spinner' : 'refresh'} size={13} />
+										deixar mais direta
+									</Button>
+									{generatedRequest?.previousMessage && (
+										<>
+											<span aria-hidden="true">·</span>
+											<TextLink className="text-xs" disabled={!!rewriting} onClick={() => changeMessage('undo', null)}>
+												desfazer
+											</TextLink>
+										</>
+									)}
+								</div>
+								<span role="status" className="text-muted text-xs">
+									{rewriting && rewriting !== 'undo'
+										? 'a IA está reescrevendo…'
+										: !canSend
+											? 'revise antes de enviar'
+											: edited
+												? 'reescrever troca o que você editou'
+												: ''}
+								</span>
+							</div>
 						</div>
 					)}
 				</section>
