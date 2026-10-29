@@ -451,7 +451,7 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 									</Button>
 									{generatedRequest?.previousMessage && (
 										<>
-											<span aria-hidden="true">·</span>
+											{' · '}
 											<TextLink className="text-xs" disabled={!!rewriting} onClick={() => changeMessage('undo', null)}>
 												desfazer
 											</TextLink>

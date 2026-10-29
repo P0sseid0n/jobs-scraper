@@ -30,21 +30,30 @@ export function ApplicationEmail({ label, message, busy = false, children, copyA
 
 	return (
 		<section {...props} className="flex flex-col gap-3 rounded-sm bg-surface-2 p-3.5">
-			<div className="flex items-center justify-between gap-3">
-				<span className={LABEL}>{label}</span>
-				<CopyButton text={body} what="Texto da mensagem" label="copiar mensagem" size="xs" toastAction={copyAction} />
-			</div>
+			<span className={LABEL}>{label}</span>
 			<div className={cx('flex flex-col gap-3', busy && 'animate-pulse opacity-55 motion-reduce:animate-none')} aria-busy={busy}>
-				<p className="m-0 text-sm leading-relaxed wrap-break-word">
-					<span className={cx(LABEL, 'mr-2')}>assunto</span>
-					<span className="font-semibold">{message.subject}</span>
-					{/* Só o ícone, colado no fim do assunto: fica claro o que ele copia, sem competir com o "copiar mensagem" */}
+				{/* Cada parte tem o botão de copiar só com o ícone, junto do rótulo dela (como na modal de contato); o do assunto
+				 * fica preso no fim da linha: nunca cai sozinho na linha de baixo */}
+				<p className="m-0 flex items-baseline gap-2 text-sm leading-relaxed">
+					<span className={cx(LABEL, 'shrink-0')}>assunto</span>
+					<span className="min-w-0 font-semibold wrap-break-word">{message.subject}</span>
 					<CopyButton
 						icon
 						text={message.subject}
 						what="Assunto"
 						label="copiar assunto"
-						className="ml-1 align-middle text-muted hover:text-ink"
+						className="shrink-0 self-center text-muted hover:text-ink"
+					/>
+				</p>
+				<p className="m-0 flex items-center gap-2">
+					<span className={LABEL}>mensagem</span>
+					<CopyButton
+						icon
+						text={body}
+						what="Texto da mensagem"
+						label="copiar mensagem"
+						toastAction={copyAction}
+						className="text-muted hover:text-ink"
 					/>
 				</p>
 				{/* Texto corrido, para revisar: sem a fonte mono e com a linha numa largura confortável de ler */}
