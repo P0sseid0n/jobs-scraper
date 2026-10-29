@@ -16,7 +16,6 @@ import { cx } from '../lib/cx'
 import { insertVariable, type TemplateField } from '../lib/template-editor'
 import { variablePickerOpen } from '../stores/variable-picker'
 import { Icon } from './Icon'
-import { badge } from './ui/Badge'
 import { Button } from './ui/Button'
 import { DIALOG } from './ui/Dialog'
 import { Disclosure } from './ui/Disclosure'
@@ -63,6 +62,16 @@ function sampleJob(sample: Sample, targetRole: string): TemplateJob {
 }
 
 const OPTIONAL_JOB_VARIABLES = JOB_VARIABLES.filter(variable => variable.optional)
+
+/** Um exemplo de fallback para cada variável que pode faltar, no placeholder do campo dela. */
+const FALLBACK_EXAMPLES: Record<string, string> = {
+	empresa: 'a sua empresa',
+	local: 'a sua cidade',
+	modalidade: 'a combinar',
+	tecnologias: 'as tecnologias da vaga',
+	link_da_vaga: 'https://www.linkedin.com/jobs',
+	autor_do_post: 'a equipe de recrutamento',
+}
 
 /** Os exemplos da modal de variáveis próprias vazia: um clique cria a variável com o nome e a descrição. */
 const OWN_VARIABLE_EXAMPLES = [
@@ -285,7 +294,13 @@ export function MessageTemplateEditor({ message, profile, errors, edit, revealEr
 			{dialog === 'fallbacks' && (
 				<EditorDialogBox
 					title="fallbacks: quando a vaga não tem"
-					help="O texto que entra no lugar da variável quando a IA não achou o dado no post. Vazio, a variável fica marcada na mensagem e o envio espera você completar."
+					help={
+						<>
+							O texto que entra no lugar da variável quando a IA não achou o dado no post. Vazio, a variável fica marcada na
+							mensagem e o envio espera você completar. Para um fallback só num trecho, escreva-o na variável, depois de uma
+							barra: <code className="font-mono text-lime-text">{'{{empresa | a sua empresa}}'}</code> (ele vale mais que o daqui).
+						</>
+					}
 					onClose={() => setDialog(null)}
 				>
 					{renderFallbacks()}
@@ -507,69 +522,102 @@ export function MessageTemplateEditor({ message, profile, errors, edit, revealEr
 	}
 
 	function renderFallbacks() {
-		// As que o modelo usa vêm primeiro e ganham o selo: são as que valem a pena definir
-		const used = new Set([...templateTokens(template.subject), ...templateTokens(template.body)].map(token => token.name))
-		const ordered = [...OPTIONAL_JOB_VARIABLES].sort((a, b) => Number(used.has(b.name)) - Number(used.has(a.name)))
+		// As que o modelo usa ficam à vista (são as que valem a pena definir); as outras, recolhidas
+		const tokens = new Set([...templateTokens(template.subject), ...templateTokens(template.body)].map(token => token.name))
+		const used = OPTIONAL_JOB_VARIABLES.filter(variable => tokens.has(variable.name))
+		const others = OPTIONAL_JOB_VARIABLES.filter(variable => !tokens.has(variable.name))
+		const othersDefined = others.filter(variable => fallbacks[variable.name]?.trim()).length
 		const partial = templateValues(sampleJob('partial', profile.targetRole), profile, ownVariables)
 
 		return (
 			<div className="flex flex-col gap-5">
-				{!ordered.some(variable => used.has(variable.name)) && (
-					<p className="text-sm text-muted">
-						Seu modelo ainda não usa nenhuma destas variáveis: o fallback só entra quando ela estiver no assunto ou na mensagem.
+				{used.length > 0 ? (
+					<div className="flex flex-col gap-2">
+						<span className={LABEL}>no seu modelo</span>
+						{renderFallbackFields(used)}
+					</div>
+				) : (
+					<p className="rounded-sm border border-dashed border-line p-3.5 text-sm text-muted">
+						Seu modelo ainda não usa nenhuma variável que pode faltar, então nenhum fallback entra agora. Ele só vale quando a
+						variável estiver no assunto ou na mensagem.
 					</p>
 				)}
-				<div className="grid grid-cols-2 gap-x-5 gap-y-3 max-md:grid-cols-1">
-					{ordered.map(variable => {
-						const id = `fallback-${variable.name}`
-						const error = errors[`fallbacks.${variable.name}`]
 
-						return (
-							<div key={variable.name} className="flex flex-col gap-1.5">
-								<FieldLabel htmlFor={id}>
-									<span className="font-mono text-lime-text">{`{{${variable.name}}}`}</span>{' '}
-									<span className="font-normal text-muted">{variable.description}</span>
-									{used.has(variable.name) && (
+				{others.length > 0 && (
+					<Disclosure
+						summary={
+							<>
+								{used.length > 0 ? 'as outras variáveis' : 'definir mesmo assim'} ({others.length})
+								{othersDefined > 0 && `, ${othersDefined} com fallback`}
+							</>
+						}
+						// Com erro num campo recolhido, ela já abre: o erro não fica escondido
+						defaultOpen={others.some(variable => errors[`fallbacks.${variable.name}`])}
+					>
+						<div className="pt-2">{renderFallbackFields(others)}</div>
+					</Disclosure>
+				)}
+
+				{/* O efeito na hora, numa vaga sem os dados que costumam faltar (a prévia da tela fica atrás da modal); sem
+				 * nenhuma variável que pode faltar no modelo, ela sairia igual à mensagem e não mostraria nada */}
+				{used.length > 0 && (
+					<section aria-label="Prévia numa vaga sem empresa e local" className="flex flex-col gap-2 rounded-sm bg-surface-2 p-3.5">
+						<span className={LABEL}>prévia numa vaga {SAMPLE_LABELS.partial}</span>
+						<p className="m-0 text-sm font-semibold wrap-break-word">
+							{renderParts(templateParts(template.subject, partial, fallbacks))}
+						</p>
+						<p className="m-0 text-sm leading-relaxed whitespace-pre-wrap wrap-break-word">
+							{renderParts(templateParts(template.body, partial, fallbacks))}
+						</p>
+					</section>
+				)}
+			</div>
+		)
+	}
+
+	/** Os campos de fallback, em grade: o nome em cima e a descrição embaixo, como no painel, e um exemplo no placeholder. */
+	function renderFallbackFields(list: typeof OPTIONAL_JOB_VARIABLES) {
+		return (
+			<div className="grid grid-cols-2 gap-x-5 gap-y-4 max-md:grid-cols-1">
+				{list.map(variable => {
+					const id = `fallback-${variable.name}`
+					const error = errors[`fallbacks.${variable.name}`]
+
+					return (
+						<div key={variable.name} className="flex flex-col gap-1.5">
+							<div className="flex flex-col gap-0.5">
+								<FieldLabel htmlFor={id} className="flex items-center gap-1.5">
+									<span className="font-mono text-lime-text">{`{{${variable.name}}}`}</span>
+									{variable.type === 'link' && (
 										<>
-											{' '}
-											<span className={badge({ tone: 'running', size: 'xs' })}>no seu modelo</span>
+											<Icon name="link" size={13} className="text-muted" />
+											<span className="sr-only">(link)</span>
 										</>
 									)}
 								</FieldLabel>
-								<Input
-									id={id}
-									placeholder={`sem fallback: fica [${variable.name}]`}
-									value={fallbacks[variable.name] ?? ''}
-									invalid={!!error}
-									aria-describedby={error ? `${id}-error` : undefined}
-									onChange={event => {
-										const value = event.target.value
-										edit(next => {
-											if (value.trim()) next.fallbacks[variable.name] = value
-											else delete next.fallbacks[variable.name]
-										})
-									}}
-								/>
-								{error && <FieldError id={`${id}-error`}>{error}</FieldError>}
+								<span id={`${id}-description`} className="text-xs text-muted">
+									{variable.description}
+								</span>
 							</div>
-						)
-					})}
-				</div>
-
-				{/* O efeito na hora, numa vaga sem os dados que costumam faltar: a prévia da tela fica atrás da modal */}
-				<section aria-label="Prévia numa vaga sem empresa e local" className="flex flex-col gap-2 rounded-sm bg-surface-2 p-3.5">
-					<span className={LABEL}>prévia numa vaga {SAMPLE_LABELS.partial}</span>
-					<p className="m-0 text-sm font-semibold wrap-break-word">
-						{renderParts(templateParts(template.subject, partial, fallbacks))}
-					</p>
-					<p className="m-0 max-h-48 overflow-y-auto text-sm leading-relaxed whitespace-pre-wrap wrap-break-word">
-						{renderParts(templateParts(template.body, partial, fallbacks))}
-					</p>
-				</section>
-
-				<Disclosure summary="como funciona">
-					<HowTo />
-				</Disclosure>
+							<Input
+								id={id}
+								className={cx(variable.type === 'link' && 'font-mono')}
+								placeholder={FALLBACK_EXAMPLES[variable.name] && `ex.: ${FALLBACK_EXAMPLES[variable.name]}`}
+								value={fallbacks[variable.name] ?? ''}
+								invalid={!!error}
+								aria-describedby={cx(`${id}-description`, error && `${id}-error`)}
+								onChange={event => {
+									const value = event.target.value
+									edit(next => {
+										if (value.trim()) next.fallbacks[variable.name] = value
+										else delete next.fallbacks[variable.name]
+									})
+								}}
+							/>
+							{error && <FieldError id={`${id}-error`}>{error}</FieldError>}
+						</div>
+					)
+				})}
 			</div>
 		)
 	}
@@ -586,7 +634,7 @@ function EditorDialogBox({
 	children,
 }: {
 	title: string
-	help: string
+	help: ReactNode
 	onClose: () => void
 	children: ReactNode
 }) {
@@ -620,8 +668,10 @@ function EditorDialogBox({
 				<FieldHelp>{help}</FieldHelp>
 			</div>
 			<div className="min-h-0 grow overflow-y-auto px-5 py-4">{children}</div>
-			<div className="flex justify-end border-t border-line px-5 py-3.5">
-				<Button variant="lime" onClick={() => ref.current?.close()}>
+			{/* O "pronto" só fecha: quem salva é o "salvar alterações" da tela */}
+			<div className="flex items-center justify-between gap-3 border-t border-line px-5 py-3.5">
+				<p className="text-xs text-muted">As mudanças entram no rascunho; salve em “salvar alterações”.</p>
+				<Button variant="lime" className="shrink-0" onClick={() => ref.current?.close()}>
 					pronto
 				</Button>
 			</div>
