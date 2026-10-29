@@ -34,7 +34,7 @@ export const GUIDES: Record<string, string> = {
 - Use para as tecnologias de uma vaga; cada item é um \`<li>\` com a classe \`badge()\` (aceita os mesmos \`tone\` e \`size\`).`,
 	Icon: `Ícone de traço (24×24, na cor do texto), escolhido por \`name\`.
 
-- Os nomes: search, mail, external, file, copy, check, close, download, moon, sun, back, alert, refresh, briefcase, settings, filter, trash, plus, flag, spinner.
+- Os nomes: search, mail, external, file, copy, check, close, download, moon, sun, back, alert, refresh, briefcase, settings, filter, trash, plus, flag, share, spinner.
 - \`size\` em px (padrão 16). A cor vem do \`color\` do pai (\`text-muted\`, \`text-lime-text\`). \`spinner\` gira sozinho.
 - Sem emoji no lugar de ícones.`,
 	PdfIcon: `A "folha" do currículo (decorativa); \`dashed\` enquanto ele está sendo gerado.

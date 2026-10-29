@@ -22,6 +22,7 @@ export interface IconProps {
 		| 'plus'
 		| 'link'
 		| 'flag'
+		| 'share'
 		| 'info'
 		| 'spinner'
 	size?: number

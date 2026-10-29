@@ -32,6 +32,7 @@ import { JobReposts } from './JobReposts'
 import { ListingBadge } from './ListingBadge'
 import { PostImages } from './PostImages'
 import { ReportJobDialog } from './ReportJobDialog'
+import { ShareJobButton } from './ShareJobDialog'
 import { badge, BadgeList } from './ui/Badge'
 import { Button } from './ui/Button'
 import { CodeBlock } from './ui/CodeBlock'
@@ -125,12 +126,13 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 						<time className="font-mono text-muted text-sm whitespace-nowrap" dateTime={jobDate(job)}>
 							publicada {timeAgo(jobDate(job))}
 						</time>
+						{/* Na cor do texto, para não sumir ao lado da data */}
+						<ShareJobButton job={job} className="ml-3 text-ink" />
 						<IconButton
 							label="reportar problema na vaga"
 							size="sm"
 							bordered
-							// Na cor do texto, para não sumir ao lado da data
-							className="ml-3 text-ink"
+							className="ml-1.5 text-ink"
 							aria-haspopup="dialog"
 							onClick={() => setReporting(true)}
 						>
