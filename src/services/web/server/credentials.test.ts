@@ -164,16 +164,25 @@ describe('checkDiscord', () => {
 	test('token recusado, canal sem acesso e canal de voz', async () => {
 		const me = { status: 200, body: { username: 'vagas-bot' } }
 
-		expect((await checkDiscord(account, fakeFetch({ '/api/v10/users/@me': { status: 401 } }).fetchFn)).ok).toBe(false)
+		expect(await checkDiscord(account, fakeFetch({ '/api/v10/users/@me': { status: 401 } }).fetchFn)).toEqual({
+			ok: false,
+			message: 'O Discord recusou o token do bot.',
+			step: 'token',
+		})
 
 		const noAccess = await checkDiscord(account, fakeFetch({ '/api/v10/users/@me': me }).fetchFn)
 		expect(noAccess).toEqual({
 			ok: false,
 			message: 'Token válido (bot vagas-bot), mas o canal não existe ou o bot não tem acesso a ele.',
+			step: 'invite',
 		})
 
 		const voice = fakeFetch({ '/api/v10/users/@me': me, '/api/v10/channels/123': { status: 200, body: { name: 'geral', type: 2 } } })
-		expect((await checkDiscord(account, voice.fetchFn)).message).toBe('O canal #geral não é de texto nem de fórum.')
+		expect(await checkDiscord(account, voice.fetchFn)).toEqual({
+			ok: false,
+			message: 'O canal #geral não é de texto nem de fórum.',
+			step: 'channel',
+		})
 	})
 
 	test('falha de rede vira resposta, sem o token', async () => {
@@ -207,10 +216,13 @@ describe('checkGithub', () => {
 		expect(await checkGithub({ username: 'ninguem' }, fakeFetch({}).fetchFn)).toEqual({
 			ok: false,
 			message: 'O usuário ninguem não existe no GitHub.',
+			step: 'username',
 		})
-		expect(
-			(await checkGithub({ username: 'x', token: 'ghp_token' }, fakeFetch({ '/users/x': { status: 401 } }).fetchFn)).message,
-		).toBe('O GitHub recusou o token.')
+		expect(await checkGithub({ username: 'x', token: 'ghp_token' }, fakeFetch({ '/users/x': { status: 401 } }).fetchFn)).toEqual({
+			ok: false,
+			message: 'O GitHub recusou o token.',
+			step: 'token',
+		})
 	})
 })
 
@@ -238,6 +250,8 @@ describe('checkSmtp', () => {
 		expect(refused.ok).toBe(false)
 		expect(refused.message).toContain('recusou o login')
 		expect(refused.message).not.toContain('senha-de-app')
+		// O site oferece o tutorial no passo da senha de app
+		expect(refused.step).toBe('app-password')
 
 		const offline = await checkSmtp(account, null, transport(Object.assign(new Error('timeout'), { code: 'ETIMEDOUT' })))
 		expect(offline).toEqual({ ok: false, message: 'Não consegui falar com o servidor SMTP (fora do ar ou sem resposta).' })

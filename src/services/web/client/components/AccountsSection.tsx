@@ -4,18 +4,21 @@ import { isMicrosoftPersonalAccount, smtpHostFor } from '@shared/contracts'
 
 import type { CredentialCheck, CredentialGroup, WebCredentials } from '../../api-types'
 import { api, RequestError } from '../api'
+import { ACCOUNT_TUTORIALS, tutorialPathFor } from '../lib/account-tutorials'
 import { cx } from '../lib/cx'
 import { shakeInvalid } from '../lib/motion'
 import { GMAIL_PRESET, initialSmtpProvider, type SmtpProviderChoice } from '../lib/smtp-presets'
+import { useStore } from '../lib/store'
 import { useFlash } from '../lib/use-flash'
+import { accountTutorialOpen } from '../stores/account-tutorial'
 import { notify } from '../stores/toast'
 import { DrawnCheck, Icon } from './Icon'
 import { LinkedinLoginStatus, useLinkedinLogin } from './LinkedinLogin'
 import { Badge } from './ui/Badge'
-import { Disclosure } from './ui/Disclosure'
 import { Button } from './ui/Button'
 import { card } from './ui/Card'
 import { ConfirmDialog } from './ui/Dialog'
+import { Disclosure } from './ui/Disclosure'
 import { FieldError, FieldHelp, FieldLabel } from './ui/Field'
 import { IconButton } from './ui/IconButton'
 import { Input } from './ui/Input'
@@ -24,6 +27,7 @@ import { Pill, PillGroup } from './ui/Pill'
 import { TabPanel, Tabs } from './ui/Tabs'
 import { LABEL, SECTION_TITLE } from './ui/text'
 import { TextLink } from './ui/TextLink'
+import { Tutorial, TutorialDialog } from './ui/Tutorial'
 
 type FieldDef = {
 	name: string
@@ -303,8 +307,9 @@ function LinkedinLoginTest({ configured }: { configured: boolean }) {
 }
 
 /**
- * Os campos de uma conta, com salvar, testar e apagar. Com `compact` (no onboarding), sem a nota, o selo de origem e o
- * aviso do que fica parado: a tela em volta já explica.
+ * Os campos de uma conta, com salvar, testar e apagar, e o tutorial da conta: numa modal, pelo "como configurar". Com
+ * `compact` (no onboarding), sem a nota, o selo de origem e o aviso do que fica parado (a tela em volta já explica), e o
+ * tutorial já aberto ao lado dos campos (acima deles no celular), até a pessoa fechar.
  */
 export function AccountGroup({
 	group,
@@ -332,6 +337,29 @@ export function AccountGroup({
 	const [check, setCheck] = useState<CredentialCheck | null>(null)
 	const [confirmDelete, setConfirmDelete] = useState(false)
 	const [savedFlash, flashSaved] = useFlash()
+	// O tutorial: na modal (`dialog`, com o passo em destaque) ou, no onboarding, ao lado dos campos
+	const [dialog, setDialog] = useState<{ step?: string } | null>(null)
+	const [highlight, setHighlight] = useState<string>()
+	const panelOpen = useStore(accountTutorialOpen)
+	const tutorialId = `${group}-tutorial`
+
+	/** Abre o tutorial, com o passo que resolve a falha do teste em destaque. */
+	function showTutorial(step?: string) {
+		if (!compact) {
+			setDialog({ step })
+			return
+		}
+		setHighlight(step)
+		accountTutorialOpen.set(true)
+		// O botão que abriu some: o foco vai para o tutorial (o passo em destaque, se houver, pega o foco depois)
+		if (!step) requestAnimationFrame(() => document.getElementById(tutorialId)?.focus())
+	}
+
+	function closePanel() {
+		accountTutorialOpen.set(false)
+		setHighlight(undefined)
+		requestAnimationFrame(() => document.getElementById(`${tutorialId}-open`)?.focus())
+	}
 
 	const saved = draftOf(group, status)
 	const dirty = removed.length > 0 || config.fields.some(field => draft[field.name] !== saved[field.name])
@@ -454,32 +482,9 @@ export function AccountGroup({
 		)
 	}
 
-	return (
+	// O que cada conta pede: os campos, o testar e o salvar
+	const fields = (
 		<>
-			{confirmDelete && (
-				<ConfirmDialog
-					title={`Apagar a ${accountName}?`}
-					description="As credenciais salvas no site são apagadas. Se o .env tiver as dele, elas voltam a valer."
-					confirmLabel="apagar"
-					cancelLabel="cancelar"
-					onConfirm={() => {
-						setConfirmDelete(false)
-						run('delete')
-					}}
-					onCancel={() => setConfirmDelete(false)}
-				/>
-			)}
-
-			{/* O selo fica sempre à direita, na primeira linha: a nota quebra linha ao lado dele em vez de empurrá-lo para baixo */}
-			{!compact && (
-				<div className="flex items-start justify-between gap-3">
-					<FieldHelp className="min-w-0">{config.note}</FieldHelp>
-					<Badge className="shrink-0" tone={badge.tone} title={'title' in badge ? badge.title : undefined}>
-						{badge.label}
-					</Badge>
-				</div>
-			)}
-
 			{!compact && current.source === null && config.missing && (
 				<Notice tone="warn" icon="alert">
 					<p className="text-sm">{config.missing}</p>
@@ -516,7 +521,11 @@ export function AccountGroup({
 					)}
 					<div className="ml-auto flex flex-wrap items-center justify-end gap-3">
 						{config.testable && (
-							<Button variant="ghost" disabled={busy !== null || (current.source === null && !dirty)} onClick={() => run('test')}>
+							<Button
+								variant="ghost"
+								disabled={busy !== null || (current.source === null && !dirty)}
+								onClick={() => run('test')}
+							>
 								{busy === 'test' ? 'testando…' : 'testar'}
 							</Button>
 						)}
@@ -550,12 +559,94 @@ export function AccountGroup({
 
 			<div role="status" className="empty:hidden">
 				{check && (
-					<p className={cx('flex items-center gap-2 text-sm', check.ok ? 'text-ok' : 'text-danger')}>
-						<Icon name={check.ok ? 'check' : 'alert'} />
-						{check.message}
+					<p className={cx('flex items-start gap-2 text-sm', check.ok ? 'text-ok' : 'text-danger')}>
+						<Icon name={check.ok ? 'check' : 'alert'} className="mt-0.5" />
+						<span>
+							{check.message}
+							{/* A falha leva ao tutorial, no passo que costuma resolver (ex.: a senha de app no login recusado) */}
+							{!check.ok && (
+								<>
+									{' · '}
+									<TextLink className="text-sm" onClick={() => showTutorial(check.step)}>
+										ver o passo a passo
+									</TextLink>
+								</>
+							)}
+						</span>
 					</p>
 				)}
 			</div>
+		</>
+	)
+
+	return (
+		<>
+			{dialog && (
+				<TutorialDialog
+					{...ACCOUNT_TUTORIALS[group]}
+					path={tutorialPathFor(group, draft as Record<string, string>)}
+					highlight={dialog.step}
+					onClose={() => setDialog(null)}
+				/>
+			)}
+			{confirmDelete && (
+				<ConfirmDialog
+					title={`Apagar a ${accountName}?`}
+					description="As credenciais salvas no site são apagadas. Se o .env tiver as dele, elas voltam a valer."
+					confirmLabel="apagar"
+					cancelLabel="cancelar"
+					onConfirm={() => {
+						setConfirmDelete(false)
+						run('delete')
+					}}
+					onCancel={() => setConfirmDelete(false)}
+				/>
+			)}
+
+			{/* O selo fica sempre à direita, na primeira linha: a nota quebra linha ao lado dele em vez de empurrá-lo para baixo */}
+			{!compact && (
+				<div className="flex items-start justify-between gap-3">
+					<FieldHelp className="min-w-0">
+						{config.note}{' '}
+						<TextLink className="text-sm" onClick={() => showTutorial()}>
+							como configurar
+						</TextLink>
+					</FieldHelp>
+					<Badge className="shrink-0" tone={badge.tone} title={'title' in badge ? badge.title : undefined}>
+						{badge.label}
+					</Badge>
+				</div>
+			)}
+
+			{compact ? (
+				// O tutorial vem antes no HTML (acima dos campos no celular) e vai para a direita no desktop
+				<div className="grid items-start gap-6 lg:grid-cols-5">
+					{panelOpen ? (
+						<Tutorial
+							id={tutorialId}
+							{...ACCOUNT_TUTORIALS[group]}
+							path={tutorialPathFor(group, draft as Record<string, string>)}
+							highlight={highlight}
+							onClose={closePanel}
+							className="rounded-md border border-line p-4 outline-none lg:order-last lg:col-span-2"
+						/>
+					) : (
+						<Button
+							id={`${tutorialId}-open`}
+							variant="ghost"
+							size="sm"
+							className="justify-self-start lg:col-span-5"
+							onClick={() => showTutorial()}
+						>
+							<Icon name="info" />
+							como configurar
+						</Button>
+					)}
+					<div className={cx('flex min-w-0 flex-col gap-5', panelOpen ? 'lg:col-span-3' : 'lg:col-span-5')}>{fields}</div>
+				</div>
+			) : (
+				fields
+			)}
 		</>
 	)
 }

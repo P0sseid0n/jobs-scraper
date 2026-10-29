@@ -252,6 +252,28 @@ const PREVIEWS: Record<string, Preview> = {
 		subtitle: 'a modal aberta',
 		body: `h(U.ConfirmDialog, { title: 'Sair sem salvar?', description: 'As alterações nas configurações vão se perder.', confirmLabel: 'sair sem salvar', cancelLabel: 'continuar editando', onConfirm: function () {}, onCancel: function () {} })`,
 	},
+	Tutorial: {
+		group: 'Feedback',
+		height: 420,
+		subtitle: 'dois caminhos em abas, um passo em destaque',
+		body: `h(U.Tutorial, { id: 'smtp-tutorial', title: 'Como configurar o e-mail', intro: 'O envio usa uma senha de app, não a senha normal da conta.', highlight: 'app-password', onClose: function () {}, className: 'max-w-md rounded-md border border-line p-4', paths: [
+	{ id: 'gmail', label: 'Gmail', steps: [
+		{ id: 'two-step', title: 'Ligue a verificação em duas etapas', text: 'Sem ela, o Google não deixa criar a senha de app.', link: { href: 'https://myaccount.google.com/signinoptions/two-step-verification', label: 'abrir a verificação em duas etapas' } },
+		{ id: 'app-password', title: 'Crie uma senha de app', text: 'Dê um nome (ex.: jobs-scraper) e copie a senha de 16 letras.', link: { href: 'https://myaccount.google.com/apppasswords', label: 'abrir as senhas de app' } },
+		{ id: 'fields', title: 'Preencha a conta', values: [{ label: 'usuário', value: 'voce@gmail.com' }, { label: 'porta', value: '587' }] }
+	] },
+	{ id: 'outlook', label: 'Outlook', steps: [{ id: 'personal', title: 'Conta pessoal: use o Gmail', text: 'A Microsoft não aceita senha no SMTP das contas pessoais.' }] }
+] })`,
+	},
+	TutorialDialog: {
+		group: 'Feedback',
+		height: 360,
+		subtitle: 'a modal aberta pelo "como configurar"',
+		body: `h(U.TutorialDialog, { title: 'Como ligar o GitHub', intro: 'A gente lê os seus repositórios públicos.', onClose: function () {}, paths: [{ id: 'github', label: 'GitHub', steps: [
+	{ id: 'username', title: 'Informe o seu usuário', text: 'É o nome no endereço do seu perfil (github.com/usuario).' },
+	{ id: 'token', title: 'Opcional: crie um token', text: 'Sem token, a API permite só 60 consultas por hora.', link: { href: 'https://github.com/settings/personal-access-tokens/new', label: 'criar o token' } }
+] }] })`,
+	},
 	Page: {
 		group: 'Layout',
 		height: 220,

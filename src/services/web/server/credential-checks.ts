@@ -1,6 +1,6 @@
 import { smtpHostOf, type CredentialsOf } from '@shared/contracts'
 
-import { classifyMailError } from '../../mailer/mail-errors'
+import { classifyMailError, isLoginRefused } from '../../mailer/mail-errors'
 import { createSmtpTransport, senderOf, type MailTransport } from '../../mailer/mail-transport'
 import type { CredentialCheck } from '../api-types'
 
@@ -23,19 +23,23 @@ export async function checkDiscord(account: CredentialsOf<'discord'>, fetchFn: F
 
 	return reachable('Discord', async () => {
 		const me = await get('/users/@me')
-		if (me.status === 401) return { ok: false, message: 'O Discord recusou o token do bot.' }
+		if (me.status === 401) return { ok: false, message: 'O Discord recusou o token do bot.', step: 'token' }
 		if (!me.ok) return { ok: false, message: `O Discord respondeu ${me.status} ao conferir o token.` }
 		const bot = (await me.json()) as { username: string }
 
 		const response = await get(`/channels/${account.channelId}`)
 		if ([403, 404].includes(response.status)) {
-			return { ok: false, message: `Token válido (bot ${bot.username}), mas o canal não existe ou o bot não tem acesso a ele.` }
+			return {
+				ok: false,
+				message: `Token válido (bot ${bot.username}), mas o canal não existe ou o bot não tem acesso a ele.`,
+				step: 'invite',
+			}
 		}
 		if (!response.ok) return { ok: false, message: `O Discord respondeu ${response.status} ao conferir o canal.` }
 
 		const channel = (await response.json()) as { name?: string; type: number }
 		if (!JOB_CHANNEL_TYPES.has(channel.type)) {
-			return { ok: false, message: `O canal #${channel.name ?? account.channelId} não é de texto nem de fórum.` }
+			return { ok: false, message: `O canal #${channel.name ?? account.channelId} não é de texto nem de fórum.`, step: 'channel' }
 		}
 
 		return { ok: true, message: `Bot ${bot.username} com acesso ao canal #${channel.name ?? account.channelId}.` }
@@ -53,8 +57,10 @@ export async function checkGithub(account: CredentialsOf<'github'>, fetchFn: Fet
 			signal: AbortSignal.timeout(TIMEOUT_MS),
 		})
 
-		if (response.status === 401) return { ok: false, message: 'O GitHub recusou o token.' }
-		if (response.status === 404) return { ok: false, message: `O usuário ${account.username} não existe no GitHub.` }
+		if (response.status === 401) return { ok: false, message: 'O GitHub recusou o token.', step: 'token' }
+		if (response.status === 404) {
+			return { ok: false, message: `O usuário ${account.username} não existe no GitHub.`, step: 'username' }
+		}
 		if (!response.ok) return { ok: false, message: `O GitHub respondeu ${response.status} ao procurar o usuário.` }
 
 		const user = (await response.json()) as { login: string; public_repos: number }
@@ -76,7 +82,8 @@ export async function checkSmtp(
 	try {
 		await createTransport(account).verify()
 	} catch (error) {
-		return { ok: false, message: classifyMailError(error).reason }
+		// O login recusado aponta para a senha de app, o motivo mais comum
+		return { ok: false, message: classifyMailError(error).reason, ...(isLoginRefused(error) && { step: 'app-password' }) }
 	}
 
 	return { ok: true, message: `Login aceito em ${smtpHostOf(account)}: as candidaturas saem de ${senderOf(account, senderName)}.` }

@@ -247,8 +247,11 @@ export type { SettingsKey }
 export type WebCredentials = CredentialsStatus
 export type { CredentialGroup }
 
-/** Resultado de `POST /api/credentials/:group/test`: se o serviço aceitou as credenciais, e o que ele respondeu. */
-export type CredentialCheck = { ok: boolean; message: string }
+/**
+ * Resultado de `POST /api/credentials/:group/test`: se o serviço aceitou as credenciais, e o que ele respondeu. Na falha,
+ * `step` é o passo do tutorial da conta que resolve (o `id` em `client/lib/account-tutorials.ts`).
+ */
+export type CredentialCheck = { ok: boolean; message: string; step?: string }
 
 /** Erro da API; em erros de validação, `fields` traz a mensagem de cada campo (caminho com pontos, ex.: "searchTerms.0.term"). */
 export type ApiError = { error: string; fields?: Record<string, string> }

@@ -140,6 +140,17 @@ export const GUIDES: Record<string, string> = {
 
 - Abre ao montar. \`title\` é a pergunta ("Sair sem salvar?"), \`description\` a consequência; \`confirmLabel\` e \`cancelLabel\` dizem o que cada botão faz ("sair sem salvar" / "continuar editando"), nunca "sim" e "não".
 - \`onConfirm\` e \`onCancel\` são obrigatórios.`,
+	Tutorial: `O passo a passo para configurar algo fora do site (as contas do LinkedIn, Discord, GitHub e e-mail), em passos numerados com o link para a página certa de cada serviço.
+
+- \`paths\`: um caminho por jeito de fazer (Gmail e Outlook, canal de texto e fórum); com mais de um, viram abas (\`Tabs\`).
+- Cada passo tem \`title\` (o que fazer, uma linha), \`text\` (onde clicar), \`link\` (abre em outra aba, com "↗") e \`values\` (o que copiar, em mono).
+- \`highlight\` destaca um passo e leva o foco até ele: use quando algo falhou e um passo resolve (o login recusado aponta para a senha de app).
+- Com \`onClose\`, mostra o "fechar" e o Esc fecha. O conteúdo das contas fica em \`client/lib/account-tutorials.ts\`, um lugar só para o onboarding e as configurações.
+- Ao lado de um formulário (o onboarding), dê a borda: \`rounded-md border border-line p-4\`. Numa modal, use \`TutorialDialog\`.`,
+	TutorialDialog: `O \`Tutorial\` numa modal, aberto pelo "como configurar" de cada conta em Configurações › Contas.
+
+- Abre ao montar; Esc, o clique fora e o "fechar" chamam \`onClose\`. A tela embaixo não muda: o que foi digitado no formulário continua lá.
+- Recebe as mesmas props do \`Tutorial\`, menos \`id\`.`,
 	Page: `Conteúdo de uma tela, centralizado e com o espaçamento das margens.
 
 - Envolve tudo abaixo do cabeçalho. \`width\`: \`wide\` (padrão: as listas de vagas e coletas), \`medium\` (currículos e formulários), \`narrow\` (uma coisa só: a vaga, o 404).

@@ -32,7 +32,7 @@ export function classifyMailError(error: unknown): ClassifiedMailError {
 	const { code, responseCode } = (error ?? {}) as { code?: unknown; responseCode?: unknown }
 	const smtp = typeof responseCode === 'number' ? responseCode : null
 
-	if (code === 'EAUTH' || smtp === 530 || smtp === 534 || smtp === 535) {
+	if (isLoginRefused(error)) {
 		return { kind: 'permanent', reason: loginRefusedReason(error, smtp) }
 	}
 
@@ -59,6 +59,12 @@ export function classifyMailError(error: unknown): ClassifiedMailError {
 	}
 
 	return { kind: 'transient', reason: 'Erro inesperado ao enviar o e-mail. Veja os logs do mailer.' }
+}
+
+/** O servidor recusou o usuário ou a senha (`EAUTH`, 530/534/535): tentar de novo não adianta. */
+export function isLoginRefused(error: unknown) {
+	const { code, responseCode } = (error ?? {}) as { code?: unknown; responseCode?: unknown }
+	return code === 'EAUTH' || responseCode === 530 || responseCode === 534 || responseCode === 535
 }
 
 /**
