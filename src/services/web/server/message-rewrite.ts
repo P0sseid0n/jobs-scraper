@@ -164,7 +164,7 @@ function parseBody(content: string) {
 	}
 }
 
-/** "Melhorar com a IA": o texto da modal (o modelo preenchido ou o que a pessoa editou, sem a assinatura) e o estilo. */
+/** "Melhorar com a IA": o texto da modal (o modelo preenchido ou o que a pessoa editou) e o estilo. */
 export const ImproveRequestSchema = RewriteRequestSchema.extend({
 	body: z.string().trim().min(1, 'Escreva a mensagem antes de pedir à IA').max(5000),
 })

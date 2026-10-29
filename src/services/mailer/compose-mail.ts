@@ -7,7 +7,7 @@ export type MailAttachmentFile = { fileName: string; pdf: Buffer }
 
 /**
  * Monta o e-mail da candidatura: o assunto e o corpo revisados por quem clicou, do remetente da conta, com o currículo
- * em PDF anexado. O texto vai como está (a assinatura já está no corpo); as quebras de linha viram CRLF, como pede o SMTP.
+ * em PDF anexado. O texto vai como está; as quebras de linha viram CRLF, como pede o SMTP.
  */
 export function composeMail(
 	request: Pick<MailRequest, 'to' | 'subject' | 'body'>,

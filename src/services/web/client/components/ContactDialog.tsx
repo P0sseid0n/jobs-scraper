@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 
 import { MESSAGE_LENGTHS, MESSAGE_TONES, type MessageLength, type MessageTone } from '@shared/contracts'
-import { DEFAULT_TEMPLATE, formatApplicationBody, templateMessage, unresolvedMissing } from '@shared/templates'
+import { DEFAULT_TEMPLATE, templateMessage, unresolvedMissing } from '@shared/templates'
 
 import type { WebJob, WebMail } from '../../api-types'
 import { api, cvPdfUrl, RequestError } from '../api'
@@ -72,10 +72,10 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 	const mails = useJobMails(job.postId)
 	const cv = useCvFor(job.postId)
 	const readyCv = useReadyCvFor(job.postId)
-	const { settings: messageSettings, profile, signature, status: signatureStatus, retry: retrySignature } = useMessageSettingsState()
-	// Só com a assinatura lida (ou sem jeito de ler) e a conta de e-mail conhecida o texto é montado: assim a assinatura não
-	// chega depois da edição, e a modal não troca de "só copiar" para editável na frente da pessoa
-	const textReady = signatureStatus !== 'loading' && setup !== null
+	const { settings: messageSettings, profile, status: settingsStatus, retry: retrySettings } = useMessageSettingsState()
+	// Só com o modelo lido (ou sem jeito de ler) e a conta de e-mail conhecida o texto é montado: assim o modelo não chega
+	// depois da edição, e a modal não troca de "só copiar" para editável na frente da pessoa
+	const textReady = settingsStatus !== 'loading' && setup !== null
 	const canSend = !!setup?.enabled
 	const lastSent = mails.find(mail => mail.status === 'sent') ?? null
 	const sending = mails[0]?.status === 'sending'
@@ -86,10 +86,10 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 	const [length, setLength] = useState<MessageLength>('medium')
 	// Sem as configurações (a leitura falhou), vale o modelo padrão
 	const message = templateMessage(messageSettings ?? { template: DEFAULT_TEMPLATE, fallbacks: {}, variables: [] }, job, profile ?? {})
-	const sourceBody = formatApplicationBody(message, signature)
+	const sourceBody = message.body
 
-	// O texto nos campos começa com o modelo preenchido, com a assinatura. Quando ele muda sozinho (as configurações ou a
-	// assinatura lidas de novo), o texto só é trocado se a pessoa ainda não editou: senão, fica a oferta de usar o novo
+	// O texto nos campos começa com o modelo preenchido. Quando ele muda sozinho (as configurações lidas de novo), o texto
+	// só é trocado se a pessoa ainda não editou: senão, fica a oferta de usar o novo
 	const [to, setTo] = useState(recipient)
 	const [subject, setSubject] = useState(message.subject)
 	const [body, setBody] = useState(sourceBody)
@@ -108,7 +108,7 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 		setNewerSource(false)
 	}, [message.subject, sourceBody, textReady])
 
-	// O corpo fica carregando enquanto os dados não chegam (a assinatura e a conta de e-mail). Os campos esperando (dados
+	// O corpo fica carregando enquanto os dados não chegam (o modelo e a conta de e-mail). Os campos esperando (dados
 	// chegando ou a IA reescrevendo) ficam só de leitura, com o `FieldScan` no corpo, e não desligados: o visual de
 	// desligado é para o que não se pode usar, não para o que ainda está chegando
 	const bodyLoading = !textReady
@@ -140,22 +140,17 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 	}, [])
 
 	/**
-	 * "Melhorar com a IA": reescreve o texto atual (sem a assinatura, que volta no fim como está) no tom e no tamanho
-	 * escolhidos e, com `direct`, mais direto. Nada é guardado: a versão nova só fica nos campos, e "desfazer" volta à de
+	 * "Melhorar com a IA": reescreve o texto atual no tom e no tamanho escolhidos e, com `direct`, mais direto. Nada é guardado: a versão nova só fica nos campos, e "desfazer" volta à de
 	 * antes.
 	 */
 	async function improveMessage(kind: 'improve' | 'direct') {
 		if (rewriting) return
 
-		const footer = signature.trim()
-		const signed = !!footer && body.endsWith(`\n\n${footer}`)
-		const text = signed ? body.slice(0, -(footer.length + 2)) : body
-
 		setRewriting(kind)
 		try {
-			const improved = await api.improveJobMessage(job.postId, { body: text, tone, length, direct: kind === 'direct' })
+			const improved = await api.improveJobMessage(job.postId, { body, tone, length, direct: kind === 'direct' })
 			setBeforeImprove(body)
-			setBody(formatApplicationBody({ subject, body: improved.body }, signed ? footer : ''))
+			setBody(improved.body)
 			setEdited(true)
 		} catch (error) {
 			notify(error instanceof RequestError ? error.message : 'Não consegui melhorar a mensagem', 'error')
@@ -291,11 +286,11 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 						</Notice>
 					)}
 
-					{signatureStatus === 'failed' && (
+					{settingsStatus === 'failed' && (
 						<Notice tone="warn" icon="alert" className="text-sm">
 							<p className="m-0">
-								Não consegui ler a assinatura das configurações: a mensagem está sem ela.{' '}
-								<TextLink className="text-sm" onClick={retrySignature}>
+								Não consegui ler o seu modelo das configurações: a mensagem saiu do modelo padrão.{' '}
+								<TextLink className="text-sm" onClick={retrySettings}>
 									tentar de novo
 								</TextLink>
 							</p>
@@ -305,7 +300,7 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 					{newerSource && (
 						<Notice tone="warn" icon="info" className="text-sm">
 							<p className="m-0">
-								O modelo ou a assinatura mudaram enquanto você editava.{' '}
+								O modelo mudou enquanto você editava.{' '}
 								<TextLink className="text-sm" onClick={adoptSource}>
 									usar a nova
 								</TextLink>{' '}

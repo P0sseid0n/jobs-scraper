@@ -5,8 +5,8 @@ import type { CvResult } from '@shared/contracts'
 import { Job, saveCvFile } from '@shared/database'
 import type { Logger } from '@shared/logging'
 import { PermanentError } from '@shared/messaging'
-import { loadCredentials, readSettings } from '@shared/settings'
-import { formatApplicationBody, type TemplateMessage } from '@shared/templates'
+import { loadCredentials } from '@shared/settings'
+import type { TemplateMessage } from '@shared/templates'
 
 import { isExpiredInteraction, toQueueError } from './discord-errors'
 import { sendApplicationRow } from './mail-reply'
@@ -40,13 +40,13 @@ export async function deliverCv(client: Client, result: CvResult, logger: Logger
 	const context = DiscordReplyContextSchema.safeParse(result.context)
 	if (!context.success) throw new PermanentError('Resultado de currículo sem a interação do Discord no contexto')
 
-	const [{ signature }, template] = await Promise.all([readSettings('message'), loadTemplateMessage(result.postId, result.jobTitle)])
+	const template = await loadTemplateMessage(result.postId, result.jobTitle)
 	const content = buildCvDeliveryContent(result, template)
 	const pdf = result.file ? Buffer.from(result.file.base64, 'base64') : null
 	const files = result.file && pdf ? [{ name: result.file.name, data: pdf }] : undefined
 	// Com variável sem valor e sem fallback, o texto precisa ser completado: o envio fica no site
 	const sendable = result.file && pdf && template.missing.length === 0
-	const fileId = sendable ? await keepForMail(result, result.file!.name, pdf, signature, template) : null
+	const fileId = sendable ? await keepForMail(result, result.file!.name, pdf, template) : null
 
 	try {
 		await client.rest.post(Routes.webhook(context.data.applicationId, context.data.token), {
@@ -68,22 +68,18 @@ export async function deliverCv(client: Client, result: CvResult, logger: Logger
 }
 
 /**
- * Guarda o PDF e o e-mail sugerido (o modelo preenchido, com a assinatura) para o "Enviar
- * candidatura": o Discord não guarda o arquivo em outro lugar. `null` (sem botão) se a vaga não tem e-mail ou não há
+ * Guarda o PDF e o e-mail sugerido (o modelo preenchido) para o "Enviar candidatura": o Discord não guarda o arquivo
+ * em outro lugar. `null` (sem botão) se a vaga não tem e-mail ou não há
  * conta de e-mail.
  */
-async function keepForMail(result: CvResult, fileName: string, pdf: Buffer, signature: string, template: TemplateMessage) {
+async function keepForMail(result: CvResult, fileName: string, pdf: Buffer, template: TemplateMessage) {
 	const [job, account] = await Promise.all([
 		Job.findOne({ postId: result.postId }, { recruiterEmail: 1 }).lean(),
 		loadCredentials('smtp'),
 	])
 	if (!job?.recruiterEmail || !account) return null
 
-	const draft = {
-		subject: template.subject,
-		body: formatApplicationBody(template, signature),
-		fallbacks: template.fallbacks,
-	}
+	const draft = { subject: template.subject, body: template.body, fallbacks: template.fallbacks }
 
 	return saveCvFile({ postId: result.postId, fileName, pdf, draft })
 }

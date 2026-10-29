@@ -158,7 +158,6 @@ export type MessageTone = (typeof MESSAGE_TONES)[number]
 export const MESSAGE_LENGTHS = ['short', 'medium'] as const
 export type MessageLength = (typeof MESSAGE_LENGTHS)[number]
 
-export const MESSAGE_SIGNATURE_MAX = 500
 export const MESSAGE_SUBJECT_MAX = 200
 export const MESSAGE_TEMPLATE_MAX = 3000
 export const MAX_OWN_VARIABLES = 20
@@ -188,14 +187,28 @@ const OwnVariableSchema = z.object({
 const HTTP_LINK = /^https?:\/\/[^\s/$.?#][^\s]*$/i
 
 /**
- * A mensagem de candidatura: o modelo da pessoa, preenchido na hora com os dados da vaga, e a assinatura. A IA só entra
- * quando a pessoa pede, na vaga ("melhorar com a IA"). Os campos do estilo da IA de antes (`mode`, `tone`, `length`,
- * `styleSample`) que ainda estejam salvos são ignorados.
+ * A assinatura de antes (linhas coladas no fim de toda mensagem) vai para o fim do modelo, onde a pessoa pode editá-la ou
+ * trocá-la por variáveis de link. Só age enquanto ela estiver salva: o próximo salvar grava o modelo já com ela e sem o
+ * campo, e uma assinatura que o modelo já tem não entra de novo.
  */
-export const MessageSettingsSchema = z
+function moveSignatureToTemplate(values: unknown) {
+	if (!values || typeof values !== 'object' || !('signature' in values)) return values
+
+	const { signature, ...rest } = values as { signature?: unknown; template?: { subject?: unknown; body?: unknown } }
+	const footer = typeof signature === 'string' ? signature.trim() : ''
+	const template = { ...DEFAULT_TEMPLATE, ...rest.template }
+	if (!footer || typeof template.body !== 'string' || template.body.includes(footer)) return rest
+
+	return { ...rest, template: { ...template, body: `${template.body.trimEnd()}\n\n${footer}` } }
+}
+
+/**
+ * A mensagem de candidatura: o modelo da pessoa, preenchido na hora com os dados da vaga. A IA só entra quando a pessoa
+ * pede, na vaga ("melhorar com a IA"). Os campos do estilo da IA de antes (`mode`, `tone`, `length`, `styleSample`) que
+ * ainda estejam salvos são ignorados, e a assinatura de antes vai para o fim do modelo (`moveSignatureToTemplate`).
+ */
+const MessageSettingsObject = z
 	.object({
-		/** Linhas coladas no fim de toda mensagem, como estão, sem passar pela IA (ex.: links do GitHub e do LinkedIn). */
-		signature: z.string().trim().max(MESSAGE_SIGNATURE_MAX).default(''),
 		/** O modelo, com variáveis (`{{empresa}}`): a mensagem de toda vaga sai dele. */
 		template: z
 			.object({
@@ -262,6 +275,8 @@ export const MessageSettingsSchema = z
 			if (problem) ctx.addIssue({ code: 'custom', path: ['template', field], message: problem })
 		}
 	})
+
+export const MessageSettingsSchema = z.preprocess(moveSignatureToTemplate, MessageSettingsObject)
 
 export type MessageSettings = z.output<typeof MessageSettingsSchema>
 

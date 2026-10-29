@@ -2,7 +2,6 @@ import { useId, useRef, useState, type ReactNode } from 'react'
 
 import { MAX_OWN_VARIABLES, OWN_VARIABLE_LIMITS, type MessageSettings } from '@shared/contracts'
 import {
-	formatApplicationBody,
 	JOB_VARIABLES,
 	PROFILE_VARIABLES,
 	templateParts,
@@ -127,7 +126,7 @@ export function MessageTemplateEditor({ message, profile, errors, edit }: Messag
 
 	const values = templateValues(sampleJob(sample, profile.targetRole), profile, ownVariables)
 	const subjectParts = templateParts(template.subject, values, fallbacks)
-	const bodyParts = templateParts(formatApplicationBody({ subject: '', body: template.body }, message.signature), values, fallbacks)
+	const bodyParts = templateParts(template.body, values, fallbacks)
 	const previewParts = [...subjectParts, ...bodyParts]
 	const previewFallbacks = [...new Set(previewParts.filter(part => part.kind === 'fallback').map(part => part.name!))]
 	const previewMissing = [...new Set(previewParts.filter(part => part.kind === 'missing').map(part => part.name!))]

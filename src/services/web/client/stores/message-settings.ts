@@ -29,7 +29,7 @@ function load({ force = false } = {}) {
 	Promise.all([api.settings('message'), api.settings('profile')]).then(
 		([value, profile]) => settings.set({ value, profile, status: 'ready' }),
 		() => {
-			// Sem as configurações, a mensagem sai sem assinatura e com o modelo padrão; a próxima tela que pedir tenta de novo
+			// Sem as configurações, a mensagem sai do modelo padrão; a próxima tela que pedir tenta de novo
 			// (depois de um tempo)
 			requested = false
 			failedAt = Date.now()
@@ -57,7 +57,6 @@ export function useMessageSettingsState() {
 	return {
 		settings: value,
 		profile,
-		signature: value?.signature ?? '',
 		status,
 		retry: () => {
 			settings.set(current => ({ ...current, status: 'loading' }))

@@ -11,7 +11,7 @@ export type CvFileDocument = {
 	fileName: string
 	pdf: Buffer
 	/**
-	 * O e-mail sugerido junto com o currículo (a mensagem da IA ou o modelo padrão, já com a assinatura), para o Discord
+	 * O e-mail sugerido junto com o currículo (o modelo preenchido), para o Discord
 	 * mostrar na confirmação do envio; `null` quando quem guardou já tem o texto revisado (o site). `fallbacks`: as
 	 * variáveis do modelo que a vaga não tinha e usaram o fallback (ausente nos guardados antes do modelo).
 	 */

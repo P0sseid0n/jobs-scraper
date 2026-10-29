@@ -1,4 +1,4 @@
-import { MESSAGE_SIGNATURE_MAX, MessageSettingsSchema } from '@shared/contracts'
+import { MessageSettingsSchema } from '@shared/contracts'
 
 import type { WebSettings } from '../../api-types'
 
@@ -14,7 +14,6 @@ export const LIMITS = {
 	area: 80,
 	targetRole: 100,
 	profileLanguages: 10,
-	signature: MESSAGE_SIGNATURE_MAX,
 } as const
 
 /** O perfil no formulário: área e cargo-alvo ainda não preenchidos ficam como texto vazio. */
@@ -66,8 +65,6 @@ export function validateDraft(draft: SettingsDraft) {
 
 	if (!isIntIn(processing.duplicateWindowDays, LIMITS.duplicateWindowDays))
 		errors.duplicateWindowDays = 'Use um número inteiro de 1 a 365'
-
-	if (draft.message.signature.trim().length > LIMITS.signature) errors.signature = `Use até ${LIMITS.signature} caracteres`
 
 	// O modelo, as variáveis próprias e os fallbacks: as regras do próprio schema, com as mesmas mensagens do servidor
 	for (const [path, message] of Object.entries(messageTemplateErrors(draft.message))) errors[path] ??= message

@@ -24,7 +24,7 @@ import { Combobox } from '../components/ui/Combobox'
 import { ConfirmDialog } from '../components/ui/Dialog'
 import { FieldError, FieldHelp, FieldLabel } from '../components/ui/Field'
 import { IconButton } from '../components/ui/IconButton'
-import { Checkbox, field, Input, Range } from '../components/ui/Input'
+import { Checkbox, Input, Range } from '../components/ui/Input'
 import { KeywordInput } from '../components/ui/KeywordInput'
 import { Notice } from '../components/ui/Notice'
 import { Hero, Page, pageFrame } from '../components/ui/Page'
@@ -193,7 +193,7 @@ export function SettingsView({
 			for (const key of dirtyKeys) {
 				const saved = await api.saveSettings(key, draft[key])
 				current = { ...current, [key]: saved }
-				// A assinatura, o modelo e o perfil (das variáveis) entram nas mensagens das outras telas sem recarregar
+				// O modelo e o perfil (das variáveis) entram nas mensagens das outras telas sem recarregar
 				if (key === 'message') setMessageSettings(current.message)
 				if (key === 'profile') setMessageProfile(current.profile)
 				setLoaded(current)
@@ -643,7 +643,6 @@ export function SettingsView({
 
 	function renderMessage(d: SettingsDraft) {
 		const message = d.message
-		const signatureLength = message.signature.trim().length
 
 		return (
 			<section id="mensagem" className={SETTINGS_CARD} aria-labelledby="message-title">
@@ -663,41 +662,6 @@ export function SettingsView({
 					errors={errors}
 					edit={mutate => edit(next => mutate(next.message))}
 				/>
-
-				<div className="flex flex-col gap-1.5">
-					<span className="flex items-center justify-between gap-3">
-						<FieldLabel htmlFor="signature">
-							assinatura <span className="font-normal text-muted">(opcional)</span>
-						</FieldLabel>
-						<span
-							id="signature-count"
-							className={cx('font-mono text-xs', signatureLength > LIMITS.signature ? 'text-danger' : 'text-muted')}
-						>
-							{signatureLength} / {LIMITS.signature}
-						</span>
-					</span>
-					<textarea
-						id="signature"
-						rows={3}
-						value={message.signature}
-						placeholder={'GitHub: https://github.com/voce\nLinkedIn: https://linkedin.com/in/voce'}
-						aria-invalid={!!errors.signature || undefined}
-						aria-describedby={`${errors.signature ? 'signature-error' : 'signature-help'} signature-count`}
-						onChange={event => {
-							const value = event.target.value
-							edit(next => {
-								next.message.signature = value
-							})
-						}}
-						className={field({ invalid: !!errors.signature, className: 'resize-y py-2.5 leading-relaxed' })}
-					/>
-					{fieldError('signature') ?? (
-						<FieldHelp id="signature-help">
-							Entra no fim de toda mensagem de candidatura, exatamente como está, sem passar pela IA: links do GitHub, LinkedIn
-							ou portfólio.
-						</FieldHelp>
-					)}
-				</div>
 			</section>
 		)
 	}

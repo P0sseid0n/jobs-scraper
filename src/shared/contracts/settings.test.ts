@@ -160,11 +160,26 @@ describe('MessageSettingsSchema', () => {
 			tone: 'auto',
 			length: 'short',
 			styleSample: 'Oi',
-			signature: 'GitHub',
 		})
 
 		expect(settings).not.toContainKeys(['mode', 'tone', 'length', 'styleSample'])
-		expect(settings.signature).toBe('GitHub')
+	})
+
+	test('a assinatura de antes vai para o fim do modelo, uma vez só', () => {
+		const signature = '🔗 GitHub: https://github.com/exemplo'
+		const moved = MessageSettingsSchema.parse({ signature: `  ${signature}\n` })
+
+		expect(moved).not.toContainKey('signature')
+		expect(moved.template.body).toEndWith(`Obrigado!\n\n${signature}`)
+		expect(moved.template.subject).toBe('Candidatura – {{cargo}}')
+
+		// Salvo de novo (com o campo ainda lá, ou já sem ele), não repete
+		expect(MessageSettingsSchema.parse({ ...moved, signature }).template.body).toBe(moved.template.body)
+		expect(MessageSettingsSchema.parse(moved).template.body).toBe(moved.template.body)
+
+		const own = { subject: 'Oi', body: 'Meu texto' }
+		expect(MessageSettingsSchema.parse({ template: own, signature }).template.body).toBe(`Meu texto\n\n${signature}`)
+		expect(MessageSettingsSchema.parse({ template: own, signature: '  ' }).template.body).toBe('Meu texto')
 	})
 
 	test('aceita um modelo com variáveis prontas, próprias e fallbacks', () => {

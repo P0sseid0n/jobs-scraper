@@ -42,15 +42,6 @@ describe('botão de contato', () => {
 		expect(reply).toContain(CV_PENDING_NOTE)
 	})
 
-	test('o modelo de mensagem leva a assinatura das configurações', () => {
-		const reply = buildContactReply('rh@acme.com', filled(), {
-			generatingCv: false,
-			signature: 'GitHub: https://github.com/exemplo',
-		})
-
-		expect(reply).toContain('Obrigado!\n\nGitHub: https://github.com/exemplo\n```')
-	})
-
 	test('a mensagem preenchida avisa o que usou fallback e o que faltou', () => {
 		const template = { subject: '{{cargo}}', body: 'Vi a vaga na {{empresa}}, em {{local}}.' }
 		const reply = buildContactReply('rh@acme.com', filled(template, { local: 'sua cidade' }, { company: null, location: null }), {

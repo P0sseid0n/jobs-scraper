@@ -23,11 +23,7 @@ export function emailFromEmbed(fields: { name: string; value: string }[]) {
  * Monta a resposta ao botão de contato (só quem clicou vê): e-mail, a mensagem do modelo da pessoa (com os avisos do
  * que faltou na vaga) e o aviso do currículo.
  */
-export function buildContactReply(
-	email: string | null,
-	message: TemplateMessage,
-	opts: { generatingCv: boolean; signature?: string },
-) {
+export function buildContactReply(email: string | null, message: TemplateMessage, opts: { generatingCv: boolean }) {
 	if (!email) {
 		return opts.generatingCv ? CV_PENDING_NOTE : 'Essa vaga não tem e-mail de contato.'
 	}
@@ -37,7 +33,7 @@ export function buildContactReply(
 		'',
 		'Mensagem do seu modelo para copiar:',
 		'```',
-		formatApplicationMessage(message, opts.signature).replaceAll('```', "'''"),
+		formatApplicationMessage(message).replaceAll('```', "'''"),
 		'```',
 		...templateNotes(message),
 		...(opts.generatingCv ? ['', CV_PENDING_NOTE] : []),
