@@ -4,7 +4,7 @@ import { isMicrosoftPersonalAccount, smtpHostFor } from '@shared/contracts'
 
 import type { CredentialCheck, CredentialGroup, WebCredentials } from '../../api-types'
 import { api, RequestError } from '../api'
-import { ACCOUNT_TUTORIALS } from '../lib/account-tutorials'
+import { accountTutorial } from '../lib/account-tutorials'
 import { cx } from '../lib/cx'
 import { shakeInvalid } from '../lib/motion'
 import { GMAIL_PRESET, initialSmtpProvider, SMTP_PROVIDER_OPTIONS, type SmtpProviderChoice } from '../lib/smtp-presets'
@@ -48,6 +48,8 @@ type FieldDef = {
 	span?: keyof typeof FIELD_SPANS
 	/** Fica recolhido em "avançado": tem um padrão que serve para quase todo mundo (ex.: o servidor deduzido do e-mail). */
 	advanced?: boolean
+	/** Só em Configurações › Contas: fica fora do onboarding, para não pesar no começo (ex.: o cookie li_at, raro). */
+	settingsOnly?: boolean
 	/** A ajuda e o placeholder conforme o que foi digitado na conta (ex.: o servidor deduzido do usuário). */
 	live?: (values: Record<string, string>) => Pick<FieldDef, 'help' | 'placeholder'>
 	/** Ao sair do campo, abre o "avançado" se o valor pedir um campo de lá (ex.: um domínio sem servidor conhecido). */
@@ -92,7 +94,10 @@ const GROUPS: Record<CredentialGroup, GroupDef> = {
 				label: 'cookie li_at',
 				secret: true,
 				optional: true,
-				help: 'Opcional: o cookie de uma sessão já logada, usado enquanto o scraper não tem uma salva.',
+				help: 'Opcional: o cookie de uma sessão já logada, usado enquanto o scraper não tem uma salva. Ajuda quando o LinkedIn pede confirmação a cada login.',
+				span: 4,
+				advanced: true,
+				settingsOnly: true,
 			},
 		],
 	},
@@ -416,8 +421,10 @@ export function AccountGroup({
 
 	const badge = SOURCE_BADGES[current.source ?? 'none']
 
-	const mainFields = config.fields.filter(field => !field.advanced)
-	const advancedFields = config.fields.filter(field => field.advanced)
+	// No onboarding, sem os campos que só existem nas Configurações (o cookie li_at)
+	const shownFields = config.fields.filter(field => !(compact && field.settingsOnly))
+	const mainFields = shownFields.filter(field => !field.advanced)
+	const advancedFields = shownFields.filter(field => field.advanced)
 	// Uma vez aberto por um campo pedido (erro ao salvar ou testar, um domínio sem servidor conhecido), o "avançado" não
 	// fecha sozinho de novo: senão sumiria enquanto a pessoa preenche o campo
 	const [advancedOpen, setAdvancedOpen] = useState(false)
@@ -600,12 +607,12 @@ export function AccountGroup({
 		<>
 			{dialog && (
 				<TutorialDialog
-					{...ACCOUNT_TUTORIALS[group]}
+					{...accountTutorial(group, 'settings')}
 					// O provedor fica atrás da modal: ela diz como trocar de caminho
 					intro={
 						group === 'smtp'
-							? `${ACCOUNT_TUTORIALS.smtp.intro} Para outro provedor, feche e troque a escolha na conta.`
-							: ACCOUNT_TUTORIALS[group].intro
+							? `${accountTutorial('smtp', 'settings').intro} Para outro provedor, feche e troque a escolha na conta.`
+							: accountTutorial(group, 'settings').intro
 					}
 					path={tutorialPath}
 					highlight={dialog.step}
@@ -651,7 +658,7 @@ export function AccountGroup({
 						// Sem moldura própria (já está dentro do cartão): só a linha que o separa dos campos
 						<Tutorial
 							id={tutorialId}
-							{...ACCOUNT_TUTORIALS[group]}
+							{...accountTutorial(group, 'onboarding')}
 							path={tutorialPath}
 							highlight={highlight}
 							scene={(path, step) => accountScene(group, path, step.id)}
