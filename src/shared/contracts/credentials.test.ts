@@ -6,6 +6,8 @@ import {
 	DiscordCredentialsSchema,
 	GithubCredentialsSchema,
 	LinkedinCredentialsSchema,
+	SmtpCredentialsSchema,
+	smtpHostOf,
 } from './settings'
 
 describe('CredentialsSchema', () => {
@@ -37,6 +39,30 @@ describe('CredentialsSchema', () => {
 			'discord.channelId': 'Use o ID numérico do canal',
 			'github.username': 'Use o nome de usuário do GitHub (letras, números e hífen)',
 		})
+	})
+})
+
+describe('SmtpCredentialsSchema', () => {
+	test('nos provedores conhecidos, o servidor é deduzido do domínio do usuário', () => {
+		const account = SmtpCredentialsSchema.parse({ host: '', user: 'Ana@Gmail.com', password: 'senha de app' })
+		expect(account).toEqual({ user: 'Ana@Gmail.com', password: 'senha de app' })
+		expect(smtpHostOf(account)).toBe('smtp.gmail.com')
+		expect(smtpHostOf({ user: 'ana@hotmail.com.br' })).toBe('smtp-mail.outlook.com')
+	})
+
+	test('o servidor informado vale no lugar do deduzido', () => {
+		expect(smtpHostOf({ host: 'smtp.office365.com', user: 'ana@outlook.com' })).toBe('smtp.office365.com')
+	})
+
+	test('domínio desconhecido (ou usuário sem e-mail) pede o servidor', () => {
+		const issues = (user: string) =>
+			SmtpCredentialsSchema.safeParse({ user, password: 'x' }).error?.issues.map(issue => [issue.path.join('.'), issue.message])
+
+		expect(issues('ana@empresa.com.br')).toEqual([['host', 'Informe o servidor SMTP: não conheço o de empresa.com.br']])
+		expect(issues('ana')).toEqual([['host', 'Informe o servidor SMTP (ou use o e-mail inteiro no usuário, para ele ser deduzido)']])
+		expect(SmtpCredentialsSchema.safeParse({ host: 'smtp.empresa.com.br', user: 'ana@empresa.com.br', password: 'x' }).success).toBe(
+			true,
+		)
 	})
 })
 

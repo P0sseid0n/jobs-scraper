@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer'
 
-import { SMTP_DEFAULT_PORT, type CredentialsOf } from '@shared/contracts'
+import { SMTP_DEFAULT_PORT, smtpHostOf, type CredentialsOf } from '@shared/contracts'
 
 /** O e-mail pronto para o provedor. */
 export type OutgoingMail = {
@@ -27,9 +27,16 @@ export type SmtpAccount = CredentialsOf<'smtp'>
 const CONNECTION_TIMEOUT_MS = 15_000
 const SOCKET_TIMEOUT_MS = 30_000
 
-/** O remetente: o `from` da conta ou, sem ele, o usuário. */
-export function senderOf(account: SmtpAccount) {
-	return account.from ?? account.user
+/**
+ * O remetente: o `from` da conta ou, sem ele, o nome do currículo base com o usuário (`Ana Souza <ana@gmail.com>`),
+ * para o recrutador ver o nome; sem o nome (ou com um usuário que não é e-mail), só o usuário.
+ */
+export function senderOf(account: SmtpAccount, name: string | null = null) {
+	if (account.from) return account.from
+	if (!name || !account.user.includes('@')) return account.user
+
+	// Entre aspas, o nome pode ter vírgula ou ponto; aspas e barras dentro dele quebrariam o cabeçalho
+	return `"${name.replace(/["\\\r\n]/g, '')}" <${account.user}>`
 }
 
 /** As opções do nodemailer para a conta: TLS desde a conexão na 465, STARTTLS nas outras. */
@@ -37,7 +44,7 @@ export function smtpOptions(account: SmtpAccount) {
 	const port = account.port ? Number(account.port) : SMTP_DEFAULT_PORT
 
 	return {
-		host: account.host,
+		host: smtpHostOf(account),
 		port,
 		secure: port === 465,
 		auth: { user: account.user, pass: account.password },

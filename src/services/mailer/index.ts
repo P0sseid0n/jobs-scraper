@@ -1,5 +1,5 @@
 import { MailRequestSchema, type JobAppliedChange } from '@shared/contracts'
-import { ApplicationMail, findCvFile, setJobApplied } from '@shared/database'
+import { ApplicationMail, findActiveCvBaseName, findCvFile, setJobApplied } from '@shared/database'
 import { QUEUES } from '@shared/messaging'
 import { startService } from '@shared/service'
 import { loadCredentials } from '@shared/settings'
@@ -23,7 +23,7 @@ async function currentAccount() {
 	const key = JSON.stringify(account)
 	if (smtp?.key !== key) smtp = { key, transport: createSmtpTransport(account) }
 
-	return { transport: smtp.transport, from: senderOf(account) }
+	return { transport: smtp.transport, from: senderOf(account, await findActiveCvBaseName()) }
 }
 
 const records: MailRecords = {

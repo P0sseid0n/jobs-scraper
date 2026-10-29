@@ -5,6 +5,7 @@ import {
 	ApplicationMail,
 	createApplicationMail,
 	effectiveMailStatus,
+	findActiveCvBaseName,
 	Job,
 	listApplicationMails,
 	mailBlockers,
@@ -57,7 +58,10 @@ export function toWebMail(doc: ApplicationMailDocument, now = new Date()): WebMa
 export async function mailSetup() {
 	const account = (await loadCredentials('smtp'))?.value
 
-	return Response.json({ enabled: !!account, from: account ? senderOf(account) : null } satisfies WebMailSetup)
+	return Response.json({
+		enabled: !!account,
+		from: account ? senderOf(account, await findActiveCvBaseName()) : null,
+	} satisfies WebMailSetup)
 }
 
 /** `GET /api/jobs/:postId/mails`: as candidaturas por e-mail da vaga, da mais recente à mais antiga. */

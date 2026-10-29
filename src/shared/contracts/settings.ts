@@ -212,29 +212,76 @@ const emptyAsUndefined = <T extends z.ZodType>(schema: T) =>
 /** Porta padrão do SMTP (STARTTLS); a 465 usa TLS desde a conexão. */
 export const SMTP_DEFAULT_PORT = 587
 
+/** O servidor SMTP dos provedores mais comuns, pelo domínio do e-mail (todos aceitam a 587 com STARTTLS). */
+export const SMTP_PROVIDER_HOSTS: Record<string, string> = {
+	'gmail.com': 'smtp.gmail.com',
+	'googlemail.com': 'smtp.gmail.com',
+	'outlook.com': 'smtp-mail.outlook.com',
+	'outlook.com.br': 'smtp-mail.outlook.com',
+	'hotmail.com': 'smtp-mail.outlook.com',
+	'hotmail.com.br': 'smtp-mail.outlook.com',
+	'live.com': 'smtp-mail.outlook.com',
+	'msn.com': 'smtp-mail.outlook.com',
+	'yahoo.com': 'smtp.mail.yahoo.com',
+	'yahoo.com.br': 'smtp.mail.yahoo.com',
+	'ymail.com': 'smtp.mail.yahoo.com',
+	'icloud.com': 'smtp.mail.me.com',
+	'me.com': 'smtp.mail.me.com',
+	'mac.com': 'smtp.mail.me.com',
+}
+
+/** O servidor deduzido do usuário (o e-mail da conta); `null` quando o domínio não é de um provedor conhecido. */
+export function smtpHostFor(user: string) {
+	const domain = user.trim().toLowerCase().split('@')[1]
+	return (domain && SMTP_PROVIDER_HOSTS[domain]) || null
+}
+
+/** O servidor da conta: o informado ou, sem ele, o deduzido do usuário (a validação garante que um dos dois existe). */
+export function smtpHostOf(account: { host?: string; user: string }) {
+	return account.host ?? smtpHostFor(account.user) ?? ''
+}
+
 /**
  * O servidor SMTP do envio das candidaturas (Gmail, Outlook e afins, com senha de app). Sem ele, o envio por e-mail
- * fica desligado nos canais.
+ * fica desligado nos canais. O servidor só é pedido quando o domínio do usuário não é de um provedor conhecido.
  */
-export const SmtpCredentialsSchema = z.object({
-	host: z
-		.string('Informe o servidor SMTP')
-		.trim()
-		.min(1, 'Informe o servidor SMTP')
-		.regex(/^[a-z\d.-]+$/i, 'Use só o endereço do servidor (ex.: smtp.gmail.com)'),
-	/** Opcional: sem porta, vale a 587. Texto, como os outros campos do formulário. */
-	port: emptyAsUndefined(
-		z
-			.string()
-			.trim()
-			.regex(/^\d{1,5}$/, 'Use o número da porta (ex.: 587 ou 465)')
-			.refine(port => Number(port) >= 1 && Number(port) <= 65_535, 'Porta fora do intervalo 1-65535'),
-	),
-	user: z.string('Informe o usuário').trim().min(1, 'Informe o usuário (em geral, o e-mail)'),
-	password: z.string('Informe a senha').min(1, 'Informe a senha (de app, no Gmail e no Outlook)'),
-	/** Opcional: o remetente ("Nome <email>" ou só o e-mail); sem ele, o `user`. */
-	from: emptyAsUndefined(z.string().trim().max(200, 'Use até 200 caracteres')),
-})
+export const SmtpCredentialsSchema = z
+	.object({
+		/** Opcional nos provedores conhecidos: sem ele, vale o deduzido do usuário (`smtpHostOf`). */
+		host: emptyAsUndefined(
+			z
+				.string()
+				.trim()
+				.regex(/^[a-z\d.-]+$/i, 'Use só o endereço do servidor (ex.: smtp.gmail.com)'),
+		),
+		/** Opcional: sem porta, vale a 587. Texto, como os outros campos do formulário. */
+		port: emptyAsUndefined(
+			z
+				.string()
+				.trim()
+				.regex(/^\d{1,5}$/, 'Use o número da porta (ex.: 587 ou 465)')
+				.refine(port => Number(port) >= 1 && Number(port) <= 65_535, 'Porta fora do intervalo 1-65535'),
+		),
+		user: z.string('Informe o usuário').trim().min(1, 'Informe o usuário (em geral, o e-mail)'),
+		password: z.string('Informe a senha').min(1, 'Informe a senha (de app, no Gmail e no Outlook)'),
+		/**
+		 * Opcional: o remetente ("Nome <email>" ou só o e-mail); sem ele, o nome do currículo base com o `user`
+		 * (`senderOf`, no mailer).
+		 */
+		from: emptyAsUndefined(z.string().trim().max(200, 'Use até 200 caracteres')),
+	})
+	.superRefine((account, ctx) => {
+		if (account.host || smtpHostFor(account.user)) return
+
+		const domain = account.user.split('@')[1]
+		ctx.addIssue({
+			code: 'custom',
+			path: ['host'],
+			message: domain
+				? `Informe o servidor SMTP: não conheço o de ${domain}`
+				: 'Informe o servidor SMTP (ou use o e-mail inteiro no usuário, para ele ser deduzido)',
+		})
+	})
 
 export const CREDENTIAL_SCHEMAS = {
 	linkedin: LinkedinCredentialsSchema,

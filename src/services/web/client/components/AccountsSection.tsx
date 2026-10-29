@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 
+import { smtpHostFor } from '@shared/contracts'
+
 import type { CredentialCheck, CredentialGroup, WebCredentials } from '../../api-types'
 import { api, RequestError } from '../api'
 import { cx } from '../lib/cx'
@@ -9,6 +11,7 @@ import { notify } from '../stores/toast'
 import { DrawnCheck, Icon } from './Icon'
 import { LinkedinLoginStatus, useLinkedinLogin } from './LinkedinLogin'
 import { Badge } from './ui/Badge'
+import { Disclosure } from './ui/Disclosure'
 import { Button } from './ui/Button'
 import { card } from './ui/Card'
 import { ConfirmDialog } from './ui/Dialog'
@@ -35,7 +38,16 @@ type FieldDef = {
 	 * campo sozinho na linha inteira, para não sobrar meia linha vazia. No celular, todos ocupam a linha.
 	 */
 	span?: keyof typeof FIELD_SPANS
+	/** Fica recolhido em "avançado": tem um padrão que serve para quase todo mundo (ex.: o servidor deduzido do e-mail). */
+	advanced?: boolean
+	/** A ajuda e o placeholder conforme o que foi digitado na conta (ex.: o servidor deduzido do usuário). */
+	live?: (values: Record<string, string>) => Pick<FieldDef, 'help' | 'placeholder'>
+	/** Ao sair do campo, abre o "avançado" se o valor pedir um campo de lá (ex.: um domínio sem servidor conhecido). */
+	revealsAdvanced?: (values: Record<string, string>) => boolean
 }
+
+/** A grade dos campos, em quartos da linha (`FieldDef.span`); no celular, uma coluna. */
+const FIELD_GRID = 'grid grid-cols-4 gap-5 max-md:grid-cols-1'
 
 const FIELD_SPANS = {
 	1: 'col-span-1',
@@ -114,16 +126,14 @@ const GROUPS: Record<CredentialGroup, GroupDef> = {
 		testable: true,
 		testHelp: 'O teste faz o login sem enviar nada.',
 		fields: [
-			{ name: 'host', label: 'servidor SMTP', placeholder: 'ex.: smtp.gmail.com', span: 3 },
 			{
-				name: 'port',
-				label: 'porta',
-				inputMode: 'numeric',
-				placeholder: '587',
-				help: 'Opcional: 587 (STARTTLS) por padrão; use 465 para TLS direto.',
-				span: 1,
+				name: 'user',
+				label: 'usuário',
+				type: 'email',
+				placeholder: 'voce@gmail.com',
+				live: values => ({ help: smtpUserHelp(values) }),
+				revealsAdvanced: values => needsSmtpHost(values),
 			},
-			{ name: 'user', label: 'usuário', type: 'email', placeholder: 'voce@gmail.com' },
 			{
 				name: 'password',
 				label: 'senha de app',
@@ -131,14 +141,48 @@ const GROUPS: Record<CredentialGroup, GroupDef> = {
 				help: 'No Gmail e no Outlook, crie uma senha de app (com a verificação em duas etapas ligada); a senha normal é recusada.',
 			},
 			{
+				name: 'host',
+				label: 'servidor SMTP',
+				span: 3,
+				advanced: true,
+				live: values => ({ placeholder: smtpHostFor(values.user ?? '') ?? 'ex.: smtp.empresa.com.br' }),
+				help: 'Vazio: deduzido do e-mail do usuário (Gmail, Outlook, Yahoo e iCloud).',
+			},
+			{
+				name: 'port',
+				label: 'porta',
+				inputMode: 'numeric',
+				placeholder: '587',
+				help: 'Opcional: 587 (STARTTLS) por padrão; use 465 para TLS direto.',
+				span: 1,
+				advanced: true,
+			},
+			{
 				name: 'from',
 				label: 'remetente',
 				placeholder: 'ex.: Ana Souza <voce@gmail.com>',
-				help: 'Opcional: o nome e o e-mail que o recrutador vê. Vazio usa o usuário.',
+				help: 'Opcional: o nome e o e-mail que o recrutador vê. Vazio usa o nome do currículo base (o feito pelo formulário) com o usuário.',
 				span: 4,
+				advanced: true,
 			},
 		],
 	},
+}
+
+/** Um e-mail com domínio, mas sem servidor conhecido nem informado: o servidor precisa ser preenchido em "avançado". */
+function needsSmtpHost(values: Record<string, string>) {
+	const user = values.user?.trim() ?? ''
+	return /@.+\..+/.test(user) && !smtpHostFor(user) && !values.host?.trim()
+}
+
+/** Diz, abaixo do usuário, de onde sai o servidor: o deduzido do domínio ou o pedido em "avançado". */
+function smtpUserHelp(values: Record<string, string>) {
+	if (values.host?.trim()) return undefined
+
+	const host = smtpHostFor(values.user ?? '')
+	if (host) return `O servidor (${host}) sai do domínio do e-mail.`
+	if (needsSmtpHost(values)) return `Não conheço o servidor de ${values.user?.split('@')[1]}: informe em "avançado".`
+	return undefined
 }
 
 const SOURCE_BADGES = {
@@ -336,6 +380,76 @@ export function AccountGroup({
 
 	const badge = SOURCE_BADGES[current.source ?? 'none']
 
+	const mainFields = config.fields.filter(field => !field.advanced)
+	const advancedFields = config.fields.filter(field => field.advanced)
+	// Uma vez aberto por um campo pedido (erro ao salvar ou testar, um domínio sem servidor conhecido), o "avançado" não
+	// fecha sozinho de novo: senão sumiria enquanto a pessoa preenche o campo
+	const [advancedOpen, setAdvancedOpen] = useState(false)
+	const advancedError = advancedFields.some(field => !!errors[field.name])
+	useEffect(() => {
+		if (advancedError) setAdvancedOpen(true)
+	}, [advancedError])
+
+	function renderField(field: FieldDef) {
+		const id = `${group}-${field.name}`
+		const isRemoved = removed.includes(field.name)
+		const hasSaved = field.secret && secrets[field.name]
+		const live = field.live?.(draft as Record<string, string>) ?? {}
+		const help = isRemoved ? 'Será removido ao salvar.' : (live.help ?? field.help)
+		const placeholder = live.placeholder ?? field.placeholder
+
+		return (
+			<div key={field.name} className={cx('flex flex-col gap-1.5 max-md:col-span-1', FIELD_SPANS[field.span ?? 2])}>
+				{/* O segredo salvo fica dito ao lado do rótulo, e não só no placeholder, que some ao digitar */}
+				<div className="flex items-center gap-2">
+					<FieldLabel htmlFor={id}>{field.label}</FieldLabel>
+					{hasSaved && !isRemoved && <span className="text-xs text-muted">salvo · vazio mantém</span>}
+				</div>
+				<div className="flex items-center gap-2.5">
+					<Input
+						id={id}
+						className={cx('grow', field.secret && 'font-mono')}
+						type={field.secret ? 'password' : (field.type ?? 'text')}
+						inputMode={field.inputMode}
+						autoComplete={field.secret ? 'new-password' : 'off'}
+						spellCheck={false}
+						value={draft[field.name] ?? ''}
+						disabled={isRemoved}
+						placeholder={hasSaved ? '••••••••' : (placeholder ?? (field.optional ? 'opcional' : ''))}
+						invalid={!!errors[field.name]}
+						aria-describedby={errors[field.name] ? `${id}-error` : help ? `${id}-help` : undefined}
+						onChange={event => {
+							const value = event.target.value
+							setDraft(current => ({ ...current, [field.name]: value }))
+							setErrors(current => ({ ...current, [field.name]: '' }))
+							setCheck(null)
+						}}
+						onBlur={() => {
+							if (field.revealsAdvanced?.(draft as Record<string, string>)) setAdvancedOpen(true)
+						}}
+					/>
+					{field.optional && hasSaved && (
+						<IconButton
+							label={isRemoved ? `Manter o ${field.label} salvo` : `Remover o ${field.label} salvo`}
+							bordered
+							onClick={() => {
+								setRemoved(current => (isRemoved ? current.filter(name => name !== field.name) : [...current, field.name]))
+								setDraft(current => ({ ...current, [field.name]: '' }))
+							}}
+						>
+							<Icon name={isRemoved ? 'back' : 'trash'} />
+						</IconButton>
+					)}
+				</div>
+				{errors[field.name] ? (
+					<FieldError id={`${id}-error`}>{errors[field.name]}</FieldError>
+				) : (
+					help && <FieldHelp id={`${id}-help`}>{help}</FieldHelp>
+				)}
+			</div>
+		)
+	}
+
 	return (
 		<>
 			{confirmDelete && (
@@ -368,66 +482,14 @@ export function AccountGroup({
 				</Notice>
 			)}
 
-			<div className="grid grid-cols-4 gap-5 max-md:grid-cols-1">
-				{config.fields.map(field => {
-					const id = `${group}-${field.name}`
-					const isRemoved = removed.includes(field.name)
-					const hasSaved = field.secret && secrets[field.name]
-					const help = isRemoved ? 'Será removido ao salvar.' : field.help
+			<div className={FIELD_GRID}>{mainFields.map(renderField)}</div>
 
-					return (
-						<div key={field.name} className={cx('flex flex-col gap-1.5 max-md:col-span-1', FIELD_SPANS[field.span ?? 2])}>
-							{/* O segredo salvo fica dito ao lado do rótulo, e não só no placeholder, que some ao digitar */}
-							<div className="flex items-center gap-2">
-								<FieldLabel htmlFor={id}>{field.label}</FieldLabel>
-								{hasSaved && !isRemoved && <span className="text-xs text-muted">salvo · vazio mantém</span>}
-							</div>
-							<div className="flex items-center gap-2.5">
-								<Input
-									id={id}
-									className={cx('grow', field.secret && 'font-mono')}
-									type={field.secret ? 'password' : (field.type ?? 'text')}
-									inputMode={field.inputMode}
-									autoComplete={field.secret ? 'new-password' : 'off'}
-									spellCheck={false}
-									value={draft[field.name] ?? ''}
-									disabled={isRemoved}
-									placeholder={
-										hasSaved ? '••••••••' : (field.placeholder ?? (field.optional ? 'opcional' : ''))
-									}
-									invalid={!!errors[field.name]}
-									aria-describedby={errors[field.name] ? `${id}-error` : help ? `${id}-help` : undefined}
-									onChange={event => {
-										const value = event.target.value
-										setDraft(current => ({ ...current, [field.name]: value }))
-										setErrors(current => ({ ...current, [field.name]: '' }))
-										setCheck(null)
-									}}
-								/>
-								{field.optional && hasSaved && (
-									<IconButton
-										label={isRemoved ? `Manter o ${field.label} salvo` : `Remover o ${field.label} salvo`}
-										bordered
-										onClick={() => {
-											setRemoved(current =>
-												isRemoved ? current.filter(name => name !== field.name) : [...current, field.name],
-											)
-											setDraft(current => ({ ...current, [field.name]: '' }))
-										}}
-									>
-										<Icon name={isRemoved ? 'back' : 'trash'} />
-									</IconButton>
-								)}
-							</div>
-							{errors[field.name] ? (
-								<FieldError id={`${id}-error`}>{errors[field.name]}</FieldError>
-							) : (
-								help && <FieldHelp id={`${id}-help`}>{help}</FieldHelp>
-							)}
-						</div>
-					)
-				})}
-			</div>
+			{/* O que tem um padrão que serve para quase todo mundo fica recolhido; abre sozinho quando um campo de lá é pedido */}
+			{advancedFields.length > 0 && (
+				<Disclosure summary={`avançado: ${advancedFields.map(field => field.label).join(', ')}`} defaultOpen={advancedOpen}>
+					<div className={cx(FIELD_GRID, 'mt-3 text-ink')}>{advancedFields.map(renderField)}</div>
+				</Disclosure>
+			)}
 
 			{/*
 			 * Como a barra de salvar da página: as ações à direita, o "descartar" sempre no lugar (desligado sem alteração) e o

@@ -63,6 +63,18 @@ export const CvBaseVersion = mongoose.model('CvBaseVersion', cvBaseVersionSchema
 /** Filtro e ordem que acham a versão ativa: a última ativada. */
 export const ACTIVE_CV_BASE = { filter: { activatedAt: { $ne: null } }, sort: { activatedAt: -1 } } as const
 
+/**
+ * O nome da pessoa no currículo base ativo, para o remetente do e-mail; `null` sem currículo ativo ou quando ele foi
+ * escrito em LaTeX (o nome só fica guardado separado nas versões feitas pelo formulário).
+ */
+export async function findActiveCvBaseName() {
+	const version = await CvBaseVersion.findOne(ACTIVE_CV_BASE.filter, { 'form.contact.name': 1 })
+		.sort(ACTIVE_CV_BASE.sort)
+		.lean<{ form: { contact?: { name?: string } } | null }>()
+
+	return version?.form?.contact?.name?.trim() || null
+}
+
 /** A versão ativa do currículo base (só o `.tex` e o id), ou `null` se nenhuma foi ativada pelo site. */
 export function findActiveCvBase() {
 	return CvBaseVersion.findOne(ACTIVE_CV_BASE.filter, { versionId: 1, tex: 1 })

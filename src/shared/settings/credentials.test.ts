@@ -41,6 +41,13 @@ describe('credentialsFromEnv', () => {
 		expect(() => fromEnv({ SMTP_HOST: 'smtp.gmail.com', SMTP_USER: 'eu@gmail.com' })).toThrow('SMTP_PASS')
 	})
 
+	test('sem SMTP_HOST, o servidor é deduzido do SMTP_USER; num domínio desconhecido, o SMTP_HOST é pedido', () => {
+		expect(fromEnv({ SMTP_USER: 'eu@gmail.com', SMTP_PASS: 'senha de app' })).toEqual({
+			smtp: { user: 'eu@gmail.com', password: 'senha de app' },
+		})
+		expect(() => fromEnv({ SMTP_USER: 'eu@empresa.com', SMTP_PASS: 'senha' })).toThrow('SMTP_HOST')
+	})
+
 	test('.env vazio (ou com variáveis em branco): nenhum grupo', () => {
 		expect(fromEnv({})).toEqual({})
 		expect(fromEnv({ LINKEDIN_EMAIL: '', DISCORD_TOKEN: '  ', GITHUB_USERNAME: '' })).toEqual({})

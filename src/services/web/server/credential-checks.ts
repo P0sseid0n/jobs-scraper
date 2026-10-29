@@ -1,4 +1,4 @@
-import type { CredentialsOf } from '@shared/contracts'
+import { smtpHostOf, type CredentialsOf } from '@shared/contracts'
 
 import { classifyMailError } from '../../mailer/mail-errors'
 import { createSmtpTransport, senderOf, type MailTransport } from '../../mailer/mail-transport'
@@ -69,6 +69,8 @@ export async function checkGithub(account: CredentialsOf<'github'>, fetchFn: Fet
  */
 export async function checkSmtp(
 	account: CredentialsOf<'smtp'>,
+	/** O nome do currículo base, que entra no remetente quando a conta não tem um (`senderOf`). */
+	senderName: string | null,
 	createTransport: (account: CredentialsOf<'smtp'>) => Pick<MailTransport, 'verify'> = createSmtpTransport,
 ): Promise<CredentialCheck> {
 	try {
@@ -77,7 +79,7 @@ export async function checkSmtp(
 		return { ok: false, message: classifyMailError(error).reason }
 	}
 
-	return { ok: true, message: `Login aceito em ${account.host}: as candidaturas saem de ${senderOf(account)}.` }
+	return { ok: true, message: `Login aceito em ${smtpHostOf(account)}: as candidaturas saem de ${senderOf(account, senderName)}.` }
 }
 
 /** Falha de rede ou tempo esgotado vira uma resposta do teste, em vez de erro da API. */

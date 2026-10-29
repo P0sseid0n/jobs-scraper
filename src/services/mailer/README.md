@@ -35,10 +35,10 @@ A conta de e-mail é um grupo das [credenciais](../../shared/README.md#credencia
 
 | Variável | O que é |
 | --- | --- |
-| `SMTP_HOST` | servidor (ex.: `smtp.gmail.com`, `smtp.office365.com`) |
+| `SMTP_HOST` | opcional no Gmail, Outlook, Yahoo e iCloud: vazio, sai do domínio do `SMTP_USER` (`SMTP_PROVIDER_HOSTS`, em `contracts/settings.ts`); nos outros, o servidor (ex.: `smtp.empresa.com.br`) |
 | `SMTP_PORT` | opcional: 587 (STARTTLS) por padrão; 465 para TLS direto |
 | `SMTP_USER`, `SMTP_PASS` | usuário e senha (de app, no Gmail e no Outlook) |
-| `MAIL_FROM` | opcional: remetente (`Nome <email>`); vazio usa o `SMTP_USER` |
+| `MAIL_FROM` | opcional: remetente (`Nome <email>`); vazio usa o nome do currículo base (o feito pelo formulário) com o `SMTP_USER`, ou só o `SMTP_USER` |
 
 A conta é relida a cada envio: a salva pelo site vale sem reiniciar. Sem conta, o envio fica desligado: os botões não aparecem (o site diz onde configurar) e o resto funciona como antes. A senha nunca vai para os logs, e nos logs `info` ficam só os IDs: o endereço e o texto do e-mail ficam de fora.
 

@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { CREDENTIAL_GROUPS, type CredentialGroup } from '@shared/contracts'
+import { findActiveCvBaseName } from '@shared/database'
 import { deleteCredentials, mergeCredentials, readCredentialsStatus, saveCredentials } from '@shared/settings'
 
 import { checkDiscord, checkGithub, checkSmtp } from './credential-checks'
@@ -42,7 +43,7 @@ export async function testCredentials(req: GroupRequest) {
 
 	const patch = await readPatch(req)
 	if (group === 'discord') return Response.json(await checkDiscord(await mergeCredentials('discord', patch)))
-	if (group === 'smtp') return Response.json(await checkSmtp(await mergeCredentials('smtp', patch)))
+	if (group === 'smtp') return Response.json(await checkSmtp(await mergeCredentials('smtp', patch), await findActiveCvBaseName()))
 
 	return Response.json(await checkGithub(await mergeCredentials('github', patch)))
 }

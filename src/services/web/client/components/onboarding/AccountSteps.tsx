@@ -198,8 +198,8 @@ export function EmailStep({ eyebrow, credentials, onCredentials, onBack, onNext 
 
 			<Rise order={4}>
 				<FieldHelp>
-					No Gmail: servidor smtp.gmail.com e uma senha de app (Conta Google › Segurança › Senhas de app). No Outlook:
-					smtp.office365.com. O “testar” entra no servidor sem enviar nada.
+					No Gmail, Outlook, Yahoo e iCloud bastam o e-mail e uma senha de app: o servidor sai do e-mail. No Gmail, a senha
+					de app fica em Conta Google › Segurança › Senhas de app.
 				</FieldHelp>
 			</Rise>
 		</div>

@@ -223,7 +223,7 @@ describe('checkSmtp', () => {
 	})
 
 	test('login aceito diz o servidor e o remetente, sem enviar nada', async () => {
-		expect(await checkSmtp(account, transport())).toEqual({
+		expect(await checkSmtp(account, null, transport())).toEqual({
 			ok: true,
 			message: 'Login aceito em smtp.gmail.com: as candidaturas saem de Ana <ana@gmail.com>.',
 		})
@@ -232,13 +232,14 @@ describe('checkSmtp', () => {
 	test('login recusado ou servidor fora aparecem com o motivo, nunca com a senha', async () => {
 		const refused = await checkSmtp(
 			account,
+			null,
 			transport(Object.assign(new Error('535 senha-de-app'), { code: 'EAUTH', responseCode: 535 })),
 		)
 		expect(refused.ok).toBe(false)
 		expect(refused.message).toContain('recusou o login')
 		expect(refused.message).not.toContain('senha-de-app')
 
-		const offline = await checkSmtp(account, transport(Object.assign(new Error('timeout'), { code: 'ETIMEDOUT' })))
+		const offline = await checkSmtp(account, null, transport(Object.assign(new Error('timeout'), { code: 'ETIMEDOUT' })))
 		expect(offline).toEqual({ ok: false, message: 'Não consegui falar com o servidor SMTP (fora do ar ou sem resposta).' })
 	})
 })
