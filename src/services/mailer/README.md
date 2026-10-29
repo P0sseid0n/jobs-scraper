@@ -20,14 +20,14 @@ Uma mensagem entregue de novo pela fila para um envio já feito só repete o res
 | Falha | O que acontece |
 | --- | --- |
 | Rede, tempo esgotado, servidor fora, resposta SMTP 4xx | volta para a fila (`mailer.retry`, com backoff); na última tentativa, vira falha |
-| Login recusado (`EAUTH`, 530/534/535) | falha na hora e vai para a `mailer.dlq` |
+| Login recusado (`EAUTH`, 530/534/535) | falha na hora e vai para a `mailer.dlq`, com o código SMTP (ex.: `SMTP 535 5.7.8`); a conta pessoal da Microsoft (`5.7.139`) e o Gmail recusando a senha normal (`5.7.8`) têm motivo próprio |
 | Endereço ou mensagem recusados (resposta SMTP 5xx) | falha na hora e vai para a `mailer.dlq` |
 
 A falha aparece no canal com o motivo, e o envio pode ser tentado de novo ("tentar de novo" no site, "🔁 Tentar de novo" no Discord). Sem resposta do mailer em 10 minutos, os canais dão o envio como falho.
 
 ## Provedor
 
-O envio fica atrás da interface `MailTransport` (`mail-transport.ts`): hoje é SMTP (nodemailer), que funciona com Gmail, Outlook e afins usando senha de app. Para trocar por uma API (Resend, SES), basta outra implementação de `send` e `verify`.
+O envio fica atrás da interface `MailTransport` (`mail-transport.ts`): hoje é SMTP (nodemailer), que funciona com Gmail e afins usando senha de app. As contas pessoais da Microsoft (Outlook, Hotmail, Live) não funcionam: a Microsoft não aceita mais senha, nem senha de app, no SMTP delas (só OAuth2), e o servidor responde `535 5.7.139`, que o `mail-errors.ts` explica com a sugestão do Gmail. Contas Microsoft 365 de trabalho ou escola funcionam se o administrador liberar o SMTP AUTH. Para trocar por uma API (Resend, SES), basta outra implementação de `send` e `verify`.
 
 ## Configuração
 
@@ -35,9 +35,9 @@ A conta de e-mail é um grupo das [credenciais](../../shared/README.md#credencia
 
 | Variável | O que é |
 | --- | --- |
-| `SMTP_HOST` | opcional no Gmail, Outlook, Yahoo e iCloud: vazio, sai do domínio do `SMTP_USER` (`SMTP_PROVIDER_HOSTS`, em `contracts/settings.ts`); nos outros, o servidor (ex.: `smtp.empresa.com.br`) |
+| `SMTP_HOST` | opcional no Gmail, Yahoo e iCloud: vazio, sai do domínio do `SMTP_USER` (`SMTP_PROVIDER_HOSTS`, em `contracts/settings.ts`); nos outros, o servidor (ex.: `smtp.empresa.com.br`) |
 | `SMTP_PORT` | opcional: 587 (STARTTLS) por padrão; 465 para TLS direto |
-| `SMTP_USER`, `SMTP_PASS` | usuário e senha (de app, no Gmail e no Outlook) |
+| `SMTP_USER`, `SMTP_PASS` | usuário e senha (de app, no Gmail: Conta Google › Segurança › Senhas de app) |
 | `MAIL_FROM` | opcional: remetente (`Nome <email>`); vazio usa o nome do currículo base (o feito pelo formulário) com o `SMTP_USER`, ou só o `SMTP_USER` |
 
 A conta é relida a cada envio: a salva pelo site vale sem reiniciar. Sem conta, o envio fica desligado: os botões não aparecem (o site diz onde configurar) e o resto funciona como antes. A senha nunca vai para os logs, e nos logs `info` ficam só os IDs: o endereço e o texto do e-mail ficam de fora.

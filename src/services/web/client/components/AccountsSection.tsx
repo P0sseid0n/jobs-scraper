@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 
-import { smtpHostFor } from '@shared/contracts'
+import { isMicrosoftPersonalAccount, smtpHostFor } from '@shared/contracts'
 
 import type { CredentialCheck, CredentialGroup, WebCredentials } from '../../api-types'
 import { api, RequestError } from '../api'
 import { cx } from '../lib/cx'
 import { shakeInvalid } from '../lib/motion'
+import { GMAIL_PRESET, initialSmtpProvider, type SmtpProviderChoice } from '../lib/smtp-presets'
 import { useFlash } from '../lib/use-flash'
 import { notify } from '../stores/toast'
 import { DrawnCheck, Icon } from './Icon'
@@ -19,8 +20,10 @@ import { FieldError, FieldHelp, FieldLabel } from './ui/Field'
 import { IconButton } from './ui/IconButton'
 import { Input } from './ui/Input'
 import { Notice } from './ui/Notice'
+import { Pill, PillGroup } from './ui/Pill'
 import { TabPanel, Tabs } from './ui/Tabs'
-import { SECTION_TITLE } from './ui/text'
+import { LABEL, SECTION_TITLE } from './ui/text'
+import { TextLink } from './ui/TextLink'
 
 type FieldDef = {
 	name: string
@@ -138,7 +141,7 @@ const GROUPS: Record<CredentialGroup, GroupDef> = {
 				name: 'password',
 				label: 'senha de app',
 				secret: true,
-				help: 'No Gmail e no Outlook, crie uma senha de app (com a verificação em duas etapas ligada); a senha normal é recusada.',
+				help: 'A senha de app do provedor (no Gmail, com a verificação em duas etapas ligada): a senha normal é recusada.',
 			},
 			{
 				name: 'host',
@@ -146,7 +149,7 @@ const GROUPS: Record<CredentialGroup, GroupDef> = {
 				span: 3,
 				advanced: true,
 				live: values => ({ placeholder: smtpHostFor(values.user ?? '') ?? 'ex.: smtp.empresa.com.br' }),
-				help: 'Vazio: deduzido do e-mail do usuário (Gmail, Outlook, Yahoo e iCloud).',
+				help: 'Vazio: deduzido do e-mail do usuário (Gmail, Yahoo e iCloud).',
 			},
 			{
 				name: 'port',
@@ -177,7 +180,8 @@ function needsSmtpHost(values: Record<string, string>) {
 
 /** Diz, abaixo do usuário, de onde sai o servidor: o deduzido do domínio ou o pedido em "avançado". */
 function smtpUserHelp(values: Record<string, string>) {
-	if (values.host?.trim()) return undefined
+	// A conta pessoal da Microsoft tem o aviso próprio (`SmtpProviderGuide`)
+	if (values.host?.trim() || isMicrosoftPersonalAccount(values)) return undefined
 
 	const host = smtpHostFor(values.user ?? '')
 	if (host) return `O servidor (${host}) sai do domínio do e-mail.`
@@ -482,6 +486,14 @@ export function AccountGroup({
 				</Notice>
 			)}
 
+			{group === 'smtp' && (
+				<SmtpProviderGuide
+					values={draft as Record<string, string>}
+					saved={status.smtp.values}
+					onOtherProvider={() => setAdvancedOpen(true)}
+				/>
+			)}
+
 			<div className={FIELD_GRID}>{mainFields.map(renderField)}</div>
 
 			{/* O que tem um padrão que serve para quase todo mundo fica recolhido; abre sozinho quando um campo de lá é pedido */}
@@ -545,5 +557,77 @@ export function AccountGroup({
 				)}
 			</div>
 		</>
+	)
+}
+
+/**
+ * O topo da conta de e-mail: a escolha do provedor (o Gmail, recomendado, com os passos da senha de app, ou outro) e o
+ * aviso das contas pessoais da Microsoft, que não aceitam senha no SMTP. O aviso não impede de salvar: pode ser uma conta
+ * de trabalho.
+ */
+function SmtpProviderGuide({
+	values,
+	saved,
+	onOtherProvider,
+}: {
+	values: Record<string, string>
+	saved: { user: string | null; host: string | null }
+	/** "outro provedor" abre o "avançado", onde fica o servidor. */
+	onOtherProvider: () => void
+}) {
+	const [provider, setProvider] = useState<SmtpProviderChoice>(() => initialSmtpProvider(saved))
+	const labelId = useId()
+
+	function choose(next: SmtpProviderChoice) {
+		setProvider(next)
+		if (next === 'other') onOtherProvider()
+	}
+
+	return (
+		<div className="flex flex-col gap-3">
+			<div className="flex items-center gap-2 max-sm:flex-col max-sm:items-start max-sm:gap-1.5">
+				<span id={labelId} className={LABEL}>
+					provedor
+				</span>
+				<PillGroup role="group" aria-labelledby={labelId}>
+					<Pill pressed={provider === GMAIL_PRESET.id} onClick={() => choose(GMAIL_PRESET.id)}>
+						{GMAIL_PRESET.label} (recomendado)
+					</Pill>
+					<Pill pressed={provider === 'other'} onClick={() => choose('other')}>
+						outro provedor
+					</Pill>
+				</PillGroup>
+			</div>
+
+			{isMicrosoftPersonalAccount(values) && (
+				<Notice tone="warn" icon="alert">
+					<p className="text-sm">
+						A Microsoft não aceita senha, nem senha de app, no SMTP das contas pessoais (Outlook, Hotmail e Live): o teste e o
+						envio vão falhar.{' '}
+						<TextLink className="text-sm" onClick={() => choose(GMAIL_PRESET.id)}>
+							usar o Gmail
+						</TextLink>
+						. Contas Microsoft 365 de trabalho ou escola funcionam se o administrador liberar o SMTP AUTH.
+					</p>
+				</Notice>
+			)}
+
+			{provider === GMAIL_PRESET.id && (
+				<Notice tone="info" icon="info">
+					<ol className="m-0 flex list-decimal flex-col gap-1 pl-4 text-sm">
+						<li>Use o seu endereço @gmail.com no usuário: o servidor e a porta saem dele.</li>
+						<li>Ligue a verificação em duas etapas na Conta Google.</li>
+						<li>
+							Abra{' '}
+							<TextLink className="text-sm" href={GMAIL_PRESET.appPasswordsUrl} external>
+								{GMAIL_PRESET.appPasswordsPath}
+							</TextLink>{' '}
+							e crie uma para “jobs-scraper”.
+						</li>
+						<li>Cole a senha de 16 letras em “senha de app”, abaixo.</li>
+					</ol>
+				</Notice>
+			)}
+		</div>
 	)
 }

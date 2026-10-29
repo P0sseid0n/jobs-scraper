@@ -54,7 +54,7 @@ export function smtpOptions(account: SmtpAccount) {
 	}
 }
 
-/** O provedor SMTP da conta (Gmail, Outlook e afins, com senha de app). */
+/** O provedor SMTP da conta (Gmail e afins, com senha de app). */
 export function createSmtpTransport(account: SmtpAccount): MailTransport {
 	const transporter = nodemailer.createTransport(smtpOptions(account))
 

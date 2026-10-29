@@ -196,12 +196,6 @@ export function EmailStep({ eyebrow, credentials, onCredentials, onBack, onNext 
 				<AccountGroup group="smtp" status={credentials} compact onSaved={onCredentials} />
 			</Rise>
 
-			<Rise order={4}>
-				<FieldHelp>
-					No Gmail, Outlook, Yahoo e iCloud bastam o e-mail e uma senha de app: o servidor sai do e-mail. No Gmail, a senha
-					de app fica em Conta Google › Segurança › Senhas de app.
-				</FieldHelp>
-			</Rise>
 		</div>
 	)
 }

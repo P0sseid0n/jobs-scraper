@@ -6,6 +6,7 @@ import {
 	DiscordCredentialsSchema,
 	GithubCredentialsSchema,
 	LinkedinCredentialsSchema,
+	isMicrosoftPersonalAccount,
 	SmtpCredentialsSchema,
 	smtpHostOf,
 } from './settings'
@@ -47,11 +48,11 @@ describe('SmtpCredentialsSchema', () => {
 		const account = SmtpCredentialsSchema.parse({ host: '', user: 'Ana@Gmail.com', password: 'senha de app' })
 		expect(account).toEqual({ user: 'Ana@Gmail.com', password: 'senha de app' })
 		expect(smtpHostOf(account)).toBe('smtp.gmail.com')
-		expect(smtpHostOf({ user: 'ana@hotmail.com.br' })).toBe('smtp-mail.outlook.com')
+		expect(smtpHostOf({ user: 'ana@yahoo.com.br' })).toBe('smtp.mail.yahoo.com')
 	})
 
 	test('o servidor informado vale no lugar do deduzido', () => {
-		expect(smtpHostOf({ host: 'smtp.office365.com', user: 'ana@outlook.com' })).toBe('smtp.office365.com')
+		expect(smtpHostOf({ host: 'smtp.empresa.com.br', user: 'ana@gmail.com' })).toBe('smtp.empresa.com.br')
 	})
 
 	test('domínio desconhecido (ou usuário sem e-mail) pede o servidor', () => {
@@ -59,6 +60,9 @@ describe('SmtpCredentialsSchema', () => {
 			SmtpCredentialsSchema.safeParse({ user, password: 'x' }).error?.issues.map(issue => [issue.path.join('.'), issue.message])
 
 		expect(issues('ana@empresa.com.br')).toEqual([['host', 'Informe o servidor SMTP: não conheço o de empresa.com.br']])
+		expect(issues('ana@outlook.com')).toEqual([
+			['host', 'Informe o servidor SMTP, mas a Microsoft não aceita senha no SMTP das contas pessoais (outlook.com): use uma conta do Gmail'],
+		])
 		expect(issues('ana')).toEqual([['host', 'Informe o servidor SMTP (ou use o e-mail inteiro no usuário, para ele ser deduzido)']])
 		expect(SmtpCredentialsSchema.safeParse({ host: 'smtp.empresa.com.br', user: 'ana@empresa.com.br', password: 'x' }).success).toBe(
 			true,
@@ -83,5 +87,20 @@ describe('credentialStatus', () => {
 
 	test('grupo não configurado', () => {
 		expect(credentialStatus('github', null)).toEqual({ source: null, values: { username: null }, secrets: { token: false } })
+	})
+})
+
+describe('isMicrosoftPersonalAccount', () => {
+	test('reconhece as contas pessoais da Microsoft pelo domínio do usuário ou pelo servidor', () => {
+		for (const user of ['ana@outlook.com', 'Ana@Hotmail.com', 'ana@live.com', 'ana@msn.com', 'ana@hotmail.com.br']) {
+			expect(isMicrosoftPersonalAccount({ user })).toBe(true)
+		}
+		expect(isMicrosoftPersonalAccount({ user: 'ana@empresa.com', host: 'smtp-mail.outlook.com' })).toBe(true)
+	})
+
+	test('o Gmail e as contas de trabalho com domínio próprio (Microsoft 365) ficam de fora', () => {
+		expect(isMicrosoftPersonalAccount({ user: 'ana@gmail.com' })).toBe(false)
+		expect(isMicrosoftPersonalAccount({ user: 'ana@empresa.com.br', host: 'smtp.office365.com' })).toBe(false)
+		expect(isMicrosoftPersonalAccount({})).toBe(false)
 	})
 })
