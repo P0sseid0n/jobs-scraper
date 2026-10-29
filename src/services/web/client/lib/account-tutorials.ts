@@ -3,15 +3,8 @@ import { GMAIL_APP_PASSWORDS_URL } from '@shared/contracts'
 import type { CredentialGroup } from '../../api-types'
 import type { TutorialPath, TutorialStep } from '../components/ui/Tutorial'
 
-/** Um passo do tutorial da conta; `settingsOnly` fica fora do onboarding, como o campo dele (ex.: o cookie li_at). */
-type AccountTutorialStep = TutorialStep & { settingsOnly?: boolean }
-
 /** O passo a passo de uma conta: o que ela pede fora do site e onde buscar cada dado. */
-export type AccountTutorial = {
-	title: string
-	intro: string
-	paths: (Omit<TutorialPath, 'steps'> & { steps: AccountTutorialStep[] })[]
-}
+export type AccountTutorial = { title: string; intro: string; paths: TutorialPath[] }
 
 const DISCORD_SETUP: TutorialStep[] = [
 	{
@@ -52,7 +45,7 @@ const DISCORD_PERMISSIONS = 'View Channels, Send Messages, Embed Links, Attach F
 export const ACCOUNT_TUTORIALS: Record<CredentialGroup, AccountTutorial> = {
 	linkedin: {
 		title: 'Como conectar o LinkedIn',
-		intro: 'Basta a conta com que você entra no LinkedIn. O cookie li_at, que fica no “avançado” das Configurações, é para quem o LinkedIn pede confirmação a cada login.',
+		intro: 'Basta a conta com que você entra no LinkedIn. O cookie li_at, no “avançado”, é a saída quando não dá para confirmar o acesso que o LinkedIn pede.',
 		paths: [
 			{
 				id: 'linkedin',
@@ -73,14 +66,12 @@ export const ACCOUNT_TUTORIALS: Record<CredentialGroup, AccountTutorial> = {
 						id: 'li-at',
 						title: 'Opcional: copie o cookie li_at',
 						text: 'No computador, com o LinkedIn aberto e logado, aperte F12 e vá em Application › Cookies › https://www.linkedin.com (no Firefox, Armazenamento › Cookies). Copie o valor da linha li_at e cole em “cookie li_at”, no “avançado” da conta.',
-						settingsOnly: true,
 						link: { href: 'https://www.linkedin.com/feed/', label: 'abrir o LinkedIn' },
 					},
 					{
 						id: 'li-at-when',
 						title: 'Quando o cookie ajuda',
-						text: 'Ele é usado enquanto o scraper não tem uma sessão salva: entra sem a senha e sem a verificação. Vale a pena se o LinkedIn pede confirmação a cada login. Sair da conta naquele navegador invalida o cookie; aí, copie de novo.',
-						settingsOnly: true,
+						text: 'Ele é usado enquanto o scraper não tem uma sessão salva (no primeiro login, por exemplo): entra sem a senha e sem a verificação. Depois que o login dá certo, a sessão fica guardada e o cookie deixa de fazer falta. Sair da conta naquele navegador invalida o cookie; aí, copie de novo.',
 					},
 				],
 			},
@@ -259,11 +250,4 @@ export const ACCOUNT_TUTORIALS: Record<CredentialGroup, AccountTutorial> = {
 			},
 		],
 	},
-}
-
-/** O tutorial da conta onde ele aparece: no onboarding, sem os passos dos campos que só existem nas Configurações. */
-export function accountTutorial(group: CredentialGroup, where: 'onboarding' | 'settings'): AccountTutorial {
-	const tutorial = ACCOUNT_TUTORIALS[group]
-	if (where === 'settings') return tutorial
-	return { ...tutorial, paths: tutorial.paths.map(path => ({ ...path, steps: path.steps.filter(step => !step.settingsOnly) })) }
 }

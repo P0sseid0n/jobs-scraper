@@ -4,12 +4,14 @@ import type { LinkedinLoginState } from '../../api-types'
 import { api } from '../api'
 import { cx } from '../lib/cx'
 import { LOGIN_STEPS, loginProgress, loginStep, type LoginReached, type LoginStepState } from '../lib/login-steps'
+import { requestAccountTutorial } from '../stores/account-tutorial'
 import { reopenLinkedinVerification } from '../stores/linkedin-verification'
 import { notify } from '../stores/toast'
 import { DrawnCheck, Icon } from './Icon'
 import { Button } from './ui/Button'
 import { FieldHelp } from './ui/Field'
 import { Notice } from './ui/Notice'
+import { TextLink } from './ui/TextLink'
 
 const POLL_MS = 2_000
 /** Sem o scraper pegar o pedido nesse tempo, provavelmente ele não está rodando. */
@@ -208,6 +210,15 @@ function LoginDetails({ login }: { login: ReturnType<typeof useLinkedinLogin> })
 					? 'Tudo certo: conseguimos entrar no LinkedIn com a sua conta.'
 					: 'Não deu para entrar no LinkedIn.'}
 				{state.message && state.status === 'failed' && <span className="block text-muted">{state.message}</span>}
+				{/* Sem conseguir entrar (ou confirmar o acesso), o cookie de uma sessão já logada é a saída */}
+				{state.status === 'failed' && (
+					<span className="block text-ink">
+						Não conseguiu confirmar o acesso?{' '}
+						<TextLink className="text-sm" onClick={() => requestAccountTutorial('linkedin', 'li-at')}>
+							entre com o cookie li_at
+						</TextLink>
+					</span>
+				)}
 			</span>
 		</p>
 	)

@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
 import type { CredentialGroup } from '../../api-types'
-import { ACCOUNT_TUTORIALS, accountTutorial } from './account-tutorials'
+import { ACCOUNT_TUTORIALS } from './account-tutorials'
 import { SMTP_PROVIDER_OPTIONS } from './smtp-presets'
 
 /** Os passos que o teste de cada conta aponta na falha (`step`, em `server/credential-checks.ts`). */
@@ -33,13 +33,5 @@ describe('ACCOUNT_TUTORIALS', () => {
 	test('cada opção do provedor do e-mail tem o seu caminho no tutorial', () => {
 		const paths = ACCOUNT_TUTORIALS.smtp.paths.map(path => path.id)
 		expect(paths).toEqual(SMTP_PROVIDER_OPTIONS.map(option => option.id))
-	})
-
-	test('no onboarding, o tutorial do LinkedIn fica sem os passos do cookie li_at (o campo só existe nas Configurações)', () => {
-		const ids = (where: 'onboarding' | 'settings') => accountTutorial('linkedin', where).paths[0]!.steps.map(step => step.id)
-		expect(ids('settings')).toContain('li-at')
-		expect(ids('onboarding')).not.toContain('li-at')
-		expect(ids('onboarding')).not.toContain('li-at-when')
-		expect(accountTutorial('smtp', 'onboarding')).toEqual(accountTutorial('smtp', 'settings'))
 	})
 })

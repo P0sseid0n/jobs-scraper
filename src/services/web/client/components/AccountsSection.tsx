@@ -4,13 +4,13 @@ import { isMicrosoftPersonalAccount, smtpHostFor } from '@shared/contracts'
 
 import type { CredentialCheck, CredentialGroup, WebCredentials } from '../../api-types'
 import { api, RequestError } from '../api'
-import { accountTutorial } from '../lib/account-tutorials'
+import { ACCOUNT_TUTORIALS } from '../lib/account-tutorials'
 import { cx } from '../lib/cx'
 import { shakeInvalid } from '../lib/motion'
 import { GMAIL_PRESET, initialSmtpProvider, SMTP_PROVIDER_OPTIONS, type SmtpProviderChoice } from '../lib/smtp-presets'
 import { useStore } from '../lib/store'
 import { useFlash } from '../lib/use-flash'
-import { accountTutorialOpen } from '../stores/account-tutorial'
+import { accountTutorialOpen, accountTutorialRequest } from '../stores/account-tutorial'
 import { notify } from '../stores/toast'
 import { accountScene } from './AccountTutorialScenes'
 import { DrawnCheck, Icon } from './Icon'
@@ -48,8 +48,6 @@ type FieldDef = {
 	span?: keyof typeof FIELD_SPANS
 	/** Fica recolhido em "avançado": tem um padrão que serve para quase todo mundo (ex.: o servidor deduzido do e-mail). */
 	advanced?: boolean
-	/** Só em Configurações › Contas: fica fora do onboarding, para não pesar no começo (ex.: o cookie li_at, raro). */
-	settingsOnly?: boolean
 	/** A ajuda e o placeholder conforme o que foi digitado na conta (ex.: o servidor deduzido do usuário). */
 	live?: (values: Record<string, string>) => Pick<FieldDef, 'help' | 'placeholder'>
 	/** Ao sair do campo, abre o "avançado" se o valor pedir um campo de lá (ex.: um domínio sem servidor conhecido). */
@@ -94,10 +92,9 @@ const GROUPS: Record<CredentialGroup, GroupDef> = {
 				label: 'cookie li_at',
 				secret: true,
 				optional: true,
-				help: 'Opcional: o cookie de uma sessão já logada, usado enquanto o scraper não tem uma salva. Ajuda quando o LinkedIn pede confirmação a cada login.',
+				help: 'Opcional: o cookie de uma sessão já logada, usado enquanto o scraper não tem uma salva (no primeiro login, por exemplo). Ajuda quando não dá para confirmar o acesso que o LinkedIn pede.',
 				span: 4,
 				advanced: true,
-				settingsOnly: true,
 			},
 		],
 	},
@@ -347,6 +344,7 @@ export function AccountGroup({
 	const [dialog, setDialog] = useState<{ step?: string } | null>(null)
 	const [highlight, setHighlight] = useState<string>()
 	const panelOpen = useStore(accountTutorialOpen)
+	const request = useStore(accountTutorialRequest)
 	// O provedor do e-mail é a única escolha da conta: o tutorial mostra o caminho dele, sem abas próprias
 	const [smtpProvider, setSmtpProvider] = useState<SmtpProviderChoice>(() => initialSmtpProvider(status.smtp.values))
 	const tutorialPath = group === 'smtp' ? smtpProvider : undefined
@@ -421,14 +419,22 @@ export function AccountGroup({
 
 	const badge = SOURCE_BADGES[current.source ?? 'none']
 
-	// No onboarding, sem os campos que só existem nas Configurações (o cookie li_at)
-	const shownFields = config.fields.filter(field => !(compact && field.settingsOnly))
-	const mainFields = shownFields.filter(field => !field.advanced)
-	const advancedFields = shownFields.filter(field => field.advanced)
+	const mainFields = config.fields.filter(field => !field.advanced)
+	const advancedFields = config.fields.filter(field => field.advanced)
 	// Uma vez aberto por um campo pedido (erro ao salvar ou testar, um domínio sem servidor conhecido), o "avançado" não
 	// fecha sozinho de novo: senão sumiria enquanto a pessoa preenche o campo
 	const [advancedOpen, setAdvancedOpen] = useState(false)
 	const advancedError = advancedFields.some(field => !!errors[field.name])
+
+	// O pedido de fora (o teste do login do LinkedIn, que fica fora deste formulário) abre o tutorial no passo dele e o
+	// "avançado", onde fica o campo do passo (o cookie li_at)
+	useEffect(() => {
+		if (request?.group !== group) return
+		// Atendido, o pedido some: uma conta montada depois (em outra tela) não abre o tutorial sozinha
+		accountTutorialRequest.set(null)
+		setAdvancedOpen(true)
+		showTutorial(request.step)
+	}, [request])
 	useEffect(() => {
 		if (advancedError) setAdvancedOpen(true)
 	}, [advancedError])
@@ -607,12 +613,12 @@ export function AccountGroup({
 		<>
 			{dialog && (
 				<TutorialDialog
-					{...accountTutorial(group, 'settings')}
+					{...ACCOUNT_TUTORIALS[group]}
 					// O provedor fica atrás da modal: ela diz como trocar de caminho
 					intro={
 						group === 'smtp'
-							? `${accountTutorial('smtp', 'settings').intro} Para outro provedor, feche e troque a escolha na conta.`
-							: accountTutorial(group, 'settings').intro
+							? `${ACCOUNT_TUTORIALS.smtp.intro} Para outro provedor, feche e troque a escolha na conta.`
+							: ACCOUNT_TUTORIALS[group].intro
 					}
 					path={tutorialPath}
 					highlight={dialog.step}
@@ -658,7 +664,7 @@ export function AccountGroup({
 						// Sem moldura própria (já está dentro do cartão): só a linha que o separa dos campos
 						<Tutorial
 							id={tutorialId}
-							{...accountTutorial(group, 'onboarding')}
+							{...ACCOUNT_TUTORIALS[group]}
 							path={tutorialPath}
 							highlight={highlight}
 							scene={(path, step) => accountScene(group, path, step.id)}
