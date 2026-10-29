@@ -26,6 +26,9 @@ type CopyButtonProps = {
 			/** O texto do botão (padrão: "copiar"). */
 			label?: string
 			size?: 'xs' | 'md'
+			/** `lime`: a ação principal da tela (ex.: no contato sem conta de e-mail, copiar é o que resta fazer). */
+			variant?: 'ghost' | 'lime'
+			disabled?: boolean
 	  }
 )
 
@@ -55,7 +58,7 @@ export function CopyButton({ text, what, toastAction, className, ...props }: Cop
 
 	const size = props.size ?? 'md'
 	return (
-		<Button variant="ghost" size={size} className={className} onClick={copy}>
+		<Button variant={props.variant ?? 'ghost'} size={size} disabled={props.disabled} className={className} onClick={copy}>
 			<Icon name={copied ? 'check' : 'copy'} size={size === 'xs' ? 13 : 14} />
 			{copied ? 'copiado' : (props.label ?? 'copiar')}
 		</Button>
