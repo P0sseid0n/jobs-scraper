@@ -135,6 +135,30 @@ export function paragraphFromPdf(value: string, text: string) {
 }
 
 /**
+ * Nomes dos meses (português e inglês, por extenso ou abreviados). Ficam de fora as abreviações que também são
+ * palavras ("Mar", "May"): "Hotel Beira Mar 2020 - 2022" é o nome da empresa.
+ */
+const MONTH = String.raw`(?:janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro|january|february|march|april|june|july|august|september|october|november|december|jan|fev|feb|abr|apr|jun|jul|ago|aug|set|sep|sept|out|oct|nov|dez|dec)\.?`
+const TRAILING_MONTH = new RegExp(String.raw`^(.*\S)\s+(${MONTH})$`, 'iu')
+
+/**
+ * Devolve ao período o mês que o modelo deixou no fim do campo anterior: na linha "OTI Software Abril 2022 - Presente",
+ * ele separa "OTI Software Abril" e "2022 - Presente". Só troca se o período começa pelo ano e o PDF tem os dois juntos.
+ * @param fields Os campos que podem vir antes do período na linha, na ordem de tentativa.
+ */
+export function moveSplitMonth<E extends { period: string }>(entry: E, fields: (keyof E & string)[], inPdf: Corpus): E {
+	if (!/^\d{4}/.test(entry.period)) return entry
+
+	for (const field of fields) {
+		const value = entry[field]
+		const match = typeof value === 'string' ? value.match(TRAILING_MONTH) : null
+		if (match && inPdf(`${value} ${entry.period}`)) return { ...entry, [field]: match[1], period: `${match[2]} ${entry.period}` }
+	}
+
+	return entry
+}
+
+/**
  * As seções na ordem do PDF. A apresentação sem título fica em primeiro (é o parágrafo do topo); as outras sem título
  * vão para o fim, na ordem padrão.
  */
@@ -203,9 +227,10 @@ export function importedForm(output: ImportOutput, pdf: PdfText): { form: CvForm
 		description: completeFromPdf(project.description, pdf.text),
 	}))
 	const experience = keptEntries(check, output.experience).map(entry => ({
-		...entry,
+		...moveSplitMonth(entry, ['company', 'role'], corpus),
 		bullets: entry.bullets.map(bullet => completeFromPdf(bullet, pdf.text)),
 	}))
+	const education = keptEntries(check, output.education).map(entry => moveSplitMonth(entry, ['course', 'institution'], corpus))
 	const projectUrls = new Set(projects.map(project => normalize(project.url)).filter(Boolean))
 
 	const contact = {
@@ -226,7 +251,7 @@ export function importedForm(output: ImportOutput, pdf: PdfText): { form: CvForm
 		{ kind: 'summary', title: '', text: summary },
 		{ kind: 'skills', title: '', groups: skills },
 		{ kind: 'experience', title: '', entries: experience },
-		{ kind: 'education', title: '', entries: keptEntries(check, output.education) },
+		{ kind: 'education', title: '', entries: education },
 		{ kind: 'certifications', title: '', entries: keptEntries(check, output.certifications) },
 		{ kind: 'languages', title: '', entries: languages },
 		{ kind: 'projects', title: '', entries: projects, toolsLabel: toolsLabel(pdf.text) },

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { completeFromPdf, importedForm, paragraphFromPdf, pdfCorpus } from './import-form'
+import { completeFromPdf, importedForm, moveSplitMonth, paragraphFromPdf, pdfCorpus } from './import-form'
 import type { ImportOutput } from './import-prompt'
 import type { PdfText } from './pdf-text'
 
@@ -206,5 +206,38 @@ Clínica Exemplo Janeiro 2019 - Fevereiro 2021`
 		// Terminada a frase, a linha seguinte (o próximo emprego) não entra
 		expect(completeFromPdf('Integração de APIs RESTful.', text)).toBe('Integração de APIs RESTful.')
 		expect(completeFromPdf('Outra coisa', text)).toBe('Outra coisa')
+	})
+})
+
+describe('moveSplitMonth', () => {
+	const inPdf = pdfCorpus({
+		text: 'OTI Software Abril 2022 - Presente\nHotel Beira Mar 2020 - 2022\nUnicesumar - Análise e Desenvolvimento de Sistemas Maio 2023 - Dezembro 2025',
+		links: [],
+		pages: 1,
+	})
+	const job = (company: string, period: string) => ({ role: 'Dev', company, period, bullets: [] })
+
+	test('o mês que ficou no fim da empresa volta ao período', () => {
+		expect(moveSplitMonth(job('OTI Software Abril', '2022 - Presente'), ['company', 'role'], inPdf)).toEqual(
+			job('OTI Software', 'Abril 2022 - Presente'),
+		)
+	})
+
+	test('na formação, o mês que ficou no fim do curso', () => {
+		const entry = { course: 'Análise e Desenvolvimento de Sistemas Maio', institution: 'Unicesumar', period: '2023 - Dezembro 2025' }
+		expect(moveSplitMonth(entry, ['course', 'institution'], inPdf)).toEqual({
+			course: 'Análise e Desenvolvimento de Sistemas',
+			institution: 'Unicesumar',
+			period: 'Maio 2023 - Dezembro 2025',
+		})
+	})
+
+	test('não mexe no período com o mês, em abreviação que é palavra, nem sem os dois juntos no PDF', () => {
+		const cases = [
+			job('OTI Software', 'Abril 2022 - Presente'),
+			job('Hotel Beira Mar', '2020 - 2022'),
+			job('OTI Software Abril', '2023 - Presente'),
+		]
+		for (const entry of cases) expect(moveSplitMonth(entry, ['company', 'role'], inPdf)).toEqual(entry)
 	})
 })
