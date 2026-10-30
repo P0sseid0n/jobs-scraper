@@ -27,6 +27,8 @@ export const QUEUES = {
 	webCv: 'web-cv',
 	/** Validações do currículo base pedidas pelo site (é o `replyTo.queue` delas). */
 	webCvBase: 'web-cv-base',
+	/** Coletas que começaram ou terminaram, para o site atualizar na hora (ligada à exchange `scraper-run`). */
+	webScraperRun: 'web-scraper-run',
 	/** Candidaturas marcadas fora do site (o botão do Discord), para o site avisar os navegadores abertos. */
 	webApplied: 'web-applied',
 	/** Candidaturas para o mailer enviar por e-mail (`MailRequest`). */
@@ -46,6 +48,8 @@ export type QueueName = (typeof QUEUES)[keyof typeof QUEUES]
 export const EXCHANGES = {
 	/** Vaga nova salva no banco, pronta para ser divulgada. */
 	jobPublished: 'job-published',
+	/** Coleta que começou ou terminou (`ScraperRunEvent`). */
+	scraperRun: 'scraper-run',
 } as const
 
 export type ExchangeName = (typeof EXCHANGES)[keyof typeof EXCHANGES]

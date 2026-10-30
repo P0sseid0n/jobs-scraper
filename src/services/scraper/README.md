@@ -20,6 +20,7 @@ Busca posts de vagas no LinkedIn com o Puppeteer e envia cada um para a fila `po
 - **Coleta periódica ou única:** com um intervalo (o `.env.example` traz `SCRAPER_INTERVAL_MINUTES=240`), o scraper fica rodando, coleta na agenda (o intervalo das configurações, editável pelo site), atende o "coletar agora" e relê as configurações a cada 30 segundos, sem reiniciar. Com `SCRAPER_INTERVAL_MINUTES=0` (ou sem a variável), ele coleta uma vez e encerra (sem termos de busca ativos ou sem conta do LinkedIn, antes espera a configuração ser salva pelo site, relendo a cada 30 segundos); no Docker, o container para e o "coletar agora" fica na fila até ele subir de novo.
 - **Coletar agora:** `bun scraper:run`, ou o botão no site, publica uma mensagem `ScraperCommand` na fila `scraper`. Funciona mesmo com as coletas pausadas.
 - **Histórico:** cada coleta fica em `scraper_runs` por 90 dias, com o status e os posts enviados por termo.
+- **Início e fim anunciados:** quando uma coleta começa e quando termina (com sucesso ou falha), o scraper publica um `ScraperRunEvent` (o id da coleta, `started` ou `finished`, o status e a origem) no evento `scraper-run`, para o site atualizar na hora. O resto fica em `scraper_runs`. Se não der para publicar (ex.: o site nunca subiu e nenhuma fila assina o evento), a coleta segue.
 
 ## Posts com várias vagas
 

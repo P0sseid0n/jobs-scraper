@@ -105,6 +105,8 @@ flowchart LR
 	cv -- "discord-cv" --> bot
 	cv -- "web-cv" --> web
 	bot -. "web-applied<br/><small>candidatura marcada</small>" .-> web
+	scraper -.-> runEvent{{"evento: scraper-run"}}
+	runEvent -. "web-scraper-run<br/><small>coleta começou ou terminou</small>" .-> web
 	web -- "mailer" --> mailer["mailer<br/><small>SMTP</small>"]
 	bot -- "mailer" --> mailer
 	mailer -- "web-mail" --> web

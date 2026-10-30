@@ -4,6 +4,7 @@ import { CV_BASE_TEX_MAX_BYTES, CvBaseValidationRequestSchema, CvRequestSchema }
 import { ProcessedJobSchema } from './job'
 import { MailRequestSchema, MailResultSchema } from './mail'
 import { RawPostSchema } from './raw-post'
+import { ScraperRunEventSchema } from './scraper-run'
 
 describe('contratos das filas', () => {
 	test('RawPost exige postId, texto e data ISO', () => {
@@ -95,5 +96,17 @@ describe('contratos das filas', () => {
 
 		expect(MailResultSchema.safeParse({ ...result, status: 'failed', error: 'SMTP 550' }).success).toBe(true)
 		expect(MailResultSchema.safeParse({ ...result, status: 'sending', error: null }).success).toBe(false)
+	})
+
+	test('ScraperRunEvent: o início vem em andamento e o fim, com o status final', () => {
+		const run = { runId: 'r1', trigger: 'manual' }
+
+		expect(ScraperRunEventSchema.safeParse({ ...run, phase: 'started', status: 'running' }).success).toBe(true)
+		expect(ScraperRunEventSchema.safeParse({ ...run, phase: 'finished', status: 'success' }).success).toBe(true)
+		expect(ScraperRunEventSchema.safeParse({ ...run, phase: 'finished', status: 'failed' }).success).toBe(true)
+		expect(ScraperRunEventSchema.safeParse({ ...run, phase: 'started', status: 'success' }).success).toBe(false)
+		expect(ScraperRunEventSchema.safeParse({ ...run, phase: 'finished', status: 'running' }).success).toBe(false)
+		expect(ScraperRunEventSchema.safeParse({ ...run, phase: 'started', status: 'running', trigger: 'discord' }).success).toBe(false)
+		expect(ScraperRunEventSchema.safeParse({ ...run, runId: '', phase: 'started', status: 'running' }).success).toBe(false)
 	})
 })

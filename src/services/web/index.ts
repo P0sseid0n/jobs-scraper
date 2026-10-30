@@ -7,6 +7,7 @@ import {
 	JobAppliedChangeSchema,
 	MailResultSchema,
 	ProcessedJobSchema,
+	ScraperRunEventSchema,
 } from '@shared/contracts'
 import { Job } from '@shared/database'
 import { onShutdown } from '@shared/lifecycle'
@@ -74,6 +75,10 @@ await queue.consume(QUEUES.webCvBase, CvBaseValidationResultSchema, result => sa
 // Candidatura marcada pelo botão do Discord: o banco já mudou, os navegadores abertos ficam sabendo
 await queue.consume(QUEUES.webMail, MailResultSchema, result => saveMailResult(result, { events, logger }))
 await queue.consume(QUEUES.webApplied, JobAppliedChangeSchema, async change => events.broadcast('applied', change))
+// Coleta que começou ou terminou: os navegadores abertos consultam o status na hora (a consulta periódica continua de garantia)
+await queue.consume(QUEUES.webScraperRun, ScraperRunEventSchema, async event => events.broadcast('scraperRun', event), {
+	bindTo: EXCHANGES.scraperRun,
+})
 
 const api = <R extends Request>(fn: (req: R) => Promise<Response> | Response) => handler(logger, fn)
 

@@ -24,6 +24,7 @@ import { cx } from '../lib/cx'
 import { DATE_POSTED_LABELS, formatDateTime, formatDuration, formatInterval } from '../lib/format'
 import { pageItems } from '../lib/pagination'
 import { useStore } from '../lib/store'
+import { onLive } from '../stores/live'
 import { RUNS_PAGE_SIZE_OPTIONS, runsPageSize } from '../stores/runs-page-size'
 import { notify } from '../stores/toast'
 
@@ -608,7 +609,8 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 	const pageRef = useRef(1)
 	const runsRequest = useRef(0)
 
-	async function refreshStatus() {
+	/** Consulta o status; com `reloadRuns`, recarrega também o histórico (uma coleta terminou). */
+	async function refreshStatus(reloadRuns = false) {
 		clearTimeout(pollTimer.current)
 		const wasRunning = !!statusRef.current?.current
 
@@ -624,7 +626,7 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 				setStarting(false)
 			}
 			// A coleta terminou (ou começou) desde a última consulta: atualiza o histórico
-			if (wasRunning !== !!next.current) void loadRuns()
+			if (reloadRuns || wasRunning !== !!next.current) void loadRuns()
 		} catch {
 			// Falhou uma consulta: a tela continua com o último status, e a próxima tenta de novo
 			if (!mounted.current) return
@@ -636,7 +638,7 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 
 	function schedulePoll() {
 		const fast = statusRef.current.current || startingUntil.current
-		pollTimer.current = setTimeout(refreshStatus, fast ? POLL_RUNNING_MS : POLL_IDLE_MS)
+		pollTimer.current = setTimeout(() => refreshStatus(), fast ? POLL_RUNNING_MS : POLL_IDLE_MS)
 	}
 
 	async function loadRuns(target = pageRef.current, size = runsPageSize.get()) {
@@ -721,11 +723,15 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 		mounted.current = true
 		schedulePoll()
 		const clock = setInterval(() => setNow(Date.now()), 1000)
+		// Coleta que começou ou terminou: consulta na hora. A que terminou recarrega o histórico mesmo que o início não
+		// tenha chegado (o navegador estava desconectado); a consulta periódica continua para os eventos perdidos
+		const stop = onLive('scraperRun', event => void refreshStatus(event.phase === 'finished'))
 
 		return () => {
 			mounted.current = false
 			clearTimeout(pollTimer.current)
 			clearInterval(clock)
+			stop()
 		}
 	}, [])
 

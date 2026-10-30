@@ -39,3 +39,19 @@ test('repassa os eventos para quem está conectado e esquece quem desconectou', 
 	controller.abort()
 	expect(hub.size).toBe(0)
 })
+
+test('repassa o início e o fim das coletas como scraperRun', async () => {
+	hub = new EventHub()
+	const reader = hub.subscribe().body!.getReader()
+	const decoder = new TextDecoder()
+	await reader.read()
+
+	const started = { runId: 'r1', phase: 'started', status: 'running', trigger: 'manual' } as const
+	const finished = { runId: 'r1', phase: 'finished', status: 'failed', trigger: 'manual' } as const
+
+	hub.broadcast('scraperRun', started)
+	expect(decoder.decode((await reader.read()).value)).toBe(formatEvent('scraperRun', started))
+
+	hub.broadcast('scraperRun', finished)
+	expect(decoder.decode((await reader.read()).value)).toBe(formatEvent('scraperRun', finished))
+})

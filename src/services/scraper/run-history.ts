@@ -1,4 +1,7 @@
+import type { ScraperRunEvent } from '@shared/contracts'
 import { Job, ScraperRun, type ScraperRunTerm, type ScraperRunTrigger } from '@shared/database'
+import type { Logger } from '@shared/logging'
+import { EXCHANGES, type QueueClient } from '@shared/messaging'
 
 import { LoginError } from './login'
 import type { ScrapeResult } from './scrape-run'
@@ -8,12 +11,14 @@ export type TermProgress = (terms: ScraperRunTerm[]) => Promise<void>
 
 /**
  * Executa a coleta registrando-a em `scraper_runs` (em andamento → sucesso ou falha). Os termos previstos e o mínimo de
- * vagas (`plan`) e o resultado de cada termo, assim que ele termina, ficam gravados: o site mostra a coleta andando.
+ * vagas (`plan`) e o resultado de cada termo, assim que ele termina, ficam gravados: o site mostra a coleta andando. O
+ * início e o fim também são anunciados no evento `scraper-run`, para o site atualizar na hora.
  * @returns O resultado por termo, o total enviado e se todas as buscas falharam.
  */
 export async function recordRun(
 	trigger: ScraperRunTrigger,
 	plan: { terms: string[]; minJobs: number },
+	{ queue, logger }: { queue: QueueClient; logger: Logger },
 	collect: (onTerm: TermProgress) => Promise<ScrapeResult>,
 ) {
 	const run = await ScraperRun.create({
@@ -23,6 +28,16 @@ export async function recordRun(
 		plannedTerms: plan.terms,
 		minJobs: plan.minJobs,
 	})
+	const runId = run._id.toString()
+
+	// O anúncio também é só para o site, que se corrige na próxima consulta: se não der para publicar (ex.: o site nunca
+	// subiu e nenhuma fila assina o evento), a coleta segue
+	const announce = (event: ScraperRunEvent) =>
+		queue
+			.publishEvent(EXCHANGES.scraperRun, event)
+			.catch(error => logger.debug({ err: error, event }, 'Coleta não anunciada no evento scraper-run'))
+
+	await announce({ runId, phase: 'started', status: 'running', trigger })
 
 	// O andamento é só para o site: se não der para gravar, a coleta segue (o resultado final é gravado no fim)
 	const onTerm: TermProgress = terms =>
@@ -49,6 +64,7 @@ export async function recordRun(
 				error: failed ? 'Todas as buscas falharam' : null,
 			},
 		)
+		await announce({ runId, phase: 'finished', status: failed ? 'failed' : 'success', trigger })
 
 		return { terms, sent, failed }
 	} catch (error) {
@@ -61,6 +77,7 @@ export async function recordRun(
 				loginFailure: error instanceof LoginError ? error.kind : null,
 			},
 		)
+		await announce({ runId, phase: 'finished', status: 'failed', trigger })
 
 		throw error
 	}

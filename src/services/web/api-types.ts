@@ -15,6 +15,7 @@ import type {
 	PostProcessingSettings,
 	ProcessedJob,
 	ProfileSettings,
+	ScraperRunEvent,
 	ScraperSettings,
 	SettingsKey,
 } from '@shared/contracts'
@@ -306,4 +307,6 @@ export type StreamEvents = {
 	applied: JobAppliedChange
 	cvBase: WebCvBaseVersion
 	mail: WebMail
+	/** Coleta que começou ou terminou: o site consulta o status (e o histórico) de novo, sem esperar o próximo ciclo. */
+	scraperRun: ScraperRunEvent
 }

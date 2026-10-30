@@ -91,7 +91,7 @@ async function collect(trigger: ScraperRunTrigger) {
 		await lookups.close()
 		const terms = rankTerms(activeSearchTerms(settings), await jobsByTerm())
 		const plan = { terms, minJobs: settings.minJobsPerRun }
-		return recordRun(trigger, plan, onTerm => scrapeOnce({ config, settings, terms, queue, logger, onTerm }))
+		return recordRun(trigger, plan, { queue, logger }, onTerm => scrapeOnce({ config, settings, terms, queue, logger, onTerm }))
 	})
 }
 

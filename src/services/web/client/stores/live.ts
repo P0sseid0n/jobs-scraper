@@ -10,6 +10,7 @@ const listeners: { [E in keyof StreamEvents]: Set<Listener<E>> } = {
 	applied: new Set(),
 	cvBase: new Set(),
 	mail: new Set(),
+	scraperRun: new Set(),
 }
 
 /** Se o navegador está recebendo as vagas novas em tempo real. */

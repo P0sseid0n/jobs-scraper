@@ -20,7 +20,7 @@ import { formatDuration } from '../lib/format'
 import { reducedMotion } from '../lib/motion'
 import { useTrayRequests } from '../stores/cv'
 import { jobsStore } from '../stores/jobs'
-import { useConnected } from '../stores/live'
+import { onLive, useConnected } from '../stores/live'
 import { loadSetup, needsOnboarding, useSetup } from '../stores/setup'
 import { toggleTheme } from '../stores/theme'
 import { useToasts } from '../stores/toast'
@@ -87,10 +87,13 @@ function useScraperPill() {
 			setNow(Date.now())
 			void refresh()
 		}, 30_000)
+		// Coleta que começou ou terminou (inclusive pedida pelo terminal ou pelo Discord): consulta na hora
+		const stop = onLive('scraperRun', () => void refresh())
 
 		return () => {
 			active = false
 			clearInterval(timer)
+			stop()
 		}
 	}, [])
 
