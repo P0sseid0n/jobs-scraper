@@ -1,5 +1,6 @@
 import { TimeoutError, type Page } from 'puppeteer'
 
+import { authorHeadline } from './linkedin/post-author'
 import type { CardImage } from './linkedin/post-images'
 import { SELECTORS } from './linkedin/selectors'
 
@@ -11,6 +12,8 @@ export type ScrapedPost = {
 	author: string | null
 	/** O link do autor é de uma página de empresa (`/company/`), não de uma pessoa (`/in/`). */
 	authorIsCompany: boolean
+	/** O subtítulo do perfil do autor ("Tech Recruiter na Acme"), lido com `authorHeadline`. */
+	authorHeadline: string | null
 
 	/** Links do card fora do texto (o cartão anexado, entre outros); `externalLink` escolhe o que vale. */
 	cardLinks: string[]
@@ -32,13 +35,14 @@ const ORIGINAL_TEXT_TIMEOUT_MS = 5_000
 export async function collectNewPosts(page: Page): Promise<ScrapedPost[]> {
 	await showOriginalTexts(page)
 
-	return page.evaluate(
+	const posts = await page.evaluate(
 		(selectors, scrapedAttribute) => {
 			const results: {
 				urnCandidates: string[]
 				text: string
 				author: string | null
 				authorIsCompany: boolean
+				authorLines: string[]
 				cardLinks: string[]
 				images: { src: string; srcset: string }[]
 			}[] = []
@@ -86,9 +90,22 @@ export async function collectNewPosts(page: Page): Promise<ScrapedPost[]> {
 					.filter(Boolean)
 
 				const authorLink = Array.from(source.querySelectorAll<HTMLAnchorElement>(selectors.authorLink))
-					.map(link => ({ name: link.innerText.trim().split('\n')[0]?.trim(), href: link.href }))
+					.map(link => ({ element: link, name: link.innerText.trim().split('\n')[0]?.trim(), href: link.href }))
 					.find(link => link.name)
 				const author = authorLink?.name
+
+				// O cabeçalho do autor (nome, grau de conexão, subtítulo e data): o primeiro ancestral do link com mais texto
+				// que ele, sem chegar ao texto do post. No layout antigo, o subtítulo já vem dentro do link
+				let header: HTMLElement | undefined = authorLink?.element
+				const linkText = header?.innerText.trim()
+				while (
+					header?.parentElement &&
+					header !== source &&
+					!header.parentElement.contains(textElement) &&
+					header.innerText.trim() === linkText
+				) {
+					header = header.parentElement
+				}
 
 				// Os links do texto a IA já lê; os de fora dele incluem o do cartão anexado (pré-visualização de um site)
 				const cardLinks = Array.from(container.querySelectorAll<HTMLAnchorElement>('a[href]'))
@@ -106,6 +123,7 @@ export async function collectNewPosts(page: Page): Promise<ScrapedPost[]> {
 					text,
 					author: author || null,
 					authorIsCompany: !!authorLink?.href.includes('/company/'),
+					authorLines: header?.innerText.split('\n') ?? [],
 					cardLinks,
 					images,
 				})
@@ -116,6 +134,8 @@ export async function collectNewPosts(page: Page): Promise<ScrapedPost[]> {
 		SELECTORS,
 		SCRAPED_ATTRIBUTE,
 	)
+
+	return posts.map(({ authorLines, ...post }) => ({ ...post, authorHeadline: authorHeadline(authorLines, post.author) }))
 }
 
 /**
@@ -170,12 +190,9 @@ async function showOriginalTexts(page: Page) {
 			if (!(error instanceof TimeoutError)) throw error
 		})
 
-	await page.evaluate(
-		translatedAttribute => {
-			for (const card of document.querySelectorAll(`[${translatedAttribute}]`)) card.removeAttribute(translatedAttribute)
-		},
-		TRANSLATED_ATTRIBUTE,
-	)
+	await page.evaluate(translatedAttribute => {
+		for (const card of document.querySelectorAll(`[${translatedAttribute}]`)) card.removeAttribute(translatedAttribute)
+	}, TRANSLATED_ATTRIBUTE)
 }
 
 /**

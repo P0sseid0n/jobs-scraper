@@ -18,6 +18,8 @@ export const JobLookupSchema = z.object({
 	author: z.string().nullable(),
 	/** Ver `RawPostSchema`; o padrão aceita mensagens de antes do campo. */
 	authorIsCompany: z.boolean().default(false),
+	/** Ver `RawPostSchema`; o padrão aceita mensagens de antes do campo. */
+	authorHeadline: z.string().nullable().default(null),
 	postedAt: z.iso.datetime().nullable(),
 	requestedAt: z.iso.datetime(),
 	/** Pedido do "processar de novo" (ver `ReprocessIdSchema`): a página que não abrir é uma falha, sem o texto do post. */

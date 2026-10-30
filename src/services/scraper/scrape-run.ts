@@ -529,6 +529,7 @@ function toRawPost(post: ScrapedPost): RawPost | null {
 		url: postUrlFromUrn(urn),
 		author: post.author,
 		authorIsCompany: post.authorIsCompany,
+		authorHeadline: post.authorHeadline,
 		postedAt: postedAtFromUrn(urn),
 		scrapedAt: new Date().toISOString(),
 		sourcePostId: null,

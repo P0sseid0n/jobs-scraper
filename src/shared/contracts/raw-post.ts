@@ -28,6 +28,11 @@ export const RawPostSchema = z.object({
 	author: z.string().nullable().default(null),
 	/** O autor é uma página de empresa (`/company/`), não uma pessoa: o nome dele conta como a empresa da vaga. */
 	authorIsCompany: z.boolean().default(false),
+	/**
+	 * O subtítulo do perfil do autor ("Tech Recruiter na Acme"): a empresa citada nele vale para a vaga quando o post a
+	 * confirma (ver `chooseCompany`). O padrão aceita mensagens de antes do campo.
+	 */
+	authorHeadline: z.string().nullable().default(null),
 	postedAt: z.iso.datetime().nullable().default(null),
 	scrapedAt: z.iso.datetime(),
 	/** Post que listava várias vagas, de onde esta saiu (ver `JobLookupSchema`); `null` num post comum. */

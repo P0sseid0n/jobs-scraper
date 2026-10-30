@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test'
 import {
 	chooseCompany,
 	companyConfidentialInPost,
+	headlineCompanies,
 	isConfidentialCompanyName,
 	keepCompanyIfInPost,
 	keepContractTypesInPost,
@@ -146,11 +147,11 @@ describe('keepEmailIfInPost', () => {
 		expect(keepEmailIfInPost('vagas@empresa.com.br', text)).toBeNull()
 		expect(keepEmailIfInPost(null, text)).toBeNull()
 	})
-})
 
 	test('descarta o telefone que o modelo devolve como e-mail, mesmo escrito no post', () => {
 		expect(keepEmailIfInPost('11 90000-0000', 'Interessados, entrar em contato: 11 90000-0000')).toBeNull()
 	})
+})
 
 describe('keepCompanyIfInPost', () => {
 	test('mantém a empresa escrita no post, junta ou em negrito Unicode', () => {
@@ -210,6 +211,37 @@ describe('chooseCompany', () => {
 
 		expect(chooseCompany({ aiCompany: 'Globex', ...agency }, 'Vaga na Globex, remoto')).toBe('Globex')
 		expect(chooseCompany({ aiCompany: 'Globex', ...agency }, 'Vaga na Globex. CV para vagas@talentosrh.com.br')).toBe('Talentos RH')
+	})
+
+	test('a empresa do subtítulo do autor fica quando o e-mail ou o texto do post a confirmam', () => {
+		// Post real: a IA não achou a empresa, escrita só no domínio do e-mail e no subtítulo da autora
+		const utc = {
+			aiCompany: null,
+			author: 'Ana S.',
+			authorIsCompany: false,
+			authorHeadline: 'Responsável por Sistemas no Grupo ABC | MBA em Gestão de TI',
+		}
+		const post =
+			'Desenvolvedor(a) Full Stack Júnior. Envie seu currículo para rh@abc.com.br, com o assunto Desenvolvedor Full Stack Júnior.'
+
+		expect(chooseCompany(utc, post)).toBe('Grupo ABC')
+		expect(chooseCompany({ ...utc, authorHeadline: 'Tech Recruiter at Globex' }, 'Vaga de Dev React na Globex')).toBe('Globex')
+		// Sem confirmação, pode ser a agência de quem recruta para um cliente
+		expect(chooseCompany(utc, 'Desenvolvedor(a) Full Stack Júnior. Envie seu currículo para ana@gmail.com')).toBeNull()
+		expect(chooseCompany({ ...utc, authorHeadline: null }, post)).toBeNull()
+	})
+})
+
+describe('headlineCompanies', () => {
+	test('a empresa depois de "no", "na", "at" ou "@" em cada trecho do subtítulo', () => {
+		expect(headlineCompanies('Responsável  por Sistemas no Grupo ABC | MBA em Gestão de TI')).toEqual(['Grupo ABC'])
+		expect(headlineCompanies('Tech Recruiter na Acme, São Paulo · Psicóloga')).toEqual(['Acme'])
+		expect(headlineCompanies('Engineering Manager @ Globex - Brasil | Speaker at DevConf')).toEqual(['Globex', 'DevConf'])
+	})
+
+	test('a área e o lugar não são empresas', () => {
+		expect(headlineCompanies('Especialista em Recursos Humanos | Senior Tech Recruiter | Talent Acquisition')).toEqual([])
+		expect(headlineCompanies('Analista de dados na área de saúde')).toEqual([])
 	})
 })
 

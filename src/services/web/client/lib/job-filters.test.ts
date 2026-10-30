@@ -15,6 +15,7 @@ const job: WebJob = {
 	applyLink: null,
 	recruiterEmail: null,
 	author: 'Ana',
+	authorHeadline: null,
 	postedAt: null,
 	createdAt: '2026-10-10T11:00:00.000Z',
 	extractionChecks: [],

@@ -22,6 +22,7 @@ const doc: JobDocument = {
 	extractionChecks: [],
 	postedAt: '2026-10-10T10:00:00.000Z',
 	author: 'Ana',
+	authorHeadline: null,
 	language: 'pt',
 	sourcePostId: null,
 	postLink: 'https://www.linkedin.com/feed/update/urn:li:activity:1',

@@ -161,6 +161,7 @@ export class JobLookupWorker {
 				postedAt: request.postedAt,
 				scrapedAt: new Date().toISOString(),
 				sourcePostId: null,
+				authorHeadline: scraped.authorHeadline,
 				jobLink: null,
 				attachedLink: externalLink(scraped.cardLinks),
 				images: await downloadPostImages(postImageUrls(scraped.images), log),

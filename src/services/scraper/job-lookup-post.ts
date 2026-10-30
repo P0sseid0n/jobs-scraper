@@ -36,6 +36,7 @@ export function lookupToRawPost(lookup: JobLookup, page: ListingPage | null): Ra
 		jobLink: (page && canonicalJobUrl(page.url)) ?? lookup.link,
 		author: lookup.author,
 		authorIsCompany: lookup.authorIsCompany,
+		authorHeadline: lookup.authorHeadline,
 		postedAt: lookup.postedAt,
 		scrapedAt: new Date().toISOString(),
 		sourcePostId: lookup.sourcePostId,

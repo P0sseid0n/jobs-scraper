@@ -44,6 +44,7 @@ export async function reprocessJob(
 			// A vaga não guarda se o autor do post de origem é uma página de empresa
 			authorIsCompany: false,
 			postedAt: job.postedAt ?? null,
+			authorHeadline: job.authorHeadline ?? null,
 			requestedAt: new Date().toISOString(),
 			reprocessId,
 		}
@@ -58,6 +59,7 @@ export async function reprocessJob(
 			author: job.author ?? null,
 			authorIsCompany: false,
 			postedAt: job.postedAt ?? null,
+			authorHeadline: job.authorHeadline ?? null,
 			scrapedAt: new Date().toISOString(),
 			sourcePostId: job.sourcePostId,
 			jobLink: null,

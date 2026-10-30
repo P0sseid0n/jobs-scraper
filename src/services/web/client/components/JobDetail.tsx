@@ -173,7 +173,13 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 						/>
 					</p>
 				)}
-				{job.author && (job.company || job.location || subtitle.confidential) && <p className={META}>postado por {job.author}</p>}
+				{job.author && (job.company || job.location || subtitle.confidential) && (
+					// O subtítulo do perfil (de onde a empresa pode ter saído) cabe numa linha; inteiro, no mouse
+					<p className={cx(META, 'truncate')} title={job.authorHeadline ?? undefined}>
+						postado por {job.author}
+						{job.authorHeadline && ` · ${job.authorHeadline}`}
+					</p>
+				)}
 			</header>
 			{/* Fora do subtítulo: a modal não pode ficar dentro do <p> */}
 			{blocking && (

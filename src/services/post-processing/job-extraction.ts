@@ -73,10 +73,15 @@ export function buildProcessedJob(post: RawPost, aiJob: AiJobOutput, language: s
 	const imageText = post.images.length > 0 ? aiJob.imageText : null
 	const sourceText = imageText ? `${post.text}\n\n${imageText}` : post.text
 
-	// Pesa a resposta da IA, o texto, o autor e o domínio do e-mail: a IA às vezes tira a empresa de um link ou e-mail,
-	// e a empresa que posta nem sempre escreve o próprio nome
+	// Pesa a resposta da IA, o texto, o autor, o subtítulo dele e o domínio do e-mail: a IA às vezes tira a empresa de um
+	// link ou e-mail, e a empresa que posta nem sempre escreve o próprio nome
 	const chosenCompany = chooseCompany(
-		{ aiCompany: aiJob.company, author: post.author, authorIsCompany: post.authorIsCompany },
+		{
+			aiCompany: aiJob.company,
+			author: post.author,
+			authorIsCompany: post.authorIsCompany,
+			authorHeadline: post.authorHeadline,
+		},
 		sourceText,
 	)
 	// "Confidencial" não vira nome: duas empresas confidenciais com o mesmo cargo seriam agrupadas como repostagem
@@ -104,6 +109,7 @@ export function buildProcessedJob(post: RawPost, aiJob: AiJobOutput, language: s
 		extractionChecks: [],
 		postedAt: post.postedAt,
 		author: post.author,
+		authorHeadline: post.authorHeadline,
 		language,
 		sourcePostId: post.sourcePostId,
 		postLink: post.url,

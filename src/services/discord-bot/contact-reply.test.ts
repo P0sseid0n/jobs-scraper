@@ -22,6 +22,7 @@ const job: JobPublished = {
 	needsReview: false,
 	postedAt: '2026-10-07T17:18:50.712Z',
 	author: 'Mandar Wairkar',
+	authorHeadline: null,
 	language: 'pt',
 	sourcePostId: null,
 	postLink: 'https://www.linkedin.com/feed/update/urn:li:share:7513649051440021505/',

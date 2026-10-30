@@ -177,6 +177,7 @@ export function toWebJob(doc: JobDocument, reviewChecksPercent: number): WebJob 
 		applyLink: doc.applyLink ?? null,
 		recruiterEmail: doc.recruiterEmail ?? null,
 		author: doc.author ?? null,
+		authorHeadline: doc.authorHeadline ?? null,
 		postedAt: doc.postedAt ?? null,
 		createdAt: (doc.createdAt ?? new Date()).toISOString(),
 		extractionChecks,

@@ -120,6 +120,7 @@ describe('toWebJob', () => {
 		workMode: null,
 		postedAt: null,
 		author: null,
+		authorHeadline: null,
 		language: null,
 		sourcePostId: null,
 		postLink: null,

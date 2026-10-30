@@ -19,6 +19,7 @@ const job: ProcessedJob = {
 	extractionChecks: [],
 	postedAt: null,
 	author: null,
+	authorHeadline: null,
 	language: null,
 	sourcePostId: null,
 	postLink: 'https://www.linkedin.com/feed/update/urn:li:share:1/',

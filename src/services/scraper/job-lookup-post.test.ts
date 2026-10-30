@@ -12,6 +12,7 @@ const lookup: JobLookup = {
 	link: 'https://lnkd.in/eQUCFcXh',
 	text: '📄 Junior pleno front end engineer remote\n🔗 Candidate-se: https://lnkd.in/eQUCFcXh',
 	author: 'Agregador de Vagas',
+	authorHeadline: null,
 	authorIsCompany: true,
 	postedAt: null,
 	requestedAt: '2026-10-11T12:00:00.000Z',
@@ -37,6 +38,7 @@ describe('lookupToRawPost', () => {
 			url: 'https://www.linkedin.com/feed/update/urn:li:activity:1/',
 			sourcePostId: 'urn:li:activity:1',
 			author: 'Agregador de Vagas',
+			authorHeadline: null,
 			authorIsCompany: true,
 		})
 	})

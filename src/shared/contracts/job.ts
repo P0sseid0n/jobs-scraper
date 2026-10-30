@@ -62,6 +62,8 @@ export const ProcessedJobSchema = z.object({
 	extractionChecks: z.array(z.enum(EXTRACTION_CHECKS)).default([]),
 	postedAt: z.iso.datetime().nullable().default(null),
 	author: z.string().nullable().default(null),
+	/** O subtítulo do perfil do autor (ver `RawPostSchema`); o padrão aceita mensagens de antes do campo existir. */
+	authorHeadline: z.string().nullable().default(null),
 	/** Idioma do post (ISO 639-1), detectado no texto; `null` se curto demais. */
 	language: z.string().nullable().default(null),
 	/** Post que listava várias vagas, de onde esta saiu; `null` se a vaga é o próprio post. */

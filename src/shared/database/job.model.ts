@@ -62,6 +62,8 @@ const jobSchema = new Schema<JobDocument>(
 		extractionChecks: { type: [{ type: String, enum: EXTRACTION_CHECKS }], default: [] },
 		postedAt: { type: String, default: null },
 		author: { type: String, default: null },
+		// Vagas salvas antes do campo não o têm: ausente é o mesmo que `null`
+		authorHeadline: { type: String, default: null },
 		language: { type: String, default: null },
 		sourcePostId: { type: String, default: null },
 		postLink: { type: String, default: null },

@@ -6,6 +6,8 @@ Busca posts de vagas no LinkedIn com o Puppeteer e envia cada um para a fila `po
 
 **Compartilhamentos com comentário:** o post original vem dentro do card, depois do comentário de quem compartilhou. Texto, autor e id saem do original: antes, o id (e o link) era do original, mas o texto e o autor eram do comentário, e a vaga aparecia como postada por quem só compartilhou. No mesmo card, o "Exibir original" pode ser só do post de dentro.
 
+**Subtítulo do autor:** o cabeçalho do card traz, embaixo do nome, o subtítulo do perfil ("Responsável por Sistemas no Grupo ABC | MBA…"), que vai no `RawPost` (`authorHeadline`) para o post-processing achar a empresa (`linkedin/post-author.ts`). Sem classes estáveis no HTML, o cabeçalho é o primeiro ancestral do link do autor com mais texto que ele (sem chegar ao texto do post), e o subtítulo é a primeira linha que não é o nome, o grau de conexão ("• 2º"), a data ("há 4 h") ou os seguidores de uma página de empresa.
+
 **Imagens do post:** muitos posts põem a vaga numa arte ("detalhes na imagem 👇"). As imagens do conteúdo (`media.licdn.com/dms/image/.../feedshare-shrink_<tamanho>/...`; avatares e logos ficam de fora) vão junto no `RawPost`, em base64: as URLs do LinkedIn são assinadas e expiram, então são baixadas na coleta. São no máximo 2 por post, de até 1,5 MB cada (`POST_IMAGE_LIMITS`), no tamanho mais legível disponível (`feedshare-shrink_800`/`_1280` em vez da prévia `_160`; nas postadas pela API, `image-shrink_`, `linkedin/post-images.ts`). O download vem do CDN de imagens, não das páginas do LinkedIn, e só acontece para os posts enviados à fila (os já vistos e os de outro idioma não baixam nada). Uma imagem que não baixar fica de fora sem impedir o post.
 
 [← voltar ao README principal](../../../README.md)

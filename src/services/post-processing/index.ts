@@ -195,6 +195,7 @@ async function requestLookups(post: RawPost, listings: JobListing[], settings: K
 		}
 		await queue.publish(QUEUES.scraperLookup, lookup)
 		requested++
+			authorHeadline: post.authorHeadline,
 	}
 
 	log.info({ listings: listings.length, requested }, '📋 Post com várias vagas: links enviados para o scraper abrir')

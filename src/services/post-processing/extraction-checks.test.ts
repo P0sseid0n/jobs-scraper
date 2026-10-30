@@ -10,6 +10,7 @@ const post: RawPost = {
 	text: 'Estamos contratando Desenvolvedor Front-end Pleno na Acme, CLT. Requisitos: Vue.js e TypeScript. https://acme.com/vagas/1',
 	url: null,
 	author: 'Ana',
+	authorHeadline: null,
 	authorIsCompany: false,
 	postedAt: null,
 	scrapedAt: new Date(0).toISOString(),

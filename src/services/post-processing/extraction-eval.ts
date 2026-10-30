@@ -78,8 +78,9 @@ export function caseToRawPost(item: ExtractionCase, images: PostImage[] = []): R
 		text: item.post.text,
 		url: item.post.url,
 		author: item.post.author,
-		// As correções não guardam se o autor é página de empresa
+		// As correções não guardam se o autor é página de empresa, nem o subtítulo dele
 		authorIsCompany: false,
+		authorHeadline: null,
 		postedAt: item.post.postedAt,
 		scrapedAt: new Date(0).toISOString(),
 		sourcePostId: item.post.sourcePostId,

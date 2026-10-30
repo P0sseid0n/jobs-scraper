@@ -80,18 +80,28 @@ export function keepCompanyIfInPost(company: string | null, text: string): strin
 	return compact.length >= 4 && textWithoutLinks.replace(/[^a-z0-9#+&]+/g, '').includes(compact) ? company : null
 }
 
-/** A empresa da IA e o autor do post: os candidatos a empresa da vaga (ver `chooseCompany`). */
-export type CompanySources = { aiCompany: string | null; author: string | null; authorIsCompany: boolean }
+/**
+ * A empresa da IA, o autor do post e o subtítulo do perfil dele: os candidatos a empresa da vaga (ver `chooseCompany`).
+ */
+export type CompanySources = {
+	aiCompany: string | null
+	author: string | null
+	authorIsCompany: boolean
+	authorHeadline?: string | null
+}
 
 /**
  * Escolhe a empresa somando o peso de cada sinal: escrita no post (2), autor do post que é página de empresa (3),
- * escolhida pela IA (1) e no domínio de um e-mail do post (2; e-mail gratuito não conta). Fica a de mais pontos, se
- * chegar a 3: a IA com o e-mail corporativo basta ("Tiviati" de rh@tiviati.com.br, com o nome escrito só ali), com
- * o domínio de um link não (ela tirava "Gupy" de acme.gupy.io); a página da empresa basta (a empresa nem sempre
- * escreve o próprio nome), menos a de uma página de vagas, que reposta as de outras empresas. No empate fica a da IA: a página de uma agência citando o cliente.
+ * escolhida pela IA (1), citada no subtítulo do autor (1, ver `headlineCompanies`) e no domínio de um e-mail do post
+ * (2; e-mail gratuito não conta). Fica a de mais pontos, se chegar a 3: a IA com o e-mail corporativo basta ("Tiviati"
+ * de rh@tiviati.com.br, com o nome escrito só ali), com o domínio de um link não (ela tirava "Gupy" de acme.gupy.io); a
+ * página da empresa basta (a empresa nem sempre escreve o próprio nome), menos a de uma página de vagas, que reposta as
+ * de outras empresas; o subtítulo precisa do post ou do e-mail confirmando ("Responsável por Sistemas no Grupo ABC" com
+ * rh@abc.com.br): sozinho, pode ser a agência de quem recruta para um cliente. No empate fica a da IA: a página de uma
+ * agência citando o cliente.
  * @param text O texto do post (com a transcrição das imagens).
  */
-export function chooseCompany({ aiCompany, author, authorIsCompany }: CompanySources, text: string): string | null {
+export function chooseCompany({ aiCompany, author, authorIsCompany, authorHeadline }: CompanySources, text: string): string | null {
 	const domains = emailDomains(text)
 	const score = (name: string) =>
 		(keepCompanyIfInPost(name, text) ? 2 : 0) + (domains.some(domain => companyInDomain(name, domain)) ? 2 : 0)
@@ -108,6 +118,13 @@ export function chooseCompany({ aiCompany, author, authorIsCompany }: CompanySou
 	else {
 		if (ai) candidates.push({ name: ai, points: 1 + score(ai) })
 		if (companyPage) candidates.push({ name: companyPage, points: 3 + score(companyPage) })
+	}
+
+	// A empresa do subtítulo que a IA também escolheu já soma no candidato dela: o nome escrito pela IA fica
+	for (const name of authorHeadline ? headlineCompanies(authorHeadline) : []) {
+		const known = candidates.find(candidate => sameCompany(candidate.name, name))
+		if (known) known.points += 1
+		else candidates.push({ name, points: 1 + score(name) })
 	}
 
 	const best = candidates.reduce<(typeof candidates)[number] | null>(
@@ -178,10 +195,56 @@ const FREE_EMAIL = new Set([
 	'ymail',
 ])
 
-/** O nome junto bate com uma parte do domínio, numa ponta ou na outra: "Cadmus Soluções" ↔ rh@cadmus.com.br. */
+/**
+ * O nome junto bate com uma parte do domínio, numa ponta ou na outra ("Cadmus Soluções" ↔ rh@cadmus.com.br), ou uma
+ * palavra do nome é uma parte do domínio, mesmo curta ("Grupo ABC" ↔ rh@abc.com.br).
+ */
 function companyInDomain(name: string, labels: string[]) {
 	const compact = compactName(name)
-	return labels.some(label => label.length >= 4 && compact.length >= 4 && (compact.startsWith(label) || label.startsWith(compact)))
+	const words = normalizeForMatch(name.normalize('NFKC'))
+		.split(/[^a-z0-9#+&]+/)
+		.filter(word => word.length >= 3 && !GENERIC_COMPANY_WORDS.has(word))
+
+	return labels.some(
+		label =>
+			(label.length >= 4 && compact.length >= 4 && (compact.startsWith(label) || label.startsWith(compact))) ||
+			words.includes(label),
+	)
+}
+
+/** Palavras de nomes de empresa que também são partes comuns de domínio (rh@grupo.com.br não é do "Grupo ABC"). */
+const GENERIC_COMPANY_WORDS = new Set(['com', 'grupo', 'group', 'net', 'org', 'tech', 'brasil', 'brazil', 'digital', 'online'])
+
+/** Antes da empresa no subtítulo: "Tech Recruiter na Acme", "Responsável por Sistemas no Grupo ABC", "Dev at Acme", "Dev @ Acme". */
+const HEADLINE_COMPANY_START = /(?:^|\s)(?:no|na|at)\s+|@\s*/giu
+
+/** Fim do nome da empresa num trecho do subtítulo: "Acme, São Paulo", "Acme - Brasil", "Acme (Grupo X)". */
+const HEADLINE_COMPANY_END = /\s*(?:,|\(|\s[-–—]\s).*$/u
+
+const MAX_HEADLINE_COMPANY_WORDS = 5
+
+/**
+ * As empresas que o subtítulo do perfil cita, cada trecho dele (separado por "|", "·" ou "•") depois de "no", "na",
+ * "at" ou "@" ("Responsável por Sistemas no Grupo ABC | MBA..." → "Grupo ABC"). O "em" fica de fora: no subtítulo, ele
+ * costuma vir antes da área ou do lugar ("Especialista em Recrutamento", "Analista em São Paulo"). Só vira a empresa
+ * da vaga com o post confirmando (ver `chooseCompany`).
+ */
+export function headlineCompanies(headline: string): string[] {
+	const names = headline
+		.normalize('NFKC')
+		.split(/\s*[|·•]\s*/)
+		.flatMap(part =>
+			[...part.matchAll(HEADLINE_COMPANY_START)].map(match =>
+				part
+					.slice((match.index ?? 0) + match[0].length)
+					.replace(HEADLINE_COMPANY_END, '')
+					.trim(),
+			),
+		)
+		// Começa com maiúscula ou número, como um nome: "na área de dados" não é empresa
+		.filter(name => /^[\p{Lu}\d]/u.test(name) && name.split(/\s+/).length <= MAX_HEADLINE_COMPANY_WORDS)
+
+	return [...new Set(names)]
 }
 
 function compactName(name: string) {
