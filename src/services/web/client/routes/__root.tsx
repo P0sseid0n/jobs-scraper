@@ -62,17 +62,22 @@ const NAV = [
 /** Voltar para a lista mantém os últimos filtros usados. */
 const lastFilters = () => jobsStore.get().filters
 
-const PILL_DOTS: Record<'running' | 'failed' | 'paused' | 'idle', { tone: StatusDotTone; glow?: boolean }> = {
+const PILL_DOTS: Record<'running' | 'failed' | 'paused' | 'idle' | 'offline', { tone: StatusDotTone; glow?: boolean }> = {
 	running: { tone: 'lime', glow: true },
 	failed: { tone: 'current' },
 	paused: { tone: 'muted' },
 	idle: { tone: 'ok' },
+	offline: { tone: 'muted' },
 }
 
-/** Status do scraper no cabeçalho, atualizado a cada 30 s. */
+/**
+ * Status do scraper no cabeçalho, atualizado a cada 30 s. Sem a conexão em tempo real, mostra "offline" no lugar: o
+ * status na tela pode estar velho, e as vagas novas não chegam. Ao reconectar, consulta na hora.
+ */
 function useScraperPill() {
 	const [status, setStatus] = useState<ScraperStatus | null>(null)
 	const [now, setNow] = useState(Date.now())
+	const connected = useConnected()
 
 	useEffect(() => {
 		let active = true
@@ -82,6 +87,7 @@ function useScraperPill() {
 				() => active && setStatus(null),
 			)
 
+		// Refeito quando a conexão em tempo real cai ou volta: ao voltar, pega o que mudou durante a queda (eventos perdidos)
 		void refresh()
 		const timer = setInterval(() => {
 			setNow(Date.now())
@@ -95,8 +101,9 @@ function useScraperPill() {
 			clearInterval(timer)
 			stop()
 		}
-	}, [])
+	}, [connected])
 
+	if (!connected) return { tone: 'offline' as const, text: 'offline · reconectando…' }
 	if (!status) return null
 	if (status.current) return { tone: 'running' as const, text: 'coletando agora' }
 	if (status.last?.status === 'failed') return { tone: 'failed' as const, text: 'última coleta falhou' }
@@ -133,7 +140,6 @@ function RootLayout() {
 	// O título da rota mais funda (o `staticData.title` de cada arquivo de `routes/`)
 	const title = useMatches({ select: matches => matches.at(-1)?.staticData.title })
 	const pill = useScraperPill()
-	const connected = useConnected()
 	const toasts = useToasts()
 	const pendingCvs = useTrayRequests().filter(request => request.status === 'pending').length
 	const nav = useSlidingIndicator<HTMLElement>('[aria-current="page"]', path)
@@ -204,19 +210,20 @@ function RootLayout() {
 								className={badge({
 									tone: 'plain',
 									size: 'lg',
-									bordered: true,
-									className: cx('text-muted max-md:hidden', pill.tone === 'failed' && 'border-danger text-danger'),
+									bordered: pill.tone === 'offline' ? 'dashed' : true,
+									// O "offline" continua no celular: avisa que as vagas novas não estão chegando
+									className: cx(
+										'text-muted',
+										pill.tone !== 'offline' && 'max-md:hidden',
+										pill.tone === 'failed' && 'border-danger text-danger',
+									),
 								})}
+								title={pill.tone === 'offline' ? 'Sem conexão em tempo real; reconectando…' : undefined}
 								to="/coletas"
 							>
 								<StatusDot {...PILL_DOTS[pill.tone]} />
 								{pill.text}
 							</Link>
-						)}
-						{!connected && (
-							<Badge tone="plain" bordered="dashed" className="text-muted" title="Sem conexão em tempo real; reconectando…">
-								offline
-							</Badge>
 						)}
 						<IconButton label="Alternar tema claro/escuro" bordered onClick={event => toggleTheme(event.currentTarget)}>
 							{/* Os dois ícones no mesmo lugar: um gira e encolhe enquanto o outro cresce */}
