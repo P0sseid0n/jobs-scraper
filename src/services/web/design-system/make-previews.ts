@@ -306,7 +306,7 @@ const PREVIEWS: Record<string, Preview> = {
 	TutorialDialog: {
 		group: 'Feedback',
 		height: 360,
-		subtitle: 'a modal aberta pelo "como configurar"',
+		subtitle: 'a modal aberta pelo “como configurar”',
 		body: `h(U.TutorialDialog, { title: 'Como ligar o GitHub', intro: 'A gente lê os seus repositórios públicos.', onClose: function () {}, paths: [{ id: 'github', label: 'GitHub', steps: [
 	{ id: 'username', title: 'Informe o seu usuário', text: 'É o nome no endereço do seu perfil (github.com/usuario).' },
 	{ id: 'token', title: 'Opcional: crie um token', text: 'Sem token, a API permite só 60 consultas por hora.', link: { href: 'https://github.com/settings/personal-access-tokens/new', label: 'criar o token' } }
