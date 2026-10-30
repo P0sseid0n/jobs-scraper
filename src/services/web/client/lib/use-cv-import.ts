@@ -14,6 +14,17 @@ const POLL_MS = 4_000
 const megabytes = (bytes: number) => `${new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 }).format(bytes / 1024 / 1024)} MB`
 
 /**
+ * A confirmação para sair da tela durante a leitura: o resultado chega para a tela aberta, então sair o perde (o
+ * cv-updater termina de ler, mas ninguém recebe).
+ */
+export const LEAVE_DURING_IMPORT = {
+	title: 'Sair durante a importação?',
+	description: 'A IA ainda está lendo o PDF. Saindo agora, o que ela ler vai se perder e você terá que importar de novo.',
+	confirmLabel: 'sair mesmo assim',
+	cancelLabel: 'continuar aqui',
+} as const
+
+/**
  * Importa o currículo de um PDF: envia o arquivo, espera o cv-updater ler e entrega o formulário preenchido em
  * `onImported`, com o nome do arquivo (o nome da pessoa pode vir vazio: ela completa ao revisar). A falha vira um aviso.
  */

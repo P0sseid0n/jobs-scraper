@@ -24,7 +24,7 @@ import { CV_EXAMPLES, exampleDownloadUrl, type CvExample } from '../lib/cv-examp
 import { cleanForm, emptyForm, formProblems, sameForm } from '../lib/cv-form'
 import { cx } from '../lib/cx'
 import { formatDateTime } from '../lib/format'
-import { useCvImport } from '../lib/use-cv-import'
+import { LEAVE_DURING_IMPORT, useCvImport } from '../lib/use-cv-import'
 import { connected, onLive } from '../stores/live'
 import { notify } from '../stores/toast'
 
@@ -142,8 +142,8 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 	}, [validating])
 
 	const blocker = useBlocker({
-		shouldBlockFn: () => (dirty || formDirty) && !submitting,
-		enableBeforeUnload: () => dirty || formDirty,
+		shouldBlockFn: () => ((dirty || formDirty) && !submitting) || cvImport.importing,
+		enableBeforeUnload: () => dirty || formDirty || cvImport.importing,
 		withResolver: true,
 	})
 
@@ -610,7 +610,10 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 				lead="O .tex de onde saem todos os currículos, no site e no Discord. Monte pelo formulário (ou importe o seu PDF para preenchê-lo) ou envie o seu .tex; cada versão nova é compilada antes de poder ser ativada."
 			/>
 
-			{blocker.status === 'blocked' && (
+			{blocker.status === 'blocked' && cvImport.importing && (
+				<ConfirmDialog {...LEAVE_DURING_IMPORT} onConfirm={blocker.proceed} onCancel={blocker.reset} />
+			)}
+			{blocker.status === 'blocked' && !cvImport.importing && (
 				<ConfirmDialog
 					title="Sair sem validar?"
 					description="O texto do editor ainda não foi enviado e vai se perder."

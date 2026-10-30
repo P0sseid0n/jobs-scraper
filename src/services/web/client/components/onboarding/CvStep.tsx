@@ -1,3 +1,4 @@
+import { useBlocker } from '@tanstack/react-router'
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 
 import { CV_BASE_TEX_MAX_BYTES, CV_IMPORT_PDF_MAX_BYTES } from '@shared/contracts'
@@ -6,13 +7,14 @@ import type { WebCvBaseVersion } from '../../../api-types'
 import { api, cvBasePdfUrl, RequestError } from '../../api'
 import { activeVersion, formatKilobytes, upsertVersion } from '../../lib/cv-base'
 import { cleanForm, emptyForm, formProblems, sameForm } from '../../lib/cv-form'
-import { useCvImport } from '../../lib/use-cv-import'
+import { LEAVE_DURING_IMPORT, useCvImport } from '../../lib/use-cv-import'
 import { onLive } from '../../stores/live'
 import { notify } from '../../stores/toast'
 import { CvBaseFormDialog } from '../CvBaseForm'
 import { Icon } from '../Icon'
 import { Button } from '../ui/Button'
 import { card } from '../ui/Card'
+import { ConfirmDialog } from '../ui/Dialog'
 import { FieldHelp } from '../ui/Field'
 import { Notice } from '../ui/Notice'
 import { ChoiceCard, Rise, StepHeading, useStepBar, useSubSteps } from './parts'
@@ -69,6 +71,13 @@ export function CvStep({
 		setImportedFrom(fileName)
 		setServerProblems({})
 		setFormOpen(true)
+	})
+
+	// O "voltar" e as etapas também mudam a rota (`?passo=`): o bloqueio cobre todas as saídas durante a leitura
+	const blocker = useBlocker({
+		shouldBlockFn: () => cvImport.importing,
+		enableBeforeUnload: () => cvImport.importing,
+		withResolver: true,
 	})
 
 	const active = activeVersion(versions)
@@ -304,6 +313,10 @@ export function CvStep({
 				</Rise>
 			) : (
 				<Rise order={3}>{choices}</Rise>
+			)}
+
+			{blocker.status === 'blocked' && (
+				<ConfirmDialog {...LEAVE_DURING_IMPORT} onConfirm={blocker.proceed} onCancel={blocker.reset} />
 			)}
 
 			{formOpen && (
