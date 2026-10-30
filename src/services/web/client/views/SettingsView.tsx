@@ -19,7 +19,6 @@ import { AutoRunsSwitch } from '../components/AutoRunsSwitch'
 import { DrawnCheck, Icon } from '../components/Icon'
 import { MessageTemplateEditor } from '../components/MessageTemplateEditor'
 import { Button } from '../components/ui/Button'
-import { card } from '../components/ui/Card'
 import { Combobox } from '../components/ui/Combobox'
 import { ConfirmDialog } from '../components/ui/Dialog'
 import { FieldError, FieldHelp, FieldLabel } from '../components/ui/Field'
@@ -70,6 +69,36 @@ const SENIORITY_OPTIONS: SelectMenuOption<SeniorityLevel | ''>[] = [
 	...SENIORITY_LEVELS.map(value => ({ value, label: SENIORITY_LABELS[value] })),
 ]
 
+type IntervalUnit = 'min' | 'h' | 'd'
+
+/** As unidades do intervalo entre coletas, em minutos; o salvo é sempre em minutos. */
+const INTERVAL_UNITS: Record<IntervalUnit, number> = { min: 1, h: 60, d: 24 * 60 }
+
+const INTERVAL_UNIT_OPTIONS: SelectMenuOption<IntervalUnit>[] = [
+	{ value: 'min', label: 'minutos' },
+	{ value: 'h', label: 'horas' },
+	{ value: 'd', label: 'dias' },
+]
+
+/** A maior unidade que mostra o intervalo sem fração (1440 → dias, 90 → minutos). */
+function intervalUnitOf(minutes: number): IntervalUnit {
+	if (minutes % INTERVAL_UNITS.d === 0) return 'd'
+	if (minutes % INTERVAL_UNITS.h === 0) return 'h'
+	return 'min'
+}
+
+/**
+ * Como o scraper divide o mínimo de vagas entre os termos ativos (`jobsPerTerm`): o resto vai para os primeiros
+ * ("3 a 4 por termo"); com mais termos que vagas, só os primeiros buscam.
+ */
+function jobsPerTermLabel(minJobsPerRun: number, activeTerms: number) {
+	const base = Math.floor(minJobsPerRun / activeTerms)
+	if (base === 0) return `1 vaga em cada um dos ${minJobsPerRun} primeiros termos ativos`
+
+	const count = minJobsPerRun % activeTerms === 0 ? `${base}` : `${base} a ${base + 1}`
+	return `${count} por termo, com ${activeTerms} ${activeTerms === 1 ? 'termo ativo' : 'termos ativos'}`
+}
+
 /** Os atalhos do `SectionNav`: o `id` de cada seção da tela. */
 const SECTIONS = [
 	{ id: 'perfil', label: 'perfil' },
@@ -113,6 +142,7 @@ export function SettingsView({
 	const [saveMessage, setSaveMessage] = useState<{ title: string; detail?: string }>({ title: '' })
 	const [touched, setTouched] = useState(false)
 	const [newTerm, setNewTerm] = useState('')
+	const [intervalUnit, setIntervalUnit] = useState(() => intervalUnitOf(initial.scraper.intervalMinutes))
 	const [savingPause, setSavingPause] = useState(false)
 	const [savedFlash, flashSaved] = useFlash()
 	// As contas têm o próprio salvar; a barra de baixo e o aviso de sair contam com elas também
@@ -359,6 +389,9 @@ export function SettingsView({
 
 	function renderScraper(d: SettingsDraft) {
 		const terms = d.scraper.searchTerms
+		const full = terms.length >= LIMITS.searchTerms
+		const activeTerms = terms.filter(term => term.enabled).length
+		const { minJobsPerRun, intervalMinutes } = d.scraper
 
 		return (
 			<SectionCard
@@ -366,14 +399,35 @@ export function SettingsView({
 				className={SECTION_SCROLL_MARGIN}
 				title="coleta"
 				tag="scraper"
-				aside={
-					<span className="font-mono text-muted text-xs">
-						{terms.length} / {LIMITS.searchTerms} termos
-					</span>
-				}
 			>
+				{loaded && (
+					// Salvo na hora, fora do formulário. Ligado = coletando (como os outros interruptores da tela); pausado, fica
+					// neutro, sem o lime de "rodando"
+					<section aria-label="Coletas automáticas" className="flex flex-col gap-1.5 rounded-sm bg-surface-2 p-3.5">
+						<div className="flex flex-wrap items-center justify-between gap-3">
+							<p className="flex items-center gap-2 font-semibold">
+								<StatusDot tone={paused ? 'muted' : 'lime'} glow={!paused} />
+								{paused
+									? 'Coletas automáticas pausadas'
+									: `Coletas automáticas ligadas · ${formatInterval(loaded.scraper.intervalMinutes)}`}
+							</p>
+							<AutoRunsSwitch id="settings-paused" paused={paused} disabled={savingPause} onPausedChange={setPaused} />
+						</div>
+						<FieldHelp>
+							{paused
+								? '“Coletar agora” continua funcionando: uma coleta pedida à mão roda mesmo com as automáticas pausadas.'
+								: 'Desligue para pausar: o intervalo para de contar até você religar. Vale na hora, sem salvar.'}
+						</FieldHelp>
+					</section>
+				)}
+
 				<fieldset className="flex flex-col gap-2.5">
-					<legend className="mb-2.5 p-0 text-sm font-medium">termos de busca</legend>
+					<legend className="mb-2.5 flex w-full items-center justify-between gap-3 p-0 text-sm font-medium">
+						termos de busca
+						<span className={cx('font-mono text-xs font-normal', full ? 'text-warn' : 'text-muted')}>
+							{terms.length} / {LIMITS.searchTerms}
+						</span>
+					</legend>
 					<ul className="flex flex-col gap-1.5 m-0 list-none p-0">
 						{terms.map((term, index) => (
 							<li key={index} className="flex flex-wrap items-center gap-2.5">
@@ -400,6 +454,7 @@ export function SettingsView({
 									}}
 								/>
 								<IconButton
+									className={cx(!term.enabled && 'opacity-55')}
 									label={`Remover o termo ${term.term}`}
 									bordered
 									onClick={() =>
@@ -419,12 +474,16 @@ export function SettingsView({
 							className="grow"
 							value={newTerm}
 							maxLength={LIMITS.termLength}
-							placeholder="novo termo, ex.: Analista de Marketing"
+							placeholder={
+								full
+									? `limite de ${LIMITS.searchTerms} termos: remova um para adicionar`
+									: 'novo termo, ex.: Analista de Marketing'
+							}
 							aria-label="Novo termo de busca"
-							disabled={terms.length >= LIMITS.searchTerms}
+							disabled={full}
 							onChange={event => setNewTerm(event.target.value)}
 						/>
-						<Button variant="ghost" type="submit" disabled={terms.length >= LIMITS.searchTerms || !newTerm.trim()}>
+						<Button variant="ghost" type="submit" disabled={full || !newTerm.trim()}>
 							<Icon name="plus" />
 							adicionar
 						</Button>
@@ -436,7 +495,7 @@ export function SettingsView({
 						</Notice>
 					)}
 					<FieldHelp>
-						Até 10 termos, com até 100 caracteres e sem repetidos. As vagas por coleta são divididas entre os termos ativos.
+						Até {LIMITS.searchTerms} termos, com até {LIMITS.termLength} caracteres e sem repetidos.
 					</FieldHelp>
 				</fieldset>
 
@@ -447,35 +506,59 @@ export function SettingsView({
 							id="datePosted"
 							value={d.scraper.datePosted}
 							options={DATE_POSTED_OPTIONS}
+							describedBy="datePosted-help"
 							onChange={value =>
 								edit(next => {
 									next.scraper.datePosted = value
 								})
 							}
 						/>
+						<FieldHelp id="datePosted-help">se faltarem vagas, a coleta amplia o período até qualquer data</FieldHelp>
 					</div>
 					<div className="flex flex-col gap-1.5">
 						<FieldLabel htmlFor="minJobsPerRun">mín. de vagas por coleta</FieldLabel>
-						{numberInput(d.scraper.minJobsPerRun, (next, value) => (next.scraper.minJobsPerRun = value), 'minJobsPerRun', {
-							min: 1,
-							max: 50,
+						{numberInput(minJobsPerRun, (next, value) => (next.scraper.minJobsPerRun = value), 'minJobsPerRun', {
+							min: LIMITS.minJobsPerRun[0],
+							max: LIMITS.minJobsPerRun[1],
 						})}
 						{fieldError('minJobsPerRun') ?? (
 							<FieldHelp id="minJobsPerRun-help">
-								de 1 a 50, somando todos os termos; a coleta só para antes se as buscas acabarem
+								de {LIMITS.minJobsPerRun[0]} a {LIMITS.minJobsPerRun[1]}, somando os termos
+								{Number.isInteger(minJobsPerRun) &&
+									activeTerms > 0 &&
+									` · ${jobsPerTermLabel(minJobsPerRun, activeTerms)}`}
 							</FieldHelp>
 						)}
 					</div>
 					<div className="flex flex-col gap-1.5">
-						<FieldLabel htmlFor="intervalMinutes">intervalo entre coletas (min)</FieldLabel>
-						{numberInput(d.scraper.intervalMinutes, (next, value) => (next.scraper.intervalMinutes = value), 'intervalMinutes', {
-							min: 1,
-							max: 10_080,
-						})}
+						<FieldLabel htmlFor="intervalMinutes">intervalo entre coletas</FieldLabel>
+						{/* O número na unidade escolhida (trocar a unidade mantém a duração: 1 dia vira 24 h); salvo em minutos */}
+						<div className="flex gap-2.5">
+							{numberInput(
+								// Até 2 casas: 100 min em horas aparece 1,67 (e volta a 100 ao editar)
+								Math.round((intervalMinutes / INTERVAL_UNITS[intervalUnit]) * 100) / 100,
+								(next, value) => (next.scraper.intervalMinutes = Math.round(value * INTERVAL_UNITS[intervalUnit])),
+								'intervalMinutes',
+								{
+									className: 'min-w-0 grow font-mono',
+									min: LIMITS.intervalMinutes[0] / INTERVAL_UNITS[intervalUnit],
+									max: LIMITS.intervalMinutes[1] / INTERVAL_UNITS[intervalUnit],
+									step: 'any',
+								},
+							)}
+							<SelectMenu
+								id="intervalUnit"
+								className="w-28 shrink-0"
+								label="Unidade do intervalo"
+								value={intervalUnit}
+								options={INTERVAL_UNIT_OPTIONS}
+								onChange={setIntervalUnit}
+							/>
+						</div>
 						{fieldError('intervalMinutes') ?? (
 							<FieldHelp id="intervalMinutes-help">
-								{Number.isInteger(d.scraper.intervalMinutes) && d.scraper.intervalMinutes > 0
-									? `${formatInterval(d.scraper.intervalMinutes)} · máx. 7 dias`
+								{Number.isInteger(intervalMinutes) && intervalMinutes > 0
+									? `${formatInterval(intervalMinutes)} · máx. 7 dias`
 									: 'máx. 7 dias'}
 							</FieldHelp>
 						)}
@@ -684,27 +767,6 @@ export function SettingsView({
 					onConfirm={blocker.proceed}
 					onCancel={blocker.reset}
 				/>
-			)}
-
-			{loaded && (
-				// Ligado = coletando (como os outros interruptores da tela); pausado, o card fica neutro, sem o lime de "rodando"
-				<div className={card({ size: 'md', className: 'flex flex-wrap items-center gap-4' })}>
-					<div className="grow">
-						<p className="flex items-center gap-2 font-semibold">
-							<StatusDot tone={paused ? 'muted' : 'lime'} glow={!paused} />
-							{paused
-								? 'Coletas automáticas pausadas'
-								: `Coletas automáticas ligadas · ${formatInterval(loaded.scraper.intervalMinutes)}`}
-						</p>
-
-						<FieldHelp>
-							{paused
-								? '“Coletar agora” continua funcionando: uma coleta pedida à mão roda mesmo com as automáticas pausadas.'
-								: 'Desligue para pausar: o intervalo para de contar até você religar.'}
-						</FieldHelp>
-					</div>
-					<AutoRunsSwitch id="settings-paused" paused={paused} disabled={savingPause} onPausedChange={setPaused} />
-				</div>
 			)}
 
 			{draft && <SectionNav sections={SECTIONS} label="Seções das configurações" />}

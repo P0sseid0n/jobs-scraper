@@ -18,6 +18,7 @@ export function SelectMenu<V extends string>({
 	options,
 	size,
 	invalid = false,
+	label,
 	describedBy,
 	className,
 	onChange,
@@ -25,6 +26,8 @@ export function SelectMenu<V extends string>({
 	id: string
 	value: V
 	options: readonly SelectMenuOption<V>[]
+	/** Nome do campo para leitores de tela, quando ele não tem um `<label>` (ex.: a unidade ao lado de um número). */
+	label?: string
 	describedBy?: string
 	className?: string
 	onChange: (value: V) => void
@@ -82,6 +85,7 @@ export function SelectMenu<V extends string>({
 				aria-expanded={open}
 				aria-controls={listId}
 				aria-activedescendant={open && active >= 0 ? `${listId}-${active}` : undefined}
+				aria-label={label}
 				aria-describedby={describedBy}
 				aria-invalid={invalid || undefined}
 				className={field({ size, invalid, className: 'flex w-full cursor-pointer items-center justify-between gap-2 text-left' })}
