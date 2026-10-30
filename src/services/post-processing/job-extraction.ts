@@ -8,6 +8,8 @@ import type { AiJobOutput } from './extraction-output'
 import { buildExtractionMessages, classifiesByText, extractionOutputFormat, withoutTrailingHashtags } from './extraction-prompt'
 import {
 	chooseCompany,
+	companyConfidentialInPost,
+	isConfidentialCompanyName,
 	keepContractTypesInPost,
 	keepLinkIfInPost,
 	keepSkillsInPost,
@@ -70,13 +72,22 @@ export function buildProcessedJob(post: RawPost, aiJob: AiJobOutput, language: s
 	const imageText = post.images.length > 0 ? aiJob.imageText : null
 	const sourceText = imageText ? `${post.text}\n\n${imageText}` : post.text
 
+	// Pesa a resposta da IA, o texto, o autor e o domínio do e-mail: a IA às vezes tira a empresa de um link ou e-mail,
+	// e a empresa que posta nem sempre escreve o próprio nome
+	const chosenCompany = chooseCompany(
+		{ aiCompany: aiJob.company, author: post.author, authorIsCompany: post.authorIsCompany },
+		sourceText,
+	)
+	// "Confidencial" não vira nome: duas empresas confidenciais com o mesmo cargo seriam agrupadas como repostagem
+	const company = chosenCompany && !isConfidentialCompanyName(chosenCompany) ? chosenCompany : null
+
 	const job: ProcessedJob = {
 		postId: post.postId,
 		rawContent: post.text,
 		title: aiJob.title,
-		// Pesa a resposta da IA, o texto, o autor e o domínio do e-mail: a IA às vezes tira a empresa de um link ou e-mail,
-		// e a empresa que posta nem sempre escreve o próprio nome
-		company: chooseCompany({ aiCompany: aiJob.company, author: post.author, authorIsCompany: post.authorIsCompany }, sourceText),
+		company,
+		// Pelo texto, sem a IA; com a empresa identificada, vale o nome
+		companyConfidential: !company && companyConfidentialInPost(sourceText),
 		location: locationWithoutWorkMode(aiJob.location),
 		// O da lista (vaga de um post com várias) tem prioridade; o da IA só vale se estiver escrito no texto; sem nenhum,
 		// o do cartão anexado (reposts de sites de vagas, com o texto cortado)

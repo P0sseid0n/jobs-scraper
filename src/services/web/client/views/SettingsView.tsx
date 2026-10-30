@@ -588,7 +588,8 @@ export function SettingsView({
 					/>
 					<FieldHelp id="reviewChecksPercent-help">
 						{reviewChecksThreshold(p.reviewChecksPercent)} de {EXTRACTION_CHECKS.length} checks da extração (campos que a IA
-						citou sem estarem no post). Daí em diante, a vaga fica em vermelho e pede para conferir o post original e reportar.
+						citou sem estarem no post, e a empresa que ela não achou). Daí em diante, a vaga fica em vermelho e pede para
+						conferir o post original e reportar.
 					</FieldHelp>
 				</div>
 

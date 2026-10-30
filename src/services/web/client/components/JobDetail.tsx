@@ -29,6 +29,7 @@ import { CvReady } from './CvReady'
 import { ExtractionChecksBadge, MissedChecks } from './ExtractionChecksBadge'
 import { Icon } from './Icon'
 import { JobReposts } from './JobReposts'
+import { JobSubtitle } from './JobSubtitle'
 import { ListingBadge } from './ListingBadge'
 import { PostImages } from './PostImages'
 import { ReportJobDialog } from './ReportJobDialog'
@@ -89,6 +90,7 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 	const content = fromPage ? listingPageText(job.rawContent) : job.rawContent
 	const contentNoun = fromPage ? 'texto' : 'post'
 	const isLong = content.length > LONG_POST_CHARS
+	const subtitle = jobSubtitle(job)
 
 	// Aberta pelo card da lista, os blocos entram um depois do outro (a chave remonta este componente a cada vaga)
 	useLayoutEffect(() => {
@@ -141,8 +143,14 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 					</div>
 				</div>
 				<h2 className="text-2xl leading-tight font-bold">{job.title}</h2>
-				{jobSubtitle(job) && <p className="text-muted">{jobSubtitle(job)}</p>}
-				{job.author && (job.company || job.location) && <p className="font-mono text-muted text-xs">postado por {job.author}</p>}
+				{(subtitle.confidential || subtitle.text) && (
+					<p className="text-muted">
+						<JobSubtitle job={job} />
+					</p>
+				)}
+				{job.author && (job.company || job.location || subtitle.confidential) && (
+					<p className="font-mono text-muted text-xs">postado por {job.author}</p>
+				)}
 			</header>
 			{reporting && (
 				<ReportJobDialog

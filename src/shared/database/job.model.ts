@@ -47,6 +47,8 @@ const jobSchema = new Schema<JobDocument>(
 		rawContent: { type: String, required: true },
 		title: { type: String, default: null },
 		company: { type: String, default: null },
+		// Vagas salvas antes do campo não o têm: ausente é o mesmo que `false`
+		companyConfidential: { type: Boolean, default: false },
 		location: { type: String, default: null },
 		applyLink: { type: String, default: null },
 		necessaryKnowledge: { type: [String], default: null },

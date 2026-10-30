@@ -107,6 +107,33 @@ export function chooseCompany({ aiCompany, author, authorIsCompany }: CompanySou
 	return best && best.points >= 3 ? best.name : null
 }
 
+/**
+ * Se o post diz que a empresa preferiu não se identificar ("empresa confidencial", "cliente sigiloso", "Company:
+ * Confidential"). Exige a empresa ou o cliente junto: "informações confidenciais" e "dados sigilosos" não contam.
+ * @param text O texto do post (com a transcrição das imagens).
+ */
+export function companyConfidentialInPost(text: string) {
+	return CONFIDENTIAL_COMPANY.test(normalizeForMatch(text.normalize('NFKC')))
+}
+
+/** Também vale para o nome que a IA devolve ("Confidencial", "Empresa Sigilosa"): não é o nome de uma empresa. */
+export function isConfidentialCompanyName(name: string) {
+	const normalized = normalizeForMatch(name.normalize('NFKC')).trim()
+	return CONFIDENTIAL_NAME.test(normalized) || CONFIDENTIAL_COMPANY.test(normalized)
+}
+
+const CONFIDENTIAL_COMPANY = new RegExp(
+	[
+		// "empresa confidencial", "cliente sigiloso", "empresa parceira confidencial", "Empresa: Confidencial", "Empresa (sigilosa)"
+		String.raw`(?<![a-z0-9])(empresa|cliente)( (contratante|parceir[ao]|final))?\s*[:(–-]?\s*(confidencial|sigilos[ao])(?![a-z0-9])`,
+		// "confidential company", "confidential client", "confidential employer"
+		String.raw`(?<![a-z0-9])confidential (company|client|employer)(?![a-z0-9])`,
+		// "Company: Confidential", "Client - Confidential"
+		String.raw`(?<![a-z0-9])(company|client|employer)\s*[:(–-]\s*confidential(?![a-z0-9])`,
+	].join('|'),
+)
+const CONFIDENTIAL_NAME = /^(confidencial|sigilos[ao]|confidential)$/
+
 /** Nome de página que divulga vagas de outras empresas: "Vagas Remotas - Brasil", "Remote Jobs BR", "Empregos TI". */
 const JOB_BOARD_PAGE = /(?<![a-z0-9])(vagas?|jobs?|empregos?|oportunidades)(?![a-z0-9])/
 

@@ -7,6 +7,7 @@ const job: WebJob = {
 	postId: 'p1',
 	title: 'Desenvolvedor(a) Front-end Pleno',
 	company: 'Acme',
+	companyConfidential: false,
 	location: 'São Paulo, SP',
 	workMode: 'hibrido',
 	contractTypes: ['clt', 'pj'],

@@ -74,8 +74,8 @@ const keywordList = z
 
 export const PostProcessingSettingsSchema = z.object({
 	/**
-	 * Porcentagem dos checks da extração (campos em que a IA citou o que não está no post) a partir da qual a vaga pede
-	 * para conferir o post original e reportar. 60% = 4 de 6.
+	 * Porcentagem dos checks da extração (campos em que a IA citou o que não está no post, e a empresa que ficou sem nome)
+	 * a partir da qual a vaga pede para conferir o post original e reportar. 60% = 4 de 6.
 	 */
 	reviewChecksPercent: z.number().int().min(1).max(100).default(60),
 

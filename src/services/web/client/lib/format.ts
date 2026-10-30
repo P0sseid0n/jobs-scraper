@@ -30,12 +30,16 @@ export function contractTypesLabel(job: Pick<WebJob, 'contractTypes'>) {
 	return job.contractTypes?.length ? job.contractTypes.map(type => CONTRACT_TYPES[type]).join(' ou ') : null
 }
 
-/** "Empresa · Local"; sem os dois, quem publicou o post (os rótulos vazios nunca aparecem). */
-export function jobSubtitle(job: Pick<WebJob, 'company' | 'location' | 'author'>) {
+/**
+ * "Empresa · Local"; sem os dois, quem publicou o post (os rótulos vazios nunca aparecem). A empresa confidencial fica
+ * fora do texto, em `confidential`: ela aparece com outro estilo, para não parecer o nome (ver `JobSubtitle`).
+ */
+export function jobSubtitle(job: Pick<WebJob, 'company' | 'companyConfidential' | 'location' | 'author'>) {
+	const confidential = !job.company && job.companyConfidential
 	const parts = [job.company, job.location].filter(Boolean)
-	if (parts.length) return parts.join(' · ')
+	if (parts.length || confidential) return { confidential, text: parts.join(' · ') }
 
-	return job.author ? `post de ${job.author}` : ''
+	return { confidential, text: job.author ? `post de ${job.author}` : '' }
 }
 
 /** A primeira data disponível: publicação do post ou entrada no sistema. */

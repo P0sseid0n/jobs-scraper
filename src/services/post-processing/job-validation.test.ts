@@ -9,6 +9,7 @@ const job: ProcessedJob = {
 	rawContent: 'Vaga',
 	title: 'Dev Vue',
 	company: null,
+	companyConfidential: false,
 	location: null,
 	applyLink: null,
 	necessaryKnowledge: null,

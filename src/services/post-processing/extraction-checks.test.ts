@@ -62,7 +62,7 @@ describe('extractionChecks', () => {
 	test('tecnologia repetida pela IA com outra grafia não conta', () => {
 		const job = buildProcessedJob(
 			{ ...post, text: `${post.text} Diferencial: Node.js.` },
-			AiJobOutputSchema.parse({ postType: 'job_opening', necessary_knowledge: ['Vue.js', 'Node.js', 'Node'] }),
+			AiJobOutputSchema.parse({ postType: 'job_opening', company: 'Acme', necessary_knowledge: ['Vue.js', 'Node.js', 'Node'] }),
 			'pt',
 		)
 
@@ -71,6 +71,41 @@ describe('extractionChecks', () => {
 	})
 
 	test('campo que a IA deixou vazio não conta', () => {
-		expect(checksFor({ title: 'Desenvolvedor Front-end' })).toEqual([])
+		expect(checksFor({ title: 'Desenvolvedor Front-end', company: 'Acme' })).toEqual([])
+	})
+
+	test('vaga sem empresa ganha o check da empresa', () => {
+		expect(checksFor({ title: 'Desenvolvedor Front-end' })).toEqual(['company'])
+	})
+
+	test('empresa confidencial: sem nome e sem o check', () => {
+		const text = 'Vaga para Desenvolvedor Front-end Pleno em empresa confidencial do setor financeiro. CLT.'
+		const job = buildProcessedJob({ ...post, text }, AiJobOutputSchema.parse({ postType: 'job_opening' }), 'pt')
+
+		expect(job.company).toBeNull()
+		expect(job.companyConfidential).toBe(true)
+		expect(job.extractionChecks).toEqual([])
+	})
+
+	test('"Confidencial" devolvido pela IA não vira o nome da empresa', () => {
+		const text = 'Empresa: Confidencial. Vaga para Desenvolvedor Back-end, remoto.'
+		const job = buildProcessedJob(
+			{ ...post, text },
+			AiJobOutputSchema.parse({ postType: 'job_opening', company: 'Confidencial' }),
+			'pt',
+		)
+
+		expect(job.company).toBeNull()
+		expect(job.companyConfidential).toBe(true)
+		expect(job.extractionChecks).toEqual([])
+	})
+
+	test('com a empresa identificada, vale o nome, mesmo citando um cliente confidencial', () => {
+		const text = 'A Acme contrata Desenvolvedor Front-end para atuar em cliente confidencial. CLT.'
+		const job = buildProcessedJob({ ...post, text }, AiJobOutputSchema.parse({ postType: 'job_opening', company: 'Acme' }), 'pt')
+
+		expect(job.company).toBe('Acme')
+		expect(job.companyConfidential).toBe(false)
+		expect(job.extractionChecks).toEqual([])
 	})
 })

@@ -67,6 +67,14 @@ describe('planCorrection', () => {
 		expect(plan({ workMode: 'hibrido' }, checked).set).not.toHaveProperty('extractionChecks')
 	})
 
+	test('a empresa informada pela pessoa deixa de ser confidencial', () => {
+		const confidential: JobDocument = { ...doc, company: null, companyConfidential: true }
+
+		expect(plan({ company: 'Acme' }, confidential).set.companyConfidential).toBe(false)
+		expect(plan({ workMode: 'hibrido' }, confidential).set).not.toHaveProperty('companyConfidential')
+		expect(plan({ company: 'Acme' }).set).not.toHaveProperty('companyConfidential')
+	})
+
 	test('campo enviado com o mesmo valor não conta como corrigido', () => {
 		const { set, feedback } = plan({ title: 'Front-end', company: 'Acme' })
 

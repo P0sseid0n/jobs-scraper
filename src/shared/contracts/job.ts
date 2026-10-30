@@ -7,8 +7,9 @@ export const CONTRACT_TYPES = ['clt', 'pj', 'estagio', 'freelance'] as const
 export type ContractType = (typeof CONTRACT_TYPES)[number]
 
 /**
- * Checks da extração: cada um marca um campo em que a IA devolveu algo que não está escrito no post (o valor já foi
- * descartado, menos o cargo). Quanto mais checks, maior a chance de o resto da vaga também estar errado.
+ * Checks da extração: cada um marca um campo que precisa ser conferido. Quase todos dizem que a IA devolveu algo que
+ * não está escrito no post (o valor já foi descartado, menos o cargo); o `company` também dispara na vaga sem empresa
+ * que não é confidencial. Quanto mais checks, maior a chance de o resto da vaga também estar errado.
  */
 export const EXTRACTION_CHECKS = ['title', 'company', 'workMode', 'contractTypes', 'necessaryKnowledge', 'applyLink'] as const
 export type ExtractionCheck = (typeof EXTRACTION_CHECKS)[number]
@@ -41,6 +42,11 @@ export const ProcessedJobSchema = z.object({
 	rawContent: z.string(),
 	title: z.string().nullable(),
 	company: z.string().nullable(),
+	/**
+	 * O post diz que a empresa preferiu não se identificar ("empresa confidencial"); só com `company` `null`, que continua
+	 * sem nome. O padrão aceita mensagens de antes do campo existir.
+	 */
+	companyConfidential: z.boolean().default(false),
 	location: z.string().nullable(),
 	/** Link de candidatura (site da vaga, formulário...), se houver. */
 	applyLink: z.string().nullable(),

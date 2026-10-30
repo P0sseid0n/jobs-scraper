@@ -2,6 +2,8 @@ import { describe, expect, test } from 'bun:test'
 
 import {
 	chooseCompany,
+	companyConfidentialInPost,
+	isConfidentialCompanyName,
 	keepCompanyIfInPost,
 	keepContractTypesInPost,
 	keepLinkIfInPost,
@@ -189,6 +191,43 @@ describe('chooseCompany', () => {
 
 		expect(chooseCompany({ aiCompany: 'Globex', ...agency }, 'Vaga na Globex, remoto')).toBe('Globex')
 		expect(chooseCompany({ aiCompany: 'Globex', ...agency }, 'Vaga na Globex. CV para vagas@talentosrh.com.br')).toBe('Talentos RH')
+	})
+})
+
+describe('companyConfidentialInPost', () => {
+	test.each([
+		'🚀 Oportunidade em empresa confidencial do setor de varejo: Desenvolvedor Java Sênior',
+		'Nosso cliente sigiloso está contratando Analista de Dados (PJ, remoto)',
+		'Empresa: Confidencial\nCargo: Desenvolvedor Front-end\nModelo: híbrido',
+		'Vaga para empresa sigilosa de tecnologia, em São Paulo.',
+		'Estamos recrutando para Empresa (Confidencial) – Engenheiro de Dados',
+		'𝐄𝐦𝐩𝐫𝐞𝐬𝐚 𝐂𝐨𝐧𝐟𝐢𝐝𝐞𝐧𝐜𝐢𝐚𝐥 · Desenvolvedor .NET',
+		'We are hiring a Senior Backend Engineer for a confidential client in fintech.',
+		'Company: Confidential | Role: Data Engineer | Remote',
+	])('confidencial: %s', text => {
+		expect(companyConfidentialInPost(text)).toBe(true)
+	})
+
+	test.each([
+		'Você terá acesso a informações confidenciais da empresa.',
+		'Responsável por tratar dados sigilosos de clientes, seguindo a LGPD.',
+		'Manter sigilo sobre as informações do cliente.',
+		'Handle confidential information with care.',
+		'A Acme é uma empresa de tecnologia com foco no cliente.',
+	])('não confidencial: %s', text => {
+		expect(companyConfidentialInPost(text)).toBe(false)
+	})
+})
+
+describe('isConfidentialCompanyName', () => {
+	test('o nome que só diz que a empresa é confidencial', () => {
+		for (const name of ['Confidencial', 'Empresa Confidencial', 'Cliente sigiloso', 'Confidential company', 'Sigilosa']) {
+			expect(isConfidentialCompanyName(name)).toBe(true)
+		}
+	})
+
+	test('o nome de verdade', () => {
+		for (const name of ['Acme', 'Confidence Tech', 'Sigilo Seguros']) expect(isConfidentialCompanyName(name)).toBe(false)
 	})
 })
 

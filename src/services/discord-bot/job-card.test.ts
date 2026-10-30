@@ -10,6 +10,7 @@ const job: JobPublished = {
 	rawContent: '𝐋𝐞𝐚𝐝 Engineer - Vue.js\n\n\n\nResponsabilidades: liderar o *front-end*.',
 	title: 'Lead Engineer - Vue.js',
 	company: 'CitiusTech',
+	companyConfidential: false,
 	location: 'Pune',
 	applyLink: null,
 	necessaryKnowledge: ['Vue.js', 'TypeScript'],
@@ -69,7 +70,7 @@ describe('buildJobCard', () => {
 
 	test('rodapé com os checks da extração; com o aviso de conferir, barra vermelha e pede para reportar', () => {
 		const few = buildJobCard({ ...job, extractionChecks: ['workMode', 'necessaryKnowledge'] }).embeds[0]!.toJSON()
-		expect(few.footer?.text).toBe('⚠ 2/6 · a IA citou o que não está no post: modalidade, tecnologias')
+		expect(few.footer?.text).toBe('⚠ 2/6 · a conferir no post: modalidade, tecnologias')
 		expect(few.color).toBe(0x3498db)
 
 		const many = buildJobCard({
@@ -78,7 +79,7 @@ describe('buildJobCard', () => {
 			needsReview: true,
 		}).embeds[0]!.toJSON()
 		expect(many.footer?.text).toBe(
-			'⚠ 4/6 · a IA citou o que não está no post: cargo, empresa, modalidade, link. Confira o post original e reporte a vaga no site.',
+			'⚠ 4/6 · a conferir no post: cargo, empresa, modalidade, link. Confira o post original e reporte a vaga no site.',
 		)
 		expect(many.color).toBe(0xe74c3c)
 	})

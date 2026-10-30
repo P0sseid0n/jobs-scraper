@@ -199,12 +199,12 @@ function jobColor(job: Pick<JobPublished, 'workMode' | 'needsReview'>) {
 	return job.workMode ? WORK_MODE_COLORS[job.workMode] : DEFAULT_COLOR
 }
 
-/** "⚠ 2/6 · a IA citou o que não está no post: modalidade, tecnologias"; `null` sem checks. */
+/** "⚠ 2/6 · a conferir no post: modalidade, tecnologias"; `null` sem checks. */
 function checksFooter(job: Pick<JobPublished, 'extractionChecks' | 'needsReview'>) {
 	if (job.extractionChecks.length === 0) return null
 
 	const labels = job.extractionChecks.map(check => EXTRACTION_CHECK_LABELS[check]).join(', ')
-	const text = `⚠ ${job.extractionChecks.length}/${EXTRACTION_CHECKS.length} · a IA citou o que não está no post: ${labels}`
+	const text = `⚠ ${job.extractionChecks.length}/${EXTRACTION_CHECKS.length} · a conferir no post: ${labels}`
 	return job.needsReview ? `${text}. Confira o post original e reporte a vaga no site.` : text
 }
 

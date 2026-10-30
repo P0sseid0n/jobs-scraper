@@ -11,6 +11,7 @@ const job: JobPublished = {
 	rawContent: '𝐋𝐞𝐚𝐝 Engineer - Vue.js\n\n\n\nResponsabilidades: liderar o *front-end*.',
 	title: 'Lead Engineer - Vue.js',
 	company: 'CitiusTech',
+	companyConfidential: false,
 	location: 'Pune',
 	applyLink: null,
 	necessaryKnowledge: ['Vue.js', 'TypeScript'],

@@ -2,7 +2,7 @@ import { Link } from '@tanstack/react-router'
 
 import type { WebJob } from '../../api-types'
 import { cx } from '../lib/cx'
-import { jobSubtitle, safeLink, timeAgo } from '../lib/format'
+import { safeLink, timeAgo } from '../lib/format'
 import { openJobFromCard } from '../lib/job-opening'
 import { jobParams } from '../router'
 import { useAppliedAt } from '../stores/applied'
@@ -12,6 +12,7 @@ import { ContractTypeBadge } from './ContractTypeBadge'
 import { CorrectedBadge } from './CorrectedBadge'
 import { ExtractionChecksBadge } from './ExtractionChecksBadge'
 import { Icon } from './Icon'
+import { JobSubtitle } from './JobSubtitle'
 import { LISTING_TITLE } from './ListingBadge'
 import { PostImagesBadge } from './PostImages'
 import { badge, BadgeList } from './ui/Badge'
@@ -88,7 +89,9 @@ export function JobCard({
 						{!viewed && <span className="sr-only">não vista:</span>}
 						{job.title}
 					</span>
-					<span className="text-muted text-sm">{jobSubtitle(job)}</span>
+					<span className="text-muted text-sm">
+						<JobSubtitle job={job} />
+					</span>
 				</Link>
 				<div className="flex shrink-0 flex-col items-end gap-1.5 max-md:w-full max-md:flex-row max-md:flex-wrap max-md:items-center max-md:gap-x-3 max-md:gap-y-1">
 					<div className="flex flex-wrap items-center gap-1.5">

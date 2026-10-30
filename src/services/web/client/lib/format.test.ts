@@ -13,14 +13,26 @@ import {
 } from './format'
 
 describe('jobSubtitle', () => {
+	const job: Parameters<typeof jobSubtitle>[0] = { company: null, companyConfidential: false, location: null, author: 'Ana' }
+	const text = (fields: Partial<typeof job>) => jobSubtitle({ ...job, ...fields }).text
+
 	test('empresa · local, sem rótulos vazios', () => {
-		expect(jobSubtitle({ company: 'Acme', location: 'São Paulo, SP', author: 'Ana' })).toBe('Acme · São Paulo, SP')
-		expect(jobSubtitle({ company: null, location: 'Recife, PE', author: 'Ana' })).toBe('Recife, PE')
+		expect(text({ company: 'Acme', location: 'São Paulo, SP' })).toBe('Acme · São Paulo, SP')
+		expect(text({ location: 'Recife, PE' })).toBe('Recife, PE')
 	})
 
 	test('sem empresa nem local, quem publicou', () => {
-		expect(jobSubtitle({ company: null, location: null, author: 'Ana' })).toBe('post de Ana')
-		expect(jobSubtitle({ company: null, location: null, author: null })).toBe('')
+		expect(text({})).toBe('post de Ana')
+		expect(text({ author: null })).toBe('')
+	})
+
+	test('a empresa confidencial fica fora do texto, no lugar de quem publicou', () => {
+		expect(jobSubtitle({ ...job, companyConfidential: true, location: 'Recife, PE' })).toEqual({
+			confidential: true,
+			text: 'Recife, PE',
+		})
+		expect(jobSubtitle({ ...job, companyConfidential: true })).toEqual({ confidential: true, text: '' })
+		expect(jobSubtitle({ ...job, company: 'Acme', companyConfidential: true }).confidential).toBe(false)
 	})
 })
 

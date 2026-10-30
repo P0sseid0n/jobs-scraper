@@ -38,6 +38,8 @@ export function planCorrection(doc: JobDocument, correction: JobCorrection, now 
 	const checks = doc.extractionChecks ?? []
 	const remainingChecks = checks.filter(check => !correctedFields.includes(check))
 	if (remainingChecks.length < checks.length) set.extractionChecks = remainingChecks
+	// Com o nome informado, a empresa deixa de ser confidencial
+	if (changes.company && doc.companyConfidential) set.companyConfidential = false
 	if (correction.notAJob) set.notAJob = true
 
 	const feedback: ExtractionFeedbackRecord = {
