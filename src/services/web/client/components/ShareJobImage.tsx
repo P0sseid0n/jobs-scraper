@@ -8,7 +8,7 @@ import { cx } from '../lib/cx'
 import { useCoarsePointer } from '../lib/media'
 import { notify } from '../stores/toast'
 import { Icon } from './Icon'
-import { ShareJobCard, type ShareCardFormat, type ShareCardTheme } from './ShareJobCard'
+import { ShareJobCard, type ShareCardFormat, type ShareCardTheme, type ShareCardTitleSize } from './ShareJobCard'
 import { Button } from './ui/Button'
 import { Pill, PILL_COUNT, PillGroup } from './ui/Pill'
 import { Skeleton } from './ui/Skeleton'
@@ -32,6 +32,11 @@ const FORMATS: { value: ShareCardFormat; label: string; ratio: string }[] = [
 	{ value: 'story', label: 'story', ratio: '9:16' },
 ]
 
+const TITLE_SIZES: { value: ShareCardTitleSize; label: string }[] = [
+	{ value: 'large', label: 'grande' },
+	{ value: 'small', label: 'pequeno' },
+]
+
 /** A prévia com a proporção do formato, enquanto o PNG ainda não existe. */
 const PREVIEW_ASPECT: Record<ShareCardFormat, string> = { post: 'aspect-4/5', story: 'aspect-9/16' }
 
@@ -43,10 +48,11 @@ const OPTION = 'flex flex-col gap-1.5'
  * navegador assim que algo muda, para estar pronto no clique: o copiar e o compartilhar precisam do clique ainda fresco.
  */
 export function ShareJobImage({ job, text, onClose }: { job: ShareJob; text: string; onClose: () => void }) {
-	const ids = { theme: useId(), format: useId(), qr: useId(), skills: useId(), description: useId() }
+	const ids = { theme: useId(), format: useId(), titleSize: useId(), qr: useId(), skills: useId(), description: useId() }
 	// Começa no tema que está na tela; trocar aqui não muda o do site
 	const [theme, setTheme] = useState<ShareCardTheme>(() => (document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light'))
 	const [format, setFormat] = useState<ShareCardFormat>('post')
+	const [titleSize, setTitleSize] = useState<ShareCardTitleSize>('large')
 	const [qr, setQr] = useState(true)
 	const [skills, setSkills] = useState(true)
 	const [description, setDescription] = useState(true)
@@ -92,7 +98,7 @@ export function ShareJobImage({ job, text, onClose }: { job: ShareJob; text: str
 		return () => {
 			stale = true
 		}
-	}, [theme, format, qr, skills, description])
+	}, [theme, format, titleSize, qr, skills, description])
 
 	// A imagem anterior (e a última, ao fechar) sai da memória
 	useEffect(
@@ -176,6 +182,18 @@ export function ShareJobImage({ job, text, onClose }: { job: ShareJob; text: str
 								))}
 							</PillGroup>
 						</div>
+						<div className={OPTION}>
+							<span id={ids.titleSize} className={LABEL}>
+								título
+							</span>
+							<PillGroup role="group" aria-labelledby={ids.titleSize}>
+								{TITLE_SIZES.map(option => (
+									<Pill key={option.value} pressed={option.value === titleSize} onClick={() => setTitleSize(option.value)}>
+										{option.label}
+									</Pill>
+								))}
+							</PillGroup>
+						</div>
 						<div className="flex flex-col gap-3 text-sm">
 							<SwitchField
 								id={ids.qr}
@@ -221,7 +239,7 @@ export function ShareJobImage({ job, text, onClose }: { job: ShareJob; text: str
 				{/* O card no tamanho do PNG, fora da tela (no body: a modal, animada, prenderia o fixo nela): é dele que a imagem sai */}
 				{createPortal(
 					<div className="pointer-events-none fixed top-0 left-full" aria-hidden="true" inert>
-						<ShareJobCard ref={node} card={card} theme={theme} format={format} />
+						<ShareJobCard ref={node} card={card} theme={theme} format={format} titleSize={titleSize} />
 					</div>,
 					document.body,
 				)}

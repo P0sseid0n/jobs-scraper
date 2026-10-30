@@ -39,12 +39,24 @@ function themeVars(theme: ShareCardTheme) {
 const QR_INK = tokenValue(tokens.color.tokens.find(token => token.name === 'color-ink')!.value, 'light')
 const QR_PAPER = tokenValue(tokens.color.tokens.find(token => token.name === 'color-surface')!.value, 'light')
 
-/** O cargo diminui conforme o tamanho, para caber sem estourar o card; o mais longo ainda é cortado em 5 linhas. */
-function titleSize(title: string) {
-	if (title.length <= 24) return 'text-8xl'
-	if (title.length <= 48) return 'text-7xl'
-	if (title.length <= 80) return 'text-6xl'
-	return 'text-5xl'
+/** O tamanho do cargo escolhido na modal: o grande chama atenção; o pequeno deixa mais lugar para a descrição. */
+export type ShareCardTitleSize = 'large' | 'small'
+
+/**
+ * O tamanho do texto do cargo em cada versão, do cargo mais curto ao mais longo (até 24, 48, 80 letras e acima): ele
+ * diminui conforme o tamanho, para caber sem estourar o card; o mais longo ainda é cortado em 5 linhas.
+ */
+const TITLE_SIZES: Record<ShareCardTitleSize, [string, string, string, string]> = {
+	large: ['text-8xl', 'text-7xl', 'text-6xl', 'text-5xl'],
+	small: ['text-6xl', 'text-5xl', 'text-4xl', 'text-4xl'],
+}
+
+function titleSize(title: string, size: ShareCardTitleSize) {
+	const [short, medium, long, longest] = TITLE_SIZES[size]
+	if (title.length <= 24) return short
+	if (title.length <= 48) return medium
+	if (title.length <= 80) return long
+	return longest
 }
 
 /** Só o domínio do link, embaixo da legenda do QR: quem lê sabe para onde vai antes de apontar a câmera. */
@@ -54,13 +66,19 @@ function linkHost(link: string) {
 
 const BADGE = 'inline-flex items-center gap-4 rounded-pill border-2 px-7 py-3 font-mono text-3xl whitespace-nowrap'
 
-type ShareJobCardProps = { card: ShareCard; theme: ShareCardTheme; format: ShareCardFormat; ref?: Ref<HTMLDivElement> }
+type ShareJobCardProps = {
+	card: ShareCard
+	theme: ShareCardTheme
+	format: ShareCardFormat
+	titleSize: ShareCardTitleSize
+	ref?: Ref<HTMLDivElement>
+}
 
 /**
  * A imagem da vaga, no tamanho do PNG: só desenha os dados de `jobShareCard`, nas cores do tema e na fonte do site. Fica
  * fora da tela; a modal mostra o PNG gerado a partir dele.
  */
-export function ShareJobCard({ card, theme, format, ref }: ShareJobCardProps) {
+export function ShareJobCard({ card, theme, format, titleSize: size, ref }: ShareJobCardProps) {
 	const { width, height } = SHARE_CARD_SIZES[format]
 	const details = card.contractTypes || card.workMode || card.location
 
@@ -91,7 +109,7 @@ export function ShareJobCard({ card, theme, format, ref }: ShareJobCardProps) {
 					<ClampedText
 						text={card.title}
 						lines={5}
-						className={cx('leading-tight font-bold tracking-tight', titleSize(card.title))}
+						className={cx('leading-tight font-bold tracking-tight', titleSize(card.title, size))}
 					/>
 					{card.company && <ClampedText text={card.company} lines={2} className="text-5xl leading-tight text-muted" />}
 				</div>
@@ -185,7 +203,7 @@ function ClampedText({ text, lines, className }: { text: string; lines?: number;
 	})
 
 	return (
-		<p ref={ref} className={cx('m-0 overflow-hidden whitespace-pre-line wrap-break-word', className)}>
+		<p ref={ref} className={cx('m-0 whitespace-pre-line wrap-break-word', className)}>
 			{shown}
 		</p>
 	)
