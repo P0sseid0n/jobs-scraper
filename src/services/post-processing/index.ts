@@ -33,7 +33,7 @@ const ollama = new Ollama({ host: config.OLLAMA_HOST })
 await ensureModelAvailable()
 
 await queue.assertQueue(QUEUES.scraperLookup)
-await queue.consume(QUEUES.postProcessing, RawPostSchema, processPost)
+await queue.consume(QUEUES.postProcessing, RawPostSchema, post => processPost(post))
 
 // Esvazia a fila do antigo serviço storage (vagas enviadas antes da junção); remover na próxima versão
 await queue.consume(
@@ -50,9 +50,9 @@ await queue.consume(
  * cada vaga relevante à parte (`processRoleList`). Senão, descarta o post se ele estiver
  * fora dos idiomas aceitos (antes da extração; em texto curto, o idioma é perguntado ao modelo), extrai a vaga e, se
  * for uma vaga relevante (palavras-chave), salva no MongoDB e anuncia para os canais. Cada post é processado uma
- * única vez.
+ * única vez. Com `imagesToModel: false`, as imagens são guardadas com a vaga sem ir para a extração.
  */
-async function processPost(post: RawPost) {
+async function processPost(post: RawPost, { imagesToModel = true } = {}) {
 	const log = logger.child({ postId: post.postId })
 
 	if (await SeenPost.exists({ postId: post.postId })) {
@@ -89,10 +89,11 @@ async function processPost(post: RawPost) {
 		return
 	}
 
-	log.info({ language, images: post.images.length }, 'Processando post')
+	const extracted = imagesToModel ? post : { ...post, images: [] }
+	log.info({ language, images: extracted.images.length }, 'Processando post')
 	// Sem perfil, `targetRole` fica ausente e o modelo extrai a primeira vaga de um post com várias
 	const { targetRole } = await readSettings('profile')
-	const aiJob = await extractJobFromPost(ollama, config.OLLAMA_MODEL, post, targetRole ?? null)
+	const aiJob = await extractJobFromPost(ollama, config.OLLAMA_MODEL, extracted, targetRole ?? null)
 	const reason = rejectionReason(aiJob)
 
 	if (!aiJob || reason) {
@@ -101,7 +102,7 @@ async function processPost(post: RawPost) {
 		return
 	}
 
-	const job = buildProcessedJob(post, aiJob, language)
+	const job = { ...buildProcessedJob(extracted, aiJob, language), imageCount: post.images.length }
 	const irrelevant = relevanceRejection(job, settings)
 
 	if (irrelevant) {
@@ -114,7 +115,7 @@ async function processPost(post: RawPost) {
 	const saved = await saveJob(
 		job,
 		{ queue, logger },
-		{ extractionModel: config.OLLAMA_MODEL, promptVersion: extractionPromptVersion(post) },
+		{ extractionModel: config.OLLAMA_MODEL, promptVersion: extractionPromptVersion(extracted) },
 		post.images,
 	)
 	await markAsSeen(post, saved ? 'saved' : 'missing-fields')
@@ -170,8 +171,9 @@ async function processRoleList(post: RawPost, roles: RoleLine[], settings: Keywo
 	const outcomes: SeenPostOutcome[] = []
 	for (const role of relevant) {
 		const postId = roleLinePostId(post.postId, role.title)
-		// Imagens ficam de fora: elas são do post inteiro, não desta vaga
-		await processPost({ ...post, postId, text: role.text, sourcePostId: post.postId, jobLink: null, images: [] })
+		// As imagens são do post inteiro, com todas as vagas: ficam na vaga para quem a lê, mas não vão ao modelo, que
+		// misturaria os dados das outras vagas (como fazia com o texto inteiro)
+		await processPost({ ...post, postId, text: role.text, sourcePostId: post.postId, jobLink: null }, { imagesToModel: false })
 
 		const seen = await SeenPost.findOne({ postId }, { outcome: 1 }).lean()
 		if (seen?.outcome) outcomes.push(seen.outcome)

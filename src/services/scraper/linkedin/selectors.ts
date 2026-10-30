@@ -19,6 +19,11 @@ export const SELECTORS = {
 	 * confirmado numa busca real: se não bater, a busca vazia aparece como "nenhum post reconhecido".
 	 */
 	noResultsText: /nenhum resultado|não encontramos resultados|no results found|no matching results/i,
+	/**
+	 * Botão do post que o LinkedIn traduziu sozinho para o idioma da conta. Sem classe nem atributo estável, é
+	 * reconhecido pelo texto ("Exibir original" confirmado numa busca real; os em inglês ainda não).
+	 */
+	showOriginalText: /^(?:exibir|ver|mostrar|see|show|view) original$/i,
 	/** Página de uma vaga (/jobs/view): o topo (cargo, empresa, local) e a descrição. Sem eles, lê o `<main>` inteiro. */
 	jobTopCard:
 		'.job-details-jobs-unified-top-card__container--two-pane, .jobs-unified-top-card, .job-details-jobs-unified-top-card__job-title, .top-card-layout',

@@ -1,4 +1,4 @@
-import type { Page } from 'puppeteer'
+import { TimeoutError, type Page } from 'puppeteer'
 
 import type { CardImage } from './linkedin/post-images'
 import { SELECTORS } from './linkedin/selectors'
@@ -20,12 +20,18 @@ export type ScrapedPost = {
 }
 
 const SCRAPED_ATTRIBUTE = 'data-jobs-scraped'
+const TRANSLATED_ATTRIBUTE = 'data-jobs-translated'
+
+/** Quanto esperar o texto original dos posts traduzidos; o que não voltar a tempo é lido traduzido. */
+const ORIGINAL_TEXT_TIMEOUT_MS = 5_000
 
 /**
  * Lê os posts ainda não coletados e os marca no DOM, para a paginação não depender da posição deles.
  * O callback roda no navegador: só pode usar os próprios argumentos.
  */
-export function collectNewPosts(page: Page): Promise<ScrapedPost[]> {
+export async function collectNewPosts(page: Page): Promise<ScrapedPost[]> {
+	await showOriginalTexts(page)
+
 	return page.evaluate(
 		(selectors, scrapedAttribute) => {
 			const results: {
@@ -95,6 +101,62 @@ export function collectNewPosts(page: Page): Promise<ScrapedPost[]> {
 		},
 		SELECTORS,
 		SCRAPED_ATTRIBUTE,
+	)
+}
+
+/**
+ * Volta ao texto original os posts ainda não coletados que o LinkedIn traduziu sozinho para o idioma da conta
+ * ("Exibir original"). Traduzido, o post em inglês passava pelo filtro de idioma como português e a vaga era salva
+ * com o texto da tradução. O original carrega depois do clique; o botão muda antes, então a espera olha o texto,
+ * guardado no card (`TRANSLATED_ATTRIBUTE`) antes do clique. O card que não voltar a tempo é lido traduzido.
+ */
+async function showOriginalTexts(page: Page) {
+	const pattern = { source: SELECTORS.showOriginalText.source, flags: SELECTORS.showOriginalText.flags }
+
+	const clicked = await page.evaluate(
+		(selectors, scrapedAttribute, translatedAttribute, pattern) => {
+			const regex = new RegExp(pattern.source, pattern.flags)
+			let count = 0
+
+			for (const card of document.querySelectorAll(`:is(${selectors.post}):not([${scrapedAttribute}])`)) {
+				const button = Array.from(card.querySelectorAll<HTMLButtonElement>('button')).find(button =>
+					regex.test(button.innerText.trim()),
+				)
+				if (!button) continue
+
+				card.setAttribute(translatedAttribute, card.querySelector<HTMLElement>(selectors.postText)?.innerText ?? '')
+				button.click()
+				count++
+			}
+
+			return count
+		},
+		SELECTORS,
+		SCRAPED_ATTRIBUTE,
+		TRANSLATED_ATTRIBUTE,
+		pattern,
+	)
+	if (clicked === 0) return
+
+	await page
+		.waitForFunction(
+			(selectors, translatedAttribute) =>
+				Array.from(document.querySelectorAll(`[${translatedAttribute}]`)).every(
+					card => card.querySelector<HTMLElement>(selectors.postText)?.innerText !== card.getAttribute(translatedAttribute),
+				),
+			{ timeout: ORIGINAL_TEXT_TIMEOUT_MS },
+			SELECTORS,
+			TRANSLATED_ATTRIBUTE,
+		)
+		.catch((error: unknown) => {
+			if (!(error instanceof TimeoutError)) throw error
+		})
+
+	await page.evaluate(
+		translatedAttribute => {
+			for (const card of document.querySelectorAll(`[${translatedAttribute}]`)) card.removeAttribute(translatedAttribute)
+		},
+		TRANSLATED_ATTRIBUTE,
 	)
 }
 
