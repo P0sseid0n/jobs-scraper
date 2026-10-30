@@ -60,8 +60,8 @@ type ScraperRunDocument = {
 	startedAt: Date
 	finishedAt: Date | null
 	/**
-	 * A última gravação da coleta (o início e cada termo terminado): o último momento em que se sabe que ela rodava, o
-	 * fim da coleta interrompida; ausente nas coletas antigas.
+	 * O sinal de vida da coleta, gravado no início, a cada termo terminado e a cada `RUN_HEARTBEAT_MS`: o último momento
+	 * em que se sabe que ela rodava, o fim da coleta interrompida; ausente nas coletas antigas.
 	 */
 	progressAt: Date | null
 	/** Os termos que a coleta vai buscar, na ordem; ausente nas coletas antigas. */
@@ -84,6 +84,22 @@ type ScraperRunDocument = {
 }
 
 const HISTORY_DAYS = 90
+
+/** De quanto em quanto tempo a coleta em andamento grava o `progressAt`. */
+export const RUN_HEARTBEAT_MS = 30_000
+
+/**
+ * Sem sinal de vida por esse tempo, a coleta em andamento foi interrompida (o scraper ou o MongoDB caiu): o site já a
+ * mostra assim antes de o scraper voltar e marcá-la (`markInterruptedRuns`). Folga de 4 sinais perdidos.
+ */
+export const RUN_STALE_MS = 4 * RUN_HEARTBEAT_MS
+
+export const INTERRUPTED_RUN_ERROR = 'Coleta interrompida (o serviço ou o banco de dados caiu no meio)'
+
+/** A coleta em andamento com sinal de vida recente; as sem `progressAt` (antigas) contam como interrompidas. */
+export function liveRunFilter(now = new Date()) {
+	return { status: 'running' as const, progressAt: { $gte: new Date(now.getTime() - RUN_STALE_MS) } }
+}
 
 /** Histórico das coletas: status da coleta em andamento, última coleta e próxima agendada. */
 const scraperRunSchema = new Schema<ScraperRunDocument>(

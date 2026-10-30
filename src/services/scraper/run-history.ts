@@ -1,5 +1,12 @@
 import type { ScraperRunEvent } from '@shared/contracts'
-import { Job, ScraperRun, type ScraperRunTerm, type ScraperRunTrigger } from '@shared/database'
+import {
+	INTERRUPTED_RUN_ERROR,
+	Job,
+	RUN_HEARTBEAT_MS,
+	ScraperRun,
+	type ScraperRunTerm,
+	type ScraperRunTrigger,
+} from '@shared/database'
 import type { Logger } from '@shared/logging'
 import { EXCHANGES, type QueueClient } from '@shared/messaging'
 
@@ -51,6 +58,13 @@ export async function recordRun(
 			() => {},
 		)
 
+	// O sinal de vida: um termo pode levar minutos, e sem ele o site acharia a coleta interrompida (`RUN_STALE_MS`). Falha
+	// ao gravar (MongoDB fora do ar) é ignorada: o próximo sinal tenta de novo
+	const heartbeat = setInterval(
+		() => void ScraperRun.updateOne({ _id: run._id, status: 'running' }, { progressAt: new Date() }).catch(() => {}),
+		RUN_HEARTBEAT_MS,
+	)
+
 	try {
 		const { terms, deferredLists, missingJobs } = await collect(onTerm)
 		const sent = terms.reduce((total, term) => total + term.sent, 0)
@@ -85,6 +99,8 @@ export async function recordRun(
 		await announce({ runId, phase: 'finished', status: 'failed', trigger })
 
 		throw error
+	} finally {
+		clearInterval(heartbeat)
 	}
 }
 
@@ -100,7 +116,7 @@ export function markInterruptedRuns() {
 				$set: {
 					status: 'failed',
 					finishedAt: { $ifNull: ['$progressAt', '$startedAt'] },
-					error: 'Coleta interrompida (o serviço ou o banco de dados caiu no meio)',
+					error: INTERRUPTED_RUN_ERROR,
 				},
 			},
 		],

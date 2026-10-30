@@ -3,7 +3,9 @@ import { z } from 'zod'
 import { activeSearchTerms, type DatePostedFilter, type ScraperCommand } from '@shared/contracts'
 import {
 	consecutiveShortRuns,
+	INTERRUPTED_RUN_ERROR,
 	Job,
+	liveRunFilter,
 	neverCollected,
 	ScraperRun,
 	SeenPost,
@@ -37,6 +39,7 @@ type RunDocument = {
 	status: ScraperRunStatus
 	startedAt: Date
 	finishedAt: Date | null
+	progressAt?: Date | null
 	sent: number
 	plannedTerms?: string[]
 	minJobs?: number | null
@@ -47,11 +50,15 @@ type RunDocument = {
 	loginFailure?: ScraperLoginFailure | null
 }
 
-/** `GET /api/scraper/status`: coleta em andamento, última coleta e próxima agendada. */
+/**
+ * `GET /api/scraper/status`: coleta em andamento, última coleta e próxima agendada. A coleta sem sinal de vida recente
+ * não está em andamento: o scraper ou o MongoDB caiu no meio dela (ver `toWebRun`).
+ */
 export async function scraperStatus({ skipOnboarding }: { skipOnboarding: boolean }) {
+	const live = liveRunFilter()
 	const [current, last, settings, linkedinAccount, firstRun, shortRuns] = await Promise.all([
-		ScraperRun.findOne({ status: 'running' }).sort({ startedAt: -1 }).lean(),
-		ScraperRun.findOne({ status: { $ne: 'running' } })
+		ScraperRun.findOne(live).sort({ startedAt: -1 }).lean(),
+		ScraperRun.findOne({ $nor: [live] })
 			.sort({ startedAt: -1 })
 			.lean(),
 		readSettings('scraper'),
@@ -98,13 +105,13 @@ export async function listRuns(req: Request) {
 		ScraperRun.countDocuments(),
 	])
 
-	return Response.json({ runs: await Promise.all(docs.map(toWebRun)), total } satisfies RunsPage)
+	return Response.json({ runs: await Promise.all(docs.map(doc => toWebRun(doc))), total } satisfies RunsPage)
 }
 
 /** `POST /api/scraper/run`: "coletar agora" (funciona mesmo com as coletas pausadas, mas não sem termos nem sem conta). */
 export async function requestRun(queue: QueueClient) {
 	const [running, settings, linkedinAccount] = await Promise.all([
-		ScraperRun.exists({ status: 'running' }),
+		ScraperRun.exists(liveRunFilter()),
 		readSettings('scraper'),
 		hasLinkedinAccount(),
 	])
@@ -126,8 +133,15 @@ function hasLinkedinAccount() {
 	return loadCredentials('linkedin').then(Boolean, () => false)
 }
 
-/** A coleta para o site, com as vagas que saíram dela (as de posts com várias vagas apontam o post em `sourcePostId`). */
-async function toWebRun(doc: RunDocument): Promise<WebScraperRun> {
+/**
+ * A coleta para o site, com as vagas que saíram dela (as de posts com várias vagas apontam o post em `sourcePostId`).
+ * A coleta em andamento sem sinal de vida recente sai como interrompida, como o scraper a marca quando volta.
+ */
+async function toWebRun(doc: RunDocument, now = new Date()): Promise<WebScraperRun> {
+	if (doc.status === 'running' && !isLive(doc, now)) {
+		doc = { ...doc, status: 'failed', finishedAt: doc.progressAt ?? doc.startedAt, error: INTERRUPTED_RUN_ERROR }
+	}
+
 	const terms = doc.terms ?? []
 	const tracked = terms.length > 0 && terms.every(term => term.postIds !== undefined)
 	// As listas deixadas para outra coleta podem voltar numa busca seguinte: o destino delas fica com aquela coleta
@@ -163,6 +177,12 @@ async function toWebRun(doc: RunDocument): Promise<WebScraperRun> {
 		error: doc.error ?? null,
 		loginFailure: doc.loginFailure ?? (doc.status === 'failed' && isLegacyLoginFailure(doc.error) ? 'other' : null),
 	}
+}
+
+/** O mesmo critério do `liveRunFilter`, para o documento já lido. */
+function isLive(doc: RunDocument, now: Date) {
+	const { progressAt } = liveRunFilter(now)
+	return !!doc.progressAt && doc.progressAt >= progressAt.$gte
 }
 
 /** As coletas anteriores ao `loginFailure` que pararam no login, pela mensagem. */
