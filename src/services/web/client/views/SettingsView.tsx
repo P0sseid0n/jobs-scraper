@@ -394,12 +394,7 @@ export function SettingsView({
 		const { minJobsPerRun, intervalMinutes } = d.scraper
 
 		return (
-			<SectionCard
-				id="coleta"
-				className={SECTION_SCROLL_MARGIN}
-				title="coleta"
-				tag="scraper"
-			>
+			<SectionCard id="coleta" className={SECTION_SCROLL_MARGIN} title="coleta" tag="scraper">
 				{loaded && (
 					// Salvo na hora, fora do formulário. Ligado = coletando (como os outros interruptores da tela); pausado, fica
 					// neutro, sem o lime de "rodando"
@@ -524,9 +519,7 @@ export function SettingsView({
 						{fieldError('minJobsPerRun') ?? (
 							<FieldHelp id="minJobsPerRun-help">
 								de {LIMITS.minJobsPerRun[0]} a {LIMITS.minJobsPerRun[1]}, somando os termos
-								{Number.isInteger(minJobsPerRun) &&
-									activeTerms > 0 &&
-									` · ${jobsPerTermLabel(minJobsPerRun, activeTerms)}`}
+								{Number.isInteger(minJobsPerRun) && activeTerms > 0 && ` · ${jobsPerTermLabel(minJobsPerRun, activeTerms)}`}
 							</FieldHelp>
 						)}
 					</div>
