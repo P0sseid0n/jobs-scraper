@@ -119,10 +119,15 @@ async function externalTarget(page: Page) {
 
 /**
  * Partes da página com a vaga em sites frequentes nas listas, por domínio. No netvagas: o topo (cargo, empresa),
- * "Sobre a vaga" (a ficha) e "Descrição"; os cards seguintes são o aviso de redirecionamento, o ATS e dicas de currículo.
+ * "Sobre a vaga" (a ficha) e "Descrição", os dois primeiros cards depois do topo (entre eles pode vir outro elemento, como
+ * o "Receba notificações"); os cards seguintes são o aviso de redirecionamento, o ATS e dicas de currículo.
  */
 const SITE_SELECTORS: Record<string, string[]> = {
-	'www.netvagas.com.br': ['.nv-anuncio > article', '.nv-anuncio > article + section', '.nv-anuncio > article + section + section'],
+	'www.netvagas.com.br': [
+		'.nv-anuncio > article',
+		'.nv-anuncio > article ~ section.card',
+		'.nv-anuncio > article ~ section.card ~ section.card',
+	],
 }
 
 /**
