@@ -31,6 +31,18 @@ export function isDatabaseConnected() {
 	return mongoose.connection.readyState === mongoose.ConnectionStates.connected
 }
 
+/**
+ * O erro veio do MongoDB fora do ar: falha de rede ou de seleção do servidor no driver, ou o mongoose desistindo
+ * de uma operação que ficou esperando a reconexão (`buffering timed out`).
+ */
+export function isDatabaseUnavailableError(error: unknown) {
+	return (
+		error instanceof mongoose.mongo.MongoNetworkError ||
+		error instanceof mongoose.mongo.MongoServerSelectionError ||
+		(error instanceof mongoose.Error && !isDatabaseConnected())
+	)
+}
+
 /** Fecha a conexão no encerramento; o aviso de queda fica só para desconexões inesperadas. */
 export async function disconnectDatabase() {
 	closing = true

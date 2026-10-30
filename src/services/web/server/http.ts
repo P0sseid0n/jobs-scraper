@@ -1,5 +1,6 @@
 import { ZodError } from 'zod'
 
+import { isDatabaseUnavailableError } from '@shared/database'
 import type { Logger } from '@shared/logging'
 
 import type { ApiError } from '../api-types'
@@ -41,7 +42,7 @@ export function isCrossSiteWrite(req: Request) {
 
 /**
  * Envolve um handler: escritas vindas de outro site viram 403, erros de validação viram 400 com os campos,
- * `HttpError` vira o status dele e o resto vira 500.
+ * `HttpError` vira o status dele, o MongoDB fora do ar vira 503 e o resto vira 500.
  */
 export function handler<R extends Request>(logger: Logger, fn: (req: R) => Promise<Response> | Response) {
 	return async (req: R) => {
@@ -57,6 +58,10 @@ export function handler<R extends Request>(logger: Logger, fn: (req: R) => Promi
 			}
 			if (error instanceof HttpError) {
 				return Response.json({ error: error.message } satisfies ApiError, { status: error.status })
+			}
+			if (isDatabaseUnavailableError(error)) {
+				logger.warn({ err: error, url: req.url, method: req.method }, 'MongoDB fora do ar')
+				return Response.json({ error: 'Banco de dados fora do ar' } satisfies ApiError, { status: 503 })
 			}
 
 			logger.error({ err: error, url: req.url, method: req.method }, 'Erro na API')

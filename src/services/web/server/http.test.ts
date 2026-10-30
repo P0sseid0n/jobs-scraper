@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import mongoose from 'mongoose'
 import { z } from 'zod'
 
 import { createLogger } from '@shared/logging'
@@ -42,6 +43,14 @@ describe('handler', () => {
 		const response = await handler(logger, () => Promise.reject(new Error('senha do banco')))(req)
 		expect(response.status).toBe(500)
 		expect(await response.text()).not.toContain('senha')
+	})
+
+	test('MongoDB fora do ar vira 503', async () => {
+		const offline = new mongoose.mongo.MongoNetworkError('connect ECONNREFUSED 127.0.0.1:27017')
+		const response = await handler(logger, () => Promise.reject(offline))(req)
+
+		expect(response.status).toBe(503)
+		expect(await response.json()).toEqual({ error: 'Banco de dados fora do ar' })
 	})
 })
 
