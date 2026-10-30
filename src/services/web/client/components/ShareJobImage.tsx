@@ -138,11 +138,14 @@ export function ShareJobImage({ job, text, onClose }: { job: ShareJob; text: str
 		if (!body.current || !row.current || !options.current) return
 		const [bodyElement, rowElement, optionsElement] = [body.current, row.current, options.current]
 		const measure = () => {
+			// Com a aba escondida, tudo mede 0: a escala fica a da última vez que a aba estava aberta
+			if (optionsElement.offsetHeight === 0) return
 			if (getComputedStyle(rowElement).flexDirection === 'column') return setScale(rowElement.clientWidth / size.width)
 
 			const { paddingTop, paddingBottom } = getComputedStyle(bodyElement)
 			const room = bodyElement.clientHeight - Number.parseFloat(paddingTop) - Number.parseFloat(paddingBottom)
-			setScale(Math.min(optionsElement.offsetHeight, room) / size.height)
+			const height = room > 0 ? Math.min(optionsElement.offsetHeight, room) : optionsElement.offsetHeight
+			setScale(height / size.height)
 		}
 		const observer = new ResizeObserver(measure)
 		observer.observe(bodyElement)

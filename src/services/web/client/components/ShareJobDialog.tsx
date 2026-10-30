@@ -87,8 +87,9 @@ export function ShareJobDialog({ job, onClose }: { job: ShareJob; onClose: () =>
 		<dialog
 			ref={ref}
 			// Aberta, vira coluna: o meio rola e o topo e o rodapé ficam à vista. Larga para a prévia da imagem caber ao lado
-			// das opções, e a mesma nas duas abas, para a modal não pular ao trocar
-			className={cx(DIALOG, 'w-180 open:flex open:flex-col')}
+			// das opções, e a mesma nas duas abas, para a modal não pular ao trocar. Ela mesma não rola: a aba que entra desce
+			// 6px na animação e, com a modal na altura máxima, isso mostrava uma barra de rolagem a cada troca
+			className={cx(DIALOG, 'w-180 overflow-hidden open:flex open:flex-col')}
 			aria-labelledby={titleId}
 			onClose={onClose}
 			// Clique no fundo escurecido (fora do conteúdo) fecha
