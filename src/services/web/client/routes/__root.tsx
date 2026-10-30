@@ -225,7 +225,7 @@ function RootLayout() {
 								{pill.text}
 							</Link>
 						)}
-						<IconButton label="Alternar tema claro/escuro" bordered onClick={event => toggleTheme(event.currentTarget)}>
+						<IconButton label="Alternar tema claro/escuro" variant="ghost" onClick={event => toggleTheme(event.currentTarget)}>
 							{/* Os dois ícones no mesmo lugar: um gira e encolhe enquanto o outro cresce */}
 							<Icon
 								name="moon"

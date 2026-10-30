@@ -130,7 +130,7 @@ export function ImageViewer({ images, start = 0, original = true, onClose }: Ima
 					<>
 						<IconButton
 							label="imagem anterior"
-							bordered
+							variant="ghost"
 							className="fixed top-1/2 left-4 -translate-y-1/2 bg-inv-bg/60 max-md:hidden"
 							onClick={() => go(-1)}
 						>
@@ -138,7 +138,7 @@ export function ImageViewer({ images, start = 0, original = true, onClose }: Ima
 						</IconButton>
 						<IconButton
 							label="próxima imagem"
-							bordered
+							variant="ghost"
 							className="fixed top-1/2 right-4 -translate-y-1/2 bg-inv-bg/60 max-md:hidden"
 							onClick={() => go(1)}
 						>

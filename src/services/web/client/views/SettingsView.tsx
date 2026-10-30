@@ -453,7 +453,7 @@ export function SettingsView({
 								<IconButton
 									className={cx(!term.enabled && 'opacity-55')}
 									label={`Remover o termo ${term.term}`}
-									bordered
+									variant="ghost"
 									onClick={() =>
 										edit(next => {
 											next.scraper.searchTerms.splice(index, 1)

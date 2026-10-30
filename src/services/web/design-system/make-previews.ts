@@ -24,8 +24,8 @@ const PREVIEWS: Record<string, Preview> = {
 	h(U.IconButton, { label: 'Fechar', size: 'xs' }, h(U.Icon, { name: 'close', size: 12 })),
 	h(U.IconButton, { label: 'Copiar e-mail', size: 'sm' }, h(U.Icon, { name: 'copy' })),
 	h(U.IconButton, { label: 'Reportar erro', size: 'md' }, h(U.Icon, { name: 'flag' })),
-	h(U.IconButton, { label: 'Tema escuro', bordered: true }, h(U.Icon, { name: 'moon' })),
-	h(U.IconButton, { label: 'Atualizar', size: 'sm', bordered: true }, h(U.Icon, { name: 'refresh' })),
+	h(U.IconButton, { label: 'Tema escuro', variant: 'ghost' }, h(U.Icon, { name: 'moon' })),
+	h(U.IconButton, { label: 'Atualizar', size: 'sm', variant: 'ghost' }, h(U.Icon, { name: 'refresh' })),
 	h(U.IconButton, { label: 'Subir', size: 'sm', tone: 'muted' }, h(U.Icon, { name: 'chevron' })),
 	h(U.IconButton, { label: 'Remover', size: 'sm', tone: 'destructive' }, h(U.Icon, { name: 'trash' }))
 )`,

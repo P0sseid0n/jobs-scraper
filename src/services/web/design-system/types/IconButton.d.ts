@@ -8,7 +8,8 @@ export interface IconButtonProps {
 	 * `danger` vermelho fixo (algo bloqueado); `destructive` apagado, vermelho no hover (remover).
 	 */
 	tone?: 'muted' | 'ink' | 'danger' | 'destructive'
-	bordered?: boolean
+	/** `bare` (padrão): sem borda, o hover escurece a cor do texto; `ghost`: com borda, como o `Button` `ghost`. */
+	variant?: 'bare' | 'ghost'
 	/** O ícone (ex.: <Icon name="close" />). */
 	children: React.ReactNode
 	type?: 'button' | 'submit' | 'reset'

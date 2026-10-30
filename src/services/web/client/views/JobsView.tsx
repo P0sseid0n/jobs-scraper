@@ -227,7 +227,7 @@ function FiltersHandle({ open, count, drag }: { open: boolean; count: number; dr
 	return (
 		<div className="sticky top-19 z-10 h-0 max-md:hidden">
 			<IconButton
-				bordered
+				variant="ghost"
 				label={open ? 'esconder filtros' : count > 0 ? `mostrar filtros (${count} ligados)` : 'mostrar filtros'}
 				aria-expanded={open}
 				aria-controls="filters"

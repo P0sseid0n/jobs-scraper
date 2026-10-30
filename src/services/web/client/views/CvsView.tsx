@@ -138,7 +138,7 @@ function CvItem({ request, outdated, latest }: CvItemProps) {
 									</Button>
 									{/* No celular, o baixar vira só o ícone e o abrir fica no ajuste */}
 									<a
-										className={iconButton({ size: 'sm', bordered: true, className: 'md:hidden' })}
+										className={iconButton({ size: 'sm', variant: 'ghost', className: 'md:hidden' })}
 										href={cvPdfUrl(request.requestId, true)}
 										download={request.fileName ?? undefined}
 										aria-label={`Baixar o PDF de ${title}`}

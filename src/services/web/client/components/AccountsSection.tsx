@@ -475,7 +475,7 @@ export function AccountGroup({
 					{field.optional && hasSaved && (
 						<IconButton
 							label={isRemoved ? `Manter o ${field.label} salvo` : `Remover o ${field.label} salvo`}
-							bordered
+							variant="ghost"
 							onClick={() => {
 								setRemoved(current => (isRemoved ? current.filter(name => name !== field.name) : [...current, field.name]))
 								setDraft(current => ({ ...current, [field.name]: '' }))

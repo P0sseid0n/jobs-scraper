@@ -9,8 +9,8 @@ export const GUIDES: Record<string, string> = {
 	IconButton: `Botão só com ícone (os ícones vêm em \`children\`).
 
 - \`label\` é obrigatório: vira o \`aria-label\` e a dica do mouse ("Fechar", "Copiar e-mail").
-- Sem borda, o hover escurece a própria cor do texto e funciona em qualquer fundo; \`bordered\` para ações soltas (o botão de tema no cabeçalho).
-- \`size\`: \`xs\` (26px) dentro de chips, \`sm\` (32px) em cards, \`md\` (40px) no resto. O ícone: \`<Icon>\` com \`size\` 12 a 16.
+- \`variant\`: \`bare\` (padrão), sem borda, o hover escurece a própria cor do texto e funciona em qualquer fundo; \`ghost\`, com a borda do \`Button\` \`ghost\`, para ações soltas (o botão de tema no cabeçalho).
+- \`size\`: \`xs\` (26px) dentro de chips, \`sm\` (32px) em cards, \`md\` (38px) no resto. \`sm\` e \`md\` têm a altura do \`Button\` do mesmo tamanho, para os dois ficarem alinhados lado a lado. O ícone: \`<Icon>\` com \`size\` 12 a 16.
 - \`tone\` dá a cor: \`muted\` para ações secundárias (reordenar, tirar um chip), que acendem no hover; \`ink\` ao lado de texto apagado (os botões do topo do detalhe); \`danger\` para algo bloqueado; \`destructive\` para remover, que fica vermelho no hover. Sem \`tone\`, a cor do texto em volta.`,
 	TextLink: `Link sublinhado no meio do texto; sem \`href\`, vira um botão com a mesma cara (ex.: "mostrar post completo").
 

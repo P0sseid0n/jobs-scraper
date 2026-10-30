@@ -185,7 +185,7 @@ export function ShareJobButton({ job, className }: { job: ShareJob; className?: 
 			<IconButton
 				label="compartilhar vaga"
 				size="sm"
-				bordered
+				variant="ghost"
 				tone="ink"
 				className={className}
 				aria-haspopup="dialog"

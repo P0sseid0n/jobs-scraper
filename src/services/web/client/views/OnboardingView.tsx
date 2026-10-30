@@ -176,7 +176,7 @@ export function OnboardingView({
 				</p>
 				<IconButton
 					label="Alternar tema claro/escuro"
-					bordered
+					variant="ghost"
 					className="absolute top-6 right-8 max-lg:top-3 max-lg:right-4"
 					onClick={event => toggleTheme(event.currentTarget)}
 				>

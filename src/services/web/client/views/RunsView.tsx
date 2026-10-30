@@ -523,7 +523,7 @@ function RunsPagination({
 									aria-current={item === page ? 'page' : undefined}
 									className={iconButton({
 										size: 'sm',
-										bordered: true,
+										variant: 'ghost',
 										className: cx(
 											'font-mono text-xs',
 											// A atual não reage ao mouse: o hover dos botões com borda trocava o fundo escuro pelo claro, e o
@@ -576,7 +576,7 @@ function PageArrow({
 		<IconButton
 			label={label}
 			size="sm"
-			bordered
+			variant="ghost"
 			aria-disabled={unavailable || undefined}
 			onClick={() => !unavailable && onPage(target)}
 		>

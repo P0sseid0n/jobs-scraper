@@ -19,7 +19,8 @@ export const iconButton = tv({
 		'pointer-coarse:after:absolute pointer-coarse:after:top-1/2 pointer-coarse:after:left-1/2 pointer-coarse:after:size-11 pointer-coarse:after:-translate-1/2',
 	],
 	variants: {
-		size: { xs: 'size-6.5', sm: 'size-8', md: 'size-10' },
+		/** `md` na altura do `Button` `md` (38px), para os dois ficarem alinhados lado a lado; `sm` também bate (32px). */
+		size: { xs: 'size-6.5', sm: 'size-8', md: 'size-9.5' },
 		/**
 		 * A cor do ícone. Sem `tone`, a do texto em volta. `muted`: apagado, acende no hover (ações secundárias, como
 		 * reordenar); `ink`: na cor do texto, mesmo ao lado de texto apagado; `danger`: vermelho fixo (algo bloqueado);
@@ -31,13 +32,16 @@ export const iconButton = tv({
 			danger: 'text-danger',
 			destructive: 'text-muted hover:text-danger',
 		},
-		bordered: {
-			true: ['border border-line', OUTLINED],
-			// Sem borda, o hover escurece a cor do próprio texto: funciona em qualquer fundo (toast, bandeja escura)
-			false: 'hover:bg-current/12',
+		/**
+		 * `bare` (padrão): sem borda, o hover escurece a cor do próprio texto e funciona em qualquer fundo (toast, bandeja
+		 * escura). `ghost`: com a borda, como o `Button` `ghost`, para ações soltas (o tema no cabeçalho).
+		 */
+		variant: {
+			bare: 'hover:bg-current/12',
+			ghost: ['border border-line', OUTLINED],
 		},
 	},
-	defaultVariants: { size: 'md', bordered: false },
+	defaultVariants: { size: 'md', variant: 'bare' },
 })
 
 type IconButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'aria-label'> &
@@ -47,8 +51,8 @@ type IconButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'aria-label
 	}
 
 /** Botão só com ícone (os ícones vêm em `children`). */
-export function IconButton({ label, size, tone, bordered, className, ...props }: IconButtonProps) {
+export function IconButton({ label, size, tone, variant, className, ...props }: IconButtonProps) {
 	return (
-		<button type="button" aria-label={label} title={label} {...props} className={iconButton({ size, tone, bordered, className })} />
+		<button type="button" aria-label={label} title={label} {...props} className={iconButton({ size, tone, variant, className })} />
 	)
 }

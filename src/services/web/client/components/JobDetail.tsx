@@ -154,7 +154,7 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 						<IconButton
 							label="reportar problema na vaga"
 							size="sm"
-							bordered
+							variant="ghost"
 							tone="ink"
 							className="ml-1.5"
 							aria-haspopup="dialog"
