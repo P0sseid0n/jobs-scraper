@@ -10,7 +10,7 @@ import {
 	ProcessedJobSchema,
 	ScraperRunEventSchema,
 } from '@shared/contracts'
-import { Job } from '@shared/database'
+import { isDatabaseConnected, Job } from '@shared/database'
 import { onShutdown } from '@shared/lifecycle'
 import { EXCHANGES, QUEUES } from '@shared/messaging'
 import { startService } from '@shared/service'
@@ -31,7 +31,7 @@ import {
 } from './server/cv-base'
 import { CvImports, getCvImport, requestCvImport, saveCvImportResult } from './server/cv-import'
 import { EventHub } from './server/event-hub'
-import { handler } from './server/http'
+import { handler, HttpError } from './server/http'
 import { appliedSimilar, setJobAppliedRoute } from './server/job-applied'
 import { correctJob } from './server/job-correction'
 import { ungroupRepost } from './server/job-reposts'
@@ -87,7 +87,13 @@ await queue.consume(QUEUES.webScraperRun, ScraperRunEventSchema, async event => 
 	bindTo: EXCHANGES.scraperRun,
 })
 
-const api = <R extends Request>(fn: (req: R) => Promise<Response> | Response) => handler(logger, fn)
+// Com o MongoDB já fora do ar a rota responde na hora, sem esperar o mongoose desistir da reconexão (~10 s);
+// a queda no meio de uma consulta fica com o `handler`
+const api = <R extends Request>(fn: (req: R) => Promise<Response> | Response) =>
+	handler<R>(logger, req => {
+		if (!isDatabaseConnected()) throw new HttpError(503, 'Banco de dados fora do ar')
+		return fn(req)
+	})
 
 // A primeira chamada depois de subir carrega o modelo no Ollama, o que passa dos 10 s em que o Bun fecha uma conexão
 // sem resposta (na CPU, bem mais): as rotas que esperam a IA aguentam até 4 min
