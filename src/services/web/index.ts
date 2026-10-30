@@ -6,6 +6,7 @@ import {
 	CvImportResultSchema,
 	CvResultSchema,
 	JobAppliedChangeSchema,
+	JobReprocessResultSchema,
 	MailResultSchema,
 	ProcessedJobSchema,
 	ScraperRunEventSchema,
@@ -36,6 +37,7 @@ import { handler, HttpError } from './server/http'
 import { appliedSimilar, setJobAppliedRoute } from './server/job-applied'
 import { correctJob } from './server/job-correction'
 import { ungroupRepost } from './server/job-reposts'
+import { broadcastReprocessResult, reprocessJob } from './server/job-reprocess'
 import { setJobsViewed, setJobViewed } from './server/job-viewed'
 import { getJob, getJobImage, getRawJob, jobFacets, listJobs } from './server/jobs'
 import { toWebJob, type JobDocument } from './server/jobs-query'
@@ -61,6 +63,9 @@ await queue.assertQueue(QUEUES.cvUpdaterBase)
 await queue.assertQueue(QUEUES.cvUpdaterImport)
 await queue.assertQueue(QUEUES.scraper)
 await queue.assertQueue(QUEUES.mailer)
+await queue.assertQueue(QUEUES.scraperLookup)
+await queue.assertQueue(QUEUES.scraperPost)
+await queue.assertQueue(QUEUES.postProcessing)
 
 // A fila `web` assina o evento `job-published`, como a do Discord: o site recebe todas as vagas novas
 await queue.consume(
@@ -87,6 +92,8 @@ await queue.consume(QUEUES.webApplied, JobAppliedChangeSchema, async change => e
 await queue.consume(QUEUES.webScraperRun, ScraperRunEventSchema, async event => events.broadcast('scraperRun', event), {
 	bindTo: EXCHANGES.scraperRun,
 })
+// "Processar de novo" terminado (no scraper ou no post-processing): a vaga atualizada vai para os navegadores abertos
+await queue.consume(QUEUES.webReprocess, JobReprocessResultSchema, result => broadcastReprocessResult(result, { events }))
 
 // Com o MongoDB já fora do ar a rota responde na hora, sem esperar o mongoose desistir da reconexão (~10 s);
 // a queda no meio de uma consulta fica com o `handler`
@@ -122,6 +129,7 @@ const server = Bun.serve({
 		'/api/jobs/:postId/applied': { PUT: api(req => setJobAppliedRoute(req, { events })) },
 		'/api/jobs/:postId/applied-similar': { GET: api(appliedSimilar) },
 		'/api/jobs/:postId/raw': { GET: api(getRawJob) },
+		'/api/jobs/:postId/reprocess': { POST: api(req => reprocessJob(req, { queue, logger })) },
 		'/api/jobs/:postId/reposts/:repostId': { DELETE: api(req => ungroupRepost(req, { queue, logger })) },
 		'/api/jobs/:postId/images/:index': { GET: api(getJobImage) },
 		'/api/jobs/:postId/cv': { POST: api(req => requestCv(req, { queue, events, logger })) },

@@ -1,4 +1,10 @@
-import { activeSearchTerms, JobLookupSchema, LoginTestRequestSchema, VerificationCodeSchema } from '@shared/contracts'
+import {
+	activeSearchTerms,
+	JobLookupSchema,
+	LoginTestRequestSchema,
+	PostRereadSchema,
+	VerificationCodeSchema,
+} from '@shared/contracts'
 import { neverCollected, type ScraperRunTrigger } from '@shared/database'
 import { onShutdown, shutdown } from '@shared/lifecycle'
 import { QUEUES } from '@shared/messaging'
@@ -28,6 +34,7 @@ const lookups = new JobLookupWorker({ config, queue, logger, lock: browserLock }
 onShutdown(closeActiveBrowser)
 onShutdown(() => lookups.close())
 await queue.assertQueue(QUEUES.postProcessing)
+await queue.assertQueue(QUEUES.webReprocess)
 await markInterruptedRuns()
 
 // Código de verificação do login (`bun scraper:verify <código>`): chega a qualquer momento, inclusive no meio de uma coleta
@@ -46,6 +53,8 @@ await queue.consume(QUEUES.scraperLoginTest, LoginTestRequestSchema, () =>
 
 // Vagas de posts com várias (enviadas pelo post-processing): cada uma é aberta no navegador, com pausa entre elas
 await queue.consume(QUEUES.scraperLookup, JobLookupSchema, lookup => lookups.handle(lookup))
+// Posts de vagas avulsas lidos de novo ("processar de novo" do site), no mesmo navegador e ritmo das vagas acima
+await queue.consume(QUEUES.scraperPost, PostRereadSchema, request => lookups.reread(request))
 
 try {
 	logger.info('🚀 Iniciando scraper')

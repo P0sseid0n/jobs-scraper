@@ -1,7 +1,15 @@
 import { Ollama } from 'ollama'
 
 import { ollamaEnv } from '@shared/config'
-import { ProcessedJobSchema, RawPostSchema, type JobLookup, type RawPost } from '@shared/contracts'
+import {
+	ProcessedJobSchema,
+	RawPostSchema,
+	type CorrectableField,
+	type JobLookup,
+	type JobReprocessResult,
+	type JobReprocessStatus,
+	type RawPost,
+} from '@shared/contracts'
 import { SeenPost, type SeenPostOutcome } from '@shared/database'
 import { QUEUES } from '@shared/messaging'
 import { startService } from '@shared/service'
@@ -10,7 +18,7 @@ import { loadSettings, readSettings } from '@shared/settings'
 import { extractionPromptVersion } from './extraction-prompt'
 import { buildProcessedJob, extractJobFromPost } from './job-extraction'
 import { companyRejection, relevanceRejection } from './job-relevance'
-import { resumeSavedJob, saveJob } from './job-store'
+import { resumeSavedJob, saveJob, updateJob } from './job-store'
 import { rejectionReason } from './model-response'
 import {
 	listingKeywordText,
@@ -33,7 +41,12 @@ const ollama = new Ollama({ host: config.OLLAMA_HOST })
 await ensureModelAvailable()
 
 await queue.assertQueue(QUEUES.scraperLookup)
-await queue.consume(QUEUES.postProcessing, RawPostSchema, post => processPost(post))
+await queue.assertQueue(QUEUES.webReprocess)
+// A vaga de uma lista processada de novo segue como da primeira vez: as imagens do post (com todas as vagas) não vão
+// ao modelo (ver `processRoleList`)
+await queue.consume(QUEUES.postProcessing, RawPostSchema, post =>
+	processPost(post, { imagesToModel: !(post.reprocessId && post.sourcePostId) }),
+)
 
 // Esvazia a fila do antigo serviço storage (vagas enviadas antes da junção); remover na próxima versão
 await queue.consume(
@@ -51,31 +64,36 @@ await queue.consume(
  * fora dos idiomas aceitos (antes da extração; em texto curto, o idioma é perguntado ao modelo), extrai a vaga e, se
  * for uma vaga relevante (palavras-chave) de uma empresa não bloqueada, salva no MongoDB e anuncia para os canais. Cada post é processado uma
  * única vez. Com `imagesToModel: false`, as imagens são guardadas com a vaga sem ir para a extração.
+ *
+ * O "processar de novo" do site (`reprocessId`) passa pelos mesmos filtros e pela extração, mas atualiza a vaga já salva
+ * (`updateJob`), sem anunciar; se ela fosse descartada agora, fica como estava. O resultado volta ao site.
  */
 async function processPost(post: RawPost, { imagesToModel = true } = {}) {
 	const log = logger.child({ postId: post.postId })
 
-	if (await SeenPost.exists({ postId: post.postId })) {
+	if (!post.reprocessId && (await SeenPost.exists({ postId: post.postId }))) {
 		log.info('Post já processado anteriormente, ignorando')
 		return
 	}
 
-	if (await resumeSavedJob(post.postId, { queue, logger })) {
+	if (!post.reprocessId && (await resumeSavedJob(post.postId, { queue, logger }))) {
 		await markAsSeen(post, 'saved')
 		return
 	}
 
 	const settings = await loadSettings('post-processing')
+	// A vaga processada de novo já foi uma vaga só: não é dividida outra vez
+	const single = !!post.sourcePostId || !!post.reprocessId
 
 	// Antes do idioma: esses posts costumam misturar cargos em inglês; o idioma de cada vaga é visto na página dela
-	const listings = post.sourcePostId ? null : splitMultiJobPost(post.text)
+	const listings = single ? null : splitMultiJobPost(post.text)
 	if (listings) {
 		await requestLookups(post, listings, settings)
 		await markAsSeen(post, 'multi-job')
 		return
 	}
 
-	const roles = post.sourcePostId ? null : splitRoleListPost(post.text)
+	const roles = single ? null : splitRoleListPost(post.text)
 	if (roles) {
 		await markAsSeen(post, await processRoleList(post, roles, settings))
 		return
@@ -120,13 +138,30 @@ async function processPost(post: RawPost, { imagesToModel = true } = {}) {
 	}
 
 	log.info({ extractionChecks: job.extractionChecks, title: job.title }, 'Vaga estruturada')
-	const saved = await saveJob(
-		job,
-		{ queue, logger },
-		{ extractionModel: config.OLLAMA_MODEL, promptVersion: extractionPromptVersion(extracted) },
-		post.images,
-	)
+	const source = { extractionModel: config.OLLAMA_MODEL, promptVersion: extractionPromptVersion(extracted) }
+
+	if (post.reprocessId) {
+		const updated = await updateJob(job, source, post.images)
+		if (updated === 'missing') await reportReprocess(post, 'discarded', MISSING_FIELDS_REASON)
+		else if (updated) await reportReprocess(post, 'updated', null, updated.keptFields)
+		else await reportReprocess(post, 'failed', 'A vaga não existe mais')
+
+		log.info({ updated: typeof updated === 'object' }, '🔁 Vaga processada de novo')
+		return
+	}
+
+	const saved = await saveJob(job, { queue, logger }, source, post.images)
 	await markAsSeen(post, saved ? 'saved' : 'missing-fields')
+}
+
+const MISSING_FIELDS_REASON = 'A nova extração ficou sem o cargo'
+const NOT_A_JOB_REASON = 'A IA não reconheceu uma vaga no texto'
+
+/** O resultado do "processar de novo" para o site. */
+function reportReprocess(post: RawPost, status: JobReprocessStatus, reason: string | null, keptFields: CorrectableField[] = []) {
+	const result: JobReprocessResult = { reprocessId: post.reprocessId!, postId: post.postId, status, reason, keptFields }
+
+	return queue.publish(QUEUES.webReprocess, result)
 }
 
 /**
@@ -156,6 +191,7 @@ async function requestLookups(post: RawPost, listings: JobListing[], settings: K
 			authorIsCompany: post.authorIsCompany,
 			postedAt: post.postedAt,
 			requestedAt: new Date().toISOString(),
+			reprocessId: null,
 		}
 		await queue.publish(QUEUES.scraperLookup, lookup)
 		requested++
@@ -197,6 +233,11 @@ type KeywordSettings = { requiredKeywords: string[]; excludedKeywords: string[] 
  * `blockedBy` é a empresa bloqueada que descartou a vaga.
  */
 function markAsSeen(post: RawPost, outcome: SeenPostOutcome, reason?: string | null, { blockedBy }: { blockedBy?: string } = {}) {
+	// Processada de novo, a vaga descartada agora fica como estava: o motivo só volta ao site
+	if (post.reprocessId) {
+		return reportReprocess(post, 'discarded', reason ?? (outcome === 'missing-fields' ? MISSING_FIELDS_REASON : NOT_A_JOB_REASON))
+	}
+
 	const isJob = outcome === 'saved' || outcome === 'keywords' || outcome === 'blocked-company' || outcome === 'missing-fields'
 
 	return SeenPost.updateOne(

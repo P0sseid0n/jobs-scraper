@@ -29,6 +29,7 @@ import type {
 	WebMailDraft,
 	WebMailSetup,
 	WebRemovedJobs,
+	WebReprocessRequest,
 	WebRunRequest,
 	WebSettings,
 } from '../api-types'
@@ -125,6 +126,9 @@ export const api = {
 	/** Tira da lista as vagas da empresa bloqueada (ou só `postId`), sem apagar; devolve as que saíram. */
 	removeBlockedJobs: (company: string, postId?: string) =>
 		request<WebRemovedJobs>('/api/blocked-companies/remove-jobs', { method: 'POST', body: JSON.stringify({ company, postId }) }),
+	/** "Processar de novo": a vaga é lida e extraída outra vez; o resultado chega pelo evento `reprocess` do stream. */
+	reprocessJob: (postId: string) =>
+		request<WebReprocessRequest>(`/api/jobs/${encodeURIComponent(postId)}/reprocess`, { method: 'POST' }),
 	/** O documento da vaga no MongoDB, para depuração. */
 	rawJob: (postId: string) => request<Record<string, unknown>>(`/api/jobs/${encodeURIComponent(postId)}/raw`),
 

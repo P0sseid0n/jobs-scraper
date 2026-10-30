@@ -1,6 +1,6 @@
 import type { Page } from 'puppeteer'
 
-import type { JobLookup } from '@shared/contracts'
+import type { JobLookup, JobReprocessResult, PostReread, RawPost } from '@shared/contracts'
 import { SeenPost } from '@shared/database'
 import type { Logger } from '@shared/logging'
 import { QUEUES, type QueueClient } from '@shared/messaging'
@@ -9,10 +9,15 @@ import { loadCredentials } from '@shared/settings'
 import type { BrowserLock } from './browser-lock'
 import { browserOptionsFrom, BrowserSession } from './browser-session'
 import type { ScraperConfig } from './config'
-import { lookupToRawPost, type ListingPage } from './job-lookup-post'
+import { collectNewPosts } from './feed-reader'
+import { listingPageText, lookupToRawPost, type ListingPage } from './job-lookup-post'
+import { postImageUrls } from './linkedin/post-images'
+import { cleanPostText } from './linkedin/post-text'
+import { resolvePostUrn } from './linkedin/post-urn'
 import { SELECTORS } from './linkedin/selectors'
-import { canonicalJobUrl, isLinkedInUrl, safetyRedirectTarget } from './linkedin/urls'
+import { canonicalJobUrl, externalLink, isLinkedInUrl, safetyRedirectTarget } from './linkedin/urls'
 import { ensureLoggedIn, LoginError, loginOptionsFrom, NO_LINKEDIN_ACCOUNT } from './login'
+import { downloadPostImages } from './post-images'
 
 type LookupOptions = { config: ScraperConfig; queue: QueueClient; logger: Logger; lock: BrowserLock }
 
@@ -26,7 +31,8 @@ const REDIRECT_TIMEOUT_MS = 30_000
 /**
  * Abre o link de cada vaga de um post com várias (fila `scraper-lookup`), como uma busca: uma por vez, no navegador
  * logado, com pausa depois de cada uma e nunca durante uma coleta. O texto da página vai para o post-processing. As
- * vagas de uma lista deixada para outra coleta (fora de `seen_posts`, ver `deferLists`) não são abertas.
+ * vagas de uma lista deixada para outra coleta (fora de `seen_posts`, ver `deferLists`) não são abertas. No mesmo
+ * navegador e no mesmo ritmo, lê de novo os posts pedidos pelo "processar de novo" do site (fila `scraper-post`).
  */
 export class JobLookupWorker {
 	private session?: BrowserSession
@@ -35,28 +41,71 @@ export class JobLookupWorker {
 	constructor(private readonly options: LookupOptions) {}
 
 	handle(lookup: JobLookup) {
-		return this.options.lock.run(async () => {
-			clearTimeout(this.idleTimer)
-			const log = this.options.logger.child({ postId: lookup.postId, link: lookup.link })
+		const log = this.options.logger.child({ postId: lookup.postId, link: lookup.link })
 
-			// Dentro da trava: a coleta que deixa a lista para depois termina antes de a vaga ser vista aqui
-			if (!(await SeenPost.exists({ postId: lookup.sourcePostId }))) {
+		return this.visit(async () => {
+			// Dentro da trava: a coleta que deixa a lista para depois termina antes de a vaga ser vista aqui. O "processar
+			// de novo" abre a vaga mesmo assim: ela já está salva
+			if (!lookup.reprocessId && !(await SeenPost.exists({ postId: lookup.sourcePostId }))) {
 				log.debug({ sourcePostId: lookup.sourcePostId }, 'Vaga de uma lista deixada para outra coleta: não aberta')
-				return
+				return false
 			}
 
 			const page = await this.readListing(lookup, log)
+
+			// Processada de novo, a vaga não troca a página pelas linhas do post: ela fica como estava
+			if (lookup.reprocessId && !listingPageText(page)) {
+				await this.reportFailure(lookup.reprocessId, lookup.postId, 'A página da vaga não abriu ou não traz a vaga')
+				return true
+			}
+
 			await this.options.queue.publish(QUEUES.postProcessing, lookupToRawPost(lookup, page))
 			log.info({ title: lookup.title, opened: page !== null }, '🔗 Vaga do post com várias enviada para o post-processing')
+			return true
+		})
+	}
 
-			// A pausa fica dentro da trava: a próxima vaga (ou coleta) só acessa o LinkedIn depois dela
-			const delay = this.options.config.SCRAPER_LOOKUP_DELAY_MS
-			await Bun.sleep(delay + Math.random() * delay)
+	/** Lê de novo o post de uma vaga avulsa ("processar de novo" do site) e o manda ao post-processing. */
+	reread(request: PostReread) {
+		const log = this.options.logger.child({ postId: request.postId, url: request.url })
+
+		return this.visit(async () => {
+			const post = await this.readPost(request, log)
+
+			if (!post) {
+				await this.reportFailure(request.reprocessId, request.postId, 'O post não abriu ou não foi encontrado no LinkedIn')
+				return true
+			}
+
+			await this.options.queue.publish(QUEUES.postProcessing, post)
+			log.info({ images: post.images.length }, '🔁 Post lido de novo e enviado para o post-processing')
+			return true
+		})
+	}
+
+	/**
+	 * Roda `visit` na vez do navegador; se ela usou o LinkedIn (`true`), pausa antes de liberar a trava: a próxima vaga
+	 * (ou coleta) só acessa o LinkedIn depois. Sem nada novo por `IDLE_CLOSE_MS`, o navegador fecha.
+	 */
+	private visit(visit: () => Promise<boolean>) {
+		return this.options.lock.run(async () => {
+			clearTimeout(this.idleTimer)
+
+			if (await visit()) {
+				const delay = this.options.config.SCRAPER_LOOKUP_DELAY_MS
+				await Bun.sleep(delay + Math.random() * delay)
+			}
 
 			this.idleTimer = setTimeout(() => {
 				this.options.lock.run(() => this.close()).catch(() => {})
 			}, IDLE_CLOSE_MS)
 		})
+	}
+
+	private async reportFailure(reprocessId: string, postId: string, reason: string) {
+		const result: JobReprocessResult = { reprocessId, postId, status: 'failed', reason, keptFields: [] }
+		await this.options.queue.publish(QUEUES.webReprocess, result)
+		this.options.logger.warn({ postId, reason }, 'Vaga não processada de novo')
 	}
 
 	/** Fecha o navegador das vagas (a coleta abre o próprio; os dois nunca ficam abertos ao mesmo tempo). */
@@ -74,18 +123,7 @@ export class JobLookupWorker {
 	 */
 	private async readListing(lookup: JobLookup, log: Logger): Promise<ListingPage | null> {
 		try {
-			// Relida a cada vaga, como na coleta: a conta salva pelo site vale sem reiniciar o serviço
-			const account = (await loadCredentials('linkedin'))?.value
-			if (!account) throw new LoginError(NO_LINKEDIN_ACCOUNT, 'no-account')
-
-			const session = await this.openSession(account.liAt)
-			await session.goto(lookup.link)
-
-			// A sessão e o login só valem no LinkedIn: um site de fora com /login não é o login do LinkedIn
-			if (isLinkedInUrl(session.page.url())) {
-				const loggedInNow = await ensureLoggedIn(session, loginOptionsFrom(this.options.config, account, log))
-				if (loggedInNow) await session.goto(lookup.link)
-			}
+			const session = await this.open(lookup.link, log)
 
 			const target = await externalTarget(session.page)
 			if (target) await session.goto(target)
@@ -98,6 +136,60 @@ export class JobLookupWorker {
 			await this.close().catch(() => {})
 			return null
 		}
+	}
+
+	/**
+	 * Abre o post e lê o texto, o autor e as imagens dele, como na coleta.
+	 * @returns `null` se o post não abrir ou não aparecer (apagado, sem acesso).
+	 */
+	private async readPost(request: PostReread, log: Logger): Promise<RawPost | null> {
+		try {
+			const session = await this.open(request.url, log)
+			await session.page.waitForSelector(SELECTORS.postText, { timeout: JOB_PAGE_TIMEOUT_MS })
+
+			// A página do post pode mostrar outros (sugestões) depois dele
+			const posts = await collectNewPosts(session.page)
+			const scraped = posts.find(post => resolvePostUrn(post.urnCandidates) === request.postId) ?? posts[0]
+			if (!scraped) return null
+
+			return {
+				postId: request.postId,
+				text: cleanPostText(scraped.text),
+				url: request.url,
+				author: scraped.author,
+				authorIsCompany: scraped.authorIsCompany,
+				postedAt: request.postedAt,
+				scrapedAt: new Date().toISOString(),
+				sourcePostId: null,
+				jobLink: null,
+				attachedLink: externalLink(scraped.cardLinks),
+				images: await downloadPostImages(postImageUrls(scraped.images), log),
+				reprocessId: request.reprocessId,
+			}
+		} catch (error) {
+			log.warn({ err: error }, 'Não foi possível ler o post de novo')
+
+			await this.close().catch(() => {})
+			return null
+		}
+	}
+
+	/** Abre o link no navegador logado; se o LinkedIn pedir o login, entra e abre de novo. */
+	private async open(url: string, log: Logger) {
+		// Relida a cada vaga, como na coleta: a conta salva pelo site vale sem reiniciar o serviço
+		const account = (await loadCredentials('linkedin'))?.value
+		if (!account) throw new LoginError(NO_LINKEDIN_ACCOUNT, 'no-account')
+
+		const session = await this.openSession(account.liAt)
+		await session.goto(url)
+
+		// A sessão e o login só valem no LinkedIn: um site de fora com /login não é o login do LinkedIn
+		if (isLinkedInUrl(session.page.url())) {
+			const loggedInNow = await ensureLoggedIn(session, loginOptionsFrom(this.options.config, account, log))
+			if (loggedInNow) await session.goto(url)
+		}
+
+		return session
 	}
 
 	private async openSession(liAt: string | undefined) {

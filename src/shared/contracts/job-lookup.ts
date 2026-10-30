@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import { ReprocessIdSchema } from './job-reprocess'
+
 /**
  * Mensagem da fila `scraper-lookup`: uma vaga de um post que lista várias. O scraper abre o link no navegador
  * logado (uma por vez, com pausa, como uma busca) e manda o texto da página para o post-processing.
@@ -18,6 +20,8 @@ export const JobLookupSchema = z.object({
 	authorIsCompany: z.boolean().default(false),
 	postedAt: z.iso.datetime().nullable(),
 	requestedAt: z.iso.datetime(),
+	/** Pedido do "processar de novo" (ver `ReprocessIdSchema`): a página que não abrir é uma falha, sem o texto do post. */
+	reprocessId: ReprocessIdSchema,
 })
 
 export type JobLookup = z.infer<typeof JobLookupSchema>

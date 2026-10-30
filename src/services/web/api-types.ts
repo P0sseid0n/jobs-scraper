@@ -11,6 +11,7 @@ import type {
 	CvFormDraft,
 	DatePostedFilter,
 	JobAppliedChange,
+	JobReprocessResult,
 	MailStatus,
 	MessageSettings,
 	PostProcessingSettings,
@@ -249,6 +250,12 @@ export type RunsPage = { runs: WebScraperRun[]; total: number }
 /** `POST /api/scraper/run`: o id do pedido, que volta na resposta do scraper (evento `scraperRun` `accepted` ou `ignored`). */
 export type WebRunRequest = { requestId: string }
 
+/** `POST /api/jobs/:postId/reprocess`: o id do pedido, que volta no evento `reprocess` do stream. */
+export type WebReprocessRequest = { reprocessId: string }
+
+/** Como terminou o "processar de novo", com a vaga atualizada (`null` se ela não mudou). */
+export type WebReprocessResult = JobReprocessResult & { job: WebJob | null }
+
 export type WebSettings = {
 	scraper: ScraperSettings
 	'post-processing': PostProcessingSettings
@@ -334,4 +341,6 @@ export type StreamEvents = {
 	mail: WebMail
 	/** Coleta que começou ou terminou: o site consulta o status (e o histórico) de novo, sem esperar o próximo ciclo. */
 	scraperRun: ScraperRunEvent
+	/** "Processar de novo" terminado: a vaga atualizada vai para a lista e para o detalhe aberto. */
+	reprocess: WebReprocessResult
 }

@@ -17,6 +17,7 @@ const post: RawPost = {
 	jobLink: null,
 	attachedLink: null,
 	images: [],
+	reprocessId: null,
 }
 
 const checksFor = (answer: Record<string, unknown>) =>

@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import { ReprocessIdSchema } from './job-reprocess'
+
 /**
  * Limites das imagens de um post: a extração fica mais lenta a cada imagem, e elas vão em base64 dentro da mensagem
  * da fila e ficam guardadas no MongoDB (as URLs do LinkedIn expiram).
@@ -39,5 +41,6 @@ export const RawPostSchema = z.object({
 	attachedLink: z.url().nullable().default(null),
 	/** Imagens do conteúdo do post (artes com requisitos, contato...); o padrão aceita mensagens de antes do campo. */
 	images: z.array(PostImageSchema).max(POST_IMAGE_LIMITS.maxImages).default([]),
+	reprocessId: ReprocessIdSchema,
 })
 export type RawPost = z.infer<typeof RawPostSchema>

@@ -23,6 +23,8 @@ export const QUEUES = {
 	scraperLoginTest: 'scraper-login-test',
 	/** Vagas de posts com várias vagas, para o scraper abrir o link de cada uma (`JobLookup`). */
 	scraperLookup: 'scraper-lookup',
+	/** Posts para o scraper ler de novo, pedidos pelo "processar de novo" do site (`PostReread`). */
+	scraperPost: 'scraper-post',
 	/** Vagas para o site repassar ao navegador em tempo real (ligada à exchange `job-published`). */
 	web: 'web',
 	/** Currículos prontos pedidos pelo site (é o `replyTo.queue` dos pedidos dele). */
@@ -35,6 +37,8 @@ export const QUEUES = {
 	webScraperRun: 'web-scraper-run',
 	/** Candidaturas marcadas fora do site (o botão do Discord), para o site avisar os navegadores abertos. */
 	webApplied: 'web-applied',
+	/** Resultados do "processar de novo" de uma vaga, do scraper e do post-processing (`JobReprocessResult`). */
+	webReprocess: 'web-reprocess',
 	/** Candidaturas para o mailer enviar por e-mail (`MailRequest`). */
 	mailer: 'mailer',
 	/** Resultados dos envios pedidos pelo site (é o `replyTo.queue` dos pedidos dele). */

@@ -33,6 +33,10 @@ O post-processing divide os posts de agregadores ("📄 Cargo" + "🔗 Candidate
 
 Quando a coleta completa o mínimo de vagas, as listas dela não são abertas: saem de `seen_posts` (e ficam em `deferredLists` no histórico), para aparecerem de novo numa próxima busca, e os pedidos de vaga delas já na fila são ignorados.
 
+## Processar de novo
+
+O "processar de novo" do site (ver [web](../web/README.md)) manda a vaga de volta pelo caminho em que ela entrou. A vaga de uma lista volta à fila `scraper-lookup`, e a página dela é aberta de novo mesmo com a lista fora de `seen_posts`; se a página não abrir ou não trouxer a vaga, o site recebe a falha pela fila `web-reprocess`, sem trocar a página pelas linhas do post. A vaga avulsa vai para a fila `scraper-post`: o scraper abre o post no LinkedIn e lê o texto, o autor, o cartão anexado e as imagens, como na coleta. Os dois usam o mesmo navegador, a mesma pausa e a mesma trava das vagas de lista, então nunca rodam durante uma coleta.
+
 ## Login e verificação
 
 A sessão fica salva em `data/scraper/linkedin-cookies.json` (no Docker, no volume `scraper_data`), então o login só é refeito quando ela expira. O site também pede um teste do login (onboarding e Configurações › Contas) pela fila `scraper-login-test`: o scraper abre o feed e faz o login se precisar. Com `HEADLESS=auto` (padrão), o navegador roda sem janela. Se o LinkedIn pedir uma verificação, ela abre numa modal do site, em qualquer tela (cada passo do login fica na coleção `linkedin_login`, com o prazo da espera em `expiresAt`):
@@ -59,5 +63,5 @@ A sessão fica salva em `data/scraper/linkedin-cookies.json` (no Docker, no volu
 | `login.ts`, `verification.ts` | login e identificação da verificação pedida |
 | `feed-reader.ts` | leitura dos posts e paginação |
 | `linkedin/post-images.ts`, `post-images.ts` | quais imagens do card são do post, em que tamanho, e o download delas |
-| `job-lookup.ts` | abre os links da fila `scraper-lookup` |
+| `job-lookup.ts` | abre os links da fila `scraper-lookup` e lê de novo os posts da `scraper-post` |
 | `linkedin/` | URLs, seletores, URN do post, cookies e limpeza de texto |

@@ -86,6 +86,7 @@ export function caseToRawPost(item: ExtractionCase, images: PostImage[] = []): R
 		jobLink: item.post.sourcePostId ? outsideText : null,
 		attachedLink: item.post.sourcePostId ? null : outsideText,
 		images,
+		reprocessId: null,
 	}
 }
 

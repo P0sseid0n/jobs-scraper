@@ -49,6 +49,19 @@ export async function saveJobImages(postId: string, images: PostImage[]) {
 	)
 }
 
+/** Troca as imagens guardadas da vaga pelas do post lido de novo ("processar de novo" do site). */
+export async function replaceJobImages(postId: string, images: PostImage[]) {
+	await JobImage.deleteMany({ postId })
+	await saveJobImages(postId, images)
+}
+
+/** As imagens guardadas da vaga, na ordem do post, como vieram na coleta (base64). */
+export async function loadJobImages(postId: string): Promise<PostImage[]> {
+	const docs = await JobImage.find({ postId }, { mimeType: 1, data: 1 }).sort({ index: 1 })
+
+	return docs.map(doc => ({ mimeType: doc.mimeType, data: doc.data.toString('base64') }))
+}
+
 /** Uma imagem guardada da vaga, ou `null` se não houver. */
 export function findJobImage(postId: string, index: number) {
 	// Sem `.lean()`: com ele o `data` vem como `Binary` do BSON, não como Buffer

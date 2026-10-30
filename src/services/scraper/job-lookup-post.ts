@@ -26,8 +26,7 @@ const GROUP_INVITE_HOST = /(^|\.)(whatsapp\.com|wa\.me|discord\.gg|discord\.com|
  * (ou é só um redirecionamento, uma verificação ou o convite de um grupo), usa só as linhas do post sobre a vaga.
  */
 export function lookupToRawPost(lookup: JobLookup, page: ListingPage | null): RawPost {
-	const pageText = page ? cleanPostText(page.text).slice(0, MAX_PAGE_TEXT) : ''
-	const body = page && !isGroupInvite(page.url) && isJobPageText(pageText) ? pageText : lookup.text
+	const body = listingPageText(page) ?? lookup.text
 
 	return {
 		postId: lookup.postId,
@@ -43,7 +42,19 @@ export function lookupToRawPost(lookup: JobLookup, page: ListingPage | null): Ra
 		attachedLink: null,
 		// A página da vaga já traz a descrição em texto
 		images: [],
+		reprocessId: lookup.reprocessId,
 	}
+}
+
+/**
+ * O texto da página que serve como a vaga, ou `null` se ela não abriu ou é só um redirecionamento, uma verificação ou
+ * o convite de um grupo.
+ */
+export function listingPageText(page: ListingPage | null) {
+	if (!page || isGroupInvite(page.url)) return null
+
+	const text = cleanPostText(page.text).slice(0, MAX_PAGE_TEXT)
+	return isJobPageText(text) ? text : null
 }
 
 function isGroupInvite(url: string) {

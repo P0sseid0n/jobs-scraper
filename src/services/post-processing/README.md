@@ -16,6 +16,8 @@ Transforma cada post da fila `post-processing` numa vaga estruturada, com um mod
 
 O limite dos checks, os idiomas, as palavras-chave, as empresas bloqueadas e o agrupamento das repostagens ficam nas [configurações](../../shared/README.md#configurações-em-tempo-de-execução) e são editados pelo site. `REVIEW_CHECKS_PERCENT`, `JOB_LANGUAGES`, `JOB_REQUIRED_KEYWORDS` e `JOB_EXCLUDED_KEYWORDS` só preenchem esses valores quando eles ainda não existem no banco.
 
+**Processar de novo:** o post com `reprocessId` (o "processar de novo" do site) não é pulado por já estar em `seen_posts` nem dividido em várias vagas, e passa pelos mesmos filtros e pela extração. A vaga salva é atualizada no lugar (`updateJob`), sem anúncio: ficam a vista, a candidatura, o agrupamento e os campos corrigidos pelo site, com a extração nova em `aiExtraction`. As imagens só são trocadas quando o post as trouxe. Se a extração nova descartaria a vaga (idioma, não é vaga, palavras-chave, empresa bloqueada, sem cargo), ela fica como estava. O resultado (`updated`, `discarded` com o motivo) vai para a fila `web-reprocess`.
+
 ## Arquivos
 
 | Arquivo | O que faz |

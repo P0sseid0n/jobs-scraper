@@ -535,6 +535,7 @@ function toRawPost(post: ScrapedPost): RawPost | null {
 		jobLink: null,
 		attachedLink: externalLink(post.cardLinks),
 		images: [],
+		reprocessId: null,
 	}
 }
 

@@ -1,5 +1,14 @@
-import { needsReview, ProcessedJobSchema, type JobPublished, type PostImage, type ProcessedJob } from '@shared/contracts'
-import { Job, saveJobImages, type JobExtractionSource, type JobRepost } from '@shared/database'
+import {
+	CORRECTABLE_FIELDS,
+	jobFields,
+	needsReview,
+	ProcessedJobSchema,
+	type CorrectableField,
+	type JobPublished,
+	type PostImage,
+	type ProcessedJob,
+} from '@shared/contracts'
+import { Job, replaceJobImages, saveJobImages, type JobExtractionSource, type JobRepost } from '@shared/database'
 import type { Logger } from '@shared/logging'
 import { EXCHANGES, type QueueClient } from '@shared/messaging'
 import { readSettings } from '@shared/settings'
@@ -53,6 +62,40 @@ export async function saveJob(data: ProcessedJob, { queue, logger }: Deps, sourc
 	await announce(data, queue)
 	log.info('Vaga salva no MongoDB e publicada para os canais')
 	return true
+}
+
+/**
+ * Atualiza a vaga salva com a extração nova ("processar de novo" do site). Fica o que não é da extração: vista,
+ * candidatura, agrupamento, anúncio (a vaga não é anunciada de novo) e os campos corrigidos pelo site, que continuam
+ * com o valor da pessoa; a extração nova vira a da IA (`aiExtraction`) para as próximas correções. As imagens só são
+ * trocadas quando o post as trouxe.
+ * @returns Os campos corrigidos mantidos, `missing` se a nova extração não tem os campos obrigatórios ou `null` se a
+ * vaga não existe mais.
+ */
+export async function updateJob(data: ProcessedJob, source: JobExtractionSource, images: PostImage[]) {
+	const saved = await Job.findOne({ postId: data.postId }).lean()
+	if (!saved) return null
+	if (missingRequiredFields(data).length > 0) return 'missing'
+
+	const set: Record<string, unknown> = { ...data, ...source }
+	let keptFields: CorrectableField[] = []
+
+	if (saved.aiExtraction) {
+		const current = jobFields(saved)
+		const aiExtraction = jobFields(saved.aiExtraction)
+		keptFields = CORRECTABLE_FIELDS.filter(field => JSON.stringify(current[field]) !== JSON.stringify(aiExtraction[field]))
+
+		for (const field of keptFields) set[field] = saved[field]
+		set.aiExtraction = jobFields(data)
+		set.extractionChecks = data.extractionChecks.filter(check => !(keptFields as string[]).includes(check))
+		if (keptFields.includes('company') && saved.company) set.companyConfidential = false
+	}
+
+	if (images.length > 0) await replaceJobImages(data.postId, images)
+	else Object.assign(set, { imageCount: saved.imageCount ?? 0, imageText: saved.imageText ?? null })
+
+	await Job.updateOne({ postId: data.postId }, { $set: set })
+	return { keptFields }
 }
 
 /**

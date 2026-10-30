@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 
 import type { JobLookup } from '@shared/contracts'
 
-import { lookupToRawPost } from './job-lookup-post'
+import { listingPageText, lookupToRawPost } from './job-lookup-post'
 
 const lookup: JobLookup = {
 	postId: 'hash-do-link',
@@ -15,6 +15,7 @@ const lookup: JobLookup = {
 	authorIsCompany: true,
 	postedAt: null,
 	requestedAt: '2026-10-11T12:00:00.000Z',
+	reprocessId: null,
 }
 
 const DESCRIPTION = 'Buscamos uma pessoa para construir interfaces com Vue 3, Pinia e TypeScript. '.repeat(3).trim()
@@ -59,6 +60,16 @@ describe('lookupToRawPost', () => {
 
 		for (const page of [null, { url: lookup.link, text: '  \n ' }, captcha, redirect, groupInvite]) {
 			expect(lookupToRawPost(lookup, page).text).toBe(`Vaga: ${lookup.title}\nLink: ${lookup.link}\n\n${lookup.text}`)
+			// O "processar de novo" vê que a página não serviu, para não trocá-la pelas linhas do post
+			expect(listingPageText(page)).toBeNull()
 		}
+	})
+
+	test('leva o pedido do "processar de novo" ao post-processing', () => {
+		const page = { url: 'https://empresa.com/vagas/1', text: DESCRIPTION }
+
+		expect(listingPageText(page)).toBe(DESCRIPTION)
+		expect(lookupToRawPost({ ...lookup, reprocessId: 'pedido-1' }, page).reprocessId).toBe('pedido-1')
+		expect(lookupToRawPost(lookup, page).reprocessId).toBeNull()
 	})
 })

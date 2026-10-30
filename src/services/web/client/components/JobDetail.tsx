@@ -1,5 +1,5 @@
 import { useNavigate } from '@tanstack/react-router'
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 import type { WebJob } from '../../api-types'
 import { api, RequestError } from '../api'
@@ -19,6 +19,8 @@ import { jobParams } from '../router'
 import { appliedSuggestion, setApplied, useAppliedAt, useAppliedSimilar } from '../stores/applied'
 import { useCvFor } from '../stores/cv'
 import { removeJob, replaceJob } from '../stores/jobs'
+import { onLive } from '../stores/live'
+import { reprocessJob, useReprocessing } from '../stores/reprocess'
 import { notify } from '../stores/toast'
 import { BlockCompanyButton, BlockCompanyDialog, useCompanyBlock } from './BlockCompanyButton'
 import { JobContact, JobMailStatus } from './ContactDialog'
@@ -60,6 +62,17 @@ export function JobDetail({ job }: { job: WebJob }) {
 	const [corrected, setCorrected] = useState<WebJob | null>(null)
 	const current = corrected?.postId === job.postId ? corrected : job
 
+	// Processada de novo (nesta aba ou em outra), a vaga aberta mostra a extração nova
+	useEffect(() => {
+		const stop = onLive('reprocess', result => {
+			if (result.job?.postId === job.postId) setCorrected(result.job)
+		})
+
+		return () => {
+			stop()
+		}
+	}, [job.postId])
+
 	// Outra vaga começa do zero: post recolhido, sem o JSON da anterior e com a mensagem da IA
 	return <JobDetailContent key={job.postId} job={current} onCorrected={setCorrected} />
 }
@@ -77,6 +90,7 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 	const [loadingRaw, setLoadingRaw] = useState(false)
 
 	const cv = useCvFor(job.postId)
+	const reprocessing = useReprocessing(job.postId)
 	const appliedAt = useAppliedAt(job)
 	const appliedSimilar = useAppliedSimilar(job.postId)
 	// Copiar a mensagem ou abrir a candidatura não quer dizer que enviou: o aviso só lembra de marcar
@@ -303,6 +317,10 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 					</Notice>
 				)}
 				{job.language && <span className="font-mono text-muted text-xs">idioma: {languageLabel(job.language)}</span>}
+				{/* A página ou o post lidos pela metade (o site mudou, o scraper falhou): lê e extrai de novo, sem anunciar */}
+				<TextLink className="text-xs font-mono" disabled={reprocessing} onClick={() => void reprocessJob(job)}>
+					{reprocessing ? 'processando de novo…' : 'processar de novo'}
+				</TextLink>
 				{DEVELOPMENT && (
 					<TextLink className="text-xs font-mono" aria-expanded={rawJson !== null} disabled={loadingRaw} onClick={toggleRawJson}>
 						{loadingRaw ? 'carregando json…' : rawJson !== null ? 'esconder json da vaga' : 'ver json da vaga (debug)'}
