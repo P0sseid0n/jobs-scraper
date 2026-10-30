@@ -173,6 +173,13 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 		pdfInput.current?.click()
 	}
 
+	/** Volta o formulário ao da versão (fechar a modal guarda o rascunho, inclusive o lido do PDF). */
+	function discardForm() {
+		setForm(savedForm)
+		setImportedFrom(null)
+		setServerProblems({})
+	}
+
 	function loadPdf(event: ChangeEvent<HTMLInputElement>) {
 		const file = event.target.files?.[0]
 		event.target.value = ''
@@ -474,10 +481,15 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 					</p>
 				)}
 				{formDirty && (
-					<p className="font-mono text-xs text-muted">
-						formulário com alterações não validadas: {form.contact.name.trim() || 'sem nome'} · {form.sections.length}{' '}
-						{form.sections.length === 1 ? 'seção' : 'seções'}
-					</p>
+					<div className="flex flex-wrap items-center justify-between gap-2">
+						<p className="font-mono text-xs text-muted">
+							formulário com alterações não validadas: {form.contact.name.trim() || 'sem nome'} · {form.sections.length}{' '}
+							{form.sections.length === 1 ? 'seção' : 'seções'}
+						</p>
+						<Button variant="ghost" size="xs" onClick={discardForm}>
+							descartar
+						</Button>
+					</div>
 				)}
 
 				<div className="flex flex-col gap-1.5">
@@ -616,7 +628,13 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 			{blocker.status === 'blocked' && !cvImport.importing && (
 				<ConfirmDialog
 					title="Sair sem validar?"
-					description="O texto do editor ainda não foi enviado e vai se perder."
+					description={
+						dirty && formDirty
+							? 'O texto do editor e o formulário têm alterações que ainda não foram validadas e vão se perder.'
+							: formDirty
+								? 'O formulário tem alterações que ainda não foram validadas e vão se perder.'
+								: 'O texto do editor ainda não foi enviado e vai se perder.'
+					}
 					confirmLabel="sair sem validar"
 					cancelLabel="continuar editando"
 					onConfirm={blocker.proceed}
