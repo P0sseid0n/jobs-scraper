@@ -1,7 +1,7 @@
 /** Botão com texto; com `href`, vira um link com a mesma cara. */
 export interface ButtonProps {
-	/** `lime`: ação principal da tela (uma por área). `ghost`: borda, sem preenchimento. */
-	variant: 'lime' | 'ghost'
+	/** `lime`: ação principal da tela (uma por área). `ghost`: borda, sem preenchimento. `danger`: a ação que perde algo. */
+	variant: 'lime' | 'ghost' | 'danger'
 	size?: 'xs' | 'sm' | 'md' | 'lg'
 	children?: React.ReactNode
 	/** Com `href`, vira um <a> com a mesma cara. */

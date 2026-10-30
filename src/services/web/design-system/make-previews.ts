@@ -10,9 +10,9 @@ const PREVIEWS: Record<string, Preview> = {
 	Button: {
 		group: 'Actions',
 		height: 120,
-		subtitle: 'lime / ghost, 4 tamanhos, desabilitado, link externo',
+		subtitle: 'lime / ghost / danger, 4 tamanhos, desabilitado, link externo',
 		body: `col(
-	row(h(U.Button, { variant: 'lime' }, 'gerar currículo'), h(U.Button, { variant: 'ghost' }, 'limpar filtros'), h(U.Button, { variant: 'ghost', href: 'https://www.linkedin.com', external: true }, 'ver no LinkedIn'), h(U.Button, { variant: 'lime', disabled: true }, 'salvando…')),
+	row(h(U.Button, { variant: 'lime' }, 'gerar currículo'), h(U.Button, { variant: 'ghost' }, 'limpar filtros'), h(U.Button, { variant: 'danger' }, 'sair sem salvar'), h(U.Button, { variant: 'ghost', href: 'https://www.linkedin.com', external: true }, 'ver no LinkedIn'), h(U.Button, { variant: 'lime', disabled: true }, 'salvando…')),
 	row(h(U.Button, { variant: 'lime', size: 'xs' }, 'xs'), h(U.Button, { variant: 'lime', size: 'sm' }, 'sm'), h(U.Button, { variant: 'lime', size: 'md' }, 'md'), h(U.Button, { variant: 'lime', size: 'lg' }, 'lg'))
 )`,
 	},

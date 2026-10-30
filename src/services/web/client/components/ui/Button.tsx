@@ -19,7 +19,8 @@ const button = tv({
 	variants: {
 		/**
 		 * `lime`: ação principal da tela; desabilitado, fica com a cara do `ghost` desabilitado, para não chamar para uma ação
-		 * que não há. `ghost`: borda, sem preenchimento (numa superfície `inverted`, já sai clara).
+		 * que não há. `ghost`: borda, sem preenchimento (numa superfície `inverted`, já sai clara). `danger`: a ação que perde
+		 * algo (o confirmar do `ConfirmDialog`), no tom do aviso de erro, para não parecer o caminho sugerido.
 		 */
 		variant: {
 			lime: [
@@ -27,6 +28,7 @@ const button = tv({
 				'disabled:border-line disabled:bg-transparent disabled:text-muted',
 			],
 			ghost: ['border-line text-ink', OUTLINED],
+			danger: 'bg-danger-bg text-danger font-semibold not-disabled:hover:border-danger',
 		},
 		// Na tela de toque, os pequenos chegam aos 44px de altura (o `overflow-clip` cortaria uma área invisível em volta)
 		size: {

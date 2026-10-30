@@ -2,7 +2,7 @@
 export const GUIDES: Record<string, string> = {
 	Button: `Botão com texto; com \`href\`, vira um link com a mesma cara.
 
-- \`variant\` é obrigatório: \`lime\` para a ação principal da área (uma só: "gerar currículo", "salvar"), \`ghost\` para as outras ("limpar filtros", "cancelar").
+- \`variant\` é obrigatório: \`lime\` para a ação principal da área (uma só: "gerar currículo", "salvar"), \`ghost\` para as outras ("limpar filtros", "cancelar"), \`danger\` para a que perde algo ("sair sem salvar", no \`ConfirmDialog\`).
 - \`size\`: \`md\` é o padrão; \`sm\` e \`xs\` em barras e cards; \`lg\` em chamadas grandes.
 - Com \`href\` e \`external\`, abre em outra aba e mostra o ícone de link externo antes do texto.
 - O texto vai em minúsculas. Para só um ícone, use \`IconButton\`.`,
@@ -158,6 +158,7 @@ export const GUIDES: Record<string, string> = {
 	ConfirmDialog: `Pergunta de sim ou não numa modal; fechar (Esc, clique fora ou o botão de cancelar) conta como cancelar.
 
 - Abre ao montar. \`title\` é a pergunta ("Sair sem salvar?"), \`description\` a consequência; \`confirmLabel\` e \`cancelLabel\` dizem o que cada botão faz ("sair sem salvar" / "continuar editando"), nunca "sim" e "não".
+- O confirmar sai em \`danger\` (toda confirmação é de algo que se perde ou se troca) e o foco começa no cancelar, o caminho seguro: Enter e Esc não perdem nada.
 - \`onConfirm\` e \`onCancel\` são obrigatórios.`,
 	Tutorial: `O passo a passo para configurar algo fora do site (as contas do LinkedIn, Discord, GitHub e e-mail): um passo por vez, na horizontal, com a animação do passo ao lado do texto e o link para a página certa de cada serviço.
 

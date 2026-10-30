@@ -51,7 +51,7 @@ export function ConfirmDialog({
 					<Button variant="ghost" onClick={() => ref.current?.close()}>
 						{cancelLabel}
 					</Button>
-					<Button variant="lime" onClick={onConfirm}>
+					<Button variant="danger" onClick={onConfirm}>
 						{confirmLabel}
 					</Button>
 				</div>
