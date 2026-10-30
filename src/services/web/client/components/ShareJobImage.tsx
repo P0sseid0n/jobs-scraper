@@ -1,5 +1,5 @@
 import { getFontEmbedCSS, toBlob } from 'html-to-image'
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 import { jobShareCard, jobShareFileName, type ShareJob } from '@shared/templates'
@@ -108,6 +108,20 @@ export function ShareJobImage({ job, text, onClose }: { job: ShareJob; text: str
 		[image],
 	)
 
+	// A prévia fica com a altura toda da coluna de opções ao lado (a largura sai da proporção do formato)
+	const options = useRef<HTMLDivElement>(null)
+	const [previewHeight, setPreviewHeight] = useState<number>()
+
+	useLayoutEffect(() => {
+		const element = options.current
+		if (!element) return
+		const measure = () => setPreviewHeight(element.offsetHeight)
+		const observer = new ResizeObserver(measure)
+		observer.observe(element)
+		measure()
+		return () => observer.disconnect()
+	}, [])
+
 	const ready = image !== null && !generating
 
 	function download() {
@@ -142,20 +156,24 @@ export function ShareJobImage({ job, text, onClose }: { job: ShareJob; text: str
 	return (
 		<>
 			<div className="flex min-h-0 grow flex-col overflow-y-auto px-5 py-4">
-				<div className="flex flex-wrap items-start gap-5">
-					<div className="w-52 shrink-0 max-sm:w-full" aria-busy={generating}>
+				{/* No celular, a prévia fica em cima, com a largura toda, e as opções embaixo */}
+				<div className="flex items-start gap-5 max-sm:flex-col">
+					<div className="shrink-0 max-sm:h-auto! max-sm:w-full" style={{ height: previewHeight }} aria-busy={generating}>
 						{image ? (
 							<img
 								src={image.url}
 								alt={`Imagem da vaga ${card.title}`}
-								className={cx('block w-full rounded-sm border border-line transition-opacity', generating && 'opacity-50')}
+								className={cx(
+									'block h-full w-auto rounded-sm border border-line transition-opacity max-sm:h-auto max-sm:w-full',
+									generating && 'opacity-50',
+								)}
 							/>
 						) : (
-							<Skeleton className={cx('w-full rounded-sm bg-surface-2', PREVIEW_ASPECT[format])} />
+							<Skeleton className={cx('h-full rounded-sm bg-surface-2 max-sm:h-auto max-sm:w-full', PREVIEW_ASPECT[format])} />
 						)}
 					</div>
 
-					<div className="flex min-w-50 grow basis-0 flex-col gap-4">
+					<div ref={options} className="flex min-w-0 grow flex-col gap-4 max-sm:w-full">
 						<div className={OPTION}>
 							<span id={ids.theme} className={LABEL}>
 								tema

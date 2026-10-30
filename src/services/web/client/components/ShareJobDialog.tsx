@@ -86,8 +86,9 @@ export function ShareJobDialog({ job, onClose }: { job: ShareJob; onClose: () =>
 		// biome-ignore lint/a11y/useKeyWithClickEvents: pelo teclado, o Esc já fecha o <dialog>
 		<dialog
 			ref={ref}
-			// Aberta, vira coluna: o meio rola e o topo e o rodapé ficam à vista
-			className={cx(DIALOG, 'w-140 open:flex open:flex-col')}
+			// Aberta, vira coluna: o meio rola e o topo e o rodapé ficam à vista. Na imagem, mais larga: a prévia, com a altura
+			// das opções, fica ao lado delas
+			className={cx(DIALOG, format === 'image' ? 'w-180' : 'w-140', 'open:flex open:flex-col')}
 			aria-labelledby={titleId}
 			onClose={onClose}
 			// Clique no fundo escurecido (fora do conteúdo) fecha
