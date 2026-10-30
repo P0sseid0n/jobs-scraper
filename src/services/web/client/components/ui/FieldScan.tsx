@@ -1,7 +1,8 @@
 import { cx } from '../../lib/cx'
 
 /**
- * O padrão de carregamento dos campos: uma onda larga e desfocada, num tom perto do fundo e um pouco inclinada (o lado
+ * O padrão de carregamento dos campos e de tudo o que está sendo gerado na hora (a IA escrevendo); o `Skeleton` fica para
+ * os dados que vêm do servidor, e o que já aparece pronto não ganha onda por cima. Uma onda larga e desfocada, num tom perto do fundo e um pouco inclinada (o lado
  * direito mais alto), atravessa o campo de cima para baixo e de baixo para cima, como um scanner, enquanto o conteúdo dele não chega, com o
  * que está acontecendo (`label`) escrito no centro. Vai por cima do campo (`absolute inset-0` no `className`, dentro de
  * um contêiner `relative`) ou no lugar dele (com a altura no `className`). O campo esperando fica só de leitura

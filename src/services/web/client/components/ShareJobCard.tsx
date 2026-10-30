@@ -75,8 +75,8 @@ type ShareJobCardProps = {
 }
 
 /**
- * A imagem da vaga, no tamanho do PNG: só desenha os dados de `jobShareCard`, nas cores do tema e na fonte do site. Fica
- * fora da tela; a modal mostra o PNG gerado a partir dele.
+ * A imagem da vaga, no tamanho do PNG: só desenha os dados de `jobShareCard`, nas cores do tema e na fonte do site. A
+ * modal o mostra encolhido, como prévia, e gera o PNG dele.
  */
 export function ShareJobCard({ card, theme, format, titleSize: size, ref }: ShareJobCardProps) {
 	const { width, height } = SHARE_CARD_SIZES[format]

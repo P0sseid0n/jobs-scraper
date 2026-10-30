@@ -69,6 +69,11 @@
 	max-height: 50dvh;
 }
 
+/* Cabe na tela inteira numa modal, com a margem em volta (a imagem da vaga ampliada) */
+@utility max-h-dialog {
+	max-height: calc(100dvh - --spacing(16));
+}
+
 /* Painel fixo abaixo do cabeçalho (`sticky top-19`): cabe na tela, com a margem de baixo */
 @utility max-h-below-topbar {
 	max-height: calc(100dvh - --spacing(24));

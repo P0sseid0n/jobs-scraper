@@ -134,11 +134,11 @@ export const GUIDES: Record<string, string> = {
 - \`onCopy\` mostra o botão "copiar"; no site ele chama o \`copyText\`, que avisa com um toast.
 - \`scroll\` para textos longos (um JSON): limita a altura e rola dentro do bloco.
 - Para detalhes de depuração, deixe o bloco recolhido atrás de um link ou de um \`<details>\`.`,
-	FieldScan: `O padrão de carregamento dos campos: uma onda larga e desfocada, no \`lime-soft\` (perto do tom do fundo) e um pouco inclinada (o lado direito mais alto), atravessa o campo de cima para baixo e de baixo para cima, como um scanner, enquanto o conteúdo dele não chega (no lugar de spinner ou de "carregando…" dentro do campo).
+	FieldScan: `O padrão de carregamento dos campos e de tudo o que está sendo gerado na hora (a IA escrevendo): uma onda larga e desfocada, no \`lime-soft\` (perto do tom do fundo) e um pouco inclinada (o lado direito mais alto), atravessa o campo de cima para baixo e de baixo para cima, como um scanner, enquanto o conteúdo dele não chega (no lugar de spinner ou de "carregando…" dentro do campo).
 
 - Por cima do campo: deixe o campo no lugar, vazio e só de leitura (\`readOnly\` e \`aria-busy\`, não \`disabled\`: o visual de desligado é para o que não se pode usar) e ponha o \`FieldScan\` com \`absolute inset-0\` num contêiner \`relative\`.
 - No lugar de um texto só de leitura: dê a altura e o fundo (\`min-h-40 rounded-sm bg-surface\`).
-- \`label\` diz o que está acontecendo, escrito no centro do campo ("a IA está reescrevendo a mensagem…"). Para uma área inteira (uma lista, um card), use o \`Skeleton\`.`,
+- \`label\` diz o que está acontecendo, escrito no centro do campo ("a IA está reescrevendo a mensagem…"). Para uma área inteira que espera dados do servidor (uma lista, um card), use o \`Skeleton\`; o que está sendo gerado (texto da IA, imagem) usa o \`FieldScan\`, mesmo numa área grande.`,
 	Skeleton: `Bloco pulsando no lugar do conteúdo que ainda está carregando (o tamanho e a cor vêm do \`className\`).
 
 - Dê a cor (\`bg-surface-2\`) e desenhe a forma do conteúdo que vem: linhas com \`h-4\`/\`h-5\` e larguras em fração (\`w-3/4\`), badges com \`rounded-pill\`.`,
