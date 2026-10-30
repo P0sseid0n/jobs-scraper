@@ -120,4 +120,11 @@ describe('contratos das filas', () => {
 		expect(ScraperRunEventSchema.safeParse({ ...run, phase: 'started', status: 'running', trigger: 'discord' }).success).toBe(false)
 		expect(ScraperRunEventSchema.safeParse({ ...run, runId: '', phase: 'started', status: 'running' }).success).toBe(false)
 	})
+
+	test('ScraperRunEvent: a resposta ao "coletar agora" leva o id do pedido', () => {
+		expect(ScraperRunEventSchema.safeParse({ requestId: 'q1', phase: 'accepted' }).success).toBe(true)
+		expect(ScraperRunEventSchema.safeParse({ requestId: 'q1', phase: 'ignored' }).success).toBe(true)
+		expect(ScraperRunEventSchema.safeParse({ requestId: '', phase: 'accepted' }).success).toBe(false)
+		expect(ScraperRunEventSchema.safeParse({ phase: 'accepted' }).success).toBe(false)
+	})
 })

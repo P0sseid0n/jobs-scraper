@@ -17,7 +17,7 @@ const queue = new QueueClient({
 	logger,
 })
 
-const command: ScraperCommand = { command: 'run-now', requestedBy: 'cli', requestedAt: new Date().toISOString() }
+const command: ScraperCommand = { command: 'run-now', requestedBy: 'cli', requestedAt: new Date().toISOString(), requestId: null }
 
 await queue.connect()
 await queue.publish(QUEUES.scraper, command)

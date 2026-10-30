@@ -93,6 +93,14 @@ export class QueueClient {
 		this.exchanges.add(exchange)
 	}
 
+	/** Quantos consumidores a fila tem agora (0: o serviço que a atende não está rodando). */
+	async consumerCount(queue: string) {
+		await this.assertQueue(queue)
+		const channel = await this.getChannel()
+
+		return (await channel.checkQueue(queue)).consumerCount
+	}
+
 	/** Publica uma mensagem persistente numa fila e espera a confirmação do broker. */
 	async publish(queue: string, payload: unknown) {
 		await this.assertQueue(queue)

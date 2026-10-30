@@ -27,6 +27,7 @@ import type {
 	WebMail,
 	WebMailDraft,
 	WebMailSetup,
+	WebRunRequest,
 	WebSettings,
 } from '../api-types'
 import type { JobFilters } from './lib/job-filters'
@@ -150,7 +151,7 @@ export const api = {
 
 	scraperStatus: () => request<ScraperStatus>('/api/scraper/status'),
 	runs: (page = 1, limit: RunsPageSize = 20) => request<RunsPage>(`/api/scraper/runs?page=${page}&limit=${limit}`),
-	runNow: () => request<{ requested: true }>('/api/scraper/run', { method: 'POST' }),
+	runNow: () => request<WebRunRequest>('/api/scraper/run', { method: 'POST' }),
 
 	settings: <K extends SettingsKey>(key: K) => request<WebSettings[K]>(`/api/settings/${key}`),
 	saveSettings: <K extends SettingsKey>(key: K, patch: Partial<WebSettings[K]>) =>

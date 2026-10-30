@@ -1,7 +1,7 @@
-import { activeSearchTerms, ScraperCommandSchema, type ScraperSettings } from '@shared/contracts'
+import { activeSearchTerms, ScraperCommandSchema, type ScraperRunEvent, type ScraperSettings } from '@shared/contracts'
 import { consecutiveShortRuns, type ScraperRunTrigger } from '@shared/database'
 import type { Logger } from '@shared/logging'
-import { QUEUES, type QueueClient } from '@shared/messaging'
+import { EXCHANGES, QUEUES, type QueueClient } from '@shared/messaging'
 
 import { NO_LINKEDIN_ACCOUNT } from './login'
 import { lastRunStartedAt } from './run-history'
@@ -24,7 +24,8 @@ const POLL_MS = 30_000
 /**
  * Mantém o scraper rodando: coleta quando o intervalo vence (sem pausa) ou quando chega um "coletar agora". O
  * intervalo estica depois de coletas que terminaram abaixo do mínimo de vagas (ver `intervalStretch`).
- * Relê as configurações e a conta a cada volta e ignora pedidos durante uma coleta. Sem termos de busca ativos ou sem
+ * Relê as configurações e a conta a cada volta e ignora pedidos durante uma coleta (o do site recebe a resposta, aceito ou
+ * ignorado, no evento `scraper-run`). Sem termos de busca ativos ou sem
  * conta do LinkedIn, espera a configuração sem coletar; numa instalação nova, a primeira coleta espera o pedido do
  * site. Nunca retorna.
  */
@@ -41,15 +42,24 @@ export async function runOnSchedule({
 	let manualRequested = false
 	let lastAnnouncement = ''
 
+	// A resposta ao pedido do site, que espera por ela: se não der para publicar, o site desiste sozinho no prazo dele
+	const reply = (requestId: string | null, phase: 'accepted' | 'ignored') =>
+		requestId &&
+		queue
+			.publishEvent(EXCHANGES.scraperRun, { requestId, phase } satisfies ScraperRunEvent)
+			.catch(error => logger.debug({ err: error, requestId }, 'Resposta ao "coletar agora" não publicada'))
+
 	await queue.consume(QUEUES.scraper, ScraperCommandSchema, async command => {
 		if (running) {
 			logger.info({ requestedBy: command.requestedBy }, 'Coleta manual ignorada: já há uma coleta em andamento')
+			await reply(command.requestId, 'ignored')
 			return
 		}
 
 		logger.info({ requestedBy: command.requestedBy }, '▶️ Coleta manual solicitada')
 		manualRequested = true
 		wakeUp.wake()
+		await reply(command.requestId, 'accepted')
 	})
 
 	while (true) {

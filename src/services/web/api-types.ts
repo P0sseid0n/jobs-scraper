@@ -246,6 +246,9 @@ export type RunsPageSize = (typeof RUNS_PAGE_SIZES)[number]
 /** Uma página do histórico de coletas; `total` é de todas as páginas. */
 export type RunsPage = { runs: WebScraperRun[]; total: number }
 
+/** `POST /api/scraper/run`: o id do pedido, que volta na resposta do scraper (evento `scraperRun` `accepted` ou `ignored`). */
+export type WebRunRequest = { requestId: string }
+
 export type WebSettings = {
 	scraper: ScraperSettings
 	'post-processing': PostProcessingSettings

@@ -20,7 +20,14 @@ import { QUEUES, type QueueClient } from '@shared/messaging'
 import { loadCredentials, readSettings } from '@shared/settings'
 
 import { intervalStretch, nextRunAt, waitingReason } from '../../scraper/schedule'
-import { RUNS_PAGE_SIZES, type RunsPage, type RunsPageSize, type ScraperStatus, type WebScraperRun } from '../api-types'
+import {
+	RUNS_PAGE_SIZES,
+	type RunsPage,
+	type RunsPageSize,
+	type ScraperStatus,
+	type WebRunRequest,
+	type WebScraperRun,
+} from '../api-types'
 import { HttpError, queryParams } from './http'
 
 const RunsQuerySchema = z.object({
@@ -108,21 +115,28 @@ export async function listRuns(req: Request) {
 	return Response.json({ runs: await Promise.all(docs.map(doc => toWebRun(doc))), total } satisfies RunsPage)
 }
 
-/** `POST /api/scraper/run`: "coletar agora" (funciona mesmo com as coletas pausadas, mas não sem termos nem sem conta). */
+/**
+ * `POST /api/scraper/run`: "coletar agora" (funciona mesmo com as coletas pausadas, mas não sem termos nem sem conta).
+ * Sem ninguém atendendo a fila `scraper`, recusa na hora, em vez de deixar o pedido parado nela. A resposta do scraper
+ * (aceito ou ignorado) chega pelo evento `scraperRun` do stream, com o `requestId` devolvido aqui.
+ */
 export async function requestRun(queue: QueueClient) {
-	const [running, settings, linkedinAccount] = await Promise.all([
+	const [running, settings, linkedinAccount, consumers] = await Promise.all([
 		ScraperRun.exists(liveRunFilter()),
 		readSettings('scraper'),
 		hasLinkedinAccount(),
+		queue.consumerCount(QUEUES.scraper),
 	])
 	if (running) throw new HttpError(409, 'Já há uma coleta em andamento')
 	if (activeSearchTerms(settings).length === 0) throw new HttpError(409, 'Configure os termos de busca antes de coletar')
 	if (!linkedinAccount) throw new HttpError(409, 'Conecte sua conta do LinkedIn (Configurações › Contas) antes de coletar')
+	if (consumers === 0) throw new HttpError(503, 'O scraper não está rodando: inicie-o para coletar')
 
-	const command: ScraperCommand = { command: 'run-now', requestedBy: 'web', requestedAt: new Date().toISOString() }
+	const requestId = crypto.randomUUID()
+	const command: ScraperCommand = { command: 'run-now', requestedBy: 'web', requestedAt: new Date().toISOString(), requestId }
 	await queue.publish(QUEUES.scraper, command)
 
-	return Response.json({ requested: true }, { status: 202 })
+	return Response.json({ requestId } satisfies WebRunRequest, { status: 202 })
 }
 
 /**

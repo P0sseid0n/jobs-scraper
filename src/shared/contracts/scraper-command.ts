@@ -7,6 +7,8 @@ export const ScraperCommandSchema = z.object({
 	command: z.enum(SCRAPER_COMMANDS),
 	requestedBy: z.string().nullable().default(null),
 	requestedAt: z.iso.datetime(),
+	/** Com ele, o scraper responde no evento `scraper-run` se atendeu o pedido (o site espera essa resposta). */
+	requestId: z.string().min(1).nullable().default(null),
 })
 
 export type ScraperCommand = z.infer<typeof ScraperCommandSchema>

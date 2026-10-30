@@ -99,7 +99,9 @@ const TD = 'px-4 py-3.5 align-top whitespace-nowrap'
 
 const POLL_RUNNING_MS = 5_000
 const POLL_IDLE_MS = 30_000
-/** Quanto o "coletar agora" fica travado esperando a coleta pedida começar (o scraper pode estar desligado). */
+/** Quanto o "coletar agora" espera o scraper responder ao pedido (sem resposta, ele está travado ou caiu). */
+const REPLY_TIMEOUT_MS = 10_000
+/** Depois de aceito, quanto o "coletar agora" fica travado esperando a coleta pedida começar. */
 const START_TIMEOUT_MS = 30_000
 
 /** A coleta que parou no login, explicada sem os detalhes técnicos (que ficam no "detalhes" do aviso). */
@@ -602,8 +604,12 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 	const statusRef = useRef(initial.status)
 	const pollTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
 	const mounted = useRef(false)
-	/** Até quando esperar a coleta pedida começar; 0 sem pedido pendente. */
+	/** Até quando esperar a resposta do scraper ou, depois dela, a coleta pedida começar; 0 sem pedido pendente. */
 	const startingUntil = useRef(0)
+	/** O pedido que espera a resposta do scraper; `null` sem nenhum ou já respondido. */
+	const pendingRequest = useRef<string | null>(null)
+	// As respostas que chegaram pelo stream antes do `requestId` (o scraper pode responder antes do próprio POST)
+	const replies = useRef(new Map<string, 'accepted' | 'ignored'>())
 	// A página que o histórico mostra, para a consulta do status recarregar a mesma; e a última página pedida, para
 	// descartar a resposta de uma anterior que chegue depois
 	const pageRef = useRef(1)
@@ -622,6 +628,10 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 			setStatus(next)
 			// A coleta pedida começou (ou cansou de esperar): o botão volta a seguir só o status
 			if (startingUntil.current && (next.current || Date.now() >= startingUntil.current)) {
+				if (!next.current && pendingRequest.current) {
+					notify('O scraper não respondeu ao pedido: ele pode estar travado. Veja o log dele.', 'error')
+				}
+				pendingRequest.current = null
 				startingUntil.current = 0
 				setStarting(false)
 			}
@@ -673,16 +683,37 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 	async function runNow() {
 		setRequesting(true)
 		try {
-			await api.runNow()
-			startingUntil.current = Date.now() + START_TIMEOUT_MS
+			const { requestId } = await api.runNow()
+			pendingRequest.current = requestId
+			startingUntil.current = Date.now() + REPLY_TIMEOUT_MS
 			setStarting(true)
-			notify('Coleta solicitada. Ela começa em instantes (se o scraper estiver rodando).')
+			handleReply()
 			setTimeout(() => mounted.current && refreshStatus(), 2_000)
 		} catch (error) {
 			notify((error as RequestError).message, 'error')
 		} finally {
 			setRequesting(false)
 		}
+	}
+
+	/** A resposta do scraper ao pedido pendente, se já chegou: aceito espera a coleta começar; ignorado libera o botão. */
+	function handleReply() {
+		const requestId = pendingRequest.current
+		const phase = requestId && replies.current.get(requestId)
+		if (!phase) return
+
+		pendingRequest.current = null
+		replies.current.clear()
+		if (phase === 'accepted') {
+			startingUntil.current = Date.now() + START_TIMEOUT_MS
+			notify('Coleta pedida. Ela começa em instantes.')
+			return
+		}
+
+		startingUntil.current = 0
+		setStarting(false)
+		notify('O scraper já está coletando: o pedido foi ignorado.', 'error')
+		void refreshStatus()
 	}
 
 	async function setPaused(paused: boolean) {
@@ -724,8 +755,15 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 		schedulePoll()
 		const clock = setInterval(() => setNow(Date.now()), 1000)
 		// Coleta que começou ou terminou: consulta na hora. A que terminou recarrega o histórico mesmo que o início não
-		// tenha chegado (o navegador estava desconectado); a consulta periódica continua para os eventos perdidos
-		const stop = onLive('scraperRun', event => void refreshStatus(event.phase === 'finished'))
+		// tenha chegado (o navegador estava desconectado); a consulta periódica continua para os eventos perdidos. A resposta
+		// a um "coletar agora" fica guardada até o pedido saber o próprio id
+		const stop = onLive('scraperRun', event => {
+			if (event.phase === 'accepted' || event.phase === 'ignored') {
+				replies.current.set(event.requestId, event.phase)
+				return handleReply()
+			}
+			void refreshStatus(event.phase === 'finished')
+		})
 
 		return () => {
 			mounted.current = false
