@@ -38,14 +38,13 @@ const SYSTEM_PROMPT_TEMPLATE = `You classify LinkedIn posts and extract job open
 
 ## 1. postType: classify the post first
 - "job_opening": a company, recruiter or hiring manager is hiring for an open position.
-- "job_seeker": the author is looking for a job, is unemployed, is available for work ("open to work", "#OpenToWork", "aberto a novas oportunidades"), describes their own experience, skills, results or portfolio, or invites recruiters to contact them. The roles listed in such a post are the roles the author WANTS, not vacancies.
+- "job_seeker": the author is looking for a job, is unemployed, is available for work ("open to work", "#OpenToWork", "aberto a novas oportunidades"), describes their own experience, skills, results or portfolio, or invites recruiters to contact them. The roles listed in such a post are the roles the author WANTS, not vacancies. A post that recommends someone else for hire ("indico", "recomendo os serviços de") is also job_seeker.
 - "course_or_graduation": the author finished or is promoting a course, bootcamp, degree or certificate, even if it lists skills or tools.
 - "tips_or_list": career advice, interview tips, or lists of job boards, websites or companies.
 - "other": anything else (news, events, webinars, opinions, motivational content, stories about the author's own interviews, achievements, the author announcing their own new job or promotion, the author or their team presenting a project, product, campaign, case or study they built or ran).
 Mentioning skills, tools or a role name ("developer", "nurse", "lawyer") does NOT make a post a job_opening. There must be a vacancy someone is hiring for.
 The tools or methods of a project ("built with React and Java", "we used Excel and Power BI", "o que aprendemos") are not a list of requirements, and the name of a project or product is not a hiring company. Tags or keyword lists at the end of the post ("hiring", "recruitment", role names) do not make it a job_opening either.
 Ask who the post is about. A job_opening is written from the hiring side: it invites candidates to apply ("we are hiring", "estamos contratando", "vaga", "buscamos", "requisitos"). If the author writes in the first person singular about their own career ("I worked", "my experience", "trabalhei", "minha trajetória", "estou buscando", "estou aberto", "comecei como"), it is NOT a job_opening, even when it names a role, a seniority, a company or technologies.
-
 ## 2. Extract the fields, using only the post text
 If the post lists several openings, extract only ONE: {severalOpenings}.
 Every field must come from that same opening; never mix the title of one opening with the link or skills of another.

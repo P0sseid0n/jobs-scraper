@@ -11,6 +11,7 @@ import {
 	companyConfidentialInPost,
 	isConfidentialCompanyName,
 	keepContractTypesInPost,
+	keepEmailIfInPost,
 	keepLinkIfInPost,
 	keepSkillsInPost,
 	keepWorkModeInPost,
@@ -94,7 +95,8 @@ export function buildProcessedJob(post: RawPost, aiJob: AiJobOutput, language: s
 		applyLink: post.jobLink ?? keepLinkIfInPost(aiJob.link, normalizePostText(sourceText)) ?? post.attachedLink,
 		// Só os conhecimentos escritos no post: o modelo às vezes completa com tecnologias "típicas" do cargo
 		necessaryKnowledge: keepSkillsInPost(aiJob.necessary_knowledge, sourceText),
-		recruiterEmail: aiJob.recruiter_email,
+		// Só o e-mail escrito no post ou na imagem (a transcrição dela entra no texto)
+		recruiterEmail: keepEmailIfInPost(aiJob.recruiter_email, normalizePostText(sourceText)),
 		// Só a modalidade escrita no post: o modelo às vezes a deduz do cargo
 		workMode: keepWorkModeInPost(aiJob.workMode, sourceText),
 		// Só os regimes escritos no post; "CLT" e "PJ" entram pelo texto mesmo se o modelo não os devolver

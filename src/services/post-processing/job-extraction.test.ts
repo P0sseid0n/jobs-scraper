@@ -58,19 +58,21 @@ describe('vaga com os dados na imagem', () => {
 
 		// Só o Vue.js fica: está na hashtag do texto
 		expect(job).toMatchObject({ company: null, workMode: null, contractTypes: null, necessaryKnowledge: ['Vue.js'] })
-		expect(job).toMatchObject({ imageCount: 0, imageText: null })
+		expect(job).toMatchObject({ recruiterEmail: null, imageCount: 0, imageText: null })
 		expect(job.extractionChecks).toEqual(expect.arrayContaining(['title', 'company', 'workMode', 'necessaryKnowledge']))
 	})
 
 	test('a transcrição não completa o que nem ela tem', () => {
 		const job = buildProcessedJob(
 			caseToRawPost(item, images),
-			{ ...answer, necessary_knowledge: ['Vue.js', 'React'], workMode: 'hibrido' },
+			{ ...answer, necessary_knowledge: ['Vue.js', 'React'], workMode: 'hibrido', recruiter_email: 'contat01@exemplo.com' },
 			'pt',
 		)
 
 		expect(job.necessaryKnowledge).toEqual(['Vue.js'])
 		expect(job.workMode).toBeNull()
+		// O e-mail lido errado na imagem
+		expect(job.recruiterEmail).toBeNull()
 		expect(job.extractionChecks).toEqual(['workMode', 'necessaryKnowledge'])
 	})
 })

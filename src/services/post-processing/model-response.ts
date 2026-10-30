@@ -51,6 +51,15 @@ export function keepLinkIfInPost(link: string | null, text: string): string | nu
 }
 
 /**
+ * Mantém o e-mail da IA só se ele estiver escrito no texto (sem diferenciar maiúsculas): o modelo às vezes lê errado o
+ * e-mail de uma imagem ("pedrowisp2@" → "pedrowiz@"), e o site oferece o contato por ele.
+ */
+export function keepEmailIfInPost(email: string | null, text: string): string | null {
+	if (!email) return null
+	return text.toLowerCase().includes(email.toLowerCase()) ? email : null
+}
+
+/**
  * Mantém a empresa da IA só se ela estiver escrita no post fora dos links e e-mails: o modelo às vezes tira o nome
  * do domínio ("vagas.acme.com" → "acme"). Vale escrita separada ou junta, como numa hashtag ("#AcmeTech").
  */

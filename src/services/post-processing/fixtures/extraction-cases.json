@@ -2173,5 +2173,34 @@
 		"correctedFields": [],
 		"model": "gemma3:4b",
 		"promptVersion": "817be77ff2a8"
+	},
+	{
+		"postId": "caso-indicacao-profissional",
+		"anonymized": true,
+		"area": "dev",
+		"kind": "not-a-job",
+		"post": {
+			"text": "Nos anos de chão de fábrica aprendi bastante…\nE sigo aprendendo todos os dias!\nNesse caminho cruzei com gente muito boa e realmente preparada.\n\nHoje venho aqui recomendar o trabalho de um profissional diferenciado…\n\n- Especialista em front end\nSe a sua empresa precisa de alguém de referência para cuidar do front end!\nO nome dele é Rafael Montebelo",
+			"author": "Autor do post",
+			"url": null,
+			"postedAt": null,
+			"sourcePostId": null
+		},
+		"aiOutput": {
+			"title": "Especialista em front end",
+			"company": null,
+			"location": null,
+			"workMode": null,
+			"contractTypes": null,
+			"necessaryKnowledge": [
+				"Front End"
+			],
+			"recruiterEmail": null,
+			"applyLink": null
+		},
+		"expected": null,
+		"correctedFields": [],
+		"model": "gemma3:4b",
+		"promptVersion": "5e27ac3a8dd4"
 	}
 ]

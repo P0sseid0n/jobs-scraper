@@ -6,6 +6,7 @@ import {
 	isConfidentialCompanyName,
 	keepCompanyIfInPost,
 	keepContractTypesInPost,
+	keepEmailIfInPost,
 	keepLinkIfInPost,
 	keepSkillsInPost,
 	keepWorkModeInPost,
@@ -130,6 +131,20 @@ describe('keepLinkIfInPost', () => {
 		expect(keepLinkIfInPost('https://empresa.com/careers', text)).toBeNull()
 		expect(keepLinkIfInPost('empresa.com', text)).toBeNull()
 		expect(keepLinkIfInPost(null, text)).toBeNull()
+	})
+})
+
+describe('keepEmailIfInPost', () => {
+	const text = 'Envie o currículo para RH@Empresa.com.br até sexta'
+
+	test('mantém o e-mail que está no texto, sem diferenciar maiúsculas', () => {
+		expect(keepEmailIfInPost('rh@empresa.com.br', text)).toBe('rh@empresa.com.br')
+	})
+
+	test('descarta e-mail lido errado ou inventado', () => {
+		expect(keepEmailIfInPost('rh@empresa.com', text.replace('.com.br', '.net'))).toBeNull()
+		expect(keepEmailIfInPost('vagas@empresa.com.br', text)).toBeNull()
+		expect(keepEmailIfInPost(null, text)).toBeNull()
 	})
 })
 
