@@ -360,7 +360,7 @@ function LiveRun({ run }: { run: WebScraperRun }) {
 function failureSummary(run: WebScraperRun) {
 	// As duas mensagens do próprio scraper (`run-history.ts`) já são para pessoas
 	if (run.error === 'Todas as buscas falharam') return 'todas as buscas falharam'
-	if (run.error?.startsWith('Coleta interrompida')) return 'interrompida: o serviço foi reiniciado no meio'
+	if (run.error?.startsWith('Coleta interrompida')) return 'interrompida: o serviço ou o banco de dados caiu no meio'
 	return 'parou por um erro inesperado'
 }
 

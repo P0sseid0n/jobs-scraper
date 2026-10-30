@@ -59,6 +59,11 @@ type ScraperRunDocument = {
 	status: ScraperRunStatus
 	startedAt: Date
 	finishedAt: Date | null
+	/**
+	 * A última gravação da coleta (o início e cada termo terminado): o último momento em que se sabe que ela rodava, o
+	 * fim da coleta interrompida; ausente nas coletas antigas.
+	 */
+	progressAt: Date | null
 	/** Os termos que a coleta vai buscar, na ordem; ausente nas coletas antigas. */
 	plannedTerms: string[]
 	/** O mínimo de vagas que a coleta procurou; `null` nas coletas antigas. */
@@ -87,6 +92,7 @@ const scraperRunSchema = new Schema<ScraperRunDocument>(
 		status: { type: String, enum: SCRAPER_RUN_STATUSES, required: true },
 		startedAt: { type: Date, required: true },
 		finishedAt: { type: Date, default: null },
+		progressAt: { type: Date, default: null },
 		plannedTerms: { type: [String], default: [] },
 		minJobs: { type: Number, default: null },
 		missingJobs: { type: Number, default: null },

@@ -21,10 +21,12 @@ export async function recordRun(
 	{ queue, logger }: { queue: QueueClient; logger: Logger },
 	collect: (onTerm: TermProgress) => Promise<ScrapeResult>,
 ) {
+	const startedAt = new Date()
 	const run = await ScraperRun.create({
 		trigger,
 		status: 'running',
-		startedAt: new Date(),
+		startedAt,
+		progressAt: startedAt,
 		plannedTerms: plan.terms,
 		minJobs: plan.minJobs,
 	})
@@ -41,7 +43,10 @@ export async function recordRun(
 
 	// O andamento é só para o site: se não der para gravar, a coleta segue (o resultado final é gravado no fim)
 	const onTerm: TermProgress = terms =>
-		ScraperRun.updateOne({ _id: run._id }, { terms, sent: terms.reduce((total, term) => total + term.sent, 0) }).then(
+		ScraperRun.updateOne(
+			{ _id: run._id },
+			{ terms, sent: terms.reduce((total, term) => total + term.sent, 0), progressAt: new Date() },
+		).then(
 			() => {},
 			() => {},
 		)
@@ -83,11 +88,23 @@ export async function recordRun(
 	}
 }
 
-/** Marca como falha as coletas que ficaram em andamento porque o serviço foi encerrado no meio. */
+/**
+ * Marca como falha as coletas que ficaram em andamento porque o serviço ou o MongoDB caiu no meio. O fim é a última
+ * gravação da coleta (sem ela, nas coletas antigas, o início): a hora em que o serviço voltou contaria o tempo parado.
+ */
 export function markInterruptedRuns() {
 	return ScraperRun.updateMany(
 		{ status: 'running' },
-		{ status: 'failed', finishedAt: new Date(), error: 'Coleta interrompida (o serviço foi encerrado no meio)' },
+		[
+			{
+				$set: {
+					status: 'failed',
+					finishedAt: { $ifNull: ['$progressAt', '$startedAt'] },
+					error: 'Coleta interrompida (o serviço ou o banco de dados caiu no meio)',
+				},
+			},
+		],
+		{ updatePipeline: true },
 	)
 }
 
