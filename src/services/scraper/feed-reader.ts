@@ -53,9 +53,20 @@ export async function collectNewPosts(page: Page): Promise<ScrapedPost[]> {
 			for (const container of containers) {
 				if (container.hasAttribute(scrapedAttribute)) continue
 
+				// Compartilhamento com comentário: o post original vem dentro do card, depois do comentário de quem
+				// compartilhou. A vaga é a do original (texto, autor e id); antes, o id saía dele e o texto e o autor, do
+				// comentário, e a vaga ficava com o nome de quem só compartilhou
+				const textElements = Array.from(container.querySelectorAll<HTMLElement>(selectors.postText))
+				let source: HTMLElement = container
+				if (textElements.length > 1) {
+					let nested = textElements[textElements.length - 1]!
+					while (nested.parentElement && !nested.parentElement.contains(textElements[0]!)) nested = nested.parentElement
+					if (nested.querySelector(selectors.authorLink)) source = nested
+				}
+
 				const textElement = container.matches(selectors.postText)
 					? container
-					: container.querySelector<HTMLElement>(selectors.postText)
+					: source.querySelector<HTMLElement>(selectors.postText)
 				const text = textElement?.innerText ?? ''
 
 				// Card ainda carregando: tenta de novo na próxima rolagem
@@ -63,15 +74,18 @@ export async function collectNewPosts(page: Page): Promise<ScrapedPost[]> {
 
 				container.setAttribute(scrapedAttribute, '1')
 
-				const urnCandidates = [
-					container.getAttribute('data-urn') ?? '',
-					...Array.from(container.querySelectorAll(selectors.postIdSources)).map(
-						el => el.getAttribute('id') ?? el.getAttribute('href') ?? '',
-					),
-					...Array.from(container.querySelectorAll(selectors.postKeySources)).map(el => el.getAttribute('componentkey') ?? ''),
-				].filter(Boolean)
+				// Os do post original primeiro: `resolvePostUrn` fica com o primeiro reconhecido
+				const urnCandidates = [...new Set([source, container])]
+					.flatMap(element => [
+						element.getAttribute('data-urn') ?? '',
+						...Array.from(element.querySelectorAll(selectors.postIdSources)).map(
+							el => el.getAttribute('id') ?? el.getAttribute('href') ?? '',
+						),
+						...Array.from(element.querySelectorAll(selectors.postKeySources)).map(el => el.getAttribute('componentkey') ?? ''),
+					])
+					.filter(Boolean)
 
-				const authorLink = Array.from(container.querySelectorAll<HTMLAnchorElement>(selectors.authorLink))
+				const authorLink = Array.from(source.querySelectorAll<HTMLAnchorElement>(selectors.authorLink))
 					.map(link => ({ name: link.innerText.trim().split('\n')[0]?.trim(), href: link.href }))
 					.find(link => link.name)
 				const author = authorLink?.name
@@ -107,8 +121,8 @@ export async function collectNewPosts(page: Page): Promise<ScrapedPost[]> {
 /**
  * Volta ao texto original os posts ainda não coletados que o LinkedIn traduziu sozinho para o idioma da conta
  * ("Exibir original"). Traduzido, o post em inglês passava pelo filtro de idioma como português e a vaga era salva
- * com o texto da tradução. O original carrega depois do clique; o botão muda antes, então a espera olha o texto,
- * guardado no card (`TRANSLATED_ATTRIBUTE`) antes do clique. O card que não voltar a tempo é lido traduzido.
+ * com o texto da tradução. O original carrega depois do clique; o botão muda antes, então a espera olha os textos do
+ * card, guardados nele (`TRANSLATED_ATTRIBUTE`) antes do clique. O card que não voltar a tempo é lido traduzido.
  */
 async function showOriginalTexts(page: Page) {
 	const pattern = { source: SELECTORS.showOriginalText.source, flags: SELECTORS.showOriginalText.flags }
@@ -119,13 +133,15 @@ async function showOriginalTexts(page: Page) {
 			let count = 0
 
 			for (const card of document.querySelectorAll(`:is(${selectors.post}):not([${scrapedAttribute}])`)) {
-				const button = Array.from(card.querySelectorAll<HTMLButtonElement>('button')).find(button =>
+				const buttons = Array.from(card.querySelectorAll<HTMLButtonElement>('button')).filter(button =>
 					regex.test(button.innerText.trim()),
 				)
-				if (!button) continue
+				if (buttons.length === 0) continue
 
-				card.setAttribute(translatedAttribute, card.querySelector<HTMLElement>(selectors.postText)?.innerText ?? '')
-				button.click()
+				// Todos os textos: no compartilhamento com comentário, o traduzido pode ser só o do post original
+				const texts = Array.from(card.querySelectorAll<HTMLElement>(selectors.postText), element => element.innerText)
+				card.setAttribute(translatedAttribute, texts.join('\n'))
+				for (const button of buttons) button.click()
 				count++
 			}
 
@@ -142,7 +158,9 @@ async function showOriginalTexts(page: Page) {
 		.waitForFunction(
 			(selectors, translatedAttribute) =>
 				Array.from(document.querySelectorAll(`[${translatedAttribute}]`)).every(
-					card => card.querySelector<HTMLElement>(selectors.postText)?.innerText !== card.getAttribute(translatedAttribute),
+					card =>
+						Array.from(card.querySelectorAll<HTMLElement>(selectors.postText), element => element.innerText).join('\n') !==
+						card.getAttribute(translatedAttribute),
 				),
 			{ timeout: ORIGINAL_TEXT_TIMEOUT_MS },
 			SELECTORS,
