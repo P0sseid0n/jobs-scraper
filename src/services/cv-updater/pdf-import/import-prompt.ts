@@ -30,11 +30,12 @@ const SYSTEM_PROMPT = `You copy the text of a résumé (from any professional fi
 Return JSON with:
 - contact: name; headline (the role or title under the name, e.g. "Enfermeira | COREN-SP 000.000"); location; email;
   phone; links (the person's web addresses: LinkedIn, portfolio, GitHub profile...; not the links of projects).
-- summary: the presentation paragraph ("Resumo", "Sobre", "Perfil", "Objetivo", "Summary"...).
+- summary: the whole presentation paragraph ("Resumo", "Sobre", "Perfil", "Objetivo", "Summary"...), every sentence
+  and every line of it, up to the next section title.
 - skills: groups with a category and its items. When the résumé lists skills without categories, use one group with
   an empty category.
 - experience: each job with role, company, period (as written, e.g. "Março 2021 - Presente") and bullets (one per
-  item or sentence describing the job).
+  item describing the job, whole even when it continues on the next line).
 - education: course (degree or program), institution and period.
 - certifications: certificates and courses, with name, issuer and year.
 - languages: spoken languages (Portuguese, English, Spanish...) and level. Programming languages are skills, never

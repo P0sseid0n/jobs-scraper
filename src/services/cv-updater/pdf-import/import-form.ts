@@ -44,17 +44,94 @@ export function pdfCorpus(pdf: PdfText) {
 
 type Corpus = ReturnType<typeof pdfCorpus>
 
-/** Onde cada seção começa no PDF, pelo título (os sinônimos de `latex-syntax.ts`); as sem título não entram. */
+/**
+ * A seção de que a linha é o título (os sinônimos de `latex-syntax.ts`). Título é linha curta: uma frase que começa
+ * com "Experiência" não é.
+ */
+const headingKey = (line: string) => (line.trim().length <= 60 ? sectionKey(line.trim()) : undefined)
+
+/** Onde cada seção começa no PDF, pelo título; as sem título não entram. */
 function sectionPositions(text: string) {
 	const positions = new Map<CvFormSectionKind, number>()
 
 	text.split('\n').forEach((line, index) => {
-		// Título é linha curta; uma frase que começa com "Experiência" não é
-		const key = line.trim().length <= 60 ? sectionKey(line.trim()) : undefined
+		const key = headingKey(line)
 		if (key && !positions.has(key)) positions.set(key, index)
 	})
 
 	return positions
+}
+
+/** Marcador de item no começo da linha ("• ", "- "). */
+const BULLET = /^\s*[•·▪◦‣*\-–]\s+/
+const SENTENCE_END = /[.!?;:]$/
+
+/** Junta as linhas de um trecho do PDF: a palavra hifenizada na quebra ("Com-" + "prometido") volta a ser uma só. */
+function joinLines(lines: string[]) {
+	return lines.reduce((text, line) => (/\p{L}-$/u.test(text) && /^\p{Ll}/u.test(line) ? text.slice(0, -1) + line : `${text} ${line}`))
+}
+
+/** As linhas do PDF sem o marcador de item, e as originais (para reconhecer títulos e marcadores). */
+function pdfLines(text: string) {
+	const raw = text.split('\n')
+	return { raw, lines: raw.map(line => line.replace(BULLET, '').trim()) }
+}
+
+/**
+ * O tópico ou a descrição inteira quando o modelo copiou só as primeiras linhas: o valor que termina no fim de uma
+ * linha do PDF continua nas seguintes enquanto a frase não terminou e a linha seguinte não começa outro item ou seção.
+ * O que entra sai do PDF, não do modelo.
+ */
+export function completeFromPdf(value: string, text: string) {
+	const target = normalize(value)
+	if (!target) return value
+
+	const { raw, lines } = pdfLines(text)
+	const covers = (start: number, end: number) => normalize(joinLines(lines.slice(start, end + 1)))
+
+	for (let start = 0; start < lines.length; start++) {
+		if (!lines[start] || !target.startsWith(normalize(lines[start]!))) continue
+
+		// As linhas do PDF que formam o valor, até a última que ele copiou inteira
+		let end = start
+		while (covers(start, end) !== target && end + 1 < lines.length && target.startsWith(covers(start, end + 1))) end++
+		if (covers(start, end) !== target) continue
+
+		const continues = (index: number) =>
+			!!lines[index] && !headingKey(raw[index]!) && !BULLET.test(raw[index]!) && !SENTENCE_END.test(lines[index - 1]!)
+		while (end + 1 < lines.length && continues(end + 1)) end++
+
+		return joinLines(lines.slice(start, end + 1))
+	}
+
+	return value
+}
+
+/**
+ * A apresentação copiada do PDF: do começo dela, achado pela primeira frase do que o modelo devolveu, até o próximo
+ * título. O modelo cortava o parágrafo na primeira quebra de linha ou, pedindo tudo, errava uma palavra hifenizada
+ * ("Com-" + "prometido" virou "Prometido"); assim, o texto todo sai do PDF.
+ * @returns Vazio se a primeira frase não começa uma linha do PDF.
+ */
+export function paragraphFromPdf(value: string, text: string) {
+	const first = normalize(value.split(/(?<=[.!?])\s+|\n/)[0] ?? '')
+	if (!first) return ''
+
+	const { raw, lines } = pdfLines(text)
+
+	for (let start = 0; start < lines.length; start++) {
+		const line = normalize(lines[start]!)
+		if (!line || !(line.startsWith(first) || first.startsWith(line)) || headingKey(raw[start]!)) continue
+
+		let end = start
+		while (end + 1 < lines.length && lines[end + 1] && !headingKey(raw[end + 1]!) && !BULLET.test(raw[end + 1]!)) end++
+
+		// A linha pode só começar como a frase (o cargo "Desenvolvedor Full-Stack" no topo): vale a que forma a frase toda
+		const paragraph = joinLines(lines.slice(start, end + 1))
+		if (normalize(paragraph).startsWith(first)) return paragraph
+	}
+
+	return ''
 }
 
 /**
@@ -121,7 +198,14 @@ export function importedForm(output: ImportOutput, pdf: PdfText): { form: CvForm
 	const skills = output.skills
 		.map(group => ({ category: kept(check, group.category), items: keptAll(check, group.items) }))
 		.filter(group => group.items.length > 0)
-	const projects = keptEntries(check, output.projects)
+	const projects = keptEntries(check, output.projects).map(project => ({
+		...project,
+		description: completeFromPdf(project.description, pdf.text),
+	}))
+	const experience = keptEntries(check, output.experience).map(entry => ({
+		...entry,
+		bullets: entry.bullets.map(bullet => completeFromPdf(bullet, pdf.text)),
+	}))
 	const projectUrls = new Set(projects.map(project => normalize(project.url)).filter(Boolean))
 
 	const contact = {
@@ -133,13 +217,15 @@ export function importedForm(output: ImportOutput, pdf: PdfText): { form: CvForm
 		// Os links clicáveis vão todos ao modelo, e ele costuma pôr os dos projetos também no contato
 		links: [...new Set(keptAll(check, output.contact.links))].filter(link => !projectUrls.has(normalize(link))),
 	}
+	const summary = paragraphFromPdf(output.summary, pdf.text)
+	if (!summary && output.summary.trim()) dropped++
 	// Sem o título "Idiomas" no PDF, os idiomas do modelo são as linguagens de programação das habilidades
 	const languages = sectionPositions(pdf.text).has('languages') ? keptEntries(check, output.languages) : []
 
 	const sections: CvFormSection[] = [
-		{ kind: 'summary', title: '', text: kept(check, output.summary) },
+		{ kind: 'summary', title: '', text: summary },
 		{ kind: 'skills', title: '', groups: skills },
-		{ kind: 'experience', title: '', entries: keptEntries(check, output.experience) },
+		{ kind: 'experience', title: '', entries: experience },
 		{ kind: 'education', title: '', entries: keptEntries(check, output.education) },
 		{ kind: 'certifications', title: '', entries: keptEntries(check, output.certifications) },
 		{ kind: 'languages', title: '', entries: languages },

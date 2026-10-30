@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { importedForm, pdfCorpus } from './import-form'
+import { completeFromPdf, importedForm, paragraphFromPdf, pdfCorpus } from './import-form'
 import type { ImportOutput } from './import-prompt'
 import type { PdfText } from './pdf-text'
 
@@ -165,5 +165,46 @@ describe('importedForm', () => {
 			entries: [{ name: 'Portal da Saúde', url: '', description: '', technologies: ['Excel'] }],
 			toolsLabel: 'Tecnologias',
 		})
+	})
+})
+
+describe('completeFromPdf e paragraphFromPdf', () => {
+	const text = `Fulano da Silva
+Desenvolvedor Full-Stack
+Apresentação
+Desenvolvedor Full-Stack especializado em TypeScript e Python, com foco em performance e sistemas modernos.
+Experiente com Git, metodologias ágeis (Scrum, Kanban) e arquitetura escalável (SOLID, Design Patterns). Com-
+prometido com a qualidade do código, boas práticas e evolução contínua no desenvolvimento web.
+Habilidades Técnicas
+• Front-end: HTML, CSS
+Experiência Profissional
+• Desenvolvimento e manutenção de interfaces responsivas com Nuxt.js (Vue 2 e Vue 3), React e
+TypeScript.
+• Integração de APIs RESTful.
+Clínica Exemplo Janeiro 2019 - Fevereiro 2021`
+
+	const paragraph =
+		'Desenvolvedor Full-Stack especializado em TypeScript e Python, com foco em performance e sistemas modernos. Experiente com Git, metodologias ágeis (Scrum, Kanban) e arquitetura escalável (SOLID, Design Patterns). Comprometido com a qualidade do código, boas práticas e evolução contínua no desenvolvimento web.'
+
+	test('a apresentação sai do PDF até o próximo título, sem o hífen da quebra, cortada ou com palavra errada', () => {
+		// Cortada na primeira quebra de linha
+		expect(paragraphFromPdf(paragraph.split('. ')[0]!, text)).toBe(paragraph)
+		// Inteira, mas com a palavra hifenizada errada
+		expect(paragraphFromPdf(paragraph.replace('Comprometido', 'Prometido'), text)).toBe(paragraph)
+	})
+
+	test('apresentação que não começa uma linha do PDF fica vazia', () => {
+		expect(paragraphFromPdf('Enfermeira experiente.', text)).toBe('')
+		expect(paragraphFromPdf('metodologias ágeis (Scrum, Kanban)', text)).toBe('')
+		expect(paragraphFromPdf('', text)).toBe('')
+	})
+
+	test('o tópico continua na linha seguinte só enquanto a frase não terminou', () => {
+		const cut = 'Desenvolvimento e manutenção de interfaces responsivas com Nuxt.js (Vue 2 e Vue 3), React e'
+
+		expect(completeFromPdf(cut, text)).toBe(`${cut} TypeScript.`)
+		// Terminada a frase, a linha seguinte (o próximo emprego) não entra
+		expect(completeFromPdf('Integração de APIs RESTful.', text)).toBe('Integração de APIs RESTful.')
+		expect(completeFromPdf('Outra coisa', text)).toBe('Outra coisa')
 	})
 })
