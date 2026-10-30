@@ -125,6 +125,24 @@ https://lnkd.in/c3`
 		expect(splitMultiJobPost(post)?.map(listing => listing.title)).toEqual(['Dev Front-end', 'Dev Back-end', 'Dev Mobile'])
 	})
 
+	test('cargo com a descrição na mesma linha e o link do contato no fim: o cargo é o que vem antes do separador', () => {
+		// Post real (resumido)
+		const post = `🚨 3 vagas abertas na FCamara | 100% remoto | PJ 🚨
+💼 Vagas:
+🔹 1 Tech Lead – para liderar tecnicamente o squad, definir arquitetura e ser referência para o time (https://lnkd.in/dhkxJqPR)
+🔹 1 Desenvolvedor(a) Fullstack Sênior – Java (Spring Boot) no back e React no front, com autonomia e visão de solução (https://lnkd.in/dCv2TyyQ)
+🔹 1 Desenvolvedor(a) Fullstack Pleno – Java e React, com vontade de crescer em um time de alto nível (https://lnkd.in/d3w2q72J)
+✅ O que você precisa ter:
+Experiência com Java/Spring Boot e React
+📩 Interessou? chamar nesse link https://lnkd.in/dYQFDknb`
+
+		expect(splitMultiJobPost(post)?.map(listing => [listing.title, listing.link])).toEqual([
+			['Tech Lead', 'https://lnkd.in/dhkxJqPR'],
+			['Desenvolvedor(a) Fullstack Sênior', 'https://lnkd.in/dCv2TyyQ'],
+			['Desenvolvedor(a) Fullstack Pleno', 'https://lnkd.in/d3w2q72J'],
+		])
+	})
+
 	test('post de uma vaga só, mesmo com alguns links, não é dividido', () => {
 		const post = `Estamos contratando Desenvolvedor(a) Front-end Vue!
 

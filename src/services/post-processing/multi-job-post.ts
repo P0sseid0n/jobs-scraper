@@ -67,7 +67,7 @@ export function splitMultiJobPost(text: string): JobListing[] | null {
 		const link = trimUrl(urls[0] ?? '')
 		const inlineTitle = cleanTitle(line.slice(0, line.search(URL_PATTERN)))
 		const titleLine = inlineTitle ? index : findTitleLine(lines, pending, blockStart, index)
-		const title = inlineTitle || cleanTitle(lines[titleLine] ?? '')
+		const title = withoutDescription(inlineTitle || cleanTitle(lines[titleLine] ?? ''))
 
 		if (title && title.length <= MAX_TITLE_LENGTH && /\p{L}/u.test(title)) {
 			listings.push({ title, link, text: lines.slice(titleLine, index + 1).join('\n') })
@@ -81,9 +81,10 @@ export function splitMultiJobPost(text: string): JobListing[] | null {
 	if (unique.length < MIN_LISTINGS) return null
 
 	// A maioria dos "cargos" é frase: o post apresenta links de outra coisa (os grupos de uma comunidade, com
-	// "JavaScript é sua praia? Entre no grupo..." antes do convite do WhatsApp), não uma lista de vagas
-	const prose = unique.filter(listing => isProse(listing.title)).length
-	return prose * 2 > unique.length ? null : unique
+	// "JavaScript é sua praia? Entre no grupo..." antes do convite do WhatsApp), não uma lista de vagas. Na minoria, a
+	// frase é o link do contato ("📩 Interessou? chamar nesse link"), e não uma vaga
+	const roles = unique.filter(listing => !isProse(listing.title))
+	return (unique.length - roles.length) * 2 > unique.length ? null : roles
 }
 
 /**
@@ -216,6 +217,17 @@ function talksAboutJobs(text: string) {
 
 function withoutAccents(text: string) {
 	return text.normalize('NFKD').replace(/\p{Diacritic}/gu, '')
+}
+
+/** Separador entre o cargo e a descrição dele na mesma linha ("Tech Lead – para liderar tecnicamente o squad..."). */
+const TITLE_DESCRIPTION_SEPARATOR = /\s[-–—]\s/
+
+/** O cargo sem a descrição depois do separador, quando a linha inteira é frase e o que vem antes dele não é. */
+function withoutDescription(title: string) {
+	if (!isProse(title)) return title
+
+	const role = title.split(TITLE_DESCRIPTION_SEPARATOR)[0]?.trim() ?? ''
+	return role && !isProse(role) ? role : title
 }
 
 /** Frase, e não cargo: pergunta, exclamação, ponto final ou palavras demais. */
