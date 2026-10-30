@@ -30,6 +30,8 @@ type ScrapeOptions = {
 	logger: Logger
 	/** Chamado a cada termo terminado, com os resultados até ali. */
 	onTerm?: TermProgress
+	/** Interrompe a coleta: fecha o navegador e não busca mais nenhum termo. */
+	signal?: AbortSignal
 }
 
 /** As opções da coleta com a conta do LinkedIn, lida no começo de cada uma. */
@@ -98,6 +100,9 @@ export async function scrapeOnce(options: ScrapeOptions): Promise<ScrapeResult> 
 
 	const session = await BrowserSession.launch(browserOptionsFrom(config, account.liAt, logger))
 	activeSession = session
+	// Fechar o navegador faz a busca em andamento falhar na hora; o termo seguinte nem começa
+	const interrupt = () => void session.close().catch(() => {})
+	options.signal?.addEventListener('abort', interrupt, { once: true })
 
 	try {
 		const results: ScraperRunTerm[] = []
@@ -108,6 +113,7 @@ export async function scrapeOnce(options: ScrapeOptions): Promise<ScrapeResult> 
 			const round = results.length === 0 ? terms : results.filter(canWiden).map(result => result.term)
 
 			for (const [index, term] of round.entries()) {
+				options.signal?.throwIfAborted()
 				const target = jobsPerTerm(remaining, round.length - index)[0] ?? 0
 				const previous = results.find(result => result.term === term)
 
@@ -159,6 +165,7 @@ export async function scrapeOnce(options: ScrapeOptions): Promise<ScrapeResult> 
 
 		return { terms: results, deferredLists, missingJobs: Math.max(remaining, 0) }
 	} finally {
+		options.signal?.removeEventListener('abort', interrupt)
 		activeSession = undefined
 		await session.close()
 	}
@@ -215,7 +222,8 @@ async function scrapeTerm(
 
 		return { term: search.term, sent, jobs, skipped, otherLanguage, postIds, error: null, errorKind: null, searchUrl, datePosted }
 	} catch (error) {
-		if (error instanceof LoginError) throw error
+		// Coleta interrompida: o erro é do navegador fechado no meio, não da busca
+		if (error instanceof LoginError || options.signal?.aborted) throw error
 
 		const kind = error instanceof SearchError ? error.kind : error instanceof TimeoutError ? 'timeout' : 'unknown'
 		if (kind === 'empty') logger.info('A busca deste termo não tem resultados')

@@ -1,8 +1,11 @@
+import mongoose from 'mongoose'
+
 import type { ScraperRunEvent } from '@shared/contracts'
 import {
 	INTERRUPTED_RUN_ERROR,
 	Job,
 	RUN_HEARTBEAT_MS,
+	RUN_STALE_MS,
 	ScraperRun,
 	type ScraperRunTerm,
 	type ScraperRunTrigger,
@@ -19,14 +22,15 @@ export type TermProgress = (terms: ScraperRunTerm[]) => Promise<void>
 /**
  * Executa a coleta registrando-a em `scraper_runs` (em andamento → sucesso ou falha). Os termos previstos e o mínimo de
  * vagas (`plan`) e o resultado de cada termo, assim que ele termina, ficam gravados: o site mostra a coleta andando. O
- * início e o fim também são anunciados no evento `scraper-run`, para o site atualizar na hora.
+ * início e o fim também são anunciados no evento `scraper-run`, para o site atualizar na hora. Sem conseguir gravar o
+ * sinal de vida por `RUN_STALE_MS` (MongoDB fora do ar), a coleta é interrompida pelo `signal` de `collect`.
  * @returns O resultado por termo, o total enviado e se todas as buscas falharam.
  */
 export async function recordRun(
 	trigger: ScraperRunTrigger,
 	plan: { terms: string[]; minJobs: number },
 	{ queue, logger }: { queue: QueueClient; logger: Logger },
-	collect: (onTerm: TermProgress) => Promise<ScrapeResult>,
+	collect: (onTerm: TermProgress, signal: AbortSignal) => Promise<ScrapeResult>,
 ) {
 	const startedAt = new Date()
 	const run = await ScraperRun.create({
@@ -48,25 +52,42 @@ export async function recordRun(
 
 	await announce({ runId, phase: 'started', status: 'running', trigger })
 
-	// O andamento é só para o site: se não der para gravar, a coleta segue (o resultado final é gravado no fim)
-	const onTerm: TermProgress = terms =>
-		ScraperRun.updateOne(
-			{ _id: run._id },
-			{ terms, sent: terms.reduce((total, term) => total + term.sent, 0), progressAt: new Date() },
-		).then(
-			() => {},
+	// O último sinal de vida gravado, o mesmo `progressAt` que o site lê
+	let progressAt = startedAt
+	const interrupted = new AbortController()
+
+	// Falha ao gravar (MongoDB fora do ar) é ignorada: o próximo sinal tenta de novo
+	const saveProgress = (update: Record<string, unknown> = {}) => {
+		const at = new Date()
+		return ScraperRun.updateOne({ _id: run._id, status: 'running' }, { ...update, progressAt: at }).then(
+			() => {
+				progressAt = at
+			},
 			() => {},
 		)
+	}
 
-	// O sinal de vida: um termo pode levar minutos, e sem ele o site acharia a coleta interrompida (`RUN_STALE_MS`). Falha
-	// ao gravar (MongoDB fora do ar) é ignorada: o próximo sinal tenta de novo
-	const heartbeat = setInterval(
-		() => void ScraperRun.updateOne({ _id: run._id, status: 'running' }, { progressAt: new Date() }).catch(() => {}),
-		RUN_HEARTBEAT_MS,
-	)
+	// O andamento é só para o site: se não der para gravar, a coleta segue (o resultado final é gravado no fim)
+	const onTerm: TermProgress = terms => saveProgress({ terms, sent: terms.reduce((total, term) => total + term.sent, 0) })
+
+	// O sinal de vida: um termo pode levar minutos, e sem ele o site acharia a coleta interrompida. Sem sinal gravado há
+	// `RUN_STALE_MS`, o site já a mostra interrompida: ela para de vez, em vez de voltar a aparecer quando o MongoDB voltar
+	const beat = () => {
+		if (interrupted.signal.aborted) return
+		if (Date.now() - progressAt.getTime() < RUN_STALE_MS) return void saveProgress()
+
+		logger.error({ lastProgressAt: progressAt }, 'Coleta interrompida: o MongoDB ficou fora do ar por tempo demais')
+		interrupted.abort(new Error(INTERRUPTED_RUN_ERROR))
+	}
+	const heartbeat = setInterval(beat, RUN_HEARTBEAT_MS)
+	// Ao reconectar, o sinal vai na hora: o site não chega a mostrar como interrompida a coleta que ainda está no prazo
+	mongoose.connection.on('reconnected', beat)
 
 	try {
-		const { terms, deferredLists, missingJobs } = await collect(onTerm)
+		const collected = await collect(onTerm, interrupted.signal)
+		interrupted.signal.throwIfAborted()
+
+		const { terms, deferredLists, missingJobs } = collected
 		const sent = terms.reduce((total, term) => total + term.sent, 0)
 		// Busca sem resultados não é falha: a coleta só falha se todos os termos quebraram de verdade
 		const failed = terms.every(term => term.error && term.errorKind !== 'empty')
@@ -87,6 +108,13 @@ export async function recordRun(
 
 		return { terms, sent, failed }
 	} catch (error) {
+		if (interrupted.signal.aborted) {
+			markInterruptedRun(run._id)
+			await announce({ runId, phase: 'finished', status: 'failed', trigger })
+
+			throw interrupted.signal.reason
+		}
+
 		await ScraperRun.updateOne(
 			{ _id: run._id },
 			{
@@ -101,16 +129,22 @@ export async function recordRun(
 		throw error
 	} finally {
 		clearInterval(heartbeat)
+		mongoose.connection.off('reconnected', beat)
 	}
+}
+
+/** Marca a coleta como interrompida; com o MongoDB ainda fora do ar, quando ele voltar. */
+function markInterruptedRun(id: mongoose.Types.ObjectId) {
+	markInterruptedRuns({ _id: id }).catch(() => mongoose.connection.once('reconnected', () => markInterruptedRun(id)))
 }
 
 /**
  * Marca como falha as coletas que ficaram em andamento porque o serviço ou o MongoDB caiu no meio. O fim é a última
  * gravação da coleta (sem ela, nas coletas antigas, o início): a hora em que o serviço voltou contaria o tempo parado.
  */
-export function markInterruptedRuns() {
+export function markInterruptedRuns(filter: { _id?: mongoose.Types.ObjectId } = {}) {
 	return ScraperRun.updateMany(
-		{ status: 'running' },
+		{ ...filter, status: 'running' },
 		[
 			{
 				$set: {
