@@ -17,6 +17,7 @@ import { card } from '../ui/Card'
 import { ConfirmDialog } from '../ui/Dialog'
 import { FieldHelp } from '../ui/Field'
 import { Notice } from '../ui/Notice'
+import { StatusLine } from '../ui/StatusLine'
 import { ChoiceCard, Rise, StepHeading, useStepBar, useSubSteps } from './parts'
 
 // Sem o stream (conexão caiu), consulta as versões enquanto a nova é validada
@@ -213,10 +214,9 @@ export function CvStep({
 
 		return (
 			<div className="flex flex-col gap-4 animate-panel-in motion-reduce:animate-none">
-				<p role="status" className="flex items-center gap-2 text-sm text-ok">
-					<Icon name="check" />
+				<StatusLine tone="ok" icon="check">
 					Ficou pronto! Dê uma olhada e, se estiver bom, use este currículo.
-				</p>
+				</StatusLine>
 				{version.pages !== null && version.pages > 1 && (
 					<Notice tone="warn" icon="alert">
 						<p>
@@ -303,10 +303,9 @@ export function CvStep({
 				<Rise order={3}>{renderCandidate(candidate)}</Rise>
 			) : ready ? (
 				<Rise order={3} className="flex flex-col gap-4">
-					<p className="flex items-center gap-2 text-sm text-ok" role="status">
-						<Icon name="check" />
+					<StatusLine tone="ok" icon="check">
 						{active ? 'Você já tem um currículo salvo.' : 'Você já tem um currículo no arquivo data/cv/cv.tex.'}
-					</p>
+					</StatusLine>
 					{active && <Preview version={active} />}
 					<p className="text-sm text-muted">Quer trocar? Escolha um jeito:</p>
 					{choices}

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { useRef, useState, type FormEvent, type ReactNode } from 'react'
 
 import type { CorrectableField, JobCorrectionInput } from '@shared/contracts'
 
@@ -8,11 +8,9 @@ import { cx } from '../lib/cx'
 import { CONTRACT_TYPES, WORK_MODES } from '../lib/format'
 import { correctionBody, draftFromJob, type CorrectionDraft } from '../lib/job-correction'
 import { notify } from '../stores/toast'
-import { Icon } from './Icon'
 import { Button } from './ui/Button'
-import { DIALOG } from './ui/Dialog'
+import { Dialog, DialogTitle } from './ui/Dialog'
 import { FieldError, FieldLabel } from './ui/Field'
-import { IconButton } from './ui/IconButton'
 import { Input } from './ui/Input'
 import { KeywordInput } from './ui/KeywordInput'
 import { Pill, PillGroup } from './ui/Pill'
@@ -97,10 +95,6 @@ export function ReportJobDialog({
 	const [draft, setDraft] = useState<CorrectionDraft>(() => draftFromJob(job))
 	const [errors, setErrors] = useState<Record<string, string>>({})
 	const [saving, setSaving] = useState(false)
-
-	useEffect(() => {
-		ref.current?.showModal()
-	}, [])
 
 	const close = () => ref.current?.close()
 
@@ -269,24 +263,11 @@ export function ReportJobDialog({
 	}
 
 	return (
-		// biome-ignore lint/a11y/useKeyWithClickEvents: pelo teclado, o Esc já fecha o <dialog>
-		<dialog
-			ref={ref}
-			className={DIALOG}
-			aria-labelledby="report-title"
-			onClose={onClose}
-			// Clique no fundo escurecido (fora do conteúdo) fecha
-			onClick={event => event.target === ref.current && ref.current.close()}
-		>
+		<Dialog ref={ref} onClose={onClose}>
 			<div className="flex flex-col gap-2.5 px-5 pt-4 pb-5">
-				<div className="flex items-center justify-between gap-3">
-					<h2 className="text-lg font-bold" id="report-title">
-						{step === 'edit' ? 'Corrigir a vaga' : step === 'blocked' ? 'Esta empresa está bloqueada' : 'O que saiu errado?'}
-					</h2>
-					<IconButton label="Fechar" onClick={close}>
-						<Icon name="close" />
-					</IconButton>
-				</div>
+				<DialogTitle closable>
+					{step === 'edit' ? 'Corrigir a vaga' : step === 'blocked' ? 'Esta empresa está bloqueada' : 'O que saiu errado?'}
+				</DialogTitle>
 				<p className="text-muted text-sm block truncate">{job.title}</p>
 
 				{step === 'blocked' && blockedCompany ? (
@@ -363,6 +344,6 @@ export function ReportJobDialog({
 					</>
 				)}
 			</div>
-		</dialog>
+		</Dialog>
 	)
 }

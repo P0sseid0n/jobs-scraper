@@ -10,6 +10,7 @@ import { Icon } from '../Icon'
 import { Button } from '../ui/Button'
 import { card } from '../ui/Card'
 import { FieldHelp } from '../ui/Field'
+import { Hero } from '../ui/Page'
 import { Rise, StepHeading, useStepBar } from './parts'
 import type { OnboardingStep } from './steps'
 
@@ -107,7 +108,7 @@ export function ReviewStep({
 				title={
 					setup.ready ? (
 						<>
-							Tudo <span className="font-mono font-normal">pronto!</span>
+							Tudo <Hero.Mono>pronto!</Hero.Mono>
 						</>
 					) : (
 						'Quase lá'

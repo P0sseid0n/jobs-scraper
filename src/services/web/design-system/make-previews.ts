@@ -286,6 +286,24 @@ const PREVIEWS: Record<string, Preview> = {
 		subtitle: 'aberto, com duas imagens',
 		body: `h(U.ImageViewer, { onClose: function () {}, images: [1, 2].map(function (n) { return { alt: 'imagem ' + n + ' de 2 do post', src: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="480" height="300"><rect width="480" height="300" fill="#f7f5f0"/><text x="240" y="160" font-size="48" text-anchor="middle" fill="#1d1b18">' + n + '</text></svg>') } }) })`,
 	},
+	Dialog: {
+		group: 'Feedback',
+		height: 260,
+		subtitle: 'a modal aberta, com o título e o fechar',
+		body: `h(U.Dialog, { onClose: function () {} }, h('div', { className: 'flex flex-col gap-2.5 px-5 pt-4 pb-5' }, h(U.DialogTitle, { closable: true }, 'Bloquear a Acme?'), h('p', { className: 'text-sm text-muted' }, 'As próximas vagas dela são descartadas na coleta.'), h('div', { className: 'flex justify-end gap-2 pt-2' }, h(U.Button, { variant: 'ghost' }, 'cancelar'), h(U.Button, { variant: 'danger' }, 'bloquear'))))`,
+	},
+	DialogTitle: {
+		group: 'Feedback',
+		height: 200,
+		subtitle: 'com o fechar (closable)',
+		body: `h(U.Dialog, { onClose: function () {} }, h('div', { className: 'flex flex-col gap-1 px-5 pt-4 pb-5' }, h(U.DialogTitle, { closable: true }, 'Entrar em contato'), h(U.FieldHelp, null, 'Revise e envie daqui, com o currículo anexado.')))`,
+	},
+	StatusLine: {
+		group: 'Feedback',
+		height: 110,
+		subtitle: 'esperando, de fundo e pronto',
+		body: `col(h(U.StatusLine, { icon: 'spinner' }, 'Entrando no LinkedIn…'), h(U.StatusLine, { icon: 'spinner', tone: 'muted' }, 'Validando no cv-updater…'), h(U.StatusLine, { icon: 'check', tone: 'ok' }, 'Esta versão é o currículo base.'))`,
+	},
 	ConfirmDialog: {
 		group: 'Feedback',
 		height: 260,

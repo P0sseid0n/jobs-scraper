@@ -3,10 +3,11 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode,
 import { cx } from '../../lib/cx'
 import { Icon } from '../Icon'
 import { Button } from './Button'
-import { DIALOG } from './Dialog'
+import { Dialog } from './Dialog'
 import { IconButton } from './IconButton'
 import { Notice } from './Notice'
 import { TabPanel, Tabs } from './Tabs'
+import { LIST } from './text'
 import { TextLink } from './TextLink'
 
 /** Um passo do tutorial: o que fazer, em uma linha, e o detalhe de onde clicar. */
@@ -125,7 +126,7 @@ export function Tutorial({
 			)}
 
 			{/* Os passos, numerados e ligados por uma linha: o atual em destaque, os anteriores com o check */}
-			<ol className="m-0 flex list-none items-center p-0" aria-label="Passos">
+			<ol className={cx(LIST, 'flex items-center')} aria-label="Passos">
 				{steps.map((item, number) => (
 					<li key={item.id} className={cx('flex items-center', number > 0 && 'grow')}>
 						{number > 0 && (
@@ -309,22 +310,14 @@ export function TutorialDialog({ onClose, ...props }: Omit<TutorialProps, 'onClo
 	const ref = useRef<HTMLDialogElement>(null)
 	const id = useId()
 
+	// Depois do da modal, que abre e foca a seção do tutorial (focável, sem contorno): o foco vai para o fechar, como nas
+	// outras modais
 	useEffect(() => {
-		ref.current?.showModal()
-		// O showModal foca a seção do tutorial (focável, sem contorno): o foco vai para o fechar, como nas outras modais
 		ref.current?.querySelector<HTMLElement>('button[aria-label]')?.focus()
 	}, [])
 
 	return (
-		// biome-ignore lint/a11y/useKeyWithClickEvents: pelo teclado, o Esc já fecha o <dialog>
-		<dialog
-			ref={ref}
-			className={cx(DIALOG, 'w-160')}
-			aria-labelledby={`${id}-title`}
-			onClose={onClose}
-			// Clique no fundo escurecido (fora do conteúdo) fecha
-			onClick={event => event.target === ref.current && ref.current.close()}
-		>
+		<Dialog ref={ref} onClose={onClose} labelledBy={`${id}-title`} className="w-160">
 			<Tutorial
 				{...props}
 				id={id}
@@ -341,6 +334,6 @@ export function TutorialDialog({ onClose, ...props }: Omit<TutorialProps, 'onClo
 					}
 				}
 			/>
-		</dialog>
+		</Dialog>
 	)
 }

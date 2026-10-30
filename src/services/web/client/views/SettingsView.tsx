@@ -34,7 +34,7 @@ import { SECTION_SCROLL_MARGIN, SectionNav } from '../components/ui/SectionNav'
 import { SelectMenu, type SelectMenuOption } from '../components/ui/SelectMenu'
 import { StatusDot } from '../components/ui/StatusDot'
 import { Switch } from '../components/ui/Switch'
-import { META } from '../components/ui/text'
+import { LEGEND, LIST, META } from '../components/ui/text'
 import { cx } from '../lib/cx'
 import { DATE_POSTED_LABELS, formatInterval, LANGUAGE_NAMES, languageLabel } from '../lib/format'
 import { shakeInvalid } from '../lib/motion'
@@ -360,7 +360,7 @@ export function SettingsView({
 				</div>
 
 				<fieldset className="flex flex-col gap-2.5">
-					<legend className="mb-2.5 p-0 text-sm font-medium">idiomas em que trabalha</legend>
+					<legend className={LEGEND}>idiomas em que trabalha</legend>
 					<PillGroup>
 						{languages.map(code => (
 							<label key={code} className={pill({ className: 'cursor-pointer' })}>
@@ -419,13 +419,13 @@ export function SettingsView({
 				)}
 
 				<fieldset className="flex flex-col gap-2.5">
-					<legend className="mb-2.5 flex w-full items-center justify-between gap-3 p-0 text-sm font-medium">
+					<legend className={cx(LEGEND, 'flex w-full items-center justify-between gap-3')}>
 						termos de busca
 						<span className={cx('font-mono text-xs font-normal', full ? 'text-warn' : 'text-muted')}>
 							{terms.length} / {LIMITS.searchTerms}
 						</span>
 					</legend>
-					<ul className="flex flex-col gap-1.5 m-0 list-none p-0">
+					<ul className={cx(LIST, 'flex flex-col gap-1.5')}>
 						{terms.map((term, index) => (
 							<li key={index} className="flex flex-wrap items-center gap-2.5">
 								<Switch
@@ -596,7 +596,7 @@ export function SettingsView({
 				</div>
 
 				<fieldset className="flex flex-col gap-2.5">
-					<legend className="mb-2.5 p-0 text-sm font-medium">idiomas aceitos</legend>
+					<legend className={LEGEND}>idiomas aceitos</legend>
 					<PillGroup>
 						{languages.map(code => (
 							<label key={code} className={pill({ className: 'cursor-pointer' })}>

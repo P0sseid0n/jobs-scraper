@@ -8,6 +8,7 @@ import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import { card } from '../ui/Card'
 import { FieldHelp } from '../ui/Field'
+import { Hero } from '../ui/Page'
 import { Rise, StepHeading, useStepBar, useSubSteps } from './parts'
 
 type AccountStepProps = {
@@ -111,7 +112,7 @@ export function ExtrasStep({ eyebrow, credentials, onCredentials, onBack, onNext
 				eyebrow={eyebrow}
 				title={
 					<>
-						Quer ir <span className="font-mono font-normal">além?</span>
+						Quer ir <Hero.Mono>além?</Hero.Mono>
 					</>
 				}
 				lead="Estas duas são opcionais. Dá para configurar agora ou mais tarde, em Configurações › Contas."
@@ -186,7 +187,7 @@ export function EmailStep({ eyebrow, credentials, onCredentials, onBack, onNext 
 				eyebrow={eyebrow}
 				title={
 					<>
-						Enviar a candidatura <span className="font-mono font-normal">daqui</span>
+						Enviar a candidatura <Hero.Mono>daqui</Hero.Mono>
 					</>
 				}
 				lead="Com a sua conta de e-mail, o botão “enviar candidatura” manda a mensagem revisada e o currículo da vaga em anexo para o recrutador, sempre depois de você confirmar. É opcional: sem ela, você copia a mensagem e envia pelo seu e-mail."

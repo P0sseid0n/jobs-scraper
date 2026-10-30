@@ -11,6 +11,8 @@ import { DrawnCheck, Icon } from './Icon'
 import { Button } from './ui/Button'
 import { FieldHelp } from './ui/Field'
 import { Notice } from './ui/Notice'
+import { StatusLine } from './ui/StatusLine'
+import { LIST } from './ui/text'
 import { TextLink } from './ui/TextLink'
 
 const POLL_MS = 2_000
@@ -108,7 +110,7 @@ const STEP_STATE_TEXT: Record<LoginStepState, string> = {
 /** As etapas ligadas por uma linha que se preenche até a atual; cada bolinha muda com a etapa. */
 function LoginTimeline({ states, fill }: ReturnType<typeof loginProgress>) {
 	return (
-		<ol className="relative m-0 grid list-none grid-cols-4 p-0" aria-label="Andamento do login">
+		<ol className={cx(LIST, 'relative grid grid-cols-4')} aria-label="Andamento do login">
 			{/* A linha vai do centro da primeira bolinha ao da última (cada coluna tem 1/4 da largura) */}
 			<span aria-hidden="true" className="absolute inset-x-1/8 top-3 h-0.5 -translate-y-1/2 rounded-pill bg-line">
 				<span
@@ -176,10 +178,9 @@ function LoginDetails({ login }: { login: ReturnType<typeof useLinkedinLogin> })
 	if (state.status === 'pending' || state.status === 'running') {
 		return (
 			<div className="flex flex-col gap-2" role="status">
-				<p className="flex items-center gap-2 text-sm">
-					<Icon name="spinner" />
+				<StatusLine icon="spinner" live={false}>
 					{state.status === 'pending' ? 'Esperando o scraper começar o teste…' : 'Entrando no LinkedIn…'}
-				</p>
+				</StatusLine>
 				{state.message && <FieldHelp>{state.message}</FieldHelp>}
 				{stalled && (
 					<Notice tone="warn" icon="alert">

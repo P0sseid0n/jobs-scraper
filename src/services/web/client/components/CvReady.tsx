@@ -9,7 +9,7 @@ import { reducedMotion } from '../lib/motion'
 import { isJustReady, markShown } from '../stores/cv'
 import { Badge, badge, BadgeList } from './ui/Badge'
 import { PdfIcon } from './ui/PdfIcon'
-import { LABEL, META } from './ui/text'
+import { LABEL, LIST, META } from './ui/text'
 import { TextLink } from './ui/TextLink'
 
 /**
@@ -205,7 +205,7 @@ export function Changes({ changes, fresh, tone = 'highlight' }: { changes: CvCha
 
 			{projects.length > 0 && (
 				<Row label="projetos">
-					<ol className="m-0 flex list-none flex-wrap gap-x-1.5 gap-y-1 p-0 text-sm" aria-label="Projetos no currículo, na ordem">
+					<ol className={cx(LIST, 'flex flex-wrap gap-x-1.5 gap-y-1 text-sm')} aria-label="Projetos no currículo, na ordem">
 						{projects.map((name, index) => (
 							<li
 								key={name}

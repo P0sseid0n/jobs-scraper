@@ -13,7 +13,8 @@ import { ReviewStep } from '../components/onboarding/ReviewStep'
 import { NUMBERED_STEPS, ONBOARDING_STEPS, stepDone, type OnboardingStep } from '../components/onboarding/steps'
 import { WelcomeDemo } from '../components/onboarding/WelcomeDemo'
 import { IconButton } from '../components/ui/IconButton'
-import { META } from '../components/ui/text'
+import { Hero } from '../components/ui/Page'
+import { LIST, META } from '../components/ui/text'
 import { cx } from '../lib/cx'
 import { loadSetup } from '../stores/setup'
 import { toggleTheme } from '../stores/theme'
@@ -246,7 +247,7 @@ function Stepper({
 
 	return (
 		<nav aria-label="Passos do onboarding">
-			<ol className="m-0 flex list-none flex-col p-0">
+			<ol className={cx(LIST, 'flex flex-col')}>
 				{NUMBERED_STEPS.map((item, index) => {
 					const done = stepDone(item.step, setup)
 					const isCurrent = item.step === current
@@ -313,7 +314,7 @@ const STEPPER_STAGGER = ['stagger-2', 'stagger-3', 'stagger-4', 'stagger-5', 'st
 /** As sub-etapas do passo atual, recuadas embaixo dele: a da tela em destaque, as feitas com o check. */
 function SubStepList({ items, current }: SubStepsState) {
 	return (
-		<ol className="m-0 mb-1 flex list-none flex-col p-0 pl-8">
+		<ol className={cx(LIST, 'mb-1 flex flex-col pl-8')}>
 			{items.map((item, index) => {
 				const isCurrent = index === current
 				const content = (
@@ -378,7 +379,7 @@ function Welcome({ onStart }: { onStart: () => void }) {
 					</Rise>
 					<Rise order={1}>
 						<h1 className="text-4xl font-bold tracking-tight text-balance md:text-6xl">
-							Vamos achar vagas <span className="font-mono font-normal">para você.</span>
+							Vamos achar vagas <Hero.Mono>para você.</Hero.Mono>
 						</h1>
 					</Rise>
 					<Rise order={2}>
@@ -388,7 +389,7 @@ function Welcome({ onStart }: { onStart: () => void }) {
 					</Rise>
 				</div>
 
-				<ol className="m-0 flex list-none flex-col gap-3 p-0">
+				<ol className={cx(LIST, 'flex flex-col gap-3')}>
 					{WELCOME_ITEMS.map((item, index) => (
 						<li
 							key={item.title}

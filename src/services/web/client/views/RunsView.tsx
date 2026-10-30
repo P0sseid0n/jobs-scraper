@@ -18,7 +18,7 @@ import { RollingNumber } from '../components/ui/RollingNumber'
 import { SelectMenu } from '../components/ui/SelectMenu'
 import { Skeleton } from '../components/ui/Skeleton'
 import { StatusDot, type StatusDotTone } from '../components/ui/StatusDot'
-import { LABEL, META, SECTION_TITLE } from '../components/ui/text'
+import { LABEL, LIST, META, SECTION_TITLE } from '../components/ui/text'
 import { RouteLink, TextLink } from '../components/ui/TextLink'
 import { cx } from '../lib/cx'
 import { DATE_POSTED_LABELS, formatDateTime, formatDuration, formatInterval } from '../lib/format'
@@ -313,7 +313,7 @@ function LiveRun({ run }: { run: WebScraperRun }) {
 					</div>
 				))}
 			</dl>
-			<ol className="m-0 flex list-none flex-col gap-3 p-0" aria-label="Termos da coleta">
+			<ol className={cx(LIST, 'flex flex-col gap-3')} aria-label="Termos da coleta">
 				{run.plannedTerms.map((term, index) => {
 					const result = run.terms[index]
 					const state = index < done ? 'done' : index === done ? 'current' : 'upcoming'
@@ -433,7 +433,7 @@ function RunRows({ run, open, onToggle }: { run: WebScraperRun; open: boolean; o
 			{open && (
 				<tr id={detailsId} className={ROW}>
 					<td colSpan={8} className={cx(TD, 'bg-surface-2 whitespace-normal')}>
-						<ul className="m-0 grid list-none grid-cols-fill-55 gap-2.5 p-0">
+						<ul className={cx(LIST, 'grid grid-cols-fill-55 gap-2.5')}>
 							{run.terms.map(term => (
 								<TermCard key={term.term} term={term} />
 							))}
@@ -906,7 +906,7 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 
 			<section className="flex flex-col gap-2.5">
 				<h2 className={SECTION_TITLE}>
-					histórico <span className="font-mono font-normal">de coletas</span>
+					histórico <Hero.Mono>de coletas</Hero.Mono>
 				</h2>
 				<Notice tone="info" icon="info">
 					<p>Posts novos são os que foram para a IA; vagas novas são as salvas a partir deles.</p>

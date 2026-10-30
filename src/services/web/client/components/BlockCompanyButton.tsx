@@ -6,7 +6,7 @@ import { removeJob } from '../stores/jobs'
 import { notify } from '../stores/toast'
 import { Icon } from './Icon'
 import { Button } from './ui/Button'
-import { DIALOG } from './ui/Dialog'
+import { Dialog, DialogTitle } from './ui/Dialog'
 import { IconButton } from './ui/IconButton'
 
 const DIALOG_ACTIONS = 'flex flex-wrap items-center justify-end gap-2 pt-2'
@@ -84,10 +84,6 @@ export function BlockCompanyDialog({
 	const [justBlocked, setJustBlocked] = useState(false)
 	const [busy, setBusy] = useState<'block' | 'unblock' | 'remove' | null>(null)
 
-	useEffect(() => {
-		ref.current?.showModal()
-	}, [])
-
 	const company = block.company
 	if (!company) return null
 
@@ -138,19 +134,11 @@ export function BlockCompanyDialog({
 	}
 
 	return (
-		// biome-ignore lint/a11y/useKeyWithClickEvents: pelo teclado, o Esc já fecha o <dialog>
-		<dialog
-			ref={ref}
-			className={DIALOG}
-			aria-labelledby="block-company-title"
-			onClose={closed}
-			// Clique no fundo escurecido (fora do conteúdo) fecha
-			onClick={event => event.target === ref.current && ref.current.close()}
-		>
+		<Dialog ref={ref} onClose={closed}>
 			<div className="flex flex-col gap-2.5 px-5 pt-4 pb-5">
-				<h2 className="text-lg font-bold" id="block-company-title">
+				<DialogTitle>
 					{!blocked ? `Bloquear a ${company}?` : justBlocked ? `${blocked} bloqueada` : `${blocked} está bloqueada`}
-				</h2>
+				</DialogTitle>
 
 				{!blocked ? (
 					<>
@@ -198,6 +186,6 @@ export function BlockCompanyDialog({
 					</>
 				)}
 			</div>
-		</dialog>
+		</Dialog>
 	)
 }

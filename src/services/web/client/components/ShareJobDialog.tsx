@@ -1,15 +1,14 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 
 import { jobShareSubject, jobShareText, type ShareJob } from '@shared/templates'
 
-import { cx } from '../lib/cx'
 import { useCoarsePointer } from '../lib/media'
 import { notify } from '../stores/toast'
 import { CopyButton } from './CopyButton'
 import { Icon } from './Icon'
 import { ShareJobImage } from './ShareJobImage'
 import { Button } from './ui/Button'
-import { DIALOG } from './ui/Dialog'
+import { Dialog, DialogTitle } from './ui/Dialog'
 import { FieldHelp, FieldLabel } from './ui/Field'
 import { IconButton } from './ui/IconButton'
 import { field } from './ui/Input'
@@ -44,7 +43,6 @@ function WhatsAppText({ text }: { text: string }) {
  */
 export function ShareJobDialog({ job, onClose }: { job: ShareJob; onClose: () => void }) {
 	const ref = useRef<HTMLDialogElement>(null)
-	const titleId = useId()
 	const textId = useId()
 	const generated = jobShareText(job)
 	const [text, setText] = useState(generated)
@@ -61,10 +59,6 @@ export function ShareJobDialog({ job, onClose }: { job: ShareJob; onClose: () =>
 		setFormat(value)
 		if (value === 'image') setImageOpened(true)
 	}
-
-	useEffect(() => {
-		ref.current?.showModal()
-	}, [])
 
 	async function share() {
 		try {
@@ -83,27 +77,16 @@ export function ShareJobDialog({ job, onClose }: { job: ShareJob; onClose: () =>
 	)
 
 	return (
-		// biome-ignore lint/a11y/useKeyWithClickEvents: pelo teclado, o Esc já fecha o <dialog>
-		<dialog
+		<Dialog
 			ref={ref}
+			onClose={onClose}
 			// Aberta, vira coluna: o meio rola e o topo e o rodapé ficam à vista. Larga para a prévia da imagem caber ao lado
 			// das opções, e a mesma nas duas abas, para a modal não pular ao trocar. Ela mesma não rola: a aba que entra desce
 			// 6px na animação e, com a modal na altura máxima, isso mostrava uma barra de rolagem a cada troca
-			className={cx(DIALOG, 'w-180 overflow-hidden open:flex open:flex-col')}
-			aria-labelledby={titleId}
-			onClose={onClose}
-			// Clique no fundo escurecido (fora do conteúdo) fecha
-			onClick={event => event.target === ref.current && ref.current.close()}
+			className="w-180 overflow-hidden open:flex open:flex-col"
 		>
 			<div className="flex flex-col gap-1 px-5 pt-4 pb-1">
-				<div className="flex items-center justify-between gap-3">
-					<h2 className="text-lg font-bold" id={titleId}>
-						Compartilhar vaga
-					</h2>
-					<IconButton label="Fechar" size="sm" onClick={() => ref.current?.close()}>
-						<Icon name="close" size={16} />
-					</IconButton>
-				</div>
+				<DialogTitle closable>Compartilhar vaga</DialogTitle>
 				<p className="m-0 min-w-0 truncate text-sm">
 					<span className="font-semibold">{job.title}</span>
 					{job.company && <span className="text-muted"> · {job.company}</span>}
@@ -189,7 +172,7 @@ export function ShareJobDialog({ job, onClose }: { job: ShareJob; onClose: () =>
 			<TabPanel tabsId={tabsId} value="image" selected={format === 'image'} className="flex min-h-0 grow flex-col">
 				{imageOpened && <ShareJobImage job={job} text={text} onClose={() => ref.current?.close()} />}
 			</TabPanel>
-		</dialog>
+		</Dialog>
 	)
 }
 

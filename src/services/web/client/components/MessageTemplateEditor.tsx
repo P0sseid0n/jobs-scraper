@@ -18,13 +18,13 @@ import { insertVariable, type TemplateField } from '../lib/template-editor'
 import { variablePickerOpen } from '../stores/variable-picker'
 import { Icon } from './Icon'
 import { Button } from './ui/Button'
-import { DIALOG } from './ui/Dialog'
+import { Dialog, DialogTitle } from './ui/Dialog'
 import { Disclosure } from './ui/Disclosure'
 import { FieldError, FieldHelp, FieldLabel } from './ui/Field'
 import { IconButton } from './ui/IconButton'
 import { field, Input } from './ui/Input'
 import { Pill, PillGroup } from './ui/Pill'
-import { FIELDSET, LABEL } from './ui/text'
+import { FIELDSET, LABEL, LIST } from './ui/text'
 import { VariablePicker, type VariablePickerGroup } from './ui/VariablePicker'
 
 type MessageTemplateEditorProps = {
@@ -317,7 +317,8 @@ export function MessageTemplateEditor({ message, profile, errors, edit, revealEr
 						<>
 							O texto que entra no lugar da variável quando a IA não achou o dado no post. Vazio, a variável fica marcada na
 							mensagem e o envio espera você completar. Para um fallback só num trecho, escreva-o na variável, depois de uma
-							barra: <code className="font-mono text-lime-text">{'{{empresa | a sua empresa}}'}</code> (ele vale mais que o daqui).
+							barra: <code className="font-mono text-lime-text">{'{{empresa | a sua empresa}}'}</code> (ele vale mais que o
+							daqui).
 						</>
 					}
 					onClose={() => setDialog(null)}
@@ -362,7 +363,7 @@ export function MessageTemplateEditor({ message, profile, errors, edit, revealEr
 				{variables.length === 0 && (
 					<div className="flex flex-col gap-2 rounded-sm border border-dashed border-line p-3.5">
 						<p className="text-sm text-muted">Nenhuma variável ainda. Comece por um exemplo ou crie do zero:</p>
-						<ul className="m-0 flex list-none flex-wrap gap-2 p-0">
+						<ul className={cx(LIST, 'flex flex-wrap gap-2')}>
 							{OWN_VARIABLE_EXAMPLES.map(example => (
 								<li key={example.name}>
 									<button
@@ -380,7 +381,7 @@ export function MessageTemplateEditor({ message, profile, errors, edit, revealEr
 					</div>
 				)}
 				{variables.length > 0 && (
-					<ul className="m-0 flex list-none flex-col gap-3 p-0">
+					<ul className={cx(LIST, 'flex flex-col gap-3')}>
 						{variables.map((variable, index) => {
 							const path = `variables.${index}`
 							const at = (key: string) => (hiddenError(`${path}.${key}`) ? undefined : errors[`${path}.${key}`])
@@ -580,7 +581,10 @@ export function MessageTemplateEditor({ message, profile, errors, edit, revealEr
 				{/* O efeito na hora, numa vaga sem os dados que costumam faltar (a prévia da tela fica atrás da modal); sem
 				 * nenhuma variável que pode faltar no modelo, ela sairia igual à mensagem e não mostraria nada */}
 				{used.length > 0 && (
-					<section aria-label="Prévia numa vaga sem empresa e local" className="flex flex-col gap-2 rounded-sm bg-surface-2 p-3.5">
+					<section
+						aria-label="Prévia numa vaga sem empresa e local"
+						className="flex flex-col gap-2 rounded-sm bg-surface-2 p-3.5"
+					>
 						<span className={LABEL}>prévia numa vaga {SAMPLE_LABELS.partial}</span>
 						<p className="m-0 text-sm font-semibold wrap-break-word">
 							{renderParts(templateParts(template.subject, partial, fallbacks))}
@@ -658,32 +662,12 @@ function EditorDialogBox({
 	children: ReactNode
 }) {
 	const ref = useRef<HTMLDialogElement>(null)
-	const titleId = useId()
-
-	useEffect(() => {
-		ref.current?.showModal()
-	}, [])
 
 	return (
-		// biome-ignore lint/a11y/useKeyWithClickEvents: pelo teclado, o Esc já fecha o <dialog>
-		<dialog
-			ref={ref}
-			// Aberta, vira coluna: o meio rola e o topo e o rodapé ficam à vista
-			className={cx(DIALOG, 'w-180 open:flex open:flex-col')}
-			aria-labelledby={titleId}
-			onClose={onClose}
-			// Clique no fundo escurecido (fora do conteúdo) fecha
-			onClick={event => event.target === ref.current && ref.current.close()}
-		>
+		// Aberta, vira coluna: o meio rola e o topo e o rodapé ficam à vista
+		<Dialog ref={ref} onClose={onClose} className="w-180 open:flex open:flex-col">
 			<div className="flex flex-col gap-1 border-b border-line px-5 pt-4 pb-3.5">
-				<div className="flex items-center justify-between gap-3">
-					<h2 id={titleId} className="text-lg font-bold">
-						{title}
-					</h2>
-					<IconButton label="Fechar" size="sm" onClick={() => ref.current?.close()}>
-						<Icon name="close" size={16} />
-					</IconButton>
-				</div>
+				<DialogTitle closable>{title}</DialogTitle>
 				<FieldHelp>{help}</FieldHelp>
 			</div>
 			<div className="min-h-0 grow overflow-y-auto px-5 py-4">{children}</div>
@@ -694,7 +678,7 @@ function EditorDialogBox({
 					pronto
 				</Button>
 			</div>
-		</dialog>
+		</Dialog>
 	)
 }
 

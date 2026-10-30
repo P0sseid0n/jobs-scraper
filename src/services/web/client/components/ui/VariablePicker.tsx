@@ -9,7 +9,7 @@ import { Button } from './Button'
 import { Disclosure } from './Disclosure'
 import { pill } from './Pill'
 import { StatusDot } from './StatusDot'
-import { LABEL } from './text'
+import { LABEL, LIST } from './text'
 
 /** Uma variável do painel: o nome (sem as chaves), a descrição curta e o tipo. */
 export type VariablePickerItem = {
@@ -141,13 +141,16 @@ export function VariablePicker({ groups, onInsert, linkDisabled = false, howTo, 
 										aria-haspopup="dialog"
 										onMouseDown={event => event.preventDefault()}
 										onClick={emptyAction.onClick}
-										className={pill({ shape: 'row', className: 'w-full gap-2 border-dashed bg-transparent text-muted hover:text-ink' })}
+										className={pill({
+											shape: 'row',
+											className: 'w-full gap-2 border-dashed bg-transparent text-muted hover:text-ink',
+										})}
 									>
 										<Icon name="plus" size={14} />
 										{group.empty}
 									</button>
 								)}
-								<ul className="m-0 grid list-none grid-cols-2 gap-x-3 gap-y-0.5 p-0 max-sm:grid-cols-1">
+								<ul className={cx(LIST, 'grid grid-cols-2 gap-x-3 gap-y-0.5 max-sm:grid-cols-1')}>
 									{group.variables.map(variable => {
 										const disabled = linkDisabled && variable.type === 'link'
 

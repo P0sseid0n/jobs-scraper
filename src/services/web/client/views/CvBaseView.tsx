@@ -18,7 +18,8 @@ import { field } from '../components/ui/Input'
 import { Notice } from '../components/ui/Notice'
 import { Hero, Page } from '../components/ui/Page'
 import { SectionCard } from '../components/ui/SectionCard'
-import { META, SECTION_TITLE } from '../components/ui/text'
+import { StatusLine } from '../components/ui/StatusLine'
+import { LIST, META, SECTION_TITLE } from '../components/ui/text'
 import { activeVersion, formatKilobytes, texBytes, upsertVersion } from '../lib/cv-base'
 import { CV_EXAMPLES, exampleDownloadUrl, type CvExample } from '../lib/cv-examples'
 import { cleanForm, emptyForm, formProblems, sameForm } from '../lib/cv-form'
@@ -343,10 +344,9 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 	function renderCandidate(version: WebCvBaseVersion) {
 		if (version.status === 'validating') {
 			return (
-				<p role="status" className="flex items-center gap-2 text-sm text-muted">
-					<Icon name="spinner" size={16} />
+				<StatusLine tone="muted" icon="spinner">
 					Validando no cv-updater…
-				</p>
+				</StatusLine>
 			)
 		}
 		if (version.status === 'invalid') return <Errors version={version} />
@@ -354,20 +354,18 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 		// Depois de ativada, a prévia já aparece em "versão ativa": aqui fica só a confirmação
 		if (version.versionId === active?.versionId) {
 			return (
-				<p role="status" className="flex items-center gap-2 text-sm text-ok">
-					<Icon name="check" size={16} />
+				<StatusLine tone="ok" icon="check">
 					Esta versão é o currículo base.
-				</p>
+				</StatusLine>
 			)
 		}
 
 		return (
 			<div className="flex flex-col gap-3.5">
 				<div className="flex flex-wrap items-center gap-3">
-					<p role="status" className="flex grow items-center gap-2 text-sm text-ok">
-						<Icon name="check" size={16} />
+					<StatusLine tone="ok" icon="check" className="grow">
 						{`Compilou sem erros${version.pages ? ` (${pagesLabel(version.pages)})` : ''}. Confira a prévia e ative.`}
-					</p>
+					</StatusLine>
 					<Button variant="ghost" href={cvBasePdfUrl(version.versionId)} external>
 						abrir PDF
 					</Button>
@@ -387,7 +385,7 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 	function renderExamples() {
 		const intro = 'Comece por um modelo: troque os dados pelos seus e valide.'
 		const list = (
-			<ul className="m-0 flex list-none flex-col gap-2.5 p-0">
+			<ul className={cx(LIST, 'flex flex-col gap-2.5')}>
 				{CV_EXAMPLES.map(example => {
 					const download = `baixar ${example.fileName}`
 
@@ -475,10 +473,9 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 				}
 			>
 				{cvImport.importing && (
-					<p role="status" className="flex items-center gap-2 text-sm text-muted">
-						<Icon name="spinner" size={16} />
+					<StatusLine tone="muted" icon="spinner">
 						Lendo o PDF com a IA… costuma levar um minuto. O formulário abre preenchido para você revisar.
-					</p>
+					</StatusLine>
 				)}
 				{formDirty && (
 					<div className="flex flex-wrap items-center justify-between gap-2">
@@ -544,7 +541,7 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 	function renderHistory() {
 		return (
 			<SectionCard title="histórico">
-				<ul className="m-0 flex list-none flex-col gap-2.5 p-0">
+				<ul className={cx(LIST, 'flex flex-col gap-2.5')}>
 					{versions.map(version => {
 						const isActive = version.versionId === active?.versionId
 

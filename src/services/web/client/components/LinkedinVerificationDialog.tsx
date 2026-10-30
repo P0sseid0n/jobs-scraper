@@ -13,9 +13,8 @@ import {
 import { notify } from '../stores/toast'
 import { DrawnCheck, Icon } from './Icon'
 import { Button } from './ui/Button'
-import { DIALOG } from './ui/Dialog'
+import { Dialog, DialogTitle } from './ui/Dialog'
 import { FieldHelp, FieldLabel } from './ui/Field'
-import { IconButton } from './ui/IconButton'
 import { Input } from './ui/Input'
 import { META } from './ui/text'
 
@@ -40,31 +39,15 @@ function VerificationDialog({ login }: { login: LinkedinLoginState }) {
 	const ref = useRef<HTMLDialogElement>(null)
 	const remaining = useRemaining(login.expiresAt)
 
+	// Depois do da modal (que abre e foca o primeiro botão, o fechar): no código, o foco vai para o campo
 	useEffect(() => {
-		ref.current?.showModal()
-		// O showModal foca o primeiro botão (fechar): no código, o foco vai para o campo
 		ref.current?.querySelector('input')?.focus()
 	}, [])
 
 	return (
-		// biome-ignore lint/a11y/useKeyWithClickEvents: pelo teclado, o Esc já fecha o <dialog>
-		<dialog
-			ref={ref}
-			className={DIALOG}
-			aria-labelledby="linkedin-verification-title"
-			onClose={dismissLinkedinVerification}
-			// Clique no fundo escurecido (fora do conteúdo) fecha
-			onClick={event => event.target === ref.current && ref.current.close()}
-		>
+		<Dialog ref={ref} onClose={dismissLinkedinVerification}>
 			<div className="flex flex-col gap-3 px-5 pt-4 pb-5">
-				<div className="flex items-center justify-between gap-3">
-					<h2 className="text-lg font-bold" id="linkedin-verification-title">
-						O LinkedIn quer confirmar que é você
-					</h2>
-					<IconButton label="Fechar" onClick={() => ref.current?.close()}>
-						<Icon name="close" />
-					</IconButton>
-				</div>
+				<DialogTitle closable>O LinkedIn quer confirmar que é você</DialogTitle>
 				<p className="text-sm text-muted">
 					{login.requestedAt
 						? 'Para terminar o teste do login, confirme o acesso.'
@@ -87,7 +70,7 @@ function VerificationDialog({ login }: { login: LinkedinLoginState }) {
 					</div>
 				)}
 			</div>
-		</dialog>
+		</Dialog>
 	)
 }
 

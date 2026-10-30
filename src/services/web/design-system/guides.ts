@@ -120,6 +120,10 @@ export const GUIDES: Record<string, string> = {
 
 - Em \`color-danger\`; marque o campo com \`invalid\` e ligue os dois por \`aria-describedby\`.
 - Diga como corrigir: "Use pelo menos 5 minutos.", "Digite um e-mail completo, como ana@empresa.com."`,
+	StatusLine: `Uma linha com o andamento ou o resultado de algo ("Validando no cv-updater…"), anunciada ao leitor de tela.
+
+- \`icon="spinner"\` enquanto espera (com \`tone="muted"\` quando é algo de fundo) e \`icon="check"\` com \`tone="ok"\` quando deu certo.
+- Para um aviso com fundo (dados duvidosos, falha), use o \`Notice\`. \`live={false}\` quando já está dentro de outro \`role="status"\`.`,
 	Notice: `Aviso dentro da tela (dados duvidosos, falha de uma parte); erros que pedem ação usam \`role="alert"\`.
 
 - \`tone\`: \`info\` (uma explicação a mais, com \`icon="info"\`), \`warn\` (dados duvidosos, algo a conferir) ou \`danger\` (falhou).
@@ -159,6 +163,14 @@ export const GUIDES: Record<string, string> = {
 
 - Abre ao montar: renderize só enquanto estiver aberto e desmonte no \`onClose\`.
 - \`images\` são \`{ src, alt }\`; \`start\` é a que abre primeiro. \`original={false}\` tira o "abrir original" quando o arquivo só existe na página (um PNG gerado).`,
+	Dialog: `Uma modal: abre ao montar, fecha com o Esc e com um clique no fundo escurecido; o \`DialogTitle\` de dentro dá o nome.
+
+- Renderize só enquanto estiver aberta e desmonte no \`onClose\`, chamado por qualquer caminho de fechar.
+- O conteúdo é da modal: uma simples vai num \`div\` com \`flex flex-col gap-2.5 px-5 pt-4 pb-5\` e os botões no fim; uma com o meio rolando usa \`className="w-180 open:flex open:flex-col"\`, com o topo, o meio (\`min-h-0 grow overflow-y-auto\`) e o rodapé.
+- \`locked\` enquanto envia (nada fecha); \`closeOnBackdrop={false}\` num formulário longo. Para um sim ou não, use o \`ConfirmDialog\`.`,
+	DialogTitle: `O título de uma \`Dialog\` (o nome dela para o leitor de tela); com \`closable\`, o "x" de fechar fica à direita.
+
+- Uma frase curta ("Entrar em contato", "O que saiu errado?"). O "x" fica desligado enquanto a modal está \`locked\`.`,
 	ConfirmDialog: `Pergunta de sim ou não numa modal; fechar (Esc, clique fora ou o botão de cancelar) conta como cancelar.
 
 - Abre ao montar. \`title\` é a pergunta ("Sair sem salvar?"), \`description\` a consequência; \`confirmLabel\` e \`cancelLabel\` dizem o que cada botão faz ("sair sem salvar" / "continuar editando"), nunca "sim" e "não".
@@ -186,6 +198,7 @@ export const GUIDES: Record<string, string> = {
 - Os blocos dentro dele já ficam com \`gap-7\` (\`gap-5\` no celular). A tela costuma abrir com um \`Hero\`.`,
 	Hero: `Abertura da tela: título numa linha (a parte em mono vem em \`<Hero.Mono>\`), texto de apoio opcional e, à direita, \`aside\`.
 
+- \`Hero.Mono\` também serve na parte em mono de outros títulos (os do onboarding, "histórico <Hero.Mono>de coletas</Hero.Mono>").
 - \`title\` em minúsculas com a parte final em \`Hero.Mono\` ("vagas <Hero.Mono>coletadas.</Hero.Mono>"); \`lead\` só quando explica algo que a tela não mostra, em até duas frases curtas.
 - \`aside\` leva o status ou a ação da tela (um \`Badge\` \`lg\` com \`StatusDot\`, um \`Button\`).`,
 }

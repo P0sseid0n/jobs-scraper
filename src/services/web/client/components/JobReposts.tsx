@@ -2,9 +2,10 @@ import { useState } from 'react'
 
 import type { WebJob } from '../../api-types'
 import { api, RequestError } from '../api'
+import { cx } from '../lib/cx'
 import { safeLink, timeAgo } from '../lib/format'
 import { notify } from '../stores/toast'
-import { LABEL, META } from './ui/text'
+import { LABEL, LIST, META } from './ui/text'
 import { TextLink } from './ui/TextLink'
 
 /**
@@ -31,7 +32,7 @@ export function JobReposts({ job, onUngrouped }: { job: WebJob; onUngrouped: (jo
 	return (
 		<section className="flex flex-col gap-2.5" aria-label="Também postada por">
 			<h3 className={LABEL}>também postada por</h3>
-			<ul className="m-0 flex list-none flex-col gap-2 p-0">
+			<ul className={cx(LIST, 'flex flex-col gap-2')}>
 				{job.reposts.map(repost => {
 					const link = safeLink(repost.postLink)
 

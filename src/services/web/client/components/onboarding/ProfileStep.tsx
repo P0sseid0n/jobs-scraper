@@ -8,15 +8,16 @@ import { cx } from '../../lib/cx'
 import { LANGUAGE_NAMES, languageLabel } from '../../lib/format'
 import { LIMITS, profileDraftOf, validateProfile, type ProfileDraft } from '../../lib/settings-form'
 import { notify } from '../../stores/toast'
-import { Icon } from '../Icon'
 import { Combobox } from '../ui/Combobox'
 import { FieldError, FieldHelp, FieldLabel } from '../ui/Field'
 import { Checkbox } from '../ui/Input'
 import { KeywordInput } from '../ui/KeywordInput'
 import { Notice } from '../ui/Notice'
+import { Hero } from '../ui/Page'
 import { Pill, pill, PillGroup } from '../ui/Pill'
 import { Skeleton } from '../ui/Skeleton'
-import { FIELDSET, META } from '../ui/text'
+import { StatusLine } from '../ui/StatusLine'
+import { FIELDSET, LEGEND, META } from '../ui/text'
 import { Rise, StepHeading, useStepBar, useSubSteps } from './parts'
 
 const SENIORITY_NAMES: Record<SeniorityLevel, string> = {
@@ -208,7 +209,7 @@ function AboutYou({
 
 			<Rise order={4}>
 				<fieldset className={FIELDSET}>
-					<legend className="mb-2.5 p-0 text-sm font-medium">seu nível de experiência</legend>
+					<legend className={LEGEND}>seu nível de experiência</legend>
 					<PillGroup>
 						{[...SENIORITY_LEVELS, null].map(level => (
 							<Pill key={level ?? 'none'} pressed={profile.seniority === level} onClick={() => edit({ seniority: level })}>
@@ -221,7 +222,7 @@ function AboutYou({
 
 			<Rise order={5}>
 				<fieldset className={FIELDSET}>
-					<legend className="mb-2.5 p-0 text-sm font-medium">idiomas em que você trabalha</legend>
+					<legend className={LEGEND}>idiomas em que você trabalha</legend>
 					<PillGroup>
 						{languages.map(code => (
 							<label key={code} className={pill({ className: 'cursor-pointer' })}>
@@ -334,7 +335,7 @@ function WhatToSearch({
 				eyebrow={eyebrow}
 				title={
 					<>
-						É isso que vamos <span className="font-mono font-normal">procurar.</span>
+						É isso que vamos <Hero.Mono>procurar.</Hero.Mono>
 					</>
 				}
 				lead="Separamos algumas buscas e palavras a partir do seu cargo. Tire o que não fizer sentido e adicione o que faltar: dá para mudar depois."
@@ -342,10 +343,9 @@ function WhatToSearch({
 
 			{suggesting || !draft ? (
 				<Rise order={3} className="flex flex-col gap-4">
-					<p className="flex items-center gap-2 text-sm" role="status">
-						<Icon name="spinner" />
+					<StatusLine icon="spinner">
 						Pensando nas melhores buscas para {targetRole.trim() || 'você'}… pode levar alguns segundos.
-					</p>
+					</StatusLine>
 					<div className="flex flex-wrap gap-2" aria-hidden="true">
 						{[28, 36, 24, 32, 20].map((width, index) => (
 							<Skeleton key={index} shape="pill" className={cx('h-8', WIDTHS[width])} />

@@ -25,14 +25,14 @@ import {
 import { cx } from '../lib/cx'
 import { Icon } from './Icon'
 import { Button } from './ui/Button'
-import { DIALOG } from './ui/Dialog'
+import { Dialog, DialogTitle } from './ui/Dialog'
 import { FieldError, FieldHelp, FieldLabel } from './ui/Field'
 import { IconButton } from './ui/IconButton'
 import { field, Input } from './ui/Input'
 import { KeywordInput } from './ui/KeywordInput'
 import { Notice } from './ui/Notice'
 import { SelectMenu } from './ui/SelectMenu'
-import { LABEL, META } from './ui/text'
+import { LABEL, LIST, META } from './ui/text'
 
 type Props = {
 	form: CvForm
@@ -105,10 +105,6 @@ export function CvBaseFormDialog({ form, serverProblems, submitting, importedFro
 	const problems = Object.fromEntries(
 		Object.entries(allProblems).filter(([path]) => current === 'review' || tried.has(problemStep(path, form))),
 	)
-
-	useEffect(() => {
-		ref.current?.showModal()
-	}, [])
 
 	// Os erros do servidor (ao gerar) levam à etapa do primeiro campo errado
 	useEffect(() => {
@@ -531,7 +527,7 @@ export function CvBaseFormDialog({ form, serverProblems, submitting, importedFro
 	function renderSections() {
 		return (
 			<div className="flex flex-col gap-5">
-				<ol className="m-0 flex list-none flex-col gap-2 p-0">
+				<ol className={cx(LIST, 'flex flex-col gap-2')}>
 					{form.sections.map((section, index) => {
 						const label = SECTION_LABELS[section.kind]
 						return (
@@ -614,7 +610,7 @@ export function CvBaseFormDialog({ form, serverProblems, submitting, importedFro
 				{entries.length > 0 && (
 					<div role="alert" className="flex flex-col gap-2 rounded-md border border-danger px-4 py-3">
 						<p className="text-sm font-semibold text-danger">Corrija antes de gerar:</p>
-						<ul className="m-0 flex list-none flex-col gap-1.5 p-0">
+						<ul className={cx(LIST, 'flex flex-col gap-1.5')}>
 							{entries.map(([path, message]) => {
 								const target = problemStep(path, form)
 								return (
@@ -645,25 +641,18 @@ export function CvBaseFormDialog({ form, serverProblems, submitting, importedFro
 	}
 
 	return (
-		<dialog
+		<Dialog
 			ref={ref}
-			// Aberta, vira coluna: o meio rola e o topo (etapas) e o rodapé (voltar/próximo) ficam à vista
-			className={cx(DIALOG, 'w-3xl open:flex open:flex-col')}
-			aria-labelledby={`${id}-title`}
-			// Fechar não perde nada: os dados ficam na tela de trás até gerar
+			// Fechar não perde nada: os dados ficam na tela de trás até gerar. Um clique fora não fecha um formulário longo
 			onClose={onClose}
+			closeOnBackdrop={false}
+			// Aberta, vira coluna: o meio rola e o topo (etapas) e o rodapé (voltar/próximo) ficam à vista
+			className="w-3xl open:flex open:flex-col"
 		>
 			<div className="flex flex-col gap-3 border-b border-line px-6 pt-5 pb-4 max-md:px-4.5">
-				<div className="flex items-center justify-between gap-3">
-					<h2 id={`${id}-title`} className="text-lg font-bold">
-						currículo pelo formulário
-					</h2>
-					<IconButton label="Fechar" size="sm" onClick={() => ref.current?.close()}>
-						<Icon name="close" size={16} />
-					</IconButton>
-				</div>
+				<DialogTitle closable>currículo pelo formulário</DialogTitle>
 				<nav aria-label="Etapas">
-					<ol className="m-0 flex list-none flex-wrap gap-x-3 gap-y-1 p-0 max-md:hidden">
+					<ol className={cx(LIST, 'flex flex-wrap gap-x-3 gap-y-1 max-md:hidden')}>
 						{steps.map((item, position) => (
 							<li key={item}>
 								<button
@@ -721,7 +710,7 @@ export function CvBaseFormDialog({ form, serverProblems, submitting, importedFro
 					</Button>
 				)}
 			</div>
-		</dialog>
+		</Dialog>
 	)
 }
 

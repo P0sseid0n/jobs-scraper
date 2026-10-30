@@ -12,7 +12,7 @@ import { DrawnCheck, Icon } from './Icon'
 import { Button } from './ui/Button'
 import { IconButton } from './ui/IconButton'
 import { StatusDot, type StatusDotTone } from './ui/StatusDot'
-import { META } from './ui/text'
+import { LIST, META } from './ui/text'
 
 const TRAY_DOTS: Record<WebCvRequest['status'], { tone: StatusDotTone; pulse?: boolean }> = {
 	pending: { tone: 'lime', pulse: true },
@@ -62,7 +62,10 @@ export function CvTray() {
 			</button>
 			{!collapsed && (
 				<ul
-					className="m-0 mt-2 flex max-h-half-screen list-none flex-col gap-2.5 overflow-y-auto p-0 animate-panel-in motion-reduce:animate-none"
+					className={cx(
+						LIST,
+						'mt-2 flex max-h-half-screen flex-col gap-2.5 overflow-y-auto animate-panel-in motion-reduce:animate-none',
+					)}
 					role="status"
 					aria-live="polite"
 				>

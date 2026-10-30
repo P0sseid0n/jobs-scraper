@@ -14,7 +14,7 @@ import { SearchInput } from '../components/ui/Input'
 import { NEW_TAB } from '../components/ui/link'
 import { Hero, Page } from '../components/ui/Page'
 import { PdfIcon } from '../components/ui/PdfIcon'
-import { LABEL, META } from '../components/ui/text'
+import { LABEL, LIST, META } from '../components/ui/text'
 import { TextLink } from '../components/ui/TextLink'
 import { activeVersion } from '../lib/cv-base'
 import { cx } from '../lib/cx'
@@ -290,7 +290,7 @@ function CvList({
 	latest: Set<string>
 }) {
 	return (
-		<ul className="m-0 flex list-none flex-col gap-2.5 p-0">
+		<ul className={cx(LIST, 'flex flex-col gap-2.5')}>
 			{requests.map(request => (
 				<CvItem key={request.requestId} request={request} outdated={isOutdated(request)} latest={latest.has(request.requestId)} />
 			))}

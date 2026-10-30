@@ -16,11 +16,10 @@ import { CvButton } from './CvButton'
 import { Icon } from './Icon'
 import { badge } from './ui/Badge'
 import { Button } from './ui/Button'
-import { DIALOG } from './ui/Dialog'
+import { Dialog, DialogTitle } from './ui/Dialog'
 import { Disclosure } from './ui/Disclosure'
 import { FieldError, FieldHelp, FieldLabel } from './ui/Field'
 import { FieldScan } from './ui/FieldScan'
-import { IconButton } from './ui/IconButton'
 import { field, Input } from './ui/Input'
 import { Notice } from './ui/Notice'
 import { PdfIcon } from './ui/PdfIcon'
@@ -67,7 +66,6 @@ type ContactDialogProps = {
  */
 export function ContactDialog({ job, recipient, recipientReadOnly = false, copyAction, onClose }: ContactDialogProps) {
 	const ref = useRef<HTMLDialogElement>(null)
-	const titleId = useId()
 	const ids = {
 		to: useId(),
 		subject: useId(),
@@ -161,10 +159,6 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 							: 'Gere o currículo para enviar: ele vai anexado.'
 						: null
 
-	useEffect(() => {
-		ref.current?.showModal()
-	}, [])
-
 	// O que entrou pelo fallback não pede nada: só uma nota embaixo da mensagem
 	const hasFallbacks = textReady && message.fallbacks.length > 0
 	const fallbackNote = hasFallbacks && (
@@ -225,26 +219,16 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 	}
 
 	return (
-		// biome-ignore lint/a11y/useKeyWithClickEvents: pelo teclado, o Esc já fecha o <dialog>
-		<dialog
+		<Dialog
 			ref={ref}
-			// Aberta, vira coluna: o meio rola e o topo e o rodapé (com o "enviar") ficam à vista
-			className={cx(DIALOG, 'w-180 open:flex open:flex-col')}
-			aria-labelledby={titleId}
 			onClose={onClose}
-			// Enviando, nem o Esc nem o clique no fundo escurecido (fora do conteúdo) fecham
-			onCancel={event => busy && event.preventDefault()}
-			onClick={event => event.target === ref.current && !busy && ref.current.close()}
+			// Enviando, nem o Esc, nem o clique no fundo escurecido, nem o "x" fecham
+			locked={busy}
+			// Aberta, vira coluna: o meio rola e o topo e o rodapé (com o "enviar") ficam à vista
+			className="w-180 open:flex open:flex-col"
 		>
 			<div className="flex flex-col gap-1 border-b border-line px-5 pt-4 pb-3.5">
-				<div className="flex items-center justify-between gap-3">
-					<h2 className="text-lg font-bold" id={titleId}>
-						Entrar em contato
-					</h2>
-					<IconButton label="Fechar" size="sm" disabled={busy} onClick={() => ref.current?.close()}>
-						<Icon name="close" size={16} />
-					</IconButton>
-				</div>
+				<DialogTitle closable>Entrar em contato</DialogTitle>
 				{/* A vaga, para não mandar a mensagem certa para a vaga errada */}
 				<p className="m-0 min-w-0 truncate text-sm">
 					<span className="font-semibold">{job.title}</span>
@@ -599,7 +583,7 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 					</div>
 				</div>
 			</form>
-		</dialog>
+		</Dialog>
 	)
 }
 
