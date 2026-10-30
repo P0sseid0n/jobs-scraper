@@ -146,6 +146,15 @@ export const GUIDES: Record<string, string> = {
 
 - \`tone\`: \`lime\` (ao vivo, coletando), \`ok\`, \`danger\`, \`muted\` (pausado) e \`current\` (na cor do texto).
 - \`glow\` e \`pulse\` só para o que está acontecendo agora. Sempre com o texto ao lado.`,
+	ImageThumb: `Miniatura de imagem que amplia no clique: no hover (ou com o foco do teclado), a miniatura inteira cresce de leve, com a moldura, e aparece o ícone de ampliar no canto.
+
+- Toda imagem que abre maior usa o \`ImageThumb\` (as imagens do post, a prévia da imagem da vaga), com o \`ImageViewer\` no \`onOpen\`.
+- \`label\` diz o que o clique faz ("ampliar imagem 1 de 3 do post"). A moldura (\`rounded-md border border-line bg-surface-2\`) vai no \`className\`.
+- \`disabled\` enquanto a imagem grande ainda não existe: some o zoom e o clique.`,
+	ImageViewer: `Visualizador de imagens em tela cheia: fundo escuro, a imagem no tamanho do arquivo (menor só se não couber), setas e ← → (ou deslizar no toque) para trocar, o contador (com mais de uma imagem) e "abrir original".
+
+- Abre ao montar: renderize só enquanto estiver aberto e desmonte no \`onClose\`.
+- \`images\` são \`{ src, alt }\`; \`start\` é a que abre primeiro. \`original={false}\` tira o "abrir original" quando o arquivo só existe na página (um PNG gerado).`,
 	ConfirmDialog: `Pergunta de sim ou não numa modal; fechar (Esc, clique fora ou o botão de cancelar) conta como cancelar.
 
 - Abre ao montar. \`title\` é a pergunta ("Sair sem salvar?"), \`description\` a consequência; \`confirmLabel\` e \`cancelLabel\` dizem o que cada botão faz ("sair sem salvar" / "continuar editando"), nunca "sim" e "não".

@@ -272,6 +272,18 @@ const PREVIEWS: Record<string, Preview> = {
 	h('span', { className: 'flex items-center gap-2 text-sm text-lime-text' }, h(U.StatusDot, { tone: 'current' }), 'na cor do texto')
 )`,
 	},
+	ImageThumb: {
+		group: 'Feedback',
+		height: 240,
+		subtitle: 'a imagem do post: passe o mouse para o zoom',
+		body: `h(U.ImageThumb, { label: 'ampliar imagem 1 de 1 do post', className: 'w-fit rounded-md border border-line bg-surface-2 hover:border-line-strong', onOpen: function () {} }, h('img', { className: 'block h-50 w-auto', alt: 'imagem 1 de 1 do post', src: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="320" height="200"><rect width="320" height="200" fill="#1d1b18"/><rect x="24" y="24" width="72" height="22" rx="11" fill="#c8f542"/><rect x="24" y="64" width="220" height="18" rx="4" fill="#f7f5f0"/><rect x="24" y="92" width="150" height="12" rx="4" fill="#bdb6ab"/></svg>') }))`,
+	},
+	ImageViewer: {
+		group: 'Feedback',
+		height: 360,
+		subtitle: 'aberto, com duas imagens',
+		body: `h(U.ImageViewer, { onClose: function () {}, images: [1, 2].map(function (n) { return { alt: 'imagem ' + n + ' de 2 do post', src: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="480" height="300"><rect width="480" height="300" fill="#f7f5f0"/><text x="240" y="160" font-size="48" text-anchor="middle" fill="#1d1b18">' + n + '</text></svg>') } }) })`,
+	},
 	ConfirmDialog: {
 		group: 'Feedback',
 		height: 260,

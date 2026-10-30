@@ -11,8 +11,8 @@ import { notify } from '../stores/toast'
 import { Icon } from './Icon'
 import { SHARE_CARD_SIZES, ShareJobCard, type ShareCardFormat, type ShareCardTheme, type ShareCardTitleSize } from './ShareJobCard'
 import { Button } from './ui/Button'
-import { DIALOG } from './ui/Dialog'
-import { IconButton } from './ui/IconButton'
+import { ImageThumb } from './ui/ImageThumb'
+import { ImageViewer } from './ui/ImageViewer'
 import { Pill, PILL_COUNT, PillGroup } from './ui/Pill'
 import { SwitchField } from './ui/Switch'
 import { LABEL } from './ui/text'
@@ -73,7 +73,7 @@ export function ShareJobImage({ job, text, onClose }: { job: ShareJob; text: str
 	const available = jobShareCard(job, { qr: true, skills: true, description: true })
 
 	const node = useRef<HTMLDivElement>(null)
-	const zoom = useRef<HTMLDialogElement>(null)
+	const [zoomed, setZoomed] = useState(false)
 	const fontCss = useRef<Promise<string>>(undefined)
 	const [image, setImage] = useState<{ blob: Blob; url: string } | null>(null)
 	const [generating, setGenerating] = useState(true)
@@ -195,9 +195,12 @@ export function ShareJobImage({ job, text, onClose }: { job: ShareJob; text: str
 					 * A prévia já é a imagem pronta (o card desenhado na hora): enquanto o PNG é montado por trás, só os botões
 					 * esperam, sem nada por cima dela
 					 */}
-					<div
-						className="relative shrink-0 overflow-hidden rounded-sm ring-1 ring-line"
+					<ImageThumb
+						label="ver a imagem maior"
+						className="shrink-0 rounded-sm ring-1 ring-line"
 						style={{ width: size.width * scale, height: size.height * scale }}
+						disabled={!ready}
+						onOpen={() => setZoomed(true)}
 					>
 						{/* O card no tamanho do PNG, encolhido: o PNG sai dele (a escala é do contêiner, não entra na imagem) */}
 						<div
@@ -208,15 +211,7 @@ export function ShareJobImage({ job, text, onClose }: { job: ShareJob; text: str
 						>
 							<ShareJobCard ref={node} card={card} theme={theme} format={format} titleSize={titleSize} />
 						</div>
-						<button
-							type="button"
-							className="absolute inset-0 cursor-zoom-in -outline-offset-2 disabled:cursor-default"
-							aria-label="ver a imagem maior"
-							title="ver a imagem maior"
-							disabled={!ready}
-							onClick={() => zoom.current?.showModal()}
-						/>
-					</div>
+					</ImageThumb>
 
 					<div ref={options} className="flex min-w-0 grow flex-col gap-3.5 max-sm:w-full">
 						<div className={OPTION}>
@@ -301,24 +296,14 @@ export function ShareJobImage({ job, text, onClose }: { job: ShareJob; text: str
 					</div>
 				</div>
 
-				{/* A imagem ampliada: o próprio PNG, do tamanho que couber na tela */}
-				{/* biome-ignore lint/a11y/useKeyWithClickEvents: pelo teclado, o Esc já fecha o <dialog> */}
-				<dialog
-					ref={zoom}
-					className={cx(DIALOG, 'relative w-fit max-w-full')}
-					aria-label="Imagem da vaga ampliada"
-					onClick={event => event.target === zoom.current && zoom.current.close()}
-				>
-					{image && <img src={image.url} alt={`Imagem da vaga ${card.title}`} className="block max-h-dialog w-auto max-w-full" />}
-					<IconButton
-						label="Fechar"
-						size="sm"
-						className="absolute top-3 right-3 bg-surface"
-						onClick={() => zoom.current?.close()}
-					>
-						<Icon name="close" size={16} />
-					</IconButton>
-				</dialog>
+				{/* A imagem ampliada é o próprio PNG (o arquivo só existe na página: sem "abrir original") */}
+				{zoomed && image && (
+					<ImageViewer
+						images={[{ src: image.url, alt: `Imagem da vaga ${card.title}` }]}
+						original={false}
+						onClose={() => setZoomed(false)}
+					/>
+				)}
 			</div>
 
 			<div className="flex flex-wrap justify-end gap-2 border-t border-line px-5 py-3.5">
