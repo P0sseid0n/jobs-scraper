@@ -518,7 +518,7 @@ export function AccountGroup({
 		<>
 			{!compact && current.source === null && config.missing && (
 				<Notice tone="warn" icon="alert">
-					<p className="text-sm">{config.missing}</p>
+					<p>{config.missing}</p>
 				</Notice>
 			)}
 
@@ -592,7 +592,7 @@ export function AccountGroup({
 							{!check.ok && (
 								<>
 									{' · '}
-									<TextLink className="text-sm" onClick={() => showTutorial(check.step)}>
+									<TextLink size="sm" onClick={() => showTutorial(check.step)}>
 										ver o passo a passo
 									</TextLink>
 								</>
@@ -641,7 +641,7 @@ export function AccountGroup({
 				<div className="flex items-start justify-between gap-3">
 					<FieldHelp className="min-w-0">
 						{config.note}{' '}
-						<TextLink className="text-sm" onClick={() => showTutorial()}>
+						<TextLink size="sm" onClick={() => showTutorial()}>
 							como configurar
 						</TextLink>
 					</FieldHelp>
@@ -717,10 +717,10 @@ function SmtpProviderGuide({
 
 			{isMicrosoftPersonalAccount(values) && (
 				<Notice tone="warn" icon="alert">
-					<p className="text-sm">
+					<p>
 						A Microsoft não aceita senha, nem senha de app, no SMTP das contas pessoais (Outlook, Hotmail e Live): o teste e o
 						envio vão falhar.{' '}
-						<TextLink className="text-sm" onClick={() => onChoose(GMAIL_PRESET.id)}>
+						<TextLink size="sm" onClick={() => onChoose(GMAIL_PRESET.id)}>
 							usar o Gmail
 						</TextLink>
 						. Contas Microsoft 365 de trabalho ou escola funcionam se o administrador liberar o SMTP AUTH.

@@ -218,23 +218,23 @@ export function JobCardSkeleton({ index = 0 }: { index?: number }) {
 		<div className={cx(JOB_CARD, DOT_GUTTER)} aria-hidden="true">
 			<div className="flex items-start gap-3 max-md:flex-col max-md:gap-2">
 				<div className="flex min-w-0 flex-1 flex-col gap-2 pt-1">
-					<Skeleton className={cx('h-4 rounded-xs bg-surface-2', shape.title)} />
-					<Skeleton className={cx('h-3 rounded-xs bg-surface-2', shape.subtitle)} />
+					<Skeleton shape="line" className={cx('h-4', shape.title)} />
+					<Skeleton shape="line" className={cx('h-3', shape.subtitle)} />
 				</div>
 				<div className="flex shrink-0 flex-col items-end gap-2 max-md:flex-row max-md:items-center">
 					<div className="flex gap-1.5">
-						<Skeleton className="h-6 w-16 rounded-pill bg-surface-2" />
-						<Skeleton className="h-6 w-12 rounded-pill bg-surface-2" />
+						<Skeleton shape="pill" className="h-6 w-16" />
+						<Skeleton shape="pill" className="h-6 w-12" />
 					</div>
-					<Skeleton className="h-3 w-12 rounded-xs bg-surface-2" />
+					<Skeleton shape="line" className="h-3 w-12" />
 				</div>
 			</div>
 			<div className="flex gap-1.5">
 				{shape.skills.map((width, key) => (
-					<Skeleton key={key} className={cx('h-6 rounded-pill bg-surface-2', width)} />
+					<Skeleton key={key} shape="pill" className={cx('h-6', width)} />
 				))}
 			</div>
-			<Skeleton className="h-3.5 w-48 rounded-xs bg-surface-2" />
+			<Skeleton shape="line" className="h-3.5 w-48" />
 		</div>
 	)
 }

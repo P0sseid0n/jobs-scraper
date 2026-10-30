@@ -13,6 +13,7 @@ import { ReviewStep } from '../components/onboarding/ReviewStep'
 import { NUMBERED_STEPS, ONBOARDING_STEPS, stepDone, type OnboardingStep } from '../components/onboarding/steps'
 import { WelcomeDemo } from '../components/onboarding/WelcomeDemo'
 import { IconButton } from '../components/ui/IconButton'
+import { META } from '../components/ui/text'
 import { cx } from '../lib/cx'
 import { loadSetup } from '../stores/setup'
 import { toggleTheme } from '../stores/theme'
@@ -191,7 +192,7 @@ export function OnboardingView({
 				{/* Sem espaço para as etapas ao lado do formulário: a barra de progresso no lugar delas */}
 				{numbered >= 0 && (
 					<div className="flex w-full max-w-240 flex-col gap-1.5 lg:hidden">
-						<p className="font-mono text-xs text-muted">
+						<p className={META}>
 							{eyebrow} · {NUMBERED_STEPS[numbered]!.label}
 						</p>
 						<div className="h-1.5 overflow-hidden rounded-pill bg-surface-2">

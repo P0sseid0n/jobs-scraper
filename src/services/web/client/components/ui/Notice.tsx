@@ -9,8 +9,8 @@ const notice = tv({
 	variants: {
 		/** `info`: uma explicação a mais, sem nada errado (o ícone fica apagado e o texto na cor normal). */
 		tone: { info: 'bg-surface-2 text-ink', warn: 'bg-warn-bg text-warn', danger: 'bg-danger-bg text-danger' },
-		/** `lg`: aviso de destaque da tela, com ícone maior (ex.: a última coleta falhou). */
-		size: { md: 'gap-2.5 px-3 py-2.5', lg: 'gap-3.5 rounded-lg px-4.5 py-4' },
+		/** `md`: o texto em `text-sm`, como no resto da tela; `lg`: aviso de destaque da tela, com ícone maior (ex.: a última coleta falhou). */
+		size: { md: 'gap-2.5 px-3 py-2.5 text-sm', lg: 'gap-3.5 rounded-lg px-4.5 py-4' },
 	},
 	defaultVariants: { size: 'md' },
 })

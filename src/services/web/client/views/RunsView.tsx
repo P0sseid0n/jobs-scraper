@@ -18,7 +18,7 @@ import { RollingNumber } from '../components/ui/RollingNumber'
 import { SelectMenu } from '../components/ui/SelectMenu'
 import { Skeleton } from '../components/ui/Skeleton'
 import { StatusDot, type StatusDotTone } from '../components/ui/StatusDot'
-import { LABEL, SECTION_TITLE } from '../components/ui/text'
+import { LABEL, META, SECTION_TITLE } from '../components/ui/text'
 import { RouteLink, TextLink } from '../components/ui/TextLink'
 import { cx } from '../lib/cx'
 import { DATE_POSTED_LABELS, formatDateTime, formatDuration, formatInterval } from '../lib/format'
@@ -233,7 +233,7 @@ function TermCard({ term }: { term: WebScraperRunTerm }) {
 	if (!term.error) {
 		return (
 			<li className={card({ size: 'sm', className: 'flex flex-col gap-1.5' })}>
-				<span className="font-mono text-muted text-xs">
+				<span className={META}>
 					{term.term}
 					{term.datePosted && ` · ${DATE_POSTED_LABELS[term.datePosted].toLowerCase()}`}
 				</span>
@@ -262,14 +262,14 @@ function TermCard({ term }: { term: WebScraperRunTerm }) {
 				className: cx('flex flex-col gap-1.5', empty ? 'bg-warn-bg' : 'bg-danger-bg'),
 			})}
 		>
-			<span className="flex items-center gap-1.5 font-mono text-muted text-xs">
+			<span className={cx(META, 'flex items-center gap-1.5')}>
 				<Icon name="alert" size={12} className={empty ? 'text-warn' : 'text-danger'} />
 				{term.term}
 			</span>
 			<span className={cx('font-mono text-lg', empty ? 'text-warn' : 'text-danger')}>{empty ? title : `falhou · ${title}`}</span>
 			<p className="m-0 text-sm">{hint}</p>
 			{term.searchUrl && (
-				<TextLink href={term.searchUrl} external className="self-start text-sm">
+				<TextLink href={term.searchUrl} external size="sm" className="self-start">
 					abrir busca no LinkedIn
 				</TextLink>
 			)}
@@ -306,7 +306,7 @@ function LiveRun({ run }: { run: WebScraperRun }) {
 			<dl className="m-0 grid grid-cols-3 gap-4">
 				{counters.map(counter => (
 					<div key={counter.label} className="flex flex-col gap-1">
-						<dt className="font-mono text-xs text-muted">{counter.label}</dt>
+						<dt className={META}>{counter.label}</dt>
 						<dd className="m-0 font-mono text-3xl">
 							<RollingNumber value={counter.value} />
 						</dd>
@@ -487,7 +487,7 @@ function RunsPagination({
 			className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-3"
 		>
 			<div className="flex items-center gap-2">
-				<label htmlFor={sizeId} className="font-mono text-muted text-xs">
+				<label htmlFor={sizeId} className={META}>
 					por página
 				</label>
 				<SelectMenu
@@ -500,7 +500,7 @@ function RunsPagination({
 				/>
 			</div>
 			<div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-				<span className="font-mono text-muted text-xs" aria-live="polite">
+				<span className={META} aria-live="polite">
 					<span aria-hidden="true">
 						{first}–{last} de {total}
 					</span>
@@ -536,7 +536,7 @@ function RunsPagination({
 									{item}
 								</button>
 							) : (
-								<span key={item} aria-hidden="true" className="w-6 text-center font-mono text-muted text-xs max-md:hidden">
+								<span key={item} aria-hidden="true" className={cx(META, 'w-6 text-center max-md:hidden')}>
 									…
 								</span>
 							),
@@ -800,7 +800,7 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 								{running ? 'em andamento' : status.paused ? 'pausada' : waiting || firstRun ? 'em espera' : 'ociosa'}
 							</Badge>
 							{running && (
-								<span className="font-mono text-xs text-muted">
+								<span className={META}>
 									{TRIGGERS[running.trigger]} · iniciada {formatDateTime(running.startedAt)}
 								</span>
 							)}
@@ -837,7 +837,7 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 					)}
 
 					<div className="flex items-center justify-between gap-3 flex-wrap">
-						<span className="font-mono text-xs text-muted">
+						<span className={META}>
 							{running
 								? // Durante a coleta, o progresso (a dica de pausa contradizia o botão travado em "coletando…")
 									running.plannedTerms.length > 0
@@ -880,7 +880,7 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 							{status.last.status === 'success' ? lastRunSummary(status.last) : 'falhou'}
 						</p>
 					)}
-					<RouteLink className="text-sm" to="/configuracoes" hash="coleta">
+					<RouteLink size="sm" to="/configuracoes" hash="coleta">
 						editar termos e intervalo
 					</RouteLink>
 				</section>
@@ -909,7 +909,7 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 					histórico <span className="font-mono font-normal">de coletas</span>
 				</h2>
 				<Notice tone="info" icon="info">
-					<p className="text-sm">Posts novos são os que foram para a IA; vagas novas são as salvas a partir deles.</p>
+					<p>Posts novos são os que foram para a IA; vagas novas são as salvas a partir deles.</p>
 				</Notice>
 
 				{runsState === 'error' && (

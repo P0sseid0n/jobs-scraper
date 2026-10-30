@@ -17,6 +17,7 @@ import { DIALOG } from './ui/Dialog'
 import { FieldHelp, FieldLabel } from './ui/Field'
 import { IconButton } from './ui/IconButton'
 import { Input } from './ui/Input'
+import { META } from './ui/text'
 
 /**
  * A verificação pedida pelo LinkedIn, numa modal em qualquer tela (inclusive no onboarding): vem de um teste do login
@@ -76,7 +77,7 @@ function VerificationDialog({ login }: { login: LinkedinLoginState }) {
 
 				{remaining !== null && (
 					<div className="flex flex-col gap-2">
-						<p className="flex items-center gap-2 font-mono text-xs text-muted" role="timer">
+						<p className={cx(META, 'flex items-center gap-2')} role="timer">
 							<Icon name="spinner" size={14} />
 							{remaining > 0
 								? `esperando a confirmação · faltam ${formatClock(remaining)}`

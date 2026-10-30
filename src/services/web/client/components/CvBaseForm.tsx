@@ -32,7 +32,7 @@ import { field, Input } from './ui/Input'
 import { KeywordInput } from './ui/KeywordInput'
 import { Notice } from './ui/Notice'
 import { SelectMenu } from './ui/SelectMenu'
-import { LABEL } from './ui/text'
+import { LABEL, META } from './ui/text'
 
 type Props = {
 	form: CvForm
@@ -536,7 +536,7 @@ export function CvBaseFormDialog({ form, serverProblems, submitting, importedFro
 						const label = SECTION_LABELS[section.kind]
 						return (
 							<li key={section.kind} className="flex items-center gap-3 rounded-md border border-line px-4 py-2.5">
-								<span className="w-5 shrink-0 font-mono text-xs text-muted">{index + 1}</span>
+								<span className={cx(META, 'w-5 shrink-0')}>{index + 1}</span>
 								<span className="flex min-w-0 grow flex-col">
 									<span className="font-medium">{label}</span>
 									<span className="truncate text-xs text-muted">
@@ -680,7 +680,7 @@ export function CvBaseFormDialog({ form, serverProblems, submitting, importedFro
 							</li>
 						))}
 					</ol>
-					<p className="font-mono text-xs text-muted md:hidden">
+					<p className={cx(META, 'md:hidden')}>
 						etapa {index + 1} de {steps.length}: {STEP_NAMES[current].toLowerCase()}
 					</p>
 				</nav>
@@ -793,25 +793,13 @@ function MoveButtons({
 }) {
 	return (
 		<div className="flex shrink-0 gap-1">
-			<IconButton
-				label={`Subir ${name}`}
-				size="sm"
-				className="text-muted hover:text-ink"
-				disabled={index === 0}
-				onClick={() => onMove(-1)}
-			>
+			<IconButton label={`Subir ${name}`} size="sm" tone="muted" disabled={index === 0} onClick={() => onMove(-1)}>
 				<Icon name="chevron" size={16} className="rotate-180" />
 			</IconButton>
-			<IconButton
-				label={`Descer ${name}`}
-				size="sm"
-				className="text-muted hover:text-ink"
-				disabled={index === count - 1}
-				onClick={() => onMove(1)}
-			>
+			<IconButton label={`Descer ${name}`} size="sm" tone="muted" disabled={index === count - 1} onClick={() => onMove(1)}>
 				<Icon name="chevron" size={16} />
 			</IconButton>
-			<IconButton label={`Remover ${name}`} size="sm" className="text-muted hover:text-danger" onClick={onRemove}>
+			<IconButton label={`Remover ${name}`} size="sm" tone="destructive" onClick={onRemove}>
 				<Icon name="trash" size={16} />
 			</IconButton>
 		</div>

@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react'
 
+import { cx } from '../../lib/cx'
 import { stepImage, swipeStep } from '../../lib/image-viewer'
 import { Icon } from '../Icon'
 import { Badge } from './Badge'
 import { IconButton } from './IconButton'
 import { NEW_TAB_NOTICE } from './link'
+import { META } from './text'
 
 /** Uma imagem do visualizador: o endereço e o texto alternativo (que também nomeia o visualizador aberto nela). */
 export type ViewerImage = { src: string; alt: string }
@@ -93,7 +95,10 @@ export function ImageViewer({ images, start = 0, original = true, onClose }: Ima
 					<div className="flex items-center gap-1">
 						{original && (
 							<a
-								className="inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 font-mono text-muted text-xs no-underline hover:bg-surface-2 hover:text-ink"
+								className={cx(
+									META,
+									'inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 no-underline hover:bg-surface-2 hover:text-ink',
+								)}
 								href={image.src}
 								target="_blank"
 								rel="noreferrer"
@@ -139,7 +144,7 @@ export function ImageViewer({ images, start = 0, original = true, onClose }: Ima
 						>
 							<Icon name="forward" size={18} />
 						</IconButton>
-						<p className="m-0 font-mono text-muted text-xs md:hidden">deslize para ver a outra imagem</p>
+						<p className={cx(META, 'm-0 md:hidden')}>deslize para ver a outra imagem</p>
 					</>
 				)}
 			</div>

@@ -25,14 +25,16 @@ const PREVIEWS: Record<string, Preview> = {
 	h(U.IconButton, { label: 'Copiar e-mail', size: 'sm' }, h(U.Icon, { name: 'copy' })),
 	h(U.IconButton, { label: 'Reportar erro', size: 'md' }, h(U.Icon, { name: 'flag' })),
 	h(U.IconButton, { label: 'Tema escuro', bordered: true }, h(U.Icon, { name: 'moon' })),
-	h(U.IconButton, { label: 'Atualizar', size: 'sm', bordered: true }, h(U.Icon, { name: 'refresh' }))
+	h(U.IconButton, { label: 'Atualizar', size: 'sm', bordered: true }, h(U.Icon, { name: 'refresh' })),
+	h(U.IconButton, { label: 'Subir', size: 'sm', tone: 'muted' }, h(U.Icon, { name: 'chevron' })),
+	h(U.IconButton, { label: 'Remover', size: 'sm', tone: 'destructive' }, h(U.Icon, { name: 'trash' }))
 )`,
 	},
 	TextLink: {
 		group: 'Actions',
 		height: 80,
 		subtitle: 'link, link externo e botão com cara de link',
-		body: `h('p', { className: 'text-sm' }, 'Vaga publicada por ', h(U.TextLink, { href: '#' }, 'Ana Souza'), ' no ', h(U.TextLink, { href: 'https://www.linkedin.com', external: true }, 'LinkedIn'), '. ', h(U.TextLink, null, 'mostrar post completo'))`,
+		body: `h('p', { className: 'text-sm' }, 'Vaga publicada por ', h(U.TextLink, { href: '#' }, 'Ana Souza'), ' no ', h(U.TextLink, { href: 'https://www.linkedin.com', external: true }, 'LinkedIn'), '. ', h(U.TextLink, null, 'mostrar post completo')), h('p', { className: U.META }, 'postado por Ana Souza · ', h(U.TextLink, { size: 'xs', mono: true }, 'ver post'))`,
 	},
 	Pill: {
 		group: 'Actions',
@@ -76,7 +78,7 @@ const PREVIEWS: Record<string, Preview> = {
 		group: 'Display',
 		height: 120,
 		subtitle: 'os 20 ícones, na cor do texto',
-		body: `h('div', { className: 'grid grid-cols-10 gap-4 text-ink' }, ['search', 'mail', 'external', 'file', 'copy', 'check', 'close', 'download', 'moon', 'sun', 'back', 'first', 'alert', 'refresh', 'briefcase', 'settings', 'filter', 'trash', 'plus', 'flag', 'spinner'].map(name => h('div', { key: name, className: 'flex flex-col items-center gap-1.5' }, h(U.Icon, { name: name, size: 20 }), h('span', { className: 'font-mono text-xs text-muted' }, name))))`,
+		body: `h('div', { className: 'grid grid-cols-10 gap-4 text-ink' }, ['search', 'mail', 'external', 'file', 'copy', 'check', 'close', 'download', 'moon', 'sun', 'back', 'first', 'alert', 'refresh', 'briefcase', 'settings', 'filter', 'trash', 'plus', 'flag', 'spinner'].map(name => h('div', { key: name, className: 'flex flex-col items-center gap-1.5' }, h(U.Icon, { name: name, size: 20 }), h('span', { className: U.META }, name))))`,
 	},
 	PdfIcon: {
 		group: 'Display',
@@ -258,7 +260,7 @@ const PREVIEWS: Record<string, Preview> = {
 		group: 'Feedback',
 		height: 120,
 		subtitle: 'o card de vaga carregando',
-		body: `h('div', { className: 'flex max-w-md flex-col gap-2.5 rounded-lg border border-line bg-surface p-4' }, h(U.Skeleton, { className: 'h-5 w-3/4 rounded-xs bg-surface-2' }), h(U.Skeleton, { className: 'h-4 w-1/2 rounded-xs bg-surface-2' }), row(h(U.Skeleton, { className: 'h-6 w-16 rounded-pill bg-surface-2' }), h(U.Skeleton, { className: 'h-6 w-20 rounded-pill bg-surface-2' })))`,
+		body: `h('div', { className: 'flex max-w-md flex-col gap-2.5 rounded-lg border border-line bg-surface p-4' }, h(U.Skeleton, { shape: 'line', className: 'h-5 w-3/4' }), h(U.Skeleton, { shape: 'line', className: 'h-4 w-1/2' }), row(h(U.Skeleton, { shape: 'pill', className: 'h-6 w-16' }), h(U.Skeleton, { shape: 'pill', className: 'h-6 w-20' })))`,
 	},
 	StatusDot: {
 		group: 'Feedback',

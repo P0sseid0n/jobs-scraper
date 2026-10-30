@@ -18,7 +18,7 @@ import { field } from '../components/ui/Input'
 import { Notice } from '../components/ui/Notice'
 import { Hero, Page } from '../components/ui/Page'
 import { SectionCard } from '../components/ui/SectionCard'
-import { SECTION_TITLE } from '../components/ui/text'
+import { META, SECTION_TITLE } from '../components/ui/text'
 import { activeVersion, formatKilobytes, texBytes, upsertVersion } from '../lib/cv-base'
 import { CV_EXAMPLES, exampleDownloadUrl, type CvExample } from '../lib/cv-examples'
 import { cleanForm, emptyForm, formProblems, sameForm } from '../lib/cv-form'
@@ -317,7 +317,7 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 			>
 				{active ? (
 					<>
-						<p className="font-mono text-xs text-muted">
+						<p className={META}>
 							{[
 								`ativada ${formatDateTime(active.activatedAt!)}`,
 								origin(active),
@@ -399,7 +399,7 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 									<span aria-hidden className="text-muted">
 										·
 									</span>
-									<span className="truncate font-mono text-xs text-muted">{example.fileName}</span>
+									<span className={cx(META, 'truncate')}>{example.fileName}</span>
 								</span>
 								<a
 									href={exampleDownloadUrl(example)}
@@ -482,7 +482,7 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 				)}
 				{formDirty && (
 					<div className="flex flex-wrap items-center justify-between gap-2">
-						<p className="font-mono text-xs text-muted">
+						<p className={META}>
 							formulário com alterações não validadas: {form.contact.name.trim() || 'sem nome'} · {form.sections.length}{' '}
 							{form.sections.length === 1 ? 'seção' : 'seções'}
 						</p>
@@ -533,11 +533,7 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 					<Button variant="lime" size="lg" disabled={submitting || tooBig || !text.trim() || !dirty} onClick={submit}>
 						{submitting ? 'enviando…' : 'validar'}
 					</Button>
-					{text.trim() && (
-						<span className="font-mono text-xs text-muted">
-							{dirty ? 'alterações não validadas' : 'sem alterações para validar'}
-						</span>
-					)}
+					{text.trim() && <span className={META}>{dirty ? 'alterações não validadas' : 'sem alterações para validar'}</span>}
 				</div>
 
 				{candidate && renderCandidate(candidate)}
@@ -580,7 +576,7 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 											</Badge>
 										)}
 									</span>
-									<span className="truncate font-mono text-xs text-muted">
+									<span className={cx(META, 'truncate')}>
 										{[origin(version), pagesLabel(version.pages), formatKilobytes(version.size)].filter(Boolean).join(' · ')}
 									</span>
 									{version.status === 'invalid' && (

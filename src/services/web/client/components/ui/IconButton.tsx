@@ -20,6 +20,17 @@ export const iconButton = tv({
 	],
 	variants: {
 		size: { xs: 'size-6.5', sm: 'size-8', md: 'size-10' },
+		/**
+		 * A cor do ícone. Sem `tone`, a do texto em volta. `muted`: apagado, acende no hover (ações secundárias, como
+		 * reordenar); `ink`: na cor do texto, mesmo ao lado de texto apagado; `danger`: vermelho fixo (algo bloqueado);
+		 * `destructive`: apagado, fica vermelho no hover (remover, apagar).
+		 */
+		tone: {
+			muted: 'text-muted hover:text-ink',
+			ink: 'text-ink',
+			danger: 'text-danger',
+			destructive: 'text-muted hover:text-danger',
+		},
 		bordered: {
 			true: ['border border-line', OUTLINED],
 			// Sem borda, o hover escurece a cor do próprio texto: funciona em qualquer fundo (toast, bandeja escura)
@@ -36,6 +47,8 @@ type IconButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'aria-label
 	}
 
 /** Botão só com ícone (os ícones vêm em `children`). */
-export function IconButton({ label, size, bordered, className, ...props }: IconButtonProps) {
-	return <button type="button" aria-label={label} title={label} {...props} className={iconButton({ size, bordered, className })} />
+export function IconButton({ label, size, tone, bordered, className, ...props }: IconButtonProps) {
+	return (
+		<button type="button" aria-label={label} title={label} {...props} className={iconButton({ size, tone, bordered, className })} />
+	)
 }

@@ -4,6 +4,7 @@ import type { WebJob } from '../../api-types'
 import { cx } from '../lib/cx'
 import { Icon } from './Icon'
 import { Badge } from './ui/Badge'
+import { META } from './ui/text'
 
 /**
  * Cor do selo por quantidade de checks (1 a 6), do amarelo ao vermelho forte. As classes ficam escritas por inteiro
@@ -105,7 +106,7 @@ function ChecksList({ job, alignRight }: { job: Pick<WebJob, 'extractionChecks' 
 				alignRight ? 'right-0 max-md:right-auto max-md:left-0' : 'left-0',
 			)}
 		>
-			<span className="font-mono text-muted text-xs">checks que falharam</span>
+			<span className={META}>checks que falharam</span>
 			<ul className="m-0 flex list-none flex-col gap-1 p-0 text-sm">
 				{job.extractionChecks.map(check => (
 					<li key={check} className="flex items-center gap-2">

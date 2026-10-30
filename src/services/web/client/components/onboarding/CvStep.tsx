@@ -219,7 +219,7 @@ export function CvStep({
 				</p>
 				{version.pages !== null && version.pages > 1 && (
 					<Notice tone="warn" icon="alert">
-						<p className="text-sm">
+						<p>
 							Ele tem {version.pages} páginas. Cada currículo ajustado precisa caber em uma, então alguns projetos podem sair.
 						</p>
 					</Notice>

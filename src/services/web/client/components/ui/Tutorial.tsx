@@ -120,7 +120,7 @@ export function Tutorial({
 		<>
 			{active.notice && (
 				<Notice tone="warn" icon="alert">
-					<p className="text-sm">{active.notice}</p>
+					<p>{active.notice}</p>
 				</Notice>
 			)}
 
@@ -292,7 +292,7 @@ function Stage({
 					</dl>
 				)}
 				{step.link && (
-					<TextLink href={step.link.href} external className="self-start text-sm">
+					<TextLink href={step.link.href} external size="sm" className="self-start">
 						{step.link.label}
 					</TextLink>
 				)}

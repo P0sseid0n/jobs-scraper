@@ -16,7 +16,7 @@ import { KeywordInput } from '../ui/KeywordInput'
 import { Notice } from '../ui/Notice'
 import { Pill, pill, PillGroup } from '../ui/Pill'
 import { Skeleton } from '../ui/Skeleton'
-import { FIELDSET } from '../ui/text'
+import { FIELDSET, META } from '../ui/text'
 import { Rise, StepHeading, useStepBar, useSubSteps } from './parts'
 
 const SENIORITY_NAMES: Record<SeniorityLevel, string> = {
@@ -348,17 +348,17 @@ function WhatToSearch({
 					</p>
 					<div className="flex flex-wrap gap-2" aria-hidden="true">
 						{[28, 36, 24, 32, 20].map((width, index) => (
-							<Skeleton key={index} className={cx('h-8 rounded-pill bg-surface-2', WIDTHS[width])} />
+							<Skeleton key={index} shape="pill" className={cx('h-8', WIDTHS[width])} />
 						))}
 					</div>
-					<Skeleton className="h-24 rounded-md bg-surface-2" aria-hidden="true" />
+					<Skeleton shape="block" className="h-24" aria-hidden="true" />
 				</Rise>
 			) : (
 				<>
 					{!fromAi && (
 						<Rise order={3}>
 							<Notice tone="warn" icon="alert">
-								<p className="text-sm">
+								<p>
 									A IA não respondeu agora, então sugerimos só o seu cargo. Adicione outras formas de escrever a vaga, ou
 									tente de novo.
 								</p>
@@ -369,7 +369,7 @@ function WhatToSearch({
 					<Rise order={3} className="flex flex-col gap-1.5">
 						<span className="flex items-center justify-between gap-3">
 							<FieldLabel htmlFor="onboarding-terms">o que buscar nos posts do LinkedIn</FieldLabel>
-							<span className="font-mono text-xs text-muted">
+							<span className={META}>
 								{draft.searchTerms.length} / {LIMITS.searchTerms}
 							</span>
 						</span>

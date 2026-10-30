@@ -14,7 +14,7 @@ import { SearchInput } from '../components/ui/Input'
 import { NEW_TAB } from '../components/ui/link'
 import { Hero, Page } from '../components/ui/Page'
 import { PdfIcon } from '../components/ui/PdfIcon'
-import { LABEL } from '../components/ui/text'
+import { LABEL, META } from '../components/ui/text'
 import { TextLink } from '../components/ui/TextLink'
 import { activeVersion } from '../lib/cv-base'
 import { cx } from '../lib/cx'
@@ -115,7 +115,7 @@ function CvItem({ request, outdated, latest }: CvItemProps) {
 							>
 								{title}
 							</Link>
-							<span className="font-mono text-xs text-muted">
+							<span className={META}>
 								{request.status === 'pending' ? `gerando · pedido ${formatDateTime(request.requestedAt)}` : meta}
 							</span>
 							{request.status === 'failed' && <span className="text-sm text-danger">{request.error}</span>}
@@ -174,7 +174,7 @@ function CvItem({ request, outdated, latest }: CvItemProps) {
 										feito com outra versão do currículo base
 									</span>
 									{latest && (
-										<TextLink className="text-xs" onClick={() => retry(request)}>
+										<TextLink size="xs" onClick={() => retry(request)}>
 											gerar de novo
 										</TextLink>
 									)}
@@ -262,7 +262,7 @@ function CvBaseCard({ versions, requests }: CvBaseCardProps) {
 					<h2 id="cv-base-title" className="truncate text-lg font-semibold">
 						{name}
 					</h2>
-					<span className="font-mono text-xs text-muted">{facts.join(' · ')}</span>
+					<span className={META}>{facts.join(' · ')}</span>
 					{versions && (
 						<span className="mt-1 text-sm">
 							{generated === 0

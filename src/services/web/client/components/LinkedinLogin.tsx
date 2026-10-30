@@ -183,7 +183,7 @@ function LoginDetails({ login }: { login: ReturnType<typeof useLinkedinLogin> })
 				{state.message && <FieldHelp>{state.message}</FieldHelp>}
 				{stalled && (
 					<Notice tone="warn" icon="alert">
-						<p className="text-sm">
+						<p>
 							O scraper ainda não pegou o pedido. Ele está rodando? Confira se o <code className="font-mono">bun dev</code> (ou
 							o <code className="font-mono">docker compose --profile app up</code>) está ligado. O teste começa sozinho quando
 							ele subir.
@@ -214,7 +214,7 @@ function LoginDetails({ login }: { login: ReturnType<typeof useLinkedinLogin> })
 				{state.status === 'failed' && (
 					<span className="block text-ink">
 						Não conseguiu confirmar o acesso?{' '}
-						<TextLink className="text-sm" onClick={() => requestAccountTutorial('linkedin', 'li-at')}>
+						<TextLink size="sm" onClick={() => requestAccountTutorial('linkedin', 'li-at')}>
 							entre com o cookie li_at
 						</TextLink>
 					</span>

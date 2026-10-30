@@ -2,6 +2,7 @@
 export interface NoticeProps {
 	/** `info`: uma explicação a mais, sem nada errado. */
 	tone: 'info' | 'warn' | 'danger'
+	/** `md` (padrão): o texto em `text-sm`; `lg`: aviso de destaque da tela, com ícone maior. */
 	size?: 'md' | 'lg'
 	icon?:
 		| 'search'

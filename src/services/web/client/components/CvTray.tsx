@@ -3,6 +3,7 @@ import { useState } from 'react'
 
 import type { WebCvRequest } from '../../api-types'
 import { cvPdfUrl } from '../api'
+import { cx } from '../lib/cx'
 import { jobParams } from '../router'
 import { dismissCv, requestCv, useTrayRequests } from '../stores/cv'
 import { jobsStore } from '../stores/jobs'
@@ -11,6 +12,7 @@ import { DrawnCheck, Icon } from './Icon'
 import { Button } from './ui/Button'
 import { IconButton } from './ui/IconButton'
 import { StatusDot, type StatusDotTone } from './ui/StatusDot'
+import { META } from './ui/text'
 
 const TRAY_DOTS: Record<WebCvRequest['status'], { tone: StatusDotTone; pulse?: boolean }> = {
 	pending: { tone: 'lime', pulse: true },
@@ -51,7 +53,7 @@ export function CvTray() {
 		>
 			<button
 				type="button"
-				className="flex w-full justify-between border-0 bg-transparent py-1 font-mono text-xs text-muted"
+				className={cx(META, 'flex w-full justify-between border-0 bg-transparent py-1')}
 				aria-expanded={!collapsed}
 				onClick={() => setCollapsed(!collapsed)}
 			>
@@ -81,7 +83,7 @@ export function CvTray() {
 								>
 									{item.jobTitle ?? 'Vaga'}
 								</Link>
-								<div className="font-mono text-xs truncate text-muted" title={item.error ?? undefined}>
+								<div className={cx(META, 'truncate')} title={item.error ?? undefined}>
 									{item.status === 'failed' && item.error ? `falhou: ${item.error}` : STATUS_TEXT[item.status]}
 								</div>
 							</div>

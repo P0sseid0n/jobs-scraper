@@ -10,11 +10,13 @@ export const GUIDES: Record<string, string> = {
 
 - \`label\` é obrigatório: vira o \`aria-label\` e a dica do mouse ("Fechar", "Copiar e-mail").
 - Sem borda, o hover escurece a própria cor do texto e funciona em qualquer fundo; \`bordered\` para ações soltas (o botão de tema no cabeçalho).
-- \`size\`: \`xs\` (26px) dentro de chips, \`sm\` (32px) em cards, \`md\` (40px) no resto. O ícone: \`<Icon>\` com \`size\` 12 a 16.`,
+- \`size\`: \`xs\` (26px) dentro de chips, \`sm\` (32px) em cards, \`md\` (40px) no resto. O ícone: \`<Icon>\` com \`size\` 12 a 16.
+- \`tone\` dá a cor: \`muted\` para ações secundárias (reordenar, tirar um chip), que acendem no hover; \`ink\` ao lado de texto apagado (os botões do topo do detalhe); \`danger\` para algo bloqueado; \`destructive\` para remover, que fica vermelho no hover. Sem \`tone\`, a cor do texto em volta.`,
 	TextLink: `Link sublinhado no meio do texto; sem \`href\`, vira um botão com a mesma cara (ex.: "mostrar post completo").
 
 - Use dentro de frases e para ações discretas; ações de verdade são \`Button\`.
-- \`external\` abre em outra aba e mostra "↗" depois do texto.`,
+- \`external\` abre em outra aba e mostra "↗" depois do texto.
+- Dentro de uma frase, sem \`size\` (fica no tamanho do texto). Solto: \`size="sm"\` ou \`size="xs"\`; com \`mono\` ao lado de metadados (\`META\`) e no rodapé ("ver post com a lista", "desmarcar").`,
 	Pill: `Opção em formato de cápsula, usada nos filtros e na modal de reportar.
 
 - \`pressed\` liga e desliga (fica em \`color-ink\` quando ligada); sem ele, a pill é uma ação comum ("+ mostrar mais", com \`shape="dashed"\`).
@@ -122,6 +124,7 @@ export const GUIDES: Record<string, string> = {
 
 - \`tone\`: \`info\` (uma explicação a mais, com \`icon="info"\`), \`warn\` (dados duvidosos, algo a conferir) ou \`danger\` (falhou).
 - \`icon\` é um nome do \`Icon\` (normalmente \`alert\`); \`size="lg"\` para o aviso principal de uma tela.
+- O texto já vem em \`text-sm\`: não passe o tamanho por \`className\` nem num \`<p>\` dentro.
 - Para uma tela inteira sem conteúdo, use \`EmptyState\`.`,
 	EmptyState: `Tela ou bloco sem conteúdo: nada encontrado, nada ainda ou falha ao carregar.
 
@@ -139,9 +142,10 @@ export const GUIDES: Record<string, string> = {
 - Por cima do campo: deixe o campo no lugar, vazio e só de leitura (\`readOnly\` e \`aria-busy\`, não \`disabled\`: o visual de desligado é para o que não se pode usar) e ponha o \`FieldScan\` com \`absolute inset-0\` num contêiner \`relative\`.
 - No lugar de um texto só de leitura: dê a altura e o fundo (\`min-h-40 rounded-sm bg-surface\`).
 - \`label\` diz o que está acontecendo, escrito no centro do campo ("a IA está reescrevendo a mensagem…"). Para uma área inteira que espera dados do servidor (uma lista, um card), use o \`Skeleton\`; o que está sendo gerado (texto da IA, imagem) usa o \`FieldScan\`, mesmo numa área grande.`,
-	Skeleton: `Bloco pulsando no lugar do conteúdo que ainda está carregando (o tamanho e a cor vêm do \`className\`).
+	Skeleton: `Bloco no lugar do conteúdo que ainda está carregando, com um brilho passando (o tamanho vem do \`className\`).
 
-- Dê a cor (\`bg-surface-2\`) e desenhe a forma do conteúdo que vem: linhas com \`h-4\`/\`h-5\` e larguras em fração (\`w-3/4\`), badges com \`rounded-pill\`.`,
+- \`shape\` dá a forma e a cor: \`line\` para texto (\`h-4\`/\`h-5\` e larguras em fração, \`w-3/4\`), \`pill\` para badges e botões, \`block\` para um campo ou uma área.
+- Sem \`shape\`, a forma e a cor vêm do \`className\` (o card inteiro carregando: \`card()\`).`,
 	StatusDot: `Ponto colorido de status (8px), decorativo: o texto ao lado diz o status.
 
 - \`tone\`: \`lime\` (ao vivo, coletando), \`ok\`, \`danger\`, \`muted\` (pausado) e \`current\` (na cor do texto).

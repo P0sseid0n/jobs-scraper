@@ -25,7 +25,7 @@ import { field, Input } from './ui/Input'
 import { Notice } from './ui/Notice'
 import { PdfIcon } from './ui/PdfIcon'
 import { Pill, PillGroup } from './ui/Pill'
-import { LABEL } from './ui/text'
+import { LABEL, META } from './ui/text'
 import { RouteLink, TextLink } from './ui/TextLink'
 
 /** Uma das opções do "melhorar com a IA" (tom, tamanho): o rótulo e as pills na mesma linha; no celular, um embaixo do outro. */
@@ -259,7 +259,7 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 					) : (
 						<FieldHelp>
 							Copie e envie pelo seu e-mail. Para editar e enviar daqui, com o currículo anexado, configure a conta de e-mail em{' '}
-							<RouteLink className="text-sm" to="/configuracoes" search={{ conta: 'smtp' }} hash="contas">
+							<RouteLink size="sm" to="/configuracoes" search={{ conta: 'smtp' }} hash="contas">
 								Configurações › Contas
 							</RouteLink>
 							.
@@ -270,7 +270,7 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 			<form className="flex min-h-0 grow flex-col" onSubmit={submit}>
 				<div className="flex min-h-0 grow flex-col gap-4 overflow-y-auto px-5 py-4">
 					{lastSent && (
-						<Notice tone="warn" icon="alert" className="text-sm">
+						<Notice tone="warn" icon="alert">
 							<p className="m-0">
 								Esta vaga já recebeu sua candidatura por e-mail ({formatDateTime(lastSent.sentAt ?? lastSent.requestedAt)},
 								para {lastSent.to}). Enviar de novo manda outro e-mail.
@@ -320,12 +320,12 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 						{/* Em caixa, só o que pede uma ação: o que ficou marcado no texto (e segura o envio), o modelo que não deu para
 						 * ler e o modelo que mudou. O que entrou pelo fallback é só uma nota embaixo da mensagem */}
 						{textReady && unresolved.length > 0 && (
-							<Notice tone="warn" icon="alert" className="text-sm">
+							<Notice tone="warn" icon="alert">
 								<p className="m-0">
 									A vaga não tem {variableList(unresolved)}, e o modelo não tem fallback: troque{' '}
 									{LIST_FORMAT.format(unresolved.map(name => `[${name}]`))} no texto antes de enviar. Para as próximas vagas,
 									defina um fallback em{' '}
-									<RouteLink className="text-sm" to="/configuracoes" hash="mensagem">
+									<RouteLink size="sm" to="/configuracoes" hash="mensagem">
 										Configurações › Mensagem
 									</RouteLink>
 									.
@@ -334,10 +334,10 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 						)}
 
 						{settingsStatus === 'failed' && (
-							<Notice tone="warn" icon="alert" className="text-sm">
+							<Notice tone="warn" icon="alert">
 								<p className="m-0">
 									Não consegui ler o seu modelo das configurações: a mensagem saiu do modelo padrão.{' '}
-									<TextLink className="text-sm" onClick={retrySettings}>
+									<TextLink size="sm" onClick={retrySettings}>
 										tentar de novo
 									</TextLink>
 								</p>
@@ -345,10 +345,10 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 						)}
 
 						{newerSource && (
-							<Notice tone="warn" icon="info" className="text-sm">
+							<Notice tone="warn" icon="info">
 								<p className="m-0">
 									O modelo mudou enquanto você editava.{' '}
-									<TextLink className="text-sm" onClick={adoptSource}>
+									<TextLink size="sm" onClick={adoptSource}>
 										usar a nova
 									</TextLink>{' '}
 									troca o que você editou.
@@ -508,7 +508,7 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 										<>
 											{' · '}
 											<TextLink
-												className="text-xs"
+												size="xs"
 												disabled={rewriting}
 												onClick={() => {
 													setBody(beforeImprove)
@@ -538,18 +538,14 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 								<PdfIcon>PDF</PdfIcon>
 								<div className="min-w-0 grow">
 									<div className="text-sm font-semibold">{canSend ? 'anexo' : 'currículo'}</div>
-									<div className="block truncate font-mono text-xs text-muted">{readyCv.fileName}</div>
+									<div className={cx(META, 'block truncate')}>{readyCv.fileName}</div>
 								</div>
 								<div className="flex shrink-0 items-center gap-3 whitespace-nowrap">
-									<TextLink className="text-sm" href={cvPdfUrl(readyCv.requestId)} external>
+									<TextLink size="sm" href={cvPdfUrl(readyCv.requestId)} external>
 										pré-visualizar
 									</TextLink>
 									{!canSend && (
-										<TextLink
-											className="text-sm"
-											href={cvPdfUrl(readyCv.requestId, true)}
-											download={readyCv.fileName ?? undefined}
-										>
+										<TextLink size="sm" href={cvPdfUrl(readyCv.requestId, true)} download={readyCv.fileName ?? undefined}>
 											baixar
 										</TextLink>
 									)}

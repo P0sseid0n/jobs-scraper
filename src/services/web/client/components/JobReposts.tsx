@@ -4,7 +4,7 @@ import type { WebJob } from '../../api-types'
 import { api, RequestError } from '../api'
 import { safeLink, timeAgo } from '../lib/format'
 import { notify } from '../stores/toast'
-import { LABEL } from './ui/text'
+import { LABEL, META } from './ui/text'
 import { TextLink } from './ui/TextLink'
 
 /**
@@ -39,15 +39,15 @@ export function JobReposts({ job, onUngrouped }: { job: WebJob; onUngrouped: (jo
 						<li key={repost.postId} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm">
 							<span className="min-w-0">
 								{repost.author ?? 'autor desconhecido'}
-								{repost.postedAt && <span className="font-mono text-muted text-xs"> · {timeAgo(repost.postedAt)}</span>}
+								{repost.postedAt && <span className={META}> · {timeAgo(repost.postedAt)}</span>}
 							</span>
 							<span className="flex items-center gap-3">
 								{link && (
-									<TextLink className="text-xs font-mono" href={link} external>
+									<TextLink size="xs" mono href={link} external>
 										ir para o post
 									</TextLink>
 								)}
-								<TextLink className="text-xs font-mono" disabled={ungrouping !== null} onClick={() => ungroup(repost.postId)}>
+								<TextLink size="xs" mono disabled={ungrouping !== null} onClick={() => ungroup(repost.postId)}>
 									{ungrouping === repost.postId ? 'separando…' : 'não é a mesma vaga'}
 								</TextLink>
 							</span>

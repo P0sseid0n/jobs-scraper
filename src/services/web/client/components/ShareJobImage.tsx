@@ -288,7 +288,7 @@ export function ShareJobImage({ job, text, onClose }: { job: ShareJob; text: str
 						{failed && (
 							<p role="alert" className="m-0 text-xs text-danger">
 								Não consegui montar a imagem.{' '}
-								<TextLink className="text-xs" onClick={() => setAttempt(current => current + 1)}>
+								<TextLink size="xs" onClick={() => setAttempt(current => current + 1)}>
 									tentar de novo
 								</TextLink>
 							</p>

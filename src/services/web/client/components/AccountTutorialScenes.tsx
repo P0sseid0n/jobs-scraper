@@ -5,6 +5,7 @@ import { cx } from '../lib/cx'
 import { Cursor, Swap, Typed } from './demo-parts'
 import { Icon } from './Icon'
 import { IconButton } from './ui/IconButton'
+import { META } from './ui/text'
 
 const POP = 'animate-pop-in motion-reduce:animate-none'
 
@@ -25,7 +26,7 @@ function SceneWindow({ address, children }: { address: string; children: ReactNo
 					<span className="size-1.5 rounded-full bg-line-strong" />
 					<span className="size-1.5 rounded-full bg-line-strong" />
 				</span>
-				<span aria-hidden="true" className="min-w-0 truncate rounded-pill bg-surface px-2.5 py-0.5 font-mono text-xs text-muted">
+				<span aria-hidden="true" className={cx(META, 'min-w-0 truncate rounded-pill bg-surface px-2.5 py-0.5')}>
 					{address}
 				</span>
 				<IconButton

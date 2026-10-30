@@ -43,7 +43,7 @@ import { CodeBlock } from './ui/CodeBlock'
 import { IconButton } from './ui/IconButton'
 import { Notice } from './ui/Notice'
 import { Skeleton } from './ui/Skeleton'
-import { LABEL } from './ui/text'
+import { LABEL, META } from './ui/text'
 import { RouteLink, TextLink } from './ui/TextLink'
 import { WorkModeBadge } from './WorkModeBadge'
 
@@ -149,13 +149,14 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 						<time className="font-mono text-muted text-sm whitespace-nowrap" dateTime={jobDate(job)}>
 							publicada {timeAgo(jobDate(job))}
 						</time>
-						{/* Na cor do texto, para não sumir ao lado da data; a descrição da imagem sai do texto como o detalhe mostra */}
-						<ShareJobButton job={{ ...job, rawContent: content }} className="ml-3 text-ink" />
+						{/* Os dois na cor do texto (`tone="ink"`), para não sumirem ao lado da data; a descrição da imagem sai do texto como o detalhe mostra */}
+						<ShareJobButton job={{ ...job, rawContent: content }} className="ml-3" />
 						<IconButton
 							label="reportar problema na vaga"
 							size="sm"
 							bordered
-							className="ml-1.5 text-ink"
+							tone="ink"
+							className="ml-1.5"
 							aria-haspopup="dialog"
 							onClick={() => setReporting(true)}
 						>
@@ -172,9 +173,7 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 						/>
 					</p>
 				)}
-				{job.author && (job.company || job.location || subtitle.confidential) && (
-					<p className="font-mono text-muted text-xs">postado por {job.author}</p>
-				)}
+				{job.author && (job.company || job.location || subtitle.confidential) && <p className={META}>postado por {job.author}</p>}
 			</header>
 			{/* Fora do subtítulo: a modal não pode ficar dentro do <p> */}
 			{blocking && (
@@ -234,7 +233,7 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 						<Icon name="check" size={13} />
 						candidatura enviada {formatDateTime(appliedAt)}
 					</span>
-					<TextLink className="text-xs font-mono" onClick={() => void setApplied(job, false)}>
+					<TextLink size="xs" mono onClick={() => void setApplied(job, false)}>
 						desmarcar
 					</TextLink>
 				</div>
@@ -247,10 +246,10 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 
 			{/* A mesma vaga postada de novo, sem ter sido agrupada (outro texto, outro recrutador): avisa antes de enviar outra vez */}
 			{appliedSimilar && !appliedAt && (
-				<Notice tone="warn" icon="alert" className="text-sm">
+				<Notice tone="warn" icon="alert">
 					<p className="m-0">
 						Você já enviou candidatura para uma vaga parecida em {formatDateTime(appliedSimilar.appliedAt)}:{' '}
-						<RouteLink className="text-sm" to="/vagas/$id" params={jobParams(appliedSimilar.postId)}>
+						<RouteLink size="sm" to="/vagas/$id" params={jobParams(appliedSimilar.postId)}>
 							{appliedSimilar.title}
 							{appliedSimilar.company && ` · ${appliedSimilar.company}`}
 						</RouteLink>
@@ -260,18 +259,14 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 			)}
 
 			{cv?.status === 'ready' && <CvReady key={cv.requestId} cv={cv} />}
-			{cv?.status === 'failed' && (
-				<Notice tone="danger" className="text-sm">
-					O currículo falhou: {cv.error}
-				</Notice>
-			)}
+			{cv?.status === 'failed' && <Notice tone="danger">O currículo falhou: {cv.error}</Notice>}
 
 			<section className="flex flex-col gap-2.5" aria-label={fromPage ? 'Página da vaga' : 'Post original'}>
 				<div className="flex items-center justify-between gap-3">
 					<h3 className={LABEL}>{fromPage ? 'página da vaga' : 'post original'}</h3>
 					{/* Sempre aparece, mesmo repetindo o botão de candidatura pelo post: é o lugar onde se procura o post */}
 					{postLink && (
-						<TextLink className="text-xs font-mono" href={postLink} external>
+						<TextLink size="xs" mono href={postLink} external>
 							{fromList ? 'ver post com a lista' : 'ir para o post'}
 						</TextLink>
 					)}
@@ -287,7 +282,7 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 					{content}
 				</div>
 				{isLong && (
-					<TextLink className="text-sm" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
+					<TextLink size="sm" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
 						{expanded ? `recolher ${contentNoun}` : `mostrar ${contentNoun} completo`}
 					</TextLink>
 				)}
@@ -305,34 +300,31 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 			<footer className="flex flex-col gap-2 border-t border-line pt-3.5">
 				{/* Só a partir do limite das configurações: com poucos checks, o selo do topo já basta */}
 				{job.needsReview && (
-					<Notice tone="danger" icon="alert" className="text-sm">
+					<Notice tone="danger" icon="alert">
 						<p>
 							Confira <MissedChecks job={job} /> no post original: a extração pode ter errado{' '}
 							{job.extractionChecks.length === 1 ? 'nesse campo' : 'nesses campos'} e no resto da vaga. Se houver erro,{' '}
-							<TextLink className="text-sm" aria-haspopup="dialog" onClick={() => setReporting(true)}>
+							<TextLink size="sm" aria-haspopup="dialog" onClick={() => setReporting(true)}>
 								reporte a vaga
 							</TextLink>
 							.
 						</p>
 					</Notice>
 				)}
-				{job.language && <span className="font-mono text-muted text-xs">idioma: {languageLabel(job.language)}</span>}
+				{job.language && <span className={META}>idioma: {languageLabel(job.language)}</span>}
 				{/* Ferramentas para a vaga que veio errada; o "processar de novo" fica à direita, também sozinho fora do `bun dev` */}
 				<div className="flex flex-wrap items-center gap-x-4">
 					{DEVELOPMENT && (
-						<TextLink
-							className="text-xs font-mono"
-							aria-expanded={rawJson !== null}
-							disabled={loadingRaw}
-							onClick={toggleRawJson}
-						>
+						<TextLink size="xs" mono aria-expanded={rawJson !== null} disabled={loadingRaw} onClick={toggleRawJson}>
 							{loadingRaw ? 'carregando json…' : rawJson !== null ? 'esconder json da vaga' : 'ver json da vaga (debug)'}
 						</TextLink>
 					)}
 					{/* A página ou o post lidos pela metade (o site mudou, o scraper falhou): lê e extrai de novo, sem anunciar.
 					    Discreto e com ícone: é manutenção, não leitura, e pode levar minutos (fila, coleta, IA) */}
 					<TextLink
-						className="ml-auto inline-flex items-center gap-1 text-xs font-mono text-muted no-underline hover:text-ink"
+						size="xs"
+						mono
+						className="ml-auto inline-flex items-center gap-1 text-muted no-underline hover:text-ink"
 						title="Lê a página ou o post de novo e refaz a extração; as suas correções ficam"
 						aria-busy={reprocessing}
 						disabled={reprocessing}
@@ -359,27 +351,27 @@ export function JobDetailSkeleton() {
 			<div className="flex flex-col gap-2.5">
 				<div className="flex items-center justify-between gap-3">
 					<div className="flex gap-1.5">
-						<Skeleton className="h-6 w-18 rounded-pill bg-surface-2" />
-						<Skeleton className="h-6 w-12 rounded-pill bg-surface-2" />
+						<Skeleton shape="pill" className="h-6 w-18" />
+						<Skeleton shape="pill" className="h-6 w-12" />
 					</div>
-					<Skeleton className="h-4 w-28 rounded-xs bg-surface-2" />
+					<Skeleton shape="line" className="h-4 w-28" />
 				</div>
-				<Skeleton className="h-7 w-4/5 rounded-xs bg-surface-2" />
-				<Skeleton className="h-4 w-1/2 rounded-xs bg-surface-2" />
+				<Skeleton shape="line" className="h-7 w-4/5" />
+				<Skeleton shape="line" className="h-4 w-1/2" />
 			</div>
 			<div className="flex flex-wrap gap-1.5">
 				{['w-16', 'w-20', 'w-12', 'w-18', 'w-14'].map(width => (
-					<Skeleton key={width} className={cx('h-6 rounded-pill bg-surface-2', width)} />
+					<Skeleton key={width} shape="pill" className={cx('h-6', width)} />
 				))}
 			</div>
 			<div className="flex flex-wrap gap-2">
-				<Skeleton className={cx('h-11.5 rounded-pill bg-surface-2', DETAIL_ACTION)} />
-				<Skeleton className={cx('h-11.5 rounded-pill bg-surface-2', DETAIL_ACTION)} />
+				<Skeleton shape="pill" className={cx('h-11.5', DETAIL_ACTION)} />
+				<Skeleton shape="pill" className={cx('h-11.5', DETAIL_ACTION)} />
 			</div>
 			<div className="flex flex-col gap-2.5">
-				<Skeleton className="h-3 w-24 rounded-xs bg-surface-2" />
+				<Skeleton shape="line" className="h-3 w-24" />
 				{['w-full', 'w-11/12', 'w-full', 'w-5/6', 'w-2/3'].map((width, index) => (
-					<Skeleton key={index} className={cx('h-3.5 rounded-xs bg-surface-2', width)} />
+					<Skeleton key={index} shape="line" className={cx('h-3.5', width)} />
 				))}
 			</div>
 		</div>

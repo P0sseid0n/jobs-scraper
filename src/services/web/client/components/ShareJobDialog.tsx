@@ -121,7 +121,7 @@ export function ShareJobDialog({ job, onClose }: { job: ShareJob; onClose: () =>
 							<FieldLabel htmlFor={textId}>texto</FieldLabel>
 							<div className="flex items-center gap-3">
 								{text !== generated && (
-									<TextLink className="text-xs" onClick={() => setText(generated)}>
+									<TextLink size="xs" onClick={() => setText(generated)}>
 										restaurar texto
 									</TextLink>
 								)}
@@ -203,6 +203,7 @@ export function ShareJobButton({ job, className }: { job: ShareJob; className?: 
 				label="compartilhar vaga"
 				size="sm"
 				bordered
+				tone="ink"
 				className={className}
 				aria-haspopup="dialog"
 				onClick={() => setOpen(true)}

@@ -9,7 +9,7 @@ import { reducedMotion } from '../lib/motion'
 import { isJustReady, markShown } from '../stores/cv'
 import { Badge, badge, BadgeList } from './ui/Badge'
 import { PdfIcon } from './ui/PdfIcon'
-import { LABEL } from './ui/text'
+import { LABEL, META } from './ui/text'
 import { TextLink } from './ui/TextLink'
 
 /**
@@ -60,9 +60,9 @@ export function ChangeSummary({ changes }: { changes: CvChanges }) {
 					<span className="max-w-48 truncate">+{skill}</span>
 				</Badge>
 			))}
-			{hidden > 0 && <span className="font-mono text-xs text-muted">+{hidden}</span>}
+			{hidden > 0 && <span className={META}>+{hidden}</span>}
 			{facts.length > 0 && (
-				<span className="font-mono text-xs text-muted">
+				<span className={META}>
 					{added.length > 0 && '· '}
 					{facts.join(' · ')}
 				</span>
@@ -112,16 +112,16 @@ export function CvReady({ cv, defaultOpen }: CvReadyProps) {
 				</span>
 				<div className="grow min-w-0">
 					<div className="font-semibold text-sm">currículo pronto</div>
-					<div className="font-mono text-muted text-xs block truncate">{cv.fileName}</div>
+					<div className={cx(META, 'block truncate')}>{cv.fileName}</div>
 				</div>
-				<TextLink className="text-sm" href={cvPdfUrl(cv.requestId)} external>
+				<TextLink size="sm" href={cvPdfUrl(cv.requestId)} external>
 					pré-visualizar
 				</TextLink>
 			</div>
 			{changes && (
 				<div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
 					<ChangeSummary changes={changes} />
-					<TextLink className="text-xs" aria-expanded={open} aria-controls={detailsId} onClick={() => setOpen(!open)}>
+					<TextLink size="xs" aria-expanded={open} aria-controls={detailsId} onClick={() => setOpen(!open)}>
 						{open ? 'esconder o que mudou' : 'ver o que mudou'}
 					</TextLink>
 				</div>
@@ -186,9 +186,9 @@ export function Changes({ changes, fresh, tone = 'highlight' }: { changes: CvCha
 								</li>
 							))}
 						{!showRemoved && (
-							<li className="flex items-center gap-1.5 font-mono text-xs text-muted">
+							<li className={cx(META, 'flex items-center gap-1.5')}>
 								−{removedSkills.length} saíram
-								<TextLink className="text-xs" onClick={() => setShowRemoved(true)}>
+								<TextLink size="xs" onClick={() => setShowRemoved(true)}>
 									mostrar
 								</TextLink>
 							</li>
@@ -278,7 +278,7 @@ function Summary({ summary, fresh }: { summary: NonNullable<CvChanges['summary']
 			{phase === 'done' && (
 				<>
 					<p>{text}</p>
-					<TextLink className="self-start text-xs" aria-expanded={showOriginal} onClick={() => setShowOriginal(!showOriginal)}>
+					<TextLink size="xs" className="self-start" aria-expanded={showOriginal} onClick={() => setShowOriginal(!showOriginal)}>
 						{showOriginal ? 'esconder a apresentação original' : 'ver a apresentação original'}
 					</TextLink>
 					{showOriginal && (

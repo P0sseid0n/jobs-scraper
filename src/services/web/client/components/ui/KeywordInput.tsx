@@ -74,7 +74,7 @@ export function KeywordInput({
 					<IconButton
 						label={`Remover ${word}`}
 						size="xs"
-						className="text-muted hover:text-ink"
+						tone="muted"
 						onClick={() => onChange(value.filter(item => item !== word))}
 					>
 						<Icon name="close" size={12} />

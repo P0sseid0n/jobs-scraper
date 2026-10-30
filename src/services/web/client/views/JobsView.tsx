@@ -20,7 +20,7 @@ import { RollingNumber } from '../components/ui/RollingNumber'
 import { SelectMenu } from '../components/ui/SelectMenu'
 import { Skeleton } from '../components/ui/Skeleton'
 import { StatusDot } from '../components/ui/StatusDot'
-import { FIELDSET, LABEL } from '../components/ui/text'
+import { FIELDSET, LABEL, META } from '../components/ui/text'
 import { TextLink } from '../components/ui/TextLink'
 import { celebrate } from '../lib/celebrate'
 import { cx } from '../lib/cx'
@@ -190,7 +190,7 @@ function FilterChips({ className }: { className?: string }) {
 				</Pill>
 			))}
 			{chips.length > 1 && (
-				<TextLink className="ml-1.5 text-xs" onClick={clearFilters}>
+				<TextLink size="xs" className="ml-1.5" onClick={clearFilters}>
 					limpar
 				</TextLink>
 			)}
@@ -528,7 +528,7 @@ function JobList({
 					</Button>
 				</div>
 			) : (
-				<p className="font-mono text-muted py-2 text-center text-xs">fim da lista</p>
+				<p className={cx(META, 'py-2 text-center')}>fim da lista</p>
 			)}
 		</>
 	)
@@ -566,13 +566,13 @@ export function JobsPending() {
 			<div className="flex flex-wrap items-start gap-6 max-md:flex-col max-md:items-stretch max-md:gap-3.5">
 				{showFilters && (
 					<div className="flex w-66 shrink-0 flex-col gap-5.5 max-md:hidden" aria-hidden="true">
-						<Skeleton className="h-10 rounded-pill bg-surface-2" />
+						<Skeleton shape="pill" className="h-10" />
 						{[4, 3, 6].map(count => (
 							<div key={count} className="flex flex-col gap-2.5">
-								<Skeleton className="h-3 w-20 rounded-xs bg-surface-2" />
+								<Skeleton shape="line" className="h-3 w-20" />
 								<div className="flex flex-wrap gap-1.5">
 									{Array.from({ length: count }, (_, index) => (
-										<Skeleton key={index} className={cx('h-8 rounded-pill bg-surface-2', index % 2 ? 'w-14' : 'w-18')} />
+										<Skeleton key={index} shape="pill" className={cx('h-8', index % 2 ? 'w-14' : 'w-18')} />
 									))}
 								</div>
 							</div>
@@ -677,7 +677,7 @@ export function JobsView({ selectedRouteId, detail }: { selectedRouteId: string 
 							{unviewedOnScreen && (
 								<>
 									{' · '}
-									<TextLink className="text-xs" onClick={() => void markAllViewed(jobs)}>
+									<TextLink size="xs" onClick={() => void markAllViewed(jobs)}>
 										marcar todas como vistas
 									</TextLink>
 								</>

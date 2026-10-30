@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 
 import type { WebBlockedCompanyJobs, WebJob } from '../../api-types'
 import { api } from '../api'
-import { cx } from '../lib/cx'
 import { removeJob } from '../stores/jobs'
 import { notify } from '../stores/toast'
 import { Icon } from './Icon'
@@ -52,10 +51,8 @@ export function BlockCompanyButton({ block, onClick }: { block: CompanyBlock; on
 		<IconButton
 			label={blocked ? `${block.company} está bloqueada: desbloquear ou tirar da lista` : `bloquear ${block.company}`}
 			size="xs"
-			className={cx(
-				'ml-1 align-middle pointer-coarse:w-auto pointer-coarse:grid-flow-col pointer-coarse:gap-1 pointer-coarse:px-1.5',
-				blocked ? 'text-danger' : 'text-muted hover:text-ink',
-			)}
+			tone={blocked ? 'danger' : 'muted'}
+			className="ml-1 align-middle pointer-coarse:w-auto pointer-coarse:grid-flow-col pointer-coarse:gap-1 pointer-coarse:px-1.5"
 			aria-haspopup="dialog"
 			onClick={onClick}
 		>

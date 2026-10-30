@@ -6,6 +6,7 @@ import { Icon } from '../Icon'
 import { badge, BadgeList } from '../ui/Badge'
 import { card } from '../ui/Card'
 import { StatusDot } from '../ui/StatusDot'
+import { META } from '../ui/text'
 
 const RISE = 'animate-rise-in motion-reduce:animate-none'
 
@@ -65,7 +66,7 @@ export function WelcomeDemo() {
 						<Mark delay="stagger-18">React</Mark> e <Mark delay="stagger-20">TypeScript</Mark>. Chama no direct!
 					</p>
 				</div>
-				<span className={cx('border-t border-line pt-2.5 font-mono text-xs text-muted', RISE, 'stagger-8')}>
+				<span className={cx(META, 'border-t border-line pt-2.5', RISE, 'stagger-8')}>
 					<Swap
 						outDelay="stagger-27"
 						inDelay="stagger-28"
@@ -83,10 +84,7 @@ export function WelcomeDemo() {
 				</span>
 			</div>
 
-			<p
-				aria-hidden="true"
-				className={cx('flex items-center gap-1.5 self-center font-mono text-xs text-muted', RISE, 'stagger-31')}
-			>
+			<p aria-hidden="true" className={cx(META, 'flex items-center gap-1.5 self-center', RISE, 'stagger-31')}>
 				<Icon name="chevron" size={14} />
 				vira uma vaga para você
 			</p>

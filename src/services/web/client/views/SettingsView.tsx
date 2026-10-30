@@ -34,6 +34,7 @@ import { SECTION_SCROLL_MARGIN, SectionNav } from '../components/ui/SectionNav'
 import { SelectMenu, type SelectMenuOption } from '../components/ui/SelectMenu'
 import { StatusDot } from '../components/ui/StatusDot'
 import { Switch } from '../components/ui/Switch'
+import { META } from '../components/ui/text'
 import { cx } from '../lib/cx'
 import { DATE_POSTED_LABELS, formatInterval, LANGUAGE_NAMES, languageLabel } from '../lib/format'
 import { shakeInvalid } from '../lib/motion'
@@ -487,7 +488,7 @@ export function SettingsView({
 					{fieldError('searchTerms')}
 					{!terms.some(term => term.enabled) && (
 						<Notice tone="warn" icon="alert">
-							<p className="text-sm">Sem nenhum termo ativo, o scraper fica em espera e não coleta.</p>
+							<p>Sem nenhum termo ativo, o scraper fica em espera e não coleta.</p>
 						</Notice>
 					)}
 					<FieldHelp>
@@ -637,7 +638,7 @@ export function SettingsView({
 						<div className="flex flex-col gap-1.5" key={field}>
 							<span className="flex items-center justify-between gap-3">
 								<FieldLabel htmlFor={field}>{label}</FieldLabel>
-								<span className="font-mono text-muted text-xs">
+								<span className={META}>
 									{p[field].length} / {LIMITS.keywords}
 								</span>
 							</span>
@@ -660,7 +661,7 @@ export function SettingsView({
 				</div>
 
 				<Notice tone="info" icon="info">
-					<p className="text-sm">
+					<p>
 						A comparação é por palavra inteira (“java” não pega “javascript”) e ignora maiúsculas, acentos, hífen e “.js”. Ou
 						seja, “Vue.js” = “vue” e “Front-End” = “frontend”.
 					</p>
@@ -671,7 +672,7 @@ export function SettingsView({
 					<div className="mt-3 flex flex-col gap-1.5 text-ink">
 						<span className="flex items-center justify-between gap-3">
 							<FieldLabel htmlFor="blockedCompanies">empresas bloqueadas</FieldLabel>
-							<span className="font-mono text-muted text-xs">
+							<span className={META}>
 								{p.blockedCompanies.length} / {LIMITS.blockedCompanies}
 							</span>
 						</span>
