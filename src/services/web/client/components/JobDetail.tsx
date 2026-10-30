@@ -317,15 +317,31 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 					</Notice>
 				)}
 				{job.language && <span className="font-mono text-muted text-xs">idioma: {languageLabel(job.language)}</span>}
-				{/* A página ou o post lidos pela metade (o site mudou, o scraper falhou): lê e extrai de novo, sem anunciar */}
-				<TextLink className="text-xs font-mono" disabled={reprocessing} onClick={() => void reprocessJob(job)}>
-					{reprocessing ? 'processando de novo…' : 'processar de novo'}
-				</TextLink>
-				{DEVELOPMENT && (
-					<TextLink className="text-xs font-mono" aria-expanded={rawJson !== null} disabled={loadingRaw} onClick={toggleRawJson}>
-						{loadingRaw ? 'carregando json…' : rawJson !== null ? 'esconder json da vaga' : 'ver json da vaga (debug)'}
+				{/* Ferramentas para a vaga que veio errada; o "processar de novo" fica à direita, também sozinho fora do `bun dev` */}
+				<div className="flex flex-wrap items-center gap-x-4">
+					{DEVELOPMENT && (
+						<TextLink
+							className="text-xs font-mono"
+							aria-expanded={rawJson !== null}
+							disabled={loadingRaw}
+							onClick={toggleRawJson}
+						>
+							{loadingRaw ? 'carregando json…' : rawJson !== null ? 'esconder json da vaga' : 'ver json da vaga (debug)'}
+						</TextLink>
+					)}
+					{/* A página ou o post lidos pela metade (o site mudou, o scraper falhou): lê e extrai de novo, sem anunciar.
+					    Discreto e com ícone: é manutenção, não leitura, e pode levar minutos (fila, coleta, IA) */}
+					<TextLink
+						className="ml-auto inline-flex items-center gap-1 text-xs font-mono text-muted no-underline hover:text-ink"
+						title="Lê a página ou o post de novo e refaz a extração; as suas correções ficam"
+						aria-busy={reprocessing}
+						disabled={reprocessing}
+						onClick={() => void reprocessJob(job)}
+					>
+						<Icon name={reprocessing ? 'spinner' : 'refresh'} size={13} />
+						{reprocessing ? 'processando…' : 'processar de novo'}
 					</TextLink>
-				)}
+				</div>
 				{rawJson !== null && (
 					<CodeBlock label="documento no mongodb" action={<CopyButton text={rawJson} what="JSON da vaga" size="xs" />} scroll>
 						{rawJson}
