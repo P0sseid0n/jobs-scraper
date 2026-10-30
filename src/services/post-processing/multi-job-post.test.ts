@@ -294,6 +294,49 @@ Requisitos: Vue.js – avançado, TypeScript – intermediário`
 🔗 https://lnkd.in/dW7zCnvV`)
 	})
 
+	test('divide os itens separados por linhas em branco, com a descrição depois do "|" e o cargo em negrito Unicode', () => {
+		const post = `🧛‍♂️🍿 DOCES, TRAVESSAS E... VAGAS NOVAS NA ZAPPTS! 🎃✨
+
+Quem disse que o Halloween é só de sustos? Por aqui, a gente só quer surpreender você com novos desafios e oportunidades de evolução!
+
+🩵 Se você curte tecnologia, colaboração e um ambiente certificado como Lugar Incrível para Trabalhar e Great Place To Work, sua próxima grande história pode começar agora! Confira as oportunidades e encontre a que mais combina com seu perfil:
+
+🔹 𝗣𝗿𝗼𝗱𝘂𝗰𝘁 𝗠𝗮𝗻𝗮𝗴𝗲𝗿 - Foco em dados | Transforme dados em estratégia e direcione produtos com base em inteligência e métricas.
+
+🔹 𝗣𝗿𝗼𝗱𝘂𝗰𝘁 𝗠𝗮𝗻𝗮𝗴𝗲𝗿 - Modelos operacionais e Agilidade | Otimize fluxos e estruture modelos de agilidade que gerem valor real.
+
+🔹 𝗗𝗲𝘀𝗲𝗻𝘃𝗼𝗹𝘃𝗲𝗱𝗼𝗿 𝗱𝗲 𝗔𝗣𝗜𝘀 𝗙𝘂𝗹𝗹𝗦𝘁𝗮𝗰𝗸 (Integrações SAP) | Foco em desenvolvimento e manutenção de integrações SAP (OData, RFC/BAPI, IDoc, REST) no middleware Sensedia, evitando conexões ponto a ponto.
+
+🔹 𝗙𝘂𝗹𝗹𝘀𝘁𝗮𝗰𝗸 𝗗𝗲𝘃𝗲𝗹𝗼𝗽𝗲𝗿 | Foco em Java (BackEnd) e Angular (FrontEnd) para construir soluções robustas de ponta a ponta.
+
+Fica a dica: conhece alguém que está em busca de um novo desafio? Marque nos comentários ou compartilhe este post! 🚀
+
+👉 Candidate-se aqui: https://lnkd.in/dtPFgVuz 🩵`
+		// O cabeçalho é a última frase do parágrafo de apresentação, terminada em dois-pontos
+		const roles = splitRoleListPost(post)
+
+		expect(roles?.map(role => role.title)).toEqual([
+			'Product Manager - Foco em dados',
+			'Product Manager - Modelos operacionais e Agilidade',
+			'Desenvolvedor de APIs FullStack (Integrações SAP)',
+			'Fullstack Developer',
+		])
+		expect(roles?.[3]?.text).toContain('🔹 𝗙𝘂𝗹𝗹𝘀𝘁𝗮𝗰𝗸 𝗗𝗲𝘃𝗲𝗹𝗼𝗽𝗲𝗿 | Foco em Java')
+		expect(roles?.[3]?.text).not.toContain('Product Manager')
+	})
+
+	test('não divide os dados de uma vaga só marcados com emojis diferentes', () => {
+		const post = `Olá, pessoal.Temos vagas📢 venha decolar com a Spassu 🚀
+🎯 Esp Desenvolvedor PHP Front-end TWIG (Imprescindível ter trabalhado com Front-end TWIG).
+📄 Graduação na área de TI (necessário ter diploma).
+📄 Contrato CLT.
+📍 Remoto.
+Cadastre seu cv no link da vaga abaixo 👇 também pode enviar para meu WhatsApp corporativo com o nome da vaga.
+https://lnkd.in/d2-gZRKV`
+
+		expect(splitRoleListPost(post)).toBeNull()
+	})
+
 	test('não divide os itens abaixo de uma vaga só, dos requisitos ou de um link', () => {
 		const items = '🔹 React\n🔹 TypeScript\n🔹 Jest'
 

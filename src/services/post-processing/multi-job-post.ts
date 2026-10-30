@@ -104,9 +104,14 @@ const ROLE_LIST_HEADER = /\b(vagas|oportunidades|posicoes|openings|positions|job
 /** Cabeçalhos com "vagas" ou "oportunidades" que abrem outra lista ("Requisitos para as vagas", "Benefícios"). */
 const NOT_ROLE_LIST_HEADER = /\b(requisitos?|beneficios?|responsabilidades?|atividades|diferencia(is|l)|requirements?|benefits?)\b/
 const MAX_HEADER_WORDS = 8
+/** O cabeçalho que termina em dois-pontos ("Confira as oportunidades e encontre a que mais combina com seu perfil:"). */
+const MAX_COLON_HEADER_WORDS = 14
 
 /** Item marcado de lista: emoji ("🔹", "💼"), marcador ("•", "-", "▪") ou numeração ("1.", "2)", "1️⃣"). */
 const LIST_ITEM = /^(\p{Extended_Pictographic}|[•\-–—*▪◦►➤✓✔]|\d{1,2}[.)]\s|\d\u{FE0F}?\u{20E3})/u
+
+/** Separador entre o cargo de um item da lista e a descrição dele ("🔹 Fullstack Developer | Foco em Java..."). */
+const LIST_ITEM_DESCRIPTION_SEPARATOR = /\s\|\s/
 
 /**
  * Reconhece posts que listam várias vagas sem link próprio ("Vagas em destaque: Cargo – Remoto. Cargo – Híbrido |
@@ -122,7 +127,7 @@ export function splitRoleListPost(text: string): RoleLine[] | null {
 	const listed = listedRoleLines(lines)
 	const seen = new Set<string>()
 	const roles = lines.flatMap((line, index) => {
-		const title = roleLineTitle(line) ?? (listed.has(index) ? listItemTitle(line) : null)
+		const title = roleLineTitle(line) ?? (listed.has(index) ? listedItemTitle(line) : null)
 		if (!title) return []
 
 		// O mesmo cargo escrito duas vezes ("Vaga: Dev Pleno - Acme - Home Office" e "Dev Pleno – Acme – Home Office"),
@@ -156,14 +161,37 @@ function roleLineTitle(line: string) {
 function listItemTitle(line: string) {
 	if (/https?:\/\//i.test(line)) return null
 
-	const title = cleanTitle(line).replace(/\.$/, '')
+	// NFKC: o "negrito" Unicode comum no LinkedIn (𝗙𝘂𝗹𝗹𝘀𝘁𝗮𝗰𝗸) vira texto, para o filtro de palavras-chave e para o site
+	const title = cleanTitle(line).normalize('NFKC').replace(/\.$/, '')
 	if (!title || title.length > MAX_TITLE_LENGTH || /[?!]/.test(title)) return null
 	return title
 }
 
 /**
- * Os índices dos itens marcados logo abaixo de um cabeçalho de vagas (linhas em branco entre os dois valem), até a
- * primeira linha que não é item. Blocos com menos de 3 itens ficam de fora.
+ * O cargo de um item abaixo de um cabeçalho de vagas, sem a descrição depois do " | " quando o item inteiro é uma frase
+ * ("🔹 Fullstack Developer | Foco em Java (BackEnd) e Angular (FrontEnd) para construir soluções..."), ou `null`.
+ */
+function listedItemTitle(line: string) {
+	const title = listItemTitle(line)
+	if (title && !isProse(title)) return title
+
+	const role = listItemTitle(line.split(LIST_ITEM_DESCRIPTION_SEPARATOR)[0] ?? '')
+	return role && !isProse(role) ? role : null
+}
+
+/**
+ * O marcador do item ("🔹", "•"); a numeração ("1.", "2)", "1️⃣") conta como um marcador só. Os itens de uma lista de
+ * vagas usam o mesmo: um emoji diferente em cada linha ("🎯 Cargo", "📄 Graduação", "📍 Remoto") são os dados de uma vaga.
+ */
+function listMarker(item: string) {
+	const marker = item.match(LIST_ITEM)?.[0] ?? ''
+	return /\d/.test(marker) ? 'numbered' : marker
+}
+
+/**
+ * Os índices dos itens marcados logo abaixo de um cabeçalho de vagas (linhas em branco valem, também entre os itens: há
+ * listas com um parágrafo por vaga), até a primeira linha que não é item ou que troca o marcador. Blocos com menos de 3
+ * itens ficam de fora.
  */
 function listedRoleLines(lines: string[]) {
 	const listed = new Set<number>()
@@ -171,13 +199,15 @@ function listedRoleLines(lines: string[]) {
 	for (const [index, line] of lines.entries()) {
 		if (!isRoleListHeader(line)) continue
 
-		let next = index + 1
-		while (next < lines.length && !lines[next]?.trim()) next++
-
 		const block: number[] = []
-		for (; next < lines.length; next++) {
+		let marker: string | null = null
+		for (let next = index + 1; next < lines.length; next++) {
 			const item = lines[next]?.trim() ?? ''
-			if (!LIST_ITEM.test(item) || !listItemTitle(item) || isProse(listItemTitle(item) ?? '')) break
+			if (!item) continue
+			if (!LIST_ITEM.test(item) || !listedItemTitle(item)) break
+
+			marker ??= listMarker(item)
+			if (listMarker(item) !== marker) break
 			block.push(next)
 		}
 		if (block.length >= MIN_LISTINGS) for (const item of block) listed.add(item)
@@ -186,14 +216,24 @@ function listedRoleLines(lines: string[]) {
 	return listed
 }
 
-/** Cabeçalho de uma lista de vagas; o link fica de fora ("Cadastre-se: https://vagas.exemplo.com" não é cabeçalho). */
+/**
+ * Cabeçalho de uma lista de vagas; o link fica de fora ("Cadastre-se: https://vagas.exemplo.com" não é cabeçalho). O
+ * que termina em dois-pontos anuncia a lista: vale a última frase da linha, que pode ser mais longa ("...pode começar
+ * agora! Confira as oportunidades e encontre a que mais combina com seu perfil:").
+ */
 function isRoleListHeader(line: string) {
 	if (/https?:\/\//i.test(line)) return false
 
-	const header = withoutAccents(cleanTitle(line)).toLowerCase()
-	return (
-		!!header && header.split(' ').length <= MAX_HEADER_WORDS && ROLE_LIST_HEADER.test(header) && !NOT_ROLE_LIST_HEADER.test(header)
-	)
+	const announces = line.trim().endsWith(':')
+	const sentence = announces
+		? (line
+				.trim()
+				.split(/(?<=[.!?])\s+/)
+				.at(-1) ?? '')
+		: line
+	const header = withoutAccents(cleanTitle(sentence)).toLowerCase()
+	const maxWords = announces ? MAX_COLON_HEADER_WORDS : MAX_HEADER_WORDS
+	return !!header && header.split(' ').length <= maxWords && ROLE_LIST_HEADER.test(header) && !NOT_ROLE_LIST_HEADER.test(header)
 }
 
 /** O cargo antes da modalidade, só letras e números e sem o rótulo "Vaga:", para achar o mesmo cargo repetido. */
