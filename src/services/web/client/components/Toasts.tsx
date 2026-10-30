@@ -1,7 +1,7 @@
-import { useRef, useState, type CSSProperties, type PointerEvent } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
 
 import { cx } from '../lib/cx'
-import { GLIDE, reducedMotion } from '../lib/motion'
+import { GLIDE, reducedMotion, shake } from '../lib/motion'
 import { dismissToast, type Toast } from '../stores/toast'
 import { Icon } from './Icon'
 import { IconButton } from './ui/IconButton'
@@ -11,6 +11,8 @@ const DISMISS_FRACTION = 0.35
 const FLICK_SPEED = 0.5
 const DRAG_THRESHOLD_PX = 4
 const LEAVE_MS = 260
+/** A duração do `animate-toast-in` (tailwind.css). */
+const ENTER_MS = 450
 /** O `gap-2` entre os avisos, que some junto com o que sai. */
 const GAP_PX = 8
 
@@ -40,6 +42,11 @@ function ToastItem({ toast, depth }: { toast: Toast; depth: number }) {
 	const drag = useRef<Drag | null>(null)
 	const [dragging, setDragging] = useState(false)
 	const leaving = useRef(false)
+
+	// Depois de entrar (o `animate-toast-in`), no contêiner de fora: o de dentro já tem a própria animação
+	useEffect(() => {
+		if (toast.shake && outer.current) shake(outer.current, ENTER_MS)
+	}, [toast.shake])
 
 	/** Sai para o lado (`direction`: -1, 1) ou encolhendo (0), e o espaço dele fecha antes de sair da lista. */
 	function close(direction: -1 | 0 | 1 = 0) {
