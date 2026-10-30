@@ -61,13 +61,15 @@ export type JobsQuery = z.output<typeof JobsQuerySchema>
 
 /**
  * Vagas que a interface mostra: com `postId` (documentos antigos não têm) e cargo, que não foram marcadas pelo
- * site como "não é vaga" nem como "outro idioma" e que não são repostagem de outra (aparecem no detalhe dela).
+ * site como "não é vaga" nem como "outro idioma", nem removidas por serem de uma empresa bloqueada, e que não são
+ * repostagem de outra (aparecem no detalhe dela).
  */
 export const LISTABLE_JOBS = {
 	postId: { $type: 'string' as const },
 	title: { $type: 'string' as const },
 	notAJob: { $ne: true },
 	wrongLanguage: { $ne: true },
+	blockedCompany: { $ne: true },
 	// `null` também pega as vagas salvas antes do campo
 	duplicateOf: null,
 }

@@ -47,6 +47,7 @@ const OUTCOMES: Record<keyof NonNullable<WebScraperRun['outcomes']>['counts'], s
 	'job-seeker': 'candidato procurando vaga',
 	'not-a-job': 'não são vaga, segundo a IA',
 	keywords: 'fora das palavras-chave',
+	'blocked-company': 'de empresas bloqueadas',
 	'missing-fields': 'sem cargo ou link do post',
 	unknown: 'processados por uma versão anterior',
 }

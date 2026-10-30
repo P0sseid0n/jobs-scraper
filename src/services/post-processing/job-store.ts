@@ -86,7 +86,8 @@ const MAX_CANDIDATES = 2_000
 
 /**
  * A vaga original de que `job` é repostagem, entre as salvas nos últimos `duplicateWindowDays` dias que aparecem no
- * site (nem repostagem, nem marcada como "não é vaga" ou "outro idioma"). `null` se nenhuma é a mesma vaga.
+ * site (nem repostagem, nem marcada como "não é vaga" ou "outro idioma", nem removida por ser de uma empresa
+ * bloqueada). `null` se nenhuma é a mesma vaga.
  */
 async function findOriginal(job: ProcessedJob) {
 	const { duplicateSimilarityPercent, duplicateWindowDays } = await readSettings('post-processing')
@@ -99,6 +100,7 @@ async function findOriginal(job: ProcessedJob) {
 			duplicateOf: null,
 			notAJob: { $ne: true },
 			wrongLanguage: { $ne: true },
+			blockedCompany: { $ne: true },
 			createdAt: { $gte: since },
 		},
 		{ postId: 1, title: 1, company: 1, applyLink: 1, rawContent: 1, sourcePostId: 1 },

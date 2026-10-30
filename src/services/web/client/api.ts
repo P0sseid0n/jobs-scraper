@@ -16,6 +16,7 @@ import type {
 	SettingsKey,
 	SetupStatus,
 	WebAppliedSimilar,
+	WebBlockedCompanyJobs,
 	WebCredentials,
 	WebCvBase,
 	WebCvBaseVersion,
@@ -27,6 +28,7 @@ import type {
 	WebMail,
 	WebMailDraft,
 	WebMailSetup,
+	WebRemovedJobs,
 	WebRunRequest,
 	WebSettings,
 } from '../api-types'
@@ -111,6 +113,18 @@ export const api = {
 	/** "Não é a mesma vaga": a repostagem vira uma vaga própria; devolve a vaga original atualizada. */
 	ungroupRepost: (postId: string, repostId: string) =>
 		request<WebJob>(`/api/jobs/${encodeURIComponent(postId)}/reposts/${encodeURIComponent(repostId)}`, { method: 'DELETE' }),
+	/** Bloqueia a empresa (as próximas vagas dela são descartadas na coleta); devolve quantas vagas dela estão na lista. */
+	blockCompany: (company: string) =>
+		request<WebBlockedCompanyJobs>('/api/blocked-companies', { method: 'POST', body: JSON.stringify({ company }) }),
+	/** Desbloqueia a empresa: as próximas vagas dela voltam a entrar (as tiradas da lista continuam fora). */
+	unblockCompany: (company: string) =>
+		request<WebBlockedCompanyJobs>('/api/blocked-companies', { method: 'DELETE', body: JSON.stringify({ company }) }),
+	/** Se a empresa está bloqueada (`company: null` se não) e quantas vagas dela estão na lista. */
+	blockedCompanyJobs: (company: string) =>
+		request<WebBlockedCompanyJobs>(`/api/blocked-companies/jobs?company=${encodeURIComponent(company)}`),
+	/** Tira da lista as vagas da empresa bloqueada (ou só `postId`), sem apagar; devolve as que saíram. */
+	removeBlockedJobs: (company: string, postId?: string) =>
+		request<WebRemovedJobs>('/api/blocked-companies/remove-jobs', { method: 'POST', body: JSON.stringify({ company, postId }) }),
 	/** O documento da vaga no MongoDB, para depuração. */
 	rawJob: (postId: string) => request<Record<string, unknown>>(`/api/jobs/${encodeURIComponent(postId)}/raw`),
 

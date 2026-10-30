@@ -10,6 +10,8 @@ export const LIMITS = {
 	duplicateWindowDays: [1, 365],
 	keywords: 50,
 	keywordLength: 50,
+	blockedCompanies: 200,
+	companyLength: 200,
 	languages: 20,
 	area: 80,
 	targetRole: 100,
@@ -62,6 +64,9 @@ export function validateDraft(draft: SettingsDraft) {
 	for (const field of ['requiredKeywords', 'excludedKeywords'] as const) {
 		if (processing[field].length > LIMITS.keywords) errors[field] = `Use no máximo ${LIMITS.keywords} palavras`
 	}
+
+	if (processing.blockedCompanies.length > LIMITS.blockedCompanies)
+		errors.blockedCompanies = `Bloqueie no máximo ${LIMITS.blockedCompanies} empresas`
 
 	if (!isIntIn(processing.duplicateWindowDays, LIMITS.duplicateWindowDays))
 		errors.duplicateWindowDays = 'Use um número inteiro de 1 a 365'

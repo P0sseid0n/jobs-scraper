@@ -20,6 +20,7 @@ import { appliedSuggestion, setApplied, useAppliedAt, useAppliedSimilar } from '
 import { useCvFor } from '../stores/cv'
 import { removeJob, replaceJob } from '../stores/jobs'
 import { notify } from '../stores/toast'
+import { BlockCompanyButton, BlockCompanyDialog, useCompanyBlock } from './BlockCompanyButton'
 import { JobContact, JobMailStatus } from './ContactDialog'
 import { ContractTypeBadge } from './ContractTypeBadge'
 import { CopyButton } from './CopyButton'
@@ -68,6 +69,8 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 	const root = useRef<HTMLDivElement>(null)
 	const [expanded, setExpanded] = useState(false)
 	const [reporting, setReporting] = useState(false)
+	const [blocking, setBlocking] = useState(false)
+	const companyBlock = useCompanyBlock(job)
 
 	// Depuração: o documento da vaga no MongoDB, buscado só quando pedido
 	const [rawJson, setRawJson] = useState<string | null>(null)
@@ -91,6 +94,10 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 	const contentNoun = fromPage ? 'texto' : 'post'
 	const isLong = content.length > LONG_POST_CHARS
 	const subtitle = jobSubtitle(job)
+	const removeFromList = () => {
+		removeJob(job.postId)
+		void navigate({ to: '/', replace: true })
+	}
 
 	// Aberta pelo card da lista, os blocos entram um depois do outro (a chave remonta este componente a cada vaga)
 	useLayoutEffect(() => {
@@ -145,13 +152,20 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 				<h2 className="text-2xl leading-tight font-bold">{job.title}</h2>
 				{(subtitle.confidential || subtitle.text) && (
 					<p className="text-muted">
-						<JobSubtitle job={job} />
+						<JobSubtitle
+							job={job}
+							companyAction={<BlockCompanyButton block={companyBlock} onClick={() => setBlocking(true)} />}
+						/>
 					</p>
 				)}
 				{job.author && (job.company || job.location || subtitle.confidential) && (
 					<p className="font-mono text-muted text-xs">postado por {job.author}</p>
 				)}
 			</header>
+			{/* Fora do subtítulo: a modal não pode ficar dentro do <p> */}
+			{blocking && (
+				<BlockCompanyDialog job={job} block={companyBlock} onClose={() => setBlocking(false)} onRemoved={removeFromList} />
+			)}
 			{reporting && (
 				<ReportJobDialog
 					job={job}
@@ -162,10 +176,7 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 						// O JSON aberto mostraria o documento de antes da correção
 						setRawJson(null)
 					}}
-					onRemoved={() => {
-						removeJob(job.postId)
-						void navigate({ to: '/', replace: true })
-					}}
+					onRemoved={removeFromList}
 				/>
 			)}
 

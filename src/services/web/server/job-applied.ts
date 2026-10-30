@@ -1,8 +1,9 @@
 import { z } from 'zod'
 
+import { normalizeCompany } from '@shared/contracts'
 import { Job, setJobApplied } from '@shared/database'
 
-import { normalizeCompany, similarTitles, specificApplyLink } from '../../post-processing/job-duplicates'
+import { similarTitles, specificApplyLink } from '../../post-processing/job-duplicates'
 import type { JobAppliedChange, WebAppliedSimilar } from '../api-types'
 import type { EventHub } from './event-hub'
 import { HttpError, readJson } from './http'

@@ -28,7 +28,7 @@ const logger = createLogger('test')
 logger.level = 'silent'
 
 const get = handler(logger, getSettings)
-const put = handler(logger, putSettings)
+const put = handler<Request & { params: { key: string } }>(logger, req => putSettings(req, { logger }))
 
 function request(key: string, body?: unknown) {
 	const req = new Request(`http://localhost/api/settings/${key}`, {

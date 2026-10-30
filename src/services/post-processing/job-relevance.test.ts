@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { relevanceRejection } from './job-relevance'
+import { companyRejection, relevanceRejection } from './job-relevance'
 
 const filter = { requiredKeywords: ['vue', 'front-end', 'javascript', 'typescript'], excludedKeywords: [] }
 
@@ -87,5 +87,19 @@ describe('relevanceRejection', () => {
 		expect(
 			relevanceRejection({ title: 'Dev Golang', necessaryKnowledge: null }, { requiredKeywords: [], excludedKeywords: [] }),
 		).toBeNull()
+	})
+})
+
+describe('companyRejection', () => {
+	test('descarta a vaga de empresa bloqueada, com a empresa normalizada para desbloquear depois', () => {
+		expect(companyRejection({ company: 'Banco Itaú S.A.' }, { blockedCompanies: ['Itaú'] })).toEqual({
+			reason: 'a empresa "Itaú" está bloqueada',
+			blockedBy: 'itau',
+		})
+	})
+
+	test('vaga sem empresa ou de empresa fora da lista segue', () => {
+		expect(companyRejection({ company: null }, { blockedCompanies: ['Itaú'] })).toBeNull()
+		expect(companyRejection({ company: 'Stonehenge Tech' }, { blockedCompanies: ['Stone'] })).toBeNull()
 	})
 })

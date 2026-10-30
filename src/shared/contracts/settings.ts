@@ -10,6 +10,7 @@ import {
 	VARIABLE_NAME,
 	type TemplateVariable,
 } from '../templates/message-template'
+import { normalizeCompany } from './company'
 
 /**
  * Configurações editáveis em tempo de execução (por outras fontes). Ficam na coleção `settings`
@@ -72,6 +73,10 @@ const keywordList = z
 	.default([])
 	.transform(keywords => [...new Set(keywords.map(keyword => keyword.toLowerCase()))])
 
+export const MAX_BLOCKED_COMPANIES = 200
+/** O mesmo limite da empresa corrigida pelo site. */
+const MAX_COMPANY_LENGTH = 200
+
 export const PostProcessingSettingsSchema = z.object({
 	/**
 	 * Porcentagem dos checks da extração (campos em que a IA citou o que não está no post, e a empresa que ficou sem nome)
@@ -97,6 +102,24 @@ export const PostProcessingSettingsSchema = z.object({
 
 	/** A vaga é descartada se citar alguma destas palavras no cargo ou nos conhecimentos. */
 	excludedKeywords: keywordList,
+
+	/**
+	 * Vagas destas empresas são descartadas na coleta, sem salvar nem anunciar (ver `blockingCompany`). Cada empresa fica
+	 * escrita como aparecia na vaga; a mesma empresa com outra grafia ou sufixo ("Acme Ltda." e "ACME") conta uma vez.
+	 */
+	blockedCompanies: z
+		.array(z.string().trim().min(1).max(MAX_COMPANY_LENGTH))
+		.max(MAX_BLOCKED_COMPANIES)
+		.default([])
+		.transform(companies => {
+			const seen = new Set<string>()
+			return companies.filter(company => {
+				const name = normalizeCompany(company)
+				if (!name || seen.has(name)) return false
+				seen.add(name)
+				return true
+			})
+		}),
 
 	/**
 	 * Semelhança mínima (porcentagem, Jaccard dos trigramas de palavras) entre o texto de dois posts da mesma empresa e

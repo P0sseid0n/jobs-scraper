@@ -1,13 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import {
-	findDuplicate,
-	normalizeCompany,
-	similarTitles,
-	specificApplyLink,
-	textSimilarity,
-	type DuplicateCandidate,
-} from './job-duplicates'
+import { findDuplicate, similarTitles, specificApplyLink, textSimilarity, type DuplicateCandidate } from './job-duplicates'
 
 // O padrão das configurações (`duplicateSimilarityPercent`)
 const THRESHOLD = 0.6
@@ -112,14 +105,6 @@ describe('similarTitles', () => {
 		expect(similarTitles('Desenvolvedor Front-end Pleno', 'Desenvolvedor Front-end Sênior')).toBe(false)
 		expect(similarTitles('Analista de Marketing', 'Analista de Dados')).toBe(false)
 		expect(similarTitles(null, 'Analista de Dados')).toBe(false)
-	})
-})
-
-describe('normalizeCompany', () => {
-	test('ignora caixa, acentos, pontuação e sufixos', () => {
-		expect(normalizeCompany('ACME Tecnologia Ltda.')).toBe('acme tecnologia')
-		expect(normalizeCompany('Ácme Tecnologia S.A.')).toBe('acme tecnologia')
-		expect(normalizeCompany(null)).toBeNull()
 	})
 })
 

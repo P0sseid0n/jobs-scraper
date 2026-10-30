@@ -282,6 +282,15 @@ export type { JobAppliedChange }
  */
 export type WebAppliedSimilar = { postId: string; title: string; company: string | null; appliedAt: string }
 
+/**
+ * `POST`/`DELETE /api/blocked-companies` e `GET /api/blocked-companies/jobs`: a empresa como está na lista de bloqueadas
+ * (`null`: não está bloqueada) e quantas vagas dela ainda aparecem no site.
+ */
+export type WebBlockedCompanyJobs = { company: string | null; jobs: number }
+
+/** `POST /api/blocked-companies/remove-jobs`: as vagas tiradas da lista. */
+export type WebRemovedJobs = { postIds: string[] }
+
 /** `GET /api/mail`: se o envio por e-mail está ligado (há conta SMTP, do site ou do `.env`) e de qual remetente. */
 export type WebMailSetup = { enabled: boolean; from: string | null }
 

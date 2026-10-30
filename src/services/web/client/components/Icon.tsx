@@ -33,6 +33,8 @@ const PATHS = {
 	image: 'M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z M8.5 8a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z M21 15l-5-5L5 19',
 	info: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M12 11v5 M12 8h.01',
 	spinner: 'M21 12a9 9 0 1 1-6.2-8.6',
+	/** Bloquear (círculo cortado). */
+	block: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z M5.6 5.6l12.8 12.8',
 } as const
 
 export type IconName = keyof typeof PATHS

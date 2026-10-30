@@ -15,6 +15,8 @@ export type JobCorrectionState = {
 	notAJob: boolean
 	/** Marcada pelo site como fora dos idiomas aceitos (o filtro de idioma deixou passar): sai da lista, mas o documento fica. */
 	wrongLanguage: boolean
+	/** Removida pelo site por ser de uma empresa bloqueada: sai da lista, mas o documento fica (desbloquear não a traz de volta). */
+	blockedCompany: boolean
 }
 
 /** Quando a vaga foi aberta no site (`null`: ainda não vista). O sistema tem um único usuário: o campo fica na vaga. */
@@ -73,6 +75,7 @@ const jobSchema = new Schema<JobDocument>(
 		correctedAt: { type: Date, default: null },
 		notAJob: { type: Boolean, default: false },
 		wrongLanguage: { type: Boolean, default: false },
+		blockedCompany: { type: Boolean, default: false },
 		viewedAt: { type: Date, default: null },
 		appliedAt: { type: Date, default: null },
 		duplicateOf: { type: String, default: null },

@@ -56,6 +56,7 @@ describe('settingsSeedsFromEnv', () => {
 			allowedLanguages: ['pt', 'en'],
 			requiredKeywords: ['enfermagem', 'coren'],
 			excludedKeywords: ['veterinário'],
+			blockedCompanies: [],
 			duplicateSimilarityPercent: 60,
 			duplicateWindowDays: 30,
 		})

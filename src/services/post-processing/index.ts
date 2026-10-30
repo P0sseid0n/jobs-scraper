@@ -9,7 +9,7 @@ import { loadSettings, readSettings } from '@shared/settings'
 
 import { extractionPromptVersion } from './extraction-prompt'
 import { buildProcessedJob, extractJobFromPost } from './job-extraction'
-import { relevanceRejection } from './job-relevance'
+import { companyRejection, relevanceRejection } from './job-relevance'
 import { resumeSavedJob, saveJob } from './job-store'
 import { rejectionReason } from './model-response'
 import {
@@ -49,7 +49,7 @@ await queue.consume(
  * Post que lista várias vagas: pede ao scraper para abrir o link de cada uma ou, com um link só para todas, processa
  * cada vaga relevante à parte (`processRoleList`). Senão, descarta o post se ele estiver
  * fora dos idiomas aceitos (antes da extração; em texto curto, o idioma é perguntado ao modelo), extrai a vaga e, se
- * for uma vaga relevante (palavras-chave), salva no MongoDB e anuncia para os canais. Cada post é processado uma
+ * for uma vaga relevante (palavras-chave) de uma empresa não bloqueada, salva no MongoDB e anuncia para os canais. Cada post é processado uma
  * única vez. Com `imagesToModel: false`, as imagens são guardadas com a vaga sem ir para a extração.
  */
 async function processPost(post: RawPost, { imagesToModel = true } = {}) {
@@ -108,6 +108,14 @@ async function processPost(post: RawPost, { imagesToModel = true } = {}) {
 	if (irrelevant) {
 		log.info({ reason: irrelevant, title: job.title }, 'Vaga descartada')
 		await markAsSeen(post, 'keywords', irrelevant)
+		return
+	}
+
+	const blocked = companyRejection(job, settings)
+
+	if (blocked) {
+		log.info({ reason: blocked.reason, title: job.title }, 'Vaga descartada')
+		await markAsSeen(post, 'blocked-company', blocked.reason, { blockedBy: blocked.blockedBy })
 		return
 	}
 
@@ -184,13 +192,16 @@ async function processRoleList(post: RawPost, roles: RoleLine[], settings: Keywo
 
 type KeywordSettings = { requiredKeywords: string[]; excludedKeywords: string[] }
 
-/** Registra o destino do post (o histórico de coletas mostra os motivos de descarte); a IA o viu como vaga ou não. */
-function markAsSeen(post: RawPost, outcome: SeenPostOutcome, reason?: string | null) {
-	const isJob = outcome === 'saved' || outcome === 'keywords' || outcome === 'missing-fields'
+/**
+ * Registra o destino do post (o histórico de coletas mostra os motivos de descarte); a IA o viu como vaga ou não.
+ * `blockedBy` é a empresa bloqueada que descartou a vaga.
+ */
+function markAsSeen(post: RawPost, outcome: SeenPostOutcome, reason?: string | null, { blockedBy }: { blockedBy?: string } = {}) {
+	const isJob = outcome === 'saved' || outcome === 'keywords' || outcome === 'blocked-company' || outcome === 'missing-fields'
 
 	return SeenPost.updateOne(
 		{ postId: post.postId },
-		{ $setOnInsert: { postId: post.postId, isJob, outcome, ...(reason && { reason }) } },
+		{ $setOnInsert: { postId: post.postId, isJob, outcome, ...(reason && { reason }), ...(blockedBy && { blockedBy }) } },
 		{ upsert: true },
 	)
 }

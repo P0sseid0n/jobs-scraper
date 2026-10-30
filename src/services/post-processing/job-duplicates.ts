@@ -1,3 +1,5 @@
+import { normalizeCompany } from '@shared/contracts'
+
 /**
  * Reconhece a mesma vaga repostada em outro post (por outro recrutador, ou dias depois com o texto um pouco mudado).
  * O critério é conservador: separar duas vagas iguais é menos grave que esconder uma vaga diferente. Por isso o cargo
@@ -135,32 +137,6 @@ export function jaccard<T>(a: Set<T>, b: Set<T>) {
 /** Semelhança do texto de dois posts: Jaccard dos trigramas de palavras. */
 export function textSimilarity(a: string, b: string) {
 	return jaccard(wordTrigrams(a), wordTrigrams(b))
-}
-
-const COMPANY_SUFFIXES = new Set([
-	'ltda',
-	'sa',
-	's',
-	'a',
-	'me',
-	'eireli',
-	'inc',
-	'ltd',
-	'llc',
-	'corp',
-	'co',
-	'gmbh',
-	'brasil',
-	'brazil',
-])
-
-/** A empresa sem caixa, acentos, pontuação e sufixos ("ACME Tecnologia Ltda." e "Acme Tecnologia" são a mesma). */
-export function normalizeCompany(company: string | null) {
-	if (!company) return null
-
-	const list = words(company)
-	while (list.length > 1 && COMPANY_SUFFIXES.has(list.at(-1)!)) list.pop()
-	return list.join(' ') || null
 }
 
 /** O cargo separado em palavras principais e níveis de senioridade ("Full Stack" e "Fullstack" são a mesma palavra). */

@@ -91,7 +91,9 @@ export function ReportJobDialog({
 }) {
 	const ref = useRef<HTMLDialogElement>(null)
 	const [report, setReport] = useState<JobReport | null>(null)
-	const [step, setStep] = useState<'choose' | 'edit'>('choose')
+	const [step, setStep] = useState<'choose' | 'edit' | 'blocked'>('choose')
+	// A empresa foi corrigida para uma bloqueada: a modal avisa e oferece tirar a vaga da lista (não tira sozinha)
+	const [blockedCompany, setBlockedCompany] = useState<string | null>(null)
 	const [draft, setDraft] = useState<CorrectionDraft>(() => draftFromJob(job))
 	const [errors, setErrors] = useState<Record<string, string>>({})
 	const [saving, setSaving] = useState(false)
@@ -114,8 +116,15 @@ export function ReportJobDialog({
 				notify(REMOVAL_REPORTS[report.kind].toast)
 				onRemoved()
 			} else {
-				onCorrected(await api.correctJob(job.postId, correctionBody(draft, report.fields)))
+				const saved = await api.correctJob(job.postId, correctionBody(draft, report.fields))
+				onCorrected(saved)
 				notify('Vaga corrigida')
+				const match = report.fields.includes('company') && saved.company ? await blockedMatch(saved.company) : null
+				if (match?.company) {
+					setBlockedCompany(match.company)
+					setStep('blocked')
+					return
+				}
 			}
 			close()
 		} catch (error) {
@@ -123,6 +132,32 @@ export function ReportJobDialog({
 			setErrors(fields)
 			// Erros de campo já aparecem no formulário
 			if (Object.keys(fields).length === 0) notify(`Não consegui salvar: ${(error as Error).message}`, 'error')
+		} finally {
+			setSaving(false)
+		}
+	}
+
+	/** A correção já foi salva: se a consulta falhar, a modal só fecha. */
+	async function blockedMatch(company: string) {
+		try {
+			return await api.blockedCompanyJobs(company)
+		} catch {
+			return null
+		}
+	}
+
+	/** Tira só esta vaga da lista (as outras da empresa ficam como estão). */
+	async function removeBlocked() {
+		if (!blockedCompany || saving) return
+
+		setSaving(true)
+		try {
+			const { postIds } = await api.removeBlockedJobs(blockedCompany, job.postId)
+			notify('Vaga tirada da lista')
+			if (postIds.includes(job.postId)) onRemoved()
+			close()
+		} catch (error) {
+			notify(`Não consegui tirar da lista: ${(error as Error).message}`, 'error')
 		} finally {
 			setSaving(false)
 		}
@@ -246,7 +281,7 @@ export function ReportJobDialog({
 			<div className="flex flex-col gap-2.5 px-5 pt-4 pb-5">
 				<div className="flex items-center justify-between gap-3">
 					<h2 className="text-lg font-bold" id="report-title">
-						{step === 'edit' ? 'Corrigir a vaga' : 'O que saiu errado?'}
+						{step === 'edit' ? 'Corrigir a vaga' : step === 'blocked' ? 'Esta empresa está bloqueada' : 'O que saiu errado?'}
 					</h2>
 					<IconButton label="Fechar" onClick={close}>
 						<Icon name="close" />
@@ -254,7 +289,22 @@ export function ReportJobDialog({
 				</div>
 				<p className="text-muted text-sm block truncate">{job.title}</p>
 
-				{step === 'edit' && report?.kind === 'fields' ? (
+				{step === 'blocked' && blockedCompany ? (
+					<>
+						<p className="text-sm">
+							A {blockedCompany} está nas empresas bloqueadas: as próximas vagas dela são descartadas na coleta. Remover esta
+							vaga da lista?
+						</p>
+						<div className={DIALOG_ACTIONS}>
+							<Button variant="ghost" onClick={close}>
+								manter
+							</Button>
+							<Button variant="lime" disabled={saving} onClick={() => void removeBlocked()}>
+								{saving ? 'removendo…' : 'remover a vaga'}
+							</Button>
+						</div>
+					</>
+				) : step === 'edit' && report?.kind === 'fields' ? (
 					<form className="flex flex-col gap-2.5" onSubmit={save} noValidate>
 						{(Object.keys(REPORTABLE_FIELDS) as ReportableField[])
 							.filter(name => report.fields.includes(name))

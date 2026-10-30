@@ -1,4 +1,4 @@
-import type { ProcessedJob } from '@shared/contracts'
+import { blockingCompany, normalizeCompany, type ProcessedJob } from '@shared/contracts'
 
 type KeywordFilter = { requiredKeywords: string[]; excludedKeywords: string[] }
 
@@ -18,6 +18,17 @@ export function relevanceRejection(job: Pick<ProcessedJob, 'title' | 'necessaryK
 	}
 
 	return null
+}
+
+/**
+ * Diz por que a vaga é descartada pela empresa (bloqueada nas configurações), com a empresa bloqueada normalizada
+ * (`blockedBy`, para desbloquear depois), ou `null` se ela segue. Vaga sem empresa nunca é bloqueada.
+ */
+export function companyRejection(job: Pick<ProcessedJob, 'company'>, filter: { blockedCompanies: string[] }) {
+	const blocked = blockingCompany(job.company, filter.blockedCompanies)
+	if (!blocked) return null
+
+	return { reason: `a empresa "${blocked}" está bloqueada`, blockedBy: normalizeCompany(blocked)! }
 }
 
 /**

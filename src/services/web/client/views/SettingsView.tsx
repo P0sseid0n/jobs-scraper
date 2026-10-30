@@ -21,6 +21,7 @@ import { MessageTemplateEditor } from '../components/MessageTemplateEditor'
 import { Button } from '../components/ui/Button'
 import { Combobox } from '../components/ui/Combobox'
 import { ConfirmDialog } from '../components/ui/Dialog'
+import { Disclosure } from '../components/ui/Disclosure'
 import { FieldError, FieldHelp, FieldLabel } from '../components/ui/Field'
 import { IconButton } from '../components/ui/IconButton'
 import { Checkbox, Input, Range } from '../components/ui/Input'
@@ -664,6 +665,42 @@ export function SettingsView({
 						seja, “Vue.js” = “vue” e “Front-End” = “frontend”.
 					</p>
 				</Notice>
+
+				{/* Começa fechada: a lista cresce com o tempo e quase nunca é editada aqui */}
+				<Disclosure summary={`empresas bloqueadas (${p.blockedCompanies.length})`}>
+					<div className="mt-3 flex flex-col gap-1.5 text-ink">
+						<span className="flex items-center justify-between gap-3">
+							<FieldLabel htmlFor="blockedCompanies">empresas bloqueadas</FieldLabel>
+							<span className="font-mono text-muted text-xs">
+								{p.blockedCompanies.length} / {LIMITS.blockedCompanies}
+							</span>
+						</span>
+						<KeywordInput
+							id="blockedCompanies"
+							value={p.blockedCompanies}
+							max={LIMITS.blockedCompanies}
+							maxLength={LIMITS.companyLength}
+							keepCase
+							invalid={!!errors.blockedCompanies}
+							describedBy="blockedCompanies-help"
+							onChange={value =>
+								edit(next => {
+									next['post-processing'].blockedCompanies = value
+								})
+							}
+						/>
+						{fieldError('blockedCompanies') ?? (
+							<FieldHelp id="blockedCompanies-help">
+								{p.blockedCompanies.length === 0
+									? 'Nenhuma empresa bloqueada. Para bloquear, abra uma vaga da empresa e escolha “bloquear empresa” na bandeira de reportar, ou escreva o nome aqui. '
+									: ''}
+								As vagas dessas empresas são descartadas na coleta, sem aparecer no site nem no Discord. “Itaú” também bloqueia
+								“Banco Itaú S.A.”. Desbloquear vale para os posts que aparecerem de novo nas próximas coletas: não traz de
+								volta as vagas antigas.
+							</FieldHelp>
+						)}
+					</div>
+				</Disclosure>
 
 				<div className="grid grid-cols-2 gap-5 max-md:grid-cols-1">
 					<div className="flex flex-col gap-1.5">

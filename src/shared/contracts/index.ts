@@ -1,3 +1,4 @@
+export * from './company'
 export * from './cv'
 export * from './cv-form'
 export * from './job'

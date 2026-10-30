@@ -19,6 +19,7 @@ import { readSettings } from '@shared/settings'
 import type { ApiError } from './api-types'
 import app from './client/index.html'
 import { webEnv } from './config'
+import { blockCompany, blockedCompanyJobs, removeBlockedJobs, unblockCompany } from './server/blocked-companies'
 import { getCredentials, putCredentials, removeCredentials, testCredentials } from './server/credentials'
 import { getCvPdf, getCvRequest, listCvRequests, requestCv, saveCvResult } from './server/cv'
 import {
@@ -146,7 +147,13 @@ const server = Bun.serve({
 		'/api/scraper/status': { GET: api(() => scraperStatus({ skipOnboarding: config.SKIP_ONBOARDING })) },
 		'/api/scraper/runs': { GET: api(listRuns) },
 		'/api/scraper/run': { POST: api(() => requestRun(queue)) },
-		'/api/settings/:key': { GET: api(getSettings), PUT: api(putSettings) },
+		'/api/settings/:key': { GET: api(getSettings), PUT: api(req => putSettings(req, { logger })) },
+		'/api/blocked-companies': {
+			POST: api(req => blockCompany(req, { logger })),
+			DELETE: api(req => unblockCompany(req, { logger })),
+		},
+		'/api/blocked-companies/jobs': { GET: api(blockedCompanyJobs) },
+		'/api/blocked-companies/remove-jobs': { POST: api(req => removeBlockedJobs(req, { logger })) },
 		'/api/credentials': { GET: api(getCredentials) },
 		'/api/credentials/:group': { PUT: api(putCredentials), DELETE: api(removeCredentials) },
 		'/api/credentials/:group/test': { POST: api(testCredentials) },

@@ -60,6 +60,7 @@ describe('PostProcessingSettingsSchema', () => {
 			allowedLanguages: ['pt'],
 			requiredKeywords: [],
 			excludedKeywords: [],
+			blockedCompanies: [],
 			duplicateSimilarityPercent: 60,
 			duplicateWindowDays: 30,
 		})
@@ -86,6 +87,15 @@ describe('PostProcessingSettingsSchema', () => {
 			'front-end',
 		])
 		expect(PostProcessingSettingsSchema.safeParse({ excludedKeywords: [' '] }).success).toBe(false)
+	})
+
+	test('empresas bloqueadas: mantém a grafia e tira a mesma empresa escrita de outro jeito', () => {
+		expect(
+			PostProcessingSettingsSchema.parse({ blockedCompanies: [' Acme Ltda. ', 'ACME', 'Banco Itaú S.A.', 'banco itau'] })
+				.blockedCompanies,
+		).toEqual(['Acme Ltda.', 'Banco Itaú S.A.'])
+		expect(PostProcessingSettingsSchema.parse({ blockedCompanies: ['---'] }).blockedCompanies).toEqual([])
+		expect(PostProcessingSettingsSchema.safeParse({ blockedCompanies: [' '] }).success).toBe(false)
 	})
 })
 
