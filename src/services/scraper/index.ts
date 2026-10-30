@@ -7,11 +7,10 @@ import {
 } from '@shared/contracts'
 import { neverCollected, type ScraperRunTrigger } from '@shared/database'
 import { onShutdown, shutdown } from '@shared/lifecycle'
-import { QUEUES } from '@shared/messaging'
+import { QUEUES, TaskLock } from '@shared/messaging'
 import { startService } from '@shared/service'
 import { loadCredentials, loadSettings } from '@shared/settings'
 
-import { BrowserLock } from './browser-lock'
 import { scraperEnv } from './config'
 import { JobLookupWorker } from './job-lookup'
 import { NO_LINKEDIN_ACCOUNT } from './login'
@@ -27,13 +26,14 @@ const { config, logger, queue } = await startService({ name: 'scraper', env: scr
 // Na coleta única sem configuração, de quanto em quanto tempo relê os termos e a conta (como a agenda)
 const CONFIGURATION_POLL_MS = 30_000
 
-// A coleta e as vagas de posts com várias usam o LinkedIn uma de cada vez
-const browserLock = new BrowserLock()
+// A coleta e as vagas de posts com várias usam o LinkedIn uma de cada vez; o "processar de novo" passa à frente
+const browserLock = new TaskLock()
 const lookups = new JobLookupWorker({ config, queue, logger, lock: browserLock })
 
 onShutdown(closeActiveBrowser)
 onShutdown(() => lookups.close())
 await queue.assertQueue(QUEUES.postProcessing)
+await queue.assertQueue(QUEUES.postProcessingReprocess)
 await queue.assertQueue(QUEUES.webReprocess)
 await markInterruptedRuns()
 
@@ -53,7 +53,10 @@ await queue.consume(QUEUES.scraperLoginTest, LoginTestRequestSchema, () =>
 
 // Vagas de posts com várias (enviadas pelo post-processing): cada uma é aberta no navegador, com pausa entre elas
 await queue.consume(QUEUES.scraperLookup, JobLookupSchema, lookup => lookups.handle(lookup))
-// Posts de vagas avulsas lidos de novo ("processar de novo" do site), no mesmo navegador e ritmo das vagas acima
+// As mesmas vagas pedidas pelo "processar de novo" do site, à frente das outras (na trava do navegador)
+await queue.consume(QUEUES.scraperLookupReprocess, JobLookupSchema, lookup => lookups.handle(lookup))
+// Posts de vagas avulsas lidos de novo ("processar de novo" do site), no mesmo navegador e ritmo das vagas acima e
+// também à frente delas
 await queue.consume(QUEUES.scraperPost, PostRereadSchema, request => lookups.reread(request))
 
 try {

@@ -37,7 +37,7 @@ Quando a coleta completa o mínimo de vagas, as listas dela não são abertas: s
 
 ## Processar de novo
 
-O "processar de novo" do site (ver [web](../web/README.md)) manda a vaga de volta pelo caminho em que ela entrou. A vaga de uma lista volta à fila `scraper-lookup`, e a página dela é aberta de novo mesmo com a lista fora de `seen_posts`; se a página não abrir ou não trouxer a vaga, o site recebe a falha pela fila `web-reprocess`, sem trocar a página pelas linhas do post. A vaga avulsa vai para a fila `scraper-post`: o scraper abre o post no LinkedIn e lê o texto, o autor, o cartão anexado e as imagens, como na coleta. Os dois usam o mesmo navegador, a mesma pausa e a mesma trava das vagas de lista, então nunca rodam durante uma coleta.
+O "processar de novo" do site (ver [web](../web/README.md)) manda a vaga de volta pelo caminho em que ela entrou. A vaga de uma lista vai para a fila `scraper-lookup-reprocess`, e a página dela é aberta de novo mesmo com a lista fora de `seen_posts`; se a página não abrir ou não trouxer a vaga, o site recebe a falha pela fila `web-reprocess`, sem trocar a página pelas linhas do post. A vaga avulsa vai para a fila `scraper-post`: o scraper abre o post no LinkedIn e lê o texto, o autor, o cartão anexado e as imagens, como na coleta. Os dois usam o mesmo navegador, a mesma pausa e a mesma trava das vagas de lista, então nunca rodam durante uma coleta, mas passam à frente das vagas de lista e das coletas que esperam a vez (alguém espera a resposta no site). O post lido de novo segue para a fila `post-processing-reprocess`, também à frente dos da coleta.
 
 ## Login e verificação
 
@@ -65,5 +65,5 @@ A sessão fica salva em `data/scraper/linkedin-cookies.json` (no Docker, no volu
 | `login.ts`, `verification.ts` | login e identificação da verificação pedida |
 | `feed-reader.ts` | leitura dos posts e paginação |
 | `linkedin/post-images.ts`, `post-images.ts` | quais imagens do card são do post, em que tamanho, e o download delas |
-| `job-lookup.ts` | abre os links da fila `scraper-lookup` e lê de novo os posts da `scraper-post` |
+| `job-lookup.ts` | abre os links das filas `scraper-lookup` e `scraper-lookup-reprocess` e lê de novo os posts da `scraper-post` |
 | `linkedin/` | URLs, seletores, URN do post, cookies e limpeza de texto |

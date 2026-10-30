@@ -3,10 +3,9 @@ import type { Page } from 'puppeteer'
 import type { JobLookup, JobReprocessResult, PostReread, RawPost } from '@shared/contracts'
 import { SeenPost } from '@shared/database'
 import type { Logger } from '@shared/logging'
-import { QUEUES, type QueueClient } from '@shared/messaging'
+import { postProcessingQueue, QUEUES, type QueueClient, type TaskLock } from '@shared/messaging'
 import { loadCredentials } from '@shared/settings'
 
-import type { BrowserLock } from './browser-lock'
 import { browserOptionsFrom, BrowserSession } from './browser-session'
 import type { ScraperConfig } from './config'
 import { collectNewPosts } from './feed-reader'
@@ -19,7 +18,7 @@ import { canonicalJobUrl, externalLink, isLinkedInUrl, safetyRedirectTarget } fr
 import { ensureLoggedIn, LoginError, loginOptionsFrom, NO_LINKEDIN_ACCOUNT } from './login'
 import { downloadPostImages } from './post-images'
 
-type LookupOptions = { config: ScraperConfig; queue: QueueClient; logger: Logger; lock: BrowserLock }
+type LookupOptions = { config: ScraperConfig; queue: QueueClient; logger: Logger; lock: TaskLock }
 
 /** Sem vagas novas por esse tempo, o navegador das vagas é fechado. */
 const IDLE_CLOSE_MS = 60_000
@@ -43,7 +42,7 @@ export class JobLookupWorker {
 	handle(lookup: JobLookup) {
 		const log = this.options.logger.child({ postId: lookup.postId, link: lookup.link })
 
-		return this.visit(async () => {
+		return this.visit(!!lookup.reprocessId, async () => {
 			// Dentro da trava: a coleta que deixa a lista para depois termina antes de a vaga ser vista aqui. O "processar
 			// de novo" abre a vaga mesmo assim: ela já está salva
 			if (!lookup.reprocessId && !(await SeenPost.exists({ postId: lookup.sourcePostId }))) {
@@ -59,7 +58,7 @@ export class JobLookupWorker {
 				return true
 			}
 
-			await this.options.queue.publish(QUEUES.postProcessing, lookupToRawPost(lookup, page))
+			await this.options.queue.publish(postProcessingQueue(lookup.reprocessId), lookupToRawPost(lookup, page))
 			log.info({ title: lookup.title, opened: page !== null }, '🔗 Vaga do post com várias enviada para o post-processing')
 			return true
 		})
@@ -69,7 +68,7 @@ export class JobLookupWorker {
 	reread(request: PostReread) {
 		const log = this.options.logger.child({ postId: request.postId, url: request.url })
 
-		return this.visit(async () => {
+		return this.visit(true, async () => {
 			const post = await this.readPost(request, log)
 
 			if (!post) {
@@ -77,7 +76,7 @@ export class JobLookupWorker {
 				return true
 			}
 
-			await this.options.queue.publish(QUEUES.postProcessing, post)
+			await this.options.queue.publish(QUEUES.postProcessingReprocess, post)
 			log.info({ images: post.images.length }, '🔁 Post lido de novo e enviado para o post-processing')
 			return true
 		})
@@ -85,21 +84,25 @@ export class JobLookupWorker {
 
 	/**
 	 * Roda `visit` na vez do navegador; se ela usou o LinkedIn (`true`), pausa antes de liberar a trava: a próxima vaga
-	 * (ou coleta) só acessa o LinkedIn depois. Sem nada novo por `IDLE_CLOSE_MS`, o navegador fecha.
+	 * (ou coleta) só acessa o LinkedIn depois. Sem nada novo por `IDLE_CLOSE_MS`, o navegador fecha. O "processar de
+	 * novo" (`priority`) passa à frente das vagas de lista e das coletas que esperam a vez.
 	 */
-	private visit(visit: () => Promise<boolean>) {
-		return this.options.lock.run(async () => {
-			clearTimeout(this.idleTimer)
+	private visit(priority: boolean, visit: () => Promise<boolean>) {
+		return this.options.lock.run(
+			async () => {
+				clearTimeout(this.idleTimer)
 
-			if (await visit()) {
-				const delay = this.options.config.SCRAPER_LOOKUP_DELAY_MS
-				await Bun.sleep(delay + Math.random() * delay)
-			}
+				if (await visit()) {
+					const delay = this.options.config.SCRAPER_LOOKUP_DELAY_MS
+					await Bun.sleep(delay + Math.random() * delay)
+				}
 
-			this.idleTimer = setTimeout(() => {
-				this.options.lock.run(() => this.close()).catch(() => {})
-			}, IDLE_CLOSE_MS)
-		})
+				this.idleTimer = setTimeout(() => {
+					this.options.lock.run(() => this.close()).catch(() => {})
+				}, IDLE_CLOSE_MS)
+			},
+			{ priority },
+		)
 	}
 
 	private async reportFailure(reprocessId: string, postId: string, reason: string) {
@@ -158,10 +161,10 @@ export class JobLookupWorker {
 				url: request.url,
 				author: scraped.author,
 				authorIsCompany: scraped.authorIsCompany,
+				authorHeadline: scraped.authorHeadline,
 				postedAt: request.postedAt,
 				scrapedAt: new Date().toISOString(),
 				sourcePostId: null,
-				authorHeadline: scraped.authorHeadline,
 				jobLink: null,
 				attachedLink: externalLink(scraped.cardLinks),
 				images: await downloadPostImages(postImageUrls(scraped.images), log),

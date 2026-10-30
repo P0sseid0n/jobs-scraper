@@ -1,6 +1,11 @@
 /** Filas do pipeline: cada uma tem o nome do serviço que a consome. */
 export const QUEUES = {
 	postProcessing: 'post-processing',
+	/**
+	 * Posts do "processar de novo" do site (`RawPost` com `reprocessId`), também consumidos pelo post-processing. Fora da
+	 * `post-processing` para passar à frente dos posts de uma coleta (`TaskLock`): alguém espera a resposta no site.
+	 */
+	postProcessingReprocess: 'post-processing-reprocess',
 	/** Legada: vagas enviadas ao antigo serviço storage; o post-processing esvazia e depois ela sai. */
 	storage: 'storage',
 	/** Vagas para o discord-bot publicar (ligada à exchange `job-published`). */
@@ -23,6 +28,8 @@ export const QUEUES = {
 	scraperLoginTest: 'scraper-login-test',
 	/** Vagas de posts com várias vagas, para o scraper abrir o link de cada uma (`JobLookup`). */
 	scraperLookup: 'scraper-lookup',
+	/** Vagas de lista do "processar de novo" do site (`JobLookup` com `reprocessId`), à frente das da `scraper-lookup`. */
+	scraperLookupReprocess: 'scraper-lookup-reprocess',
 	/** Posts para o scraper ler de novo, pedidos pelo "processar de novo" do site (`PostReread`). */
 	scraperPost: 'scraper-post',
 	/** Vagas para o site repassar ao navegador em tempo real (ligada à exchange `job-published`). */
@@ -48,6 +55,11 @@ export const QUEUES = {
 } as const
 
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES]
+
+/** A fila do post-processing para um post: a do "processar de novo" (com `reprocessId`) ou a da coleta. */
+export function postProcessingQueue(reprocessId: string | null) {
+	return reprocessId ? QUEUES.postProcessingReprocess : QUEUES.postProcessing
+}
 
 /**
  * Eventos (exchanges fanout): cada canal interessado liga a própria fila na exchange e recebe todas as mensagens.

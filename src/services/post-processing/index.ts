@@ -11,7 +11,7 @@ import {
 	type RawPost,
 } from '@shared/contracts'
 import { SeenPost, type SeenPostOutcome } from '@shared/database'
-import { QUEUES } from '@shared/messaging'
+import { QUEUES, TaskLock } from '@shared/messaging'
 import { startService } from '@shared/service'
 import { loadSettings, readSettings } from '@shared/settings'
 
@@ -42,11 +42,17 @@ await ensureModelAvailable()
 
 await queue.assertQueue(QUEUES.scraperLookup)
 await queue.assertQueue(QUEUES.webReprocess)
-// A vaga de uma lista processada de novo segue como da primeira vez: as imagens do post (com todas as vagas) não vão
-// ao modelo (ver `processRoleList`)
-await queue.consume(QUEUES.postProcessing, RawPostSchema, post =>
-	processPost(post, { imagesToModel: !(post.reprocessId && post.sourcePostId) }),
-)
+// Um post por vez no modelo, das duas filas: o "processar de novo" do site passa à frente dos posts de uma coleta
+const model = new TaskLock()
+const processQueued = (post: RawPost) =>
+	model.run(
+		// A vaga de uma lista processada de novo segue como da primeira vez: as imagens do post (com todas as vagas) não
+		// vão ao modelo (ver `processRoleList`)
+		() => processPost(post, { imagesToModel: !(post.reprocessId && post.sourcePostId) }),
+		{ priority: !!post.reprocessId },
+	)
+await queue.consume(QUEUES.postProcessing, RawPostSchema, processQueued)
+await queue.consume(QUEUES.postProcessingReprocess, RawPostSchema, processQueued)
 
 // Esvazia a fila do antigo serviço storage (vagas enviadas antes da junção); remover na próxima versão
 await queue.consume(
@@ -189,13 +195,13 @@ async function requestLookups(post: RawPost, listings: JobListing[], settings: K
 			...listing,
 			author: post.author,
 			authorIsCompany: post.authorIsCompany,
+			authorHeadline: post.authorHeadline,
 			postedAt: post.postedAt,
 			requestedAt: new Date().toISOString(),
 			reprocessId: null,
 		}
 		await queue.publish(QUEUES.scraperLookup, lookup)
 		requested++
-			authorHeadline: post.authorHeadline,
 	}
 
 	log.info({ listings: listings.length, requested }, '📋 Post com várias vagas: links enviados para o scraper abrir')

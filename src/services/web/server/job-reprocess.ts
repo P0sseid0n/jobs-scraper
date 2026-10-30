@@ -18,7 +18,8 @@ const LISTING_HEADER = /^Vaga: (.+)\nLink: (\S+)/
  * extraída de novo. A vaga de uma lista com links volta ao scraper, que abre a página dela; a vaga avulsa também, que
  * lê o post de novo; a de uma lista com um link só (o texto já é o do post) vai direto ao post-processing. O
  * post-processing atualiza a vaga em vez de pulá-la, e o resultado chega pelo evento `reprocess` do stream, com o
- * `reprocessId` devolvido aqui. Sem ninguém atendendo as filas, recusa na hora.
+ * `reprocessId` devolvido aqui. As filas são as do "processar de novo", à frente das da coleta. Sem ninguém atendendo
+ * as filas, recusa na hora (também com o scraper ou o post-processing de uma versão sem elas).
  */
 export async function reprocessJob(
 	req: Request & { params: { postId: string } },
@@ -31,7 +32,7 @@ export async function reprocessJob(
 	const listing = job.sourcePostId ? job.rawContent.match(LISTING_HEADER) : null
 
 	if (listing && listingPostId(listing[2]!) === job.postId) {
-		await requireConsumers(queue, QUEUES.scraperLookup)
+		await requireConsumers(queue, QUEUES.scraperLookupReprocess)
 
 		const lookup: JobLookup = {
 			postId: job.postId,
@@ -43,12 +44,12 @@ export async function reprocessJob(
 			author: job.author ?? null,
 			// A vaga não guarda se o autor do post de origem é uma página de empresa
 			authorIsCompany: false,
-			postedAt: job.postedAt ?? null,
 			authorHeadline: job.authorHeadline ?? null,
+			postedAt: job.postedAt ?? null,
 			requestedAt: new Date().toISOString(),
 			reprocessId,
 		}
-		await queue.publish(QUEUES.scraperLookup, lookup)
+		await queue.publish(QUEUES.scraperLookupReprocess, lookup)
 	} else if (job.sourcePostId) {
 		await requireConsumers(queue)
 
@@ -58,8 +59,8 @@ export async function reprocessJob(
 			url: job.postLink ?? null,
 			author: job.author ?? null,
 			authorIsCompany: false,
-			postedAt: job.postedAt ?? null,
 			authorHeadline: job.authorHeadline ?? null,
+			postedAt: job.postedAt ?? null,
 			scrapedAt: new Date().toISOString(),
 			sourcePostId: job.sourcePostId,
 			jobLink: null,
@@ -68,7 +69,7 @@ export async function reprocessJob(
 			images: await loadJobImages(job.postId),
 			reprocessId,
 		}
-		await queue.publish(QUEUES.postProcessing, post)
+		await queue.publish(QUEUES.postProcessingReprocess, post)
 	} else {
 		if (!job.postLink || !job.postId.startsWith('urn:li:')) {
 			throw new HttpError(409, 'A vaga não tem o link do post no LinkedIn para ler de novo')
@@ -88,7 +89,7 @@ async function requireConsumers(queue: QueueClient, scraperQueue?: string) {
 	if (scraperQueue && (await queue.consumerCount(scraperQueue)) === 0) {
 		throw new HttpError(503, 'O scraper não está rodando: inicie-o para processar a vaga de novo')
 	}
-	if ((await queue.consumerCount(QUEUES.postProcessing)) === 0) {
+	if ((await queue.consumerCount(QUEUES.postProcessingReprocess)) === 0) {
 		throw new HttpError(503, 'O post-processing não está rodando: inicie-o para processar a vaga de novo')
 	}
 }

@@ -63,9 +63,9 @@ await queue.assertQueue(QUEUES.cvUpdaterBase)
 await queue.assertQueue(QUEUES.cvUpdaterImport)
 await queue.assertQueue(QUEUES.scraper)
 await queue.assertQueue(QUEUES.mailer)
-await queue.assertQueue(QUEUES.scraperLookup)
+await queue.assertQueue(QUEUES.scraperLookupReprocess)
 await queue.assertQueue(QUEUES.scraperPost)
-await queue.assertQueue(QUEUES.postProcessing)
+await queue.assertQueue(QUEUES.postProcessingReprocess)
 
 // A fila `web` assina o evento `job-published`, como a do Discord: o site recebe todas as vagas novas
 await queue.consume(
