@@ -9,3 +9,6 @@ data/
 # Gerado por `bun design-system`
 src/services/web/design-system/dist/
 src/services/web/design-system/previews/
+
+# Gravações e capturas do /reanimate
+.reanimate/

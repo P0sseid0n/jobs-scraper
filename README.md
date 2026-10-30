@@ -4,7 +4,9 @@ Coleta posts de vagas no LinkedIn, estrutura cada um com IA local (Ollama) e pub
 
 Serve para qualquer área: enfermagem, marketing, direito, vendas, engenharia, tecnologia... Você informa a sua área e o cargo que procura, e o site sugere os termos de busca e monta o currículo base com você.
 
-![Lista de vagas do site, com filtros, cards e o detalhe da vaga ao lado](docs/screenshot.png)
+![A lista de vagas do site: abrir vagas, gerar o currículo, entrar em contato, vagas novas chegando ao vivo e os filtros](docs/vagas.gif)
+
+Também em [vídeo (mp4)](docs/vagas.mp4). As vagas são fictícias.
 
 ## 📑 Sumário
 
