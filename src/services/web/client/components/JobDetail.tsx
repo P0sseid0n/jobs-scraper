@@ -126,8 +126,8 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 						<time className="font-mono text-muted text-sm whitespace-nowrap" dateTime={jobDate(job)}>
 							publicada {timeAgo(jobDate(job))}
 						</time>
-						{/* Na cor do texto, para não sumir ao lado da data */}
-						<ShareJobButton job={job} className="ml-3 text-ink" />
+						{/* Na cor do texto, para não sumir ao lado da data; a descrição da imagem sai do texto como o detalhe mostra */}
+						<ShareJobButton job={{ ...job, rawContent: content }} className="ml-3 text-ink" />
 						<IconButton
 							label="reportar problema na vaga"
 							size="sm"

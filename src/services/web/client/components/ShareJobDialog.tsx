@@ -7,16 +7,25 @@ import { useCoarsePointer } from '../lib/media'
 import { notify } from '../stores/toast'
 import { CopyButton } from './CopyButton'
 import { Icon } from './Icon'
+import { ShareJobImage } from './ShareJobImage'
 import { Button } from './ui/Button'
 import { DIALOG } from './ui/Dialog'
 import { FieldHelp, FieldLabel } from './ui/Field'
 import { IconButton } from './ui/IconButton'
 import { field } from './ui/Input'
+import { TabPanel, Tabs } from './ui/Tabs'
 import { LABEL } from './ui/text'
 import { TextLink } from './ui/TextLink'
 
 /** O compartilhamento nativo do sistema (celular e alguns desktops); sem ele, o botão nem aparece. */
 const CAN_SHARE = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
+
+type ShareFormat = 'text' | 'image'
+
+const FORMATS: { value: ShareFormat; label: string }[] = [
+	{ value: 'text', label: 'texto' },
+	{ value: 'image', label: 'imagem' },
+]
 
 /** O `*negrito*` do WhatsApp: um trecho entre asteriscos, sem quebra de linha. */
 const BOLD = /\*([^*\n]+)\*/g
@@ -29,9 +38,9 @@ function WhatsAppText({ text }: { text: string }) {
 }
 
 /**
- * Indicar a vaga a alguém: o texto montado com os dados públicos dela (nada do jobs-scraper nem da pessoa), editável,
- * com a prévia de como chega, e os jeitos de mandar: WhatsApp, e-mail, o compartilhar do sistema e copiar. Todos usam o
- * texto como está no campo.
+ * Indicar a vaga a alguém, com os dados públicos dela (nada do jobs-scraper nem da pessoa), em duas abas. No texto:
+ * editável, com a prévia de como chega, e os jeitos de mandar: WhatsApp, e-mail, o compartilhar do sistema e copiar,
+ * todos com o texto como está no campo. Na imagem: o card da vaga em PNG, para status, stories e posts.
  */
 export function ShareJobDialog({ job, onClose }: { job: ShareJob; onClose: () => void }) {
 	const ref = useRef<HTMLDialogElement>(null)
@@ -43,6 +52,15 @@ export function ShareJobDialog({ job, onClose }: { job: ShareJob; onClose: () =>
 	// No celular, o compartilhar do sistema é o jeito comum de mandar: vira a ação principal no lugar do copiar
 	const coarse = useCoarsePointer()
 	const sharePrimary = CAN_SHARE && coarse
+	const tabsId = useId()
+	const [format, setFormat] = useState<ShareFormat>('text')
+	// A imagem só é montada quando a aba abre pela primeira vez: a modal abre leve
+	const [imageOpened, setImageOpened] = useState(false)
+
+	function selectFormat(value: ShareFormat) {
+		setFormat(value)
+		if (value === 'image') setImageOpened(true)
+	}
 
 	useEffect(() => {
 		ref.current?.showModal()
@@ -75,7 +93,7 @@ export function ShareJobDialog({ job, onClose }: { job: ShareJob; onClose: () =>
 			// Clique no fundo escurecido (fora do conteúdo) fecha
 			onClick={event => event.target === ref.current && ref.current.close()}
 		>
-			<div className="flex flex-col gap-1 border-b border-line px-5 pt-4 pb-3.5">
+			<div className="flex flex-col gap-1 px-5 pt-4 pb-1">
 				<div className="flex items-center justify-between gap-3">
 					<h2 className="text-lg font-bold" id={titleId}>
 						Compartilhar vaga
@@ -90,72 +108,85 @@ export function ShareJobDialog({ job, onClose }: { job: ShareJob; onClose: () =>
 				</p>
 				<FieldHelp>Só os dados públicos da vaga: quem recebe não precisa do jobs-scraper.</FieldHelp>
 			</div>
+			<Tabs id={tabsId} label="Formato" items={FORMATS} selected={format} onSelect={selectFormat} className="px-2" />
 
-			{/* Cada formato do compartilhamento é uma seção do meio (a imagem da vaga entra aqui, ao lado do texto) */}
-			<div className="flex min-h-0 grow flex-col gap-4 overflow-y-auto px-5 py-4">
-				<div className="flex flex-col gap-1.5">
-					{/* Na linha do rótulo, o copiar só com o ícone (como nos campos do contato) e o "restaurar" depois de editar */}
-					<div className="flex items-center justify-between gap-2">
-						<FieldLabel htmlFor={textId}>texto</FieldLabel>
-						<div className="flex items-center gap-3">
-							{text !== generated && (
-								<TextLink className="text-xs" onClick={() => setText(generated)}>
-									restaurar texto
-								</TextLink>
-							)}
-							{!empty && (
-								<CopyButton icon text={text} what="Texto da vaga" label="copiar texto" className="text-muted hover:text-ink" />
-							)}
+			{/* Cada aba tem o seu meio, que rola, e o seu rodapé, com as ações daquele formato */}
+			<TabPanel tabsId={tabsId} value="text" selected={format === 'text'} className="flex min-h-0 grow flex-col">
+				<div className="flex min-h-0 grow flex-col gap-4 overflow-y-auto px-5 py-4">
+					<div className="flex flex-col gap-1.5">
+						{/* Na linha do rótulo, o copiar só com o ícone (como nos campos do contato) e o "restaurar" depois de editar */}
+						<div className="flex items-center justify-between gap-2">
+							<FieldLabel htmlFor={textId}>texto</FieldLabel>
+							<div className="flex items-center gap-3">
+								{text !== generated && (
+									<TextLink className="text-xs" onClick={() => setText(generated)}>
+										restaurar texto
+									</TextLink>
+								)}
+								{!empty && (
+									<CopyButton
+										icon
+										text={text}
+										what="Texto da vaga"
+										label="copiar texto"
+										className="text-muted hover:text-ink"
+									/>
+								)}
+							</div>
 						</div>
+						{/* Cresce com o texto, até um limite: depois disso, rola */}
+						<textarea
+							id={textId}
+							value={text}
+							onChange={event => setText(event.target.value)}
+							className={field({ multiline: true, grow: true })}
+						/>
 					</div>
-					{/* Cresce com o texto, até um limite: depois disso, rola */}
-					<textarea
-						id={textId}
-						value={text}
-						onChange={event => setText(event.target.value)}
-						className={field({ multiline: true, grow: true })}
-					/>
+
+					{!empty && (
+						// A mesma caixa das prévias do editor do modelo de mensagem
+						<section aria-label="Prévia no WhatsApp" className="flex flex-col gap-2 rounded-sm bg-surface-2 p-3.5">
+							<span className={LABEL}>como chega no whatsapp</span>
+							<p className="m-0 text-sm leading-relaxed whitespace-pre-wrap wrap-anywhere">
+								<WhatsAppText text={text} />
+							</p>
+						</section>
+					)}
+
+					<section className="flex flex-col gap-1.5" aria-label="Enviar por">
+						<h3 className={LABEL}>enviar por</h3>
+						<div className="flex flex-wrap gap-2">
+							<Button variant="ghost" href={`https://wa.me/?text=${encodeURIComponent(text)}`} external externalIcon={false}>
+								<Icon name="chat" size={14} />
+								WhatsApp
+							</Button>
+							<Button
+								variant="ghost"
+								href={`mailto:?subject=${encodeURIComponent(jobShareSubject(job))}&body=${encodeURIComponent(text)}`}
+							>
+								<Icon name="mail" size={14} />
+								e-mail
+							</Button>
+							{CAN_SHARE && !sharePrimary && shareButton('ghost')}
+						</div>
+					</section>
 				</div>
 
-				{!empty && (
-					// A mesma caixa das prévias do editor do modelo de mensagem
-					<section aria-label="Prévia no WhatsApp" className="flex flex-col gap-2 rounded-sm bg-surface-2 p-3.5">
-						<span className={LABEL}>como chega no whatsapp</span>
-						<p className="m-0 text-sm leading-relaxed whitespace-pre-wrap wrap-anywhere">
-							<WhatsAppText text={text} />
-						</p>
-					</section>
-				)}
+				<div className="flex justify-end gap-2 border-t border-line px-5 py-3.5">
+					<Button variant="ghost" onClick={() => ref.current?.close()}>
+						fechar
+					</Button>
+					{sharePrimary ? (
+						shareButton('lime')
+					) : (
+						<CopyButton variant="lime" text={text} what="Texto da vaga" label="copiar texto" disabled={empty} />
+					)}
+				</div>
+			</TabPanel>
 
-				<section className="flex flex-col gap-1.5" aria-label="Enviar por">
-					<h3 className={LABEL}>enviar por</h3>
-					<div className="flex flex-wrap gap-2">
-						<Button variant="ghost" href={`https://wa.me/?text=${encodeURIComponent(text)}`} external externalIcon={false}>
-							<Icon name="chat" size={14} />
-							WhatsApp
-						</Button>
-						<Button
-							variant="ghost"
-							href={`mailto:?subject=${encodeURIComponent(jobShareSubject(job))}&body=${encodeURIComponent(text)}`}
-						>
-							<Icon name="mail" size={14} />
-							e-mail
-						</Button>
-						{CAN_SHARE && !sharePrimary && shareButton('ghost')}
-					</div>
-				</section>
-			</div>
-
-			<div className="flex justify-end gap-2 border-t border-line px-5 py-3.5">
-				<Button variant="ghost" onClick={() => ref.current?.close()}>
-					fechar
-				</Button>
-				{sharePrimary ? (
-					shareButton('lime')
-				) : (
-					<CopyButton variant="lime" text={text} what="Texto da vaga" label="copiar texto" disabled={empty} />
-				)}
-			</div>
+			<TabPanel tabsId={tabsId} value="image" selected={format === 'image'} className="flex min-h-0 grow flex-col">
+				{imageOpened && <ShareJobImage job={job} text={text} onClose={() => ref.current?.close()} />}
+			</TabPanel>
 		</dialog>
 	)
 }

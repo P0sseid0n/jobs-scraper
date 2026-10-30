@@ -1,6 +1,14 @@
 import { describe, expect, test } from 'bun:test'
 
-import { jobShareSubject, jobShareText, type ShareJob } from './job-share'
+import {
+	jobShareCard,
+	jobShareFileName,
+	jobShareSubject,
+	jobShareText,
+	SHARE_DESCRIPTION_MAX,
+	type ShareCardOptions,
+	type ShareJob,
+} from './job-share'
 
 /** Uma vaga com todos os dados, como sai do post-processing. */
 const JOB: ShareJob = {
@@ -13,6 +21,15 @@ const JOB: ShareJob = {
 	applyLink: 'https://lojaazul.gupy.io/jobs/8123456',
 	recruiterEmail: 'vagas@lojaazul.com.br',
 	postLink: 'https://www.linkedin.com/feed/update/urn:li:activity:7381234567890123456/',
+	rawContent: [
+		'Estamos contratando! #vagas #react',
+		'',
+		'',
+		'',
+		'A Loja Azul procura uma pessoa   desenvolvedora front-end para o time de e-commerce.',
+		'Inscreva-se: https://lojaazul.gupy.io/jobs/8123456',
+	].join('\n'),
+	postedAt: '2026-10-27T14:30:00.000Z',
 }
 
 describe('jobShareText', () => {
@@ -87,6 +104,8 @@ describe('jobShareText', () => {
 			applyLink: null,
 			recruiterEmail: null,
 			postLink: null,
+			rawContent: '',
+			postedAt: null,
 		}
 
 		expect(jobShareText(empty)).toBe('*Estágio em Dados*')
@@ -121,5 +140,126 @@ describe('jobShareSubject', () => {
 		expect(jobShareSubject(JOB)).toBe('Desenvolvedor Front-end React — Loja Azul')
 		expect(jobShareSubject({ title: 'Analista de Dados', company: null })).toBe('Analista de Dados')
 		expect(jobShareSubject({ title: null, company: null })).toBe('Vaga')
+	})
+})
+
+/** As opções da imagem como a modal abre: QR code e tecnologias ligados. */
+const ALL: ShareCardOptions = { qr: true, skills: true, description: true }
+
+describe('jobShareCard', () => {
+	test('vaga completa: os dados do card e o QR para a candidatura', () => {
+		expect(jobShareCard(JOB, ALL)).toEqual({
+			title: 'Desenvolvedor Front-end React',
+			company: 'Loja Azul',
+			contractTypes: 'CLT',
+			workMode: { value: 'hibrido', label: 'Híbrido' },
+			location: 'Belo Horizonte, MG',
+			skills: ['React', 'TypeScript', 'Next.js'],
+			moreSkills: 0,
+			description:
+				'Estamos contratando!\n\nA Loja Azul procura uma pessoa desenvolvedora front-end para o time de e-commerce.\nInscreva-se:',
+			postedAt: 'publicada em 27/10/2026',
+			qr: { link: 'https://lojaazul.gupy.io/jobs/8123456', caption: 'Candidate-se' },
+		})
+	})
+
+	test('sem empresa, sem regime e sem modalidade: os campos ficam vazios, sem rótulo no lugar', () => {
+		const card = jobShareCard({ ...JOB, company: '  ', contractTypes: [], workMode: null, location: null }, ALL)
+
+		expect(card.company).toBeNull()
+		expect(card.contractTypes).toBeNull()
+		expect(card.workMode).toBeNull()
+		expect(card.location).toBeNull()
+		expect(card.title).toBe('Desenvolvedor Front-end React')
+	})
+
+	test('sem cargo, o título é "Vaga"; dois regimes viram "CLT ou PJ"', () => {
+		const card = jobShareCard({ ...JOB, title: null, contractTypes: ['clt', 'pj'] }, ALL)
+
+		expect(card.title).toBe('Vaga')
+		expect(card.contractTypes).toBe('CLT ou PJ')
+	})
+
+	test('a data do post no horário de Brasília; sem data, nada no lugar', () => {
+		// 01:30 UTC do dia 1º ainda é dia 31 em Brasília
+		expect(jobShareCard({ ...JOB, postedAt: '2026-11-01T01:30:00.000Z' }, ALL).postedAt).toBe('publicada em 31/10/2026')
+		expect(jobShareCard({ ...JOB, postedAt: null }, ALL).postedAt).toBeNull()
+	})
+
+	test('sem tecnologias, a lista fica vazia', () => {
+		expect(jobShareCard({ ...JOB, necessaryKnowledge: [] }, ALL)).toMatchObject({ skills: [], moreSkills: 0 })
+		expect(jobShareCard({ ...JOB, necessaryKnowledge: null }, ALL)).toMatchObject({ skills: [], moreSkills: 0 })
+	})
+
+	test('as tecnologias param no mesmo limite do texto e contam as que sobraram', () => {
+		const necessaryKnowledge = ['React', 'TypeScript', ' ', 'Next.js', 'Node.js', 'GraphQL', 'Docker', 'AWS']
+
+		expect(jobShareCard({ ...JOB, necessaryKnowledge }, ALL)).toMatchObject({
+			skills: ['React', 'TypeScript', 'Next.js', 'Node.js', 'GraphQL'],
+			moreSkills: 2,
+		})
+	})
+
+	test('sem link de candidatura, o QR leva ao post original (o e-mail do recrutador não vira QR)', () => {
+		expect(jobShareCard({ ...JOB, applyLink: null }, ALL).qr).toEqual({ link: JOB.postLink!, caption: 'Ver vaga' })
+	})
+
+	test('sem nenhum link público, não há QR', () => {
+		expect(jobShareCard({ ...JOB, applyLink: null, postLink: null }, ALL).qr).toBeNull()
+		expect(jobShareCard({ ...JOB, applyLink: 'http://localhost:3000/vagas/1', postLink: 'http://192.168.1.2/x' }, ALL).qr).toBeNull()
+	})
+
+	test('um link local de candidatura dá lugar ao post original', () => {
+		expect(jobShareCard({ ...JOB, applyLink: 'http://127.0.0.1:3000/vagas/1' }, ALL).qr?.link).toBe(JOB.postLink!)
+	})
+
+	test('com o QR e as tecnologias desligados na modal, os dois somem e o resto fica', () => {
+		const card = jobShareCard(JOB, { qr: false, skills: false, description: false })
+
+		expect(card).toMatchObject({
+			qr: null,
+			skills: [],
+			moreSkills: 0,
+			description: null,
+			title: 'Desenvolvedor Front-end React',
+			company: 'Loja Azul',
+		})
+		expect(jobShareCard(JOB, { ...ALL, skills: false }).qr?.caption).toBe('Candidate-se')
+		expect(jobShareCard(JOB, { ...ALL, qr: false }).skills).toHaveLength(3)
+		expect(jobShareCard(JOB, { ...ALL, qr: false, skills: false }).description).toStartWith('Estamos contratando!')
+	})
+})
+
+describe('jobShareCard: descrição', () => {
+	test('um texto longo é cortado no fim de uma palavra, com reticências', () => {
+		const rawContent = 'Buscamos alguém com experiência em React, testes e acessibilidade. '.repeat(20)
+		const description = jobShareCard({ ...JOB, rawContent }, ALL).description!
+
+		expect(description.length).toBeLessThanOrEqual(SHARE_DESCRIPTION_MAX + 1)
+		expect(description).toEndWith('…')
+		expect(description).not.toMatch(/[\s.,]…$/)
+		expect(rawContent).toContain(description.slice(0, -1))
+	})
+
+	test('um texto só de links e hashtags (ou vazio) não vira descrição', () => {
+		expect(jobShareCard({ ...JOB, rawContent: '#vaga #frontend\nhttps://lojaazul.gupy.io/jobs/1' }, ALL).description).toBeNull()
+		expect(jobShareCard({ ...JOB, rawContent: '' }, ALL).description).toBeNull()
+	})
+})
+
+describe('jobShareFileName', () => {
+	test('cargo e empresa, sem acentos nem símbolos', () => {
+		expect(jobShareFileName({ title: 'Dev Back-end (Sênior)', company: 'Empresa X' })).toBe('vaga-dev-back-end-senior-empresa-x.png')
+		expect(jobShareFileName({ title: 'Desenvolvedor Front-end React', company: null })).toBe(
+			'vaga-desenvolvedor-front-end-react.png',
+		)
+		expect(jobShareFileName({ title: null, company: null })).toBe('vaga.png')
+	})
+
+	test('um cargo enorme não passa do limite nem termina em hífen', () => {
+		const name = jobShareFileName({ title: 'Analista '.repeat(20), company: 'Loja Azul' })
+
+		expect(name.length).toBeLessThanOrEqual(84)
+		expect(name).toMatch(/^vaga-analista-[a-z-]*[a-z]\.png$/)
 	})
 })

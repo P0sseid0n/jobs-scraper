@@ -6,14 +6,14 @@ import { ProjectIcon } from './ProjectIcon'
 const logo = tv({
 	base: 'inline-flex items-center font-mono font-medium whitespace-nowrap',
 	variants: {
-		/** `sm`: o cabeçalho do site. `md`: o topo do onboarding no celular. `lg`: o topo do onboarding. */
-		size: { sm: 'gap-2 text-sm', md: 'gap-2 text-base', lg: 'gap-2.5 text-lg' },
+		/** `sm`: o cabeçalho do site. `md`: o topo do onboarding no celular. `lg`: o topo do onboarding. `xl`: a imagem da vaga. */
+		size: { sm: 'gap-2 text-sm', md: 'gap-2 text-base', lg: 'gap-2.5 text-lg', xl: 'gap-4 text-3xl' },
 	},
 	defaultVariants: { size: 'sm' },
 })
 
 /** O tamanho do ícone em cada tamanho do logo, proporcional ao texto. */
-const ICON_SIZES = { sm: 22, md: 25, lg: 28 } as const
+const ICON_SIZES = { sm: 22, md: 25, lg: 28, xl: 48 } as const
 
 type LogoSize = NonNullable<VariantProps<typeof logo>['size']>
 
