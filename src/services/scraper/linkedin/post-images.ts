@@ -3,13 +3,17 @@ import { POST_IMAGE_LIMITS } from '@shared/contracts'
 /** Uma `<img>` do card como o navegador a mostra: o `src` e o `srcset` (tamanhos alternativos), se houver. */
 export type CardImage = { src: string; srcset: string }
 
-/** Imagem do conteúdo do post (não avatar nem logo): `media.licdn.com/dms/image/.../feedshare-shrink_<tamanho>/...`. */
-const CONTENT_IMAGE = /^https:\/\/media\.licdn\.com\/dms\/image\/.*\/feedshare-shrink_\d+/
+/**
+ * Imagem do conteúdo do post (não avatar nem logo): `media.licdn.com/dms/image/.../feedshare-shrink_<tamanho>/...`, ou
+ * `.../image-shrink_<tamanho>/...` nas postadas pela API (páginas que publicam vagas automaticamente). A barra antes
+ * evita o `profile-displaybackgroundimage-shrink_` da capa do perfil.
+ */
+const CONTENT_IMAGE = /^https:\/\/media\.licdn\.com\/dms\/image\/.*\/(?:feedshare|image)-shrink_\d+/
 
 /** Identifica a imagem independente do tamanho: o id depois de `/dms/image/` (com ou sem `v2/`). */
 const IMAGE_ID = /\/dms\/image\/(?:v\d+\/)?([^/?]+)\//
 
-const SIZE = /feedshare-shrink_(\d+)(?:_\d+)?/g
+const SIZE = /\/(feedshare|image)-shrink_\d+(?:_\d+)?/g
 
 /** Tamanhos legíveis para a IA: a prévia (`_160`) é pequena demais; acima disso, só aumenta o download. */
 const READABLE_MIN = 800
@@ -50,7 +54,7 @@ function srcsetUrls(srcset: string) {
 }
 
 function imageWidth(url: string) {
-	return Number(/feedshare-shrink_(\d+)/.exec(url)?.[1] ?? 0)
+	return Number(/\/(?:feedshare|image)-shrink_(\d+)/.exec(url)?.[1] ?? 0)
 }
 
 function isReadable(width: number) {
@@ -65,5 +69,5 @@ function preference(width: number) {
 }
 
 function withWidth(url: string, width: number) {
-	return url.replace(SIZE, `feedshare-shrink_${width}`)
+	return url.replace(SIZE, `/$1-shrink_${width}`)
 }
