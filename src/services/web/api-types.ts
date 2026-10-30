@@ -8,6 +8,7 @@ import type {
 	CredentialsStatus,
 	CvChanges,
 	CvForm,
+	CvFormDraft,
 	DatePostedFilter,
 	JobAppliedChange,
 	MailStatus,
@@ -119,6 +120,17 @@ export type WebCvBaseVersionWithTex = WebCvBaseVersion & { tex: string; form: Cv
 
 /** Versões do currículo base, das mais novas às mais antigas (a ativa sempre vem, mesmo se for antiga). */
 export type WebCvBase = { versions: WebCvBaseVersion[] }
+
+/**
+ * Currículo em PDF lido pelo cv-updater para o formulário: `pending` enquanto lê; `done` com o formulário preenchido,
+ * para revisar (o nome pode faltar); `failed` com o motivo.
+ */
+export type WebCvImport = {
+	importId: string
+	status: 'pending' | 'done' | 'failed'
+	form: CvFormDraft | null
+	error: string | null
+}
 
 export type WebScraperRun = {
 	id: string
@@ -306,6 +318,7 @@ export type StreamEvents = {
 	viewed: JobsViewedChange
 	applied: JobAppliedChange
 	cvBase: WebCvBaseVersion
+	cvImport: WebCvImport
 	mail: WebMail
 	/** Coleta que começou ou terminou: o site consulta o status (e o histórico) de novo, sem esperar o próximo ciclo. */
 	scraperRun: ScraperRunEvent

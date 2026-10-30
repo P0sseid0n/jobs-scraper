@@ -20,6 +20,7 @@ import type {
 	WebCvBase,
 	WebCvBaseVersion,
 	WebCvBaseVersionWithTex,
+	WebCvImport,
 	WebCvRequest,
 	WebImprovedMessage,
 	WebJob,
@@ -139,6 +140,10 @@ export const api = {
 	/** Gera o `.tex` a partir do formulário e segue como `createCvBaseVersion`. */
 	createCvBaseVersionFromForm: (form: CvForm) =>
 		request<WebCvBaseVersion>('/api/cv-base/versions', { method: 'POST', body: JSON.stringify({ form }) }),
+	/** Pede a leitura do currículo em PDF para preencher o formulário; o resultado chega pelo stream (`cvImport`). */
+	importCvPdf: (file: File) =>
+		request<WebCvImport>('/api/cv-base/imports', { method: 'POST', body: file, headers: { 'Content-Type': 'application/pdf' } }),
+	cvImport: (importId: string) => request<WebCvImport>(`/api/cv-base/imports/${importId}`),
 	/** Torna a versão (já validada) o currículo base; também serve para voltar a uma anterior. */
 	activateCvBaseVersion: (versionId: string) =>
 		request<WebCvBaseVersion>(`/api/cv-base/versions/${versionId}/activate`, { method: 'POST' }),

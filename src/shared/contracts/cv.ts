@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import { CvFormDraftSchema } from './cv-form'
+
 /**
  * Para onde o resultado do currículo volta: a fila de quem pediu e um contexto que o cv-updater devolve sem
  * interpretar (ex.: o token da interação do Discord). Assim qualquer canal pode pedir currículo.
@@ -82,3 +84,30 @@ export const CvBaseValidationResultSchema = z.object({
 })
 
 export type CvBaseValidationResult = z.infer<typeof CvBaseValidationResultSchema>
+
+/** Tamanho máximo do PDF importado para o formulário (um currículo costuma ter menos de 1 MB, mesmo com foto). */
+export const CV_IMPORT_PDF_MAX_BYTES = 5 * 1024 * 1024
+
+/**
+ * Mensagem da fila `cv-updater-import`: ler um currículo em PDF e distribuir o texto nos campos do formulário do
+ * currículo base. O PDF não é guardado; o resultado vai para `replyTo.queue`, como nos pedidos de currículo.
+ */
+export const CvImportRequestSchema = z.object({
+	importId: z.string().min(1),
+	/** O PDF em base64. */
+	pdf: z.string().min(1),
+	replyTo: ReplyToSchema,
+	requestedAt: z.iso.datetime(),
+})
+
+export type CvImportRequest = z.infer<typeof CvImportRequestSchema>
+
+/** Resultado da importação: o formulário preenchido com o que estava no PDF, para revisar, ou o motivo da falha. */
+export const CvImportResultSchema = z.object({
+	importId: z.string().min(1),
+	context: z.record(z.string(), z.unknown()),
+	form: CvFormDraftSchema.nullable(),
+	error: z.string().nullable(),
+})
+
+export type CvImportResult = z.infer<typeof CvImportResultSchema>

@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 
-import { CV_BASE_TEX_MAX_BYTES } from '@shared/contracts'
+import { CV_BASE_TEX_MAX_BYTES, CV_IMPORT_PDF_MAX_BYTES } from '@shared/contracts'
 
 import type { WebCvBaseVersion } from '../../../api-types'
 import { api, cvBasePdfUrl, RequestError } from '../../api'
 import { activeVersion, formatKilobytes, upsertVersion } from '../../lib/cv-base'
 import { cleanForm, emptyForm, formProblems, sameForm } from '../../lib/cv-form'
+import { useCvImport } from '../../lib/use-cv-import'
 import { onLive } from '../../stores/live'
 import { notify } from '../../stores/toast'
 import { CvBaseFormDialog } from '../CvBaseForm'
@@ -57,10 +58,18 @@ export function CvStep({
 	const [candidateId, setCandidateId] = useState<string | null>(null)
 	const [form, setForm] = useState(emptyForm)
 	const [formOpen, setFormOpen] = useState(false)
+	const [importedFrom, setImportedFrom] = useState<string | null>(null)
 	const [serverProblems, setServerProblems] = useState<Record<string, string>>({})
 	const [submitting, setSubmitting] = useState(false)
 	const [activating, setActivating] = useState(false)
 	const fileInput = useRef<HTMLInputElement>(null)
+	const pdfInput = useRef<HTMLInputElement>(null)
+	const cvImport = useCvImport((imported, fileName) => {
+		setForm(imported)
+		setImportedFrom(fileName)
+		setServerProblems({})
+		setFormOpen(true)
+	})
 
 	const active = activeVersion(versions)
 	const candidate = versions.find(version => version.versionId === candidateId) ?? null
@@ -108,6 +117,7 @@ export function CvStep({
 			const version = await api.createCvBaseVersionFromForm(cleanForm(form))
 			setVersions(current => upsertVersion(current, version))
 			setCandidateId(version.versionId)
+			setImportedFrom(null)
 			setFormOpen(false)
 		} catch (error) {
 			if (error instanceof RequestError) {
@@ -141,6 +151,12 @@ export function CvStep({
 		} finally {
 			setSubmitting(false)
 		}
+	}
+
+	function loadPdf(event: ChangeEvent<HTMLInputElement>) {
+		const file = event.target.files?.[0]
+		event.target.value = ''
+		if (file) void cvImport.start(file)
 	}
 
 	async function activate(version: WebCvBaseVersion) {
@@ -204,13 +220,26 @@ export function CvStep({
 		)
 	}
 
-	const choices = (
-		<div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
+	const choices = cvImport.importing ? (
+		<div className={card({ size: 'lg', className: 'flex flex-col items-center gap-3 py-12 text-center' })} role="status">
+			<Icon name="spinner" size={28} className="text-lime-text" />
+			<p className="text-base font-semibold">Lendo o seu currículo…</p>
+			<FieldHelp className="max-w-100">
+				A IA passa o texto do PDF para o formulário. Costuma levar um minuto; depois você revisa cada etapa antes de salvar.
+			</FieldHelp>
+		</div>
+	) : (
+		<div className="grid grid-cols-3 gap-4 max-lg:grid-cols-1">
 			<ChoiceCard
 				title="Preencher com a gente"
 				description="Um formulário simples, em etapas: contato, experiências, formação. A gente monta o PDF."
 				badge="mais fácil"
 				onClick={openForm}
+			/>
+			<ChoiceCard
+				title="Importar o meu PDF"
+				description={`Envie o currículo que você já tem em PDF (até ${CV_IMPORT_PDF_MAX_BYTES / 1024 / 1024} MB). O formulário abre preenchido para você revisar.`}
+				onClick={() => pdfInput.current?.click()}
 			/>
 			<ChoiceCard
 				title="Já tenho um arquivo .tex"
@@ -247,7 +276,7 @@ export function CvStep({
 					disabled: activating,
 					onClick: () => candidate && activate(candidate),
 				}
-			: { label: 'continuar', disabled: !ready || validating || submitting, onClick: onNext },
+			: { label: 'continuar', disabled: !ready || validating || submitting || cvImport.importing, onClick: onNext },
 	})
 
 	return (
@@ -255,10 +284,11 @@ export function CvStep({
 			<StepHeading
 				eyebrow={eyebrow}
 				title="Agora, o seu currículo"
-				lead="É dele que saem os currículos ajustados para cada vaga. Pode preencher um formulário ou enviar o arquivo que você já tem."
+				lead="É dele que saem os currículos ajustados para cada vaga. Pode preencher um formulário, importar o PDF que você já tem ou enviar um .tex."
 			/>
 
 			<input ref={fileInput} type="file" accept=".tex,text/x-tex,application/x-tex" hidden onChange={loadFile} />
+			<input ref={pdfInput} type="file" accept=".pdf,application/pdf" hidden onChange={loadPdf} />
 
 			{candidate ? (
 				<Rise order={3}>{renderCandidate(candidate)}</Rise>
@@ -281,6 +311,7 @@ export function CvStep({
 					form={form}
 					serverProblems={serverProblems}
 					submitting={submitting}
+					importedFrom={importedFrom}
 					onChange={setForm}
 					onSubmit={submitForm}
 					onClose={() => setFormOpen(false)}

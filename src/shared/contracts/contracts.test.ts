@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
-import { CV_BASE_TEX_MAX_BYTES, CvBaseValidationRequestSchema, CvRequestSchema } from './cv'
+import { CV_BASE_TEX_MAX_BYTES, CvBaseValidationRequestSchema, CvImportResultSchema, CvRequestSchema } from './cv'
+import { CvFormSchema } from './cv-form'
 import { ProcessedJobSchema } from './job'
 import { MailRequestSchema, MailResultSchema } from './mail'
 import { RawPostSchema } from './raw-post'
@@ -64,6 +65,16 @@ describe('contratos das filas', () => {
 		expect(CvBaseValidationRequestSchema.safeParse({ ...validation, tex: 'é'.repeat(CV_BASE_TEX_MAX_BYTES / 2 + 1) }).success).toBe(
 			false,
 		)
+	})
+
+	test('CvImportResult aceita o formulário sem o nome, que a pessoa completa antes de salvar', () => {
+		const form = {
+			contact: { name: '', headline: '', location: '', email: '', phone: '', links: [] },
+			sections: [{ kind: 'education', title: '', entries: [{ course: 'Enfermagem', institution: '', period: '' }] }],
+		}
+
+		expect(CvImportResultSchema.safeParse({ importId: 'i1', context: {}, form, error: null }).success).toBe(true)
+		expect(CvFormSchema.safeParse(form).success).toBe(false)
 	})
 
 	test('MailRequest leva o e-mail revisado, o PDF por referência e a fila de resposta', () => {

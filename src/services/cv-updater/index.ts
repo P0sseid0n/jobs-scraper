@@ -5,9 +5,12 @@ import { Ollama } from 'ollama'
 import { ollamaEnv } from '@shared/config'
 import {
 	CvBaseValidationRequestSchema,
+	CvImportRequestSchema,
 	CvRequestSchema,
 	type CvBaseValidationRequest,
 	type CvBaseValidationResult,
+	type CvImportRequest,
+	type CvImportResult,
 	type CvRequest,
 	type CvResult,
 } from '@shared/contracts'
@@ -20,6 +23,8 @@ import { checkBaseResume, loadBaseResume, MissingBaseResumeError, validateBaseTe
 import { cvUpdaterEnv } from './config'
 import { cvChanges } from './cv-changes'
 import { compileLatex, LatexCompileError } from './latex-compiler'
+import { importResumePdf } from './pdf-import/import-resume'
+import { PdfImportError } from './pdf-import/pdf-text'
 import { chooseProjects } from './projects/choose-projects'
 import { GithubRepositories } from './projects/github-repositories'
 import { pdfFileName, renderOnePagePdf } from './resume-pdf'
@@ -46,6 +51,8 @@ try {
 await queue.consume(QUEUES.cvUpdater, CvRequestSchema, generateCv)
 // Em paralelo aos currículos: uma validação não espera a geração em andamento
 await queue.consume(QUEUES.cvUpdaterBase, CvBaseValidationRequestSchema, validateBaseResume)
+// Também em paralelo: quem importa está esperando na tela, e o PDF não precisa do currículo base
+await queue.consume(QUEUES.cvUpdaterImport, CvImportRequestSchema, importResume)
 
 /** Gera o currículo da vaga pedida e envia o PDF (ou o motivo da falha) para a fila de resposta de quem pediu. */
 async function generateCv(request: CvRequest) {
@@ -154,6 +161,31 @@ async function validateBaseResume(request: CvBaseValidationRequest) {
 	} satisfies CvBaseValidationResult)
 
 	log.info({ valid: errors.length === 0, errors: errors.length, pages }, 'Validação do currículo base enviada')
+}
+
+/** Lê o currículo em PDF e devolve o formulário preenchido (ou o motivo da falha) a quem pediu; o PDF não é guardado. */
+async function importResume(request: CvImportRequest) {
+	const log = logger.child({ importId: request.importId, replyTo: request.replyTo.queue })
+	const pdf = Buffer.from(request.pdf, 'base64')
+	log.info({ bytes: pdf.length }, 'Importando um currículo em PDF')
+
+	const reply = (result: Pick<CvImportResult, 'form' | 'error'>) =>
+		queue.publish(request.replyTo.queue, {
+			importId: request.importId,
+			context: request.replyTo.context,
+			...result,
+		} satisfies CvImportResult)
+
+	try {
+		const form = await importResumePdf({ ollama, model: config.OLLAMA_MODEL }, pdf, log)
+		await reply({ form, error: null })
+		log.info({ sections: form.sections.map(section => section.kind) }, 'Currículo importado enviado')
+	} catch (error) {
+		if (!(error instanceof PdfImportError)) throw error
+
+		log.warn({ reason: error.message }, 'PDF de currículo recusado')
+		await reply({ form: null, error: error.message })
+	}
 }
 
 async function findTargetJob(postId: string): Promise<CvJob | null> {

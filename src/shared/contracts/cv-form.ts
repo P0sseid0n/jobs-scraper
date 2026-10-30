@@ -35,8 +35,8 @@ const list = <T extends z.ZodType>(item: T) => z.array(item).max(CV_FORM_MAX_ITE
 /** Título da seção no PDF; vazio usa o de CV_FORM_DEFAULT_TITLES. O padrão aceita os dados de antes do campo. */
 const title = text(100).default('')
 
-const ContactSchema = z.object({
-	name: text().min(1, 'Preencha o nome'),
+const ContactDraftSchema = z.object({
+	name: text(),
 	/** Cargo ou título abaixo do nome (ex.: "Enfermeira | COREN-SP 000.000"). */
 	headline: text(),
 	location: text(),
@@ -45,6 +45,8 @@ const ContactSchema = z.object({
 	/** Endereços (LinkedIn, portfólio...), mostrados sem o `https://`. */
 	links: list(text(300)),
 })
+
+const ContactSchema = ContactDraftSchema.extend({ name: text().min(1, 'Preencha o nome') })
 
 const SummarySectionSchema = z.object({ kind: z.literal('summary'), title, text: text(3000) })
 
@@ -100,15 +102,22 @@ export type CvFormSection = z.infer<typeof CvFormSectionSchema>
 /** A seção de um tipo (ex.: `CvFormSectionOf<'experience'>`). */
 export type CvFormSectionOf<K extends CvFormSectionKind> = Extract<CvFormSection, { kind: K }>
 
-/** O currículo do formulário: o contato e as seções, na ordem em que aparecem no PDF (cada tipo no máximo uma vez). */
-export const CvFormSchema = z.object({
-	contact: ContactSchema,
+/**
+ * O formulário ainda por revisar, como o currículo importado de um PDF: igual ao `CvFormSchema`, mas o nome pode faltar
+ * (a pessoa completa antes de salvar).
+ */
+export const CvFormDraftSchema = z.object({
+	contact: ContactDraftSchema,
 	sections: z
 		.array(CvFormSectionSchema)
 		.max(CV_FORM_SECTIONS.length)
 		.refine(sections => new Set(sections.map(section => section.kind)).size === sections.length, 'Seção repetida'),
 })
 
+/** O currículo do formulário: o contato e as seções, na ordem em que aparecem no PDF (cada tipo no máximo uma vez). */
+export const CvFormSchema = CvFormDraftSchema.extend({ contact: ContactSchema })
+
 export type CvForm = z.infer<typeof CvFormSchema>
 /** O formulário como chega (campos com padrão podem faltar, como nas versões de antes deles). */
 export type CvFormInput = z.input<typeof CvFormSchema>
+export type CvFormDraft = z.infer<typeof CvFormDraftSchema>

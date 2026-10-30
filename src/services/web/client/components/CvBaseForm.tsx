@@ -30,6 +30,7 @@ import { FieldError, FieldHelp, FieldLabel } from './ui/Field'
 import { IconButton } from './ui/IconButton'
 import { field, Input } from './ui/Input'
 import { KeywordInput } from './ui/KeywordInput'
+import { Notice } from './ui/Notice'
 import { SelectMenu } from './ui/SelectMenu'
 import { LABEL } from './ui/text'
 
@@ -38,6 +39,8 @@ type Props = {
 	/** Erros da API, com o caminho do campo sem o prefixo `form.` (os do próprio formulário vêm de `formProblems`). */
 	serverProblems: Record<string, string>
 	submitting: boolean
+	/** O PDF de onde o formulário foi preenchido (`useCvImport`), para lembrar de revisar; `null` sem importação. */
+	importedFrom?: string | null
 	onChange: (form: CvForm) => void
 	onSubmit: () => void
 	onClose: () => void
@@ -86,7 +89,7 @@ const STEP_HELP: Partial<Record<FormStep, string>> = {
  * etapa por seção e a revisão. O cv-updater gera o `.tex` a partir dos dados (`resume/latex-from-form.ts`). Controlado:
  * cada mudança chega em `onChange` com o formulário inteiro, então fechar a modal não perde o que foi preenchido.
  */
-export function CvBaseFormDialog({ form, serverProblems, submitting, onChange, onSubmit, onClose }: Props) {
+export function CvBaseFormDialog({ form, serverProblems, submitting, importedFrom, onChange, onSubmit, onClose }: Props) {
 	const id = useId()
 	const ref = useRef<HTMLDialogElement>(null)
 	const body = useRef<HTMLDivElement>(null)
@@ -694,6 +697,12 @@ export function CvBaseFormDialog({ form, serverProblems, submitting, onChange, o
 					<h3 className="text-xl font-semibold">{STEP_NAMES[current]}</h3>
 					{STEP_HELP[current] && <FieldHelp>{STEP_HELP[current]}</FieldHelp>}
 				</div>
+				{importedFrom && (current === 'contact' || current === 'review') && (
+					<Notice tone="warn" icon="alert">
+						Preenchido com o que a IA leu em <span className="font-semibold break-all">{importedFrom}</span>. Revise cada etapa
+						antes de gerar: o que ela não achou no PDF ficou vazio.
+					</Notice>
+				)}
 				{renderStep()}
 			</div>
 

@@ -24,6 +24,7 @@ import { CV_EXAMPLES, exampleDownloadUrl, type CvExample } from '../lib/cv-examp
 import { cleanForm, emptyForm, formProblems, sameForm } from '../lib/cv-form'
 import { cx } from '../lib/cx'
 import { formatDateTime } from '../lib/format'
+import { useCvImport } from '../lib/use-cv-import'
 import { connected, onLive } from '../stores/live'
 import { notify } from '../stores/toast'
 
@@ -35,8 +36,8 @@ export type CvBaseData = { versions: WebCvBaseVersion[]; activeTex: string; acti
 /** O texto no editor e o arquivo de onde veio (o nome vai junto só se o texto não foi mexido depois). */
 type Source = { text: string; fileName: string | null }
 
-/** O que vai substituir o editor ou o formulário, à espera da confirmação: uma versão ou um modelo. */
-type Replacement = { version: WebCvBaseVersion } | { example: CvExample }
+/** O que vai substituir o editor ou o formulário, à espera da confirmação: uma versão, um modelo ou um PDF importado. */
+type Replacement = { version: WebCvBaseVersion } | { example: CvExample } | { pdf: true }
 
 const origin = (version: WebCvBaseVersion) => (version.fromForm ? 'formulário' : (version.fileName ?? 'editado no site'))
 /** Onde a versão abre para editar: no formulário, se veio dele; senão, o `.tex` no editor. */
@@ -87,13 +88,23 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 	const [savedForm, setSavedForm] = useState(form)
 	/** A modal com as etapas do formulário; fechada, o rascunho continua em `form`. */
 	const [formOpen, setFormOpen] = useState(false)
+	/** O PDF de onde o formulário foi preenchido, enquanto ele não vira uma versão (a modal lembra de revisar). */
+	const [importedFrom, setImportedFrom] = useState<string | null>(null)
 	const [serverProblems, setServerProblems] = useState<Record<string, string>>({})
 	const [candidateId, setCandidateId] = useState<string | null>(null)
 	const [submitting, setSubmitting] = useState(false)
 	const [activating, setActivating] = useState<string | null>(null)
 	const [replaceWith, setReplaceWith] = useState<Replacement | null>(null)
 	const fileInput = useRef<HTMLInputElement>(null)
+	const pdfInput = useRef<HTMLInputElement>(null)
 	const editor = useRef<HTMLTextAreaElement>(null)
+	const cvImport = useCvImport((imported, fileName) => {
+		setForm(imported)
+		setImportedFrom(fileName)
+		setServerProblems({})
+		setCandidateId(null)
+		setFormOpen(true)
+	})
 
 	const active = activeVersion(versions)
 	const candidate = versions.find(version => version.versionId === candidateId) ?? null
@@ -152,6 +163,22 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 		editor.current?.focus()
 	}
 
+	/** Escolhe o PDF a importar; antes, pede confirmação se o formulário tem mudanças (ele vai ser trocado). */
+	function importPdf(confirmed = false) {
+		if (formDirty && !confirmed) {
+			setReplaceWith({ pdf: true })
+			return
+		}
+		setReplaceWith(null)
+		pdfInput.current?.click()
+	}
+
+	function loadPdf(event: ChangeEvent<HTMLInputElement>) {
+		const file = event.target.files?.[0]
+		event.target.value = ''
+		if (file) void cvImport.start(file)
+	}
+
 	async function submit() {
 		setSubmitting(true)
 		try {
@@ -177,6 +204,7 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 			setVersions(current => upsertVersion(current, version))
 			setCandidateId(version.versionId)
 			setSavedForm(form)
+			setImportedFrom(null)
 			setFormOpen(false)
 		} catch (error) {
 			// Os erros de campo da API vêm como "form.contact.name"; o formulário usa o caminho sem o prefixo
@@ -221,6 +249,7 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 			if (loaded.form) {
 				setForm(loaded.form)
 				setSavedForm(loaded.form)
+				setImportedFrom(null)
 				setFormOpen(true)
 				return
 			}
@@ -253,7 +282,7 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 		editor.current?.focus({ preventScroll: true })
 	}
 
-	const replacesForm = !!replaceWith && 'version' in replaceWith && replaceWith.version.fromForm
+	const replacesForm = !!replaceWith && ('pdf' in replaceWith || ('version' in replaceWith && replaceWith.version.fromForm))
 
 	/** `ghost` no histórico: lá ativar é raro (e sem conferir a prévia); o lime fica para a versão que acabou de validar. */
 	const activateButton = (version: WebCvBaseVersion, size: 'sm' | 'md' = 'md', variant: 'lime' | 'ghost' = 'lime') => (
@@ -425,6 +454,11 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 						<Button variant="ghost" size="sm" onClick={() => setFormOpen(true)}>
 							preencher com formulário
 						</Button>
+						<Button variant="ghost" size="sm" disabled={cvImport.importing} onClick={() => importPdf()}>
+							<Icon name={cvImport.importing ? 'spinner' : 'file'} size={14} />
+							{cvImport.importing ? 'lendo o PDF…' : 'importar de um PDF'}
+						</Button>
+						<input ref={pdfInput} type="file" accept=".pdf,application/pdf" hidden onChange={loadPdf} />
 						<Button variant="ghost" size="sm" onClick={() => fileInput.current?.click()}>
 							<Icon name="file" size={14} />
 							carregar .tex
@@ -433,6 +467,12 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 					</div>
 				}
 			>
+				{cvImport.importing && (
+					<p role="status" className="flex items-center gap-2 text-sm text-muted">
+						<Icon name="spinner" size={16} />
+						Lendo o PDF com a IA… costuma levar um minuto. O formulário abre preenchido para você revisar.
+					</p>
+				)}
 				{formDirty && (
 					<p className="font-mono text-xs text-muted">
 						formulário com alterações não validadas: {form.contact.name.trim() || 'sem nome'} · {form.sections.length}{' '}
@@ -567,7 +607,7 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 						currículo <Hero.Mono>base.</Hero.Mono>
 					</>
 				}
-				lead="O .tex de onde saem todos os currículos, no site e no Discord. Monte pelo formulário ou envie o seu; cada versão nova é compilada antes de poder ser ativada."
+				lead="O .tex de onde saem todos os currículos, no site e no Discord. Monte pelo formulário (ou importe o seu PDF para preenchê-lo) ou envie o seu .tex; cada versão nova é compilada antes de poder ser ativada."
 			/>
 
 			{blocker.status === 'blocked' && (
@@ -585,12 +625,18 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 					title={replacesForm ? 'Trocar o formulário?' : 'Trocar o texto do editor?'}
 					description={
 						replacesForm
-							? 'O formulário tem alterações que ainda não foram validadas e vai ser trocado pelo da versão escolhida.'
+							? `O formulário tem alterações que ainda não foram validadas e vai ser trocado pelo ${'pdf' in replaceWith ? 'que for lido do PDF' : 'da versão escolhida'}.`
 							: `O texto do editor ainda não foi enviado e vai ser trocado pelo ${'version' in replaceWith ? 'da versão escolhida' : 'do modelo'}.`
 					}
-					confirmLabel={replacesForm ? 'trocar o formulário' : 'trocar o texto'}
+					confirmLabel={'pdf' in replaceWith ? 'escolher o PDF' : replacesForm ? 'trocar o formulário' : 'trocar o texto'}
 					cancelLabel="continuar editando"
-					onConfirm={() => ('version' in replaceWith ? edit(replaceWith.version, true) : loadExample(replaceWith.example, true))}
+					onConfirm={() =>
+						'pdf' in replaceWith
+							? importPdf(true)
+							: 'version' in replaceWith
+								? edit(replaceWith.version, true)
+								: loadExample(replaceWith.example, true)
+					}
 					onCancel={() => setReplaceWith(null)}
 				/>
 			)}
@@ -600,6 +646,7 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 					form={form}
 					serverProblems={serverProblems}
 					submitting={submitting}
+					importedFrom={importedFrom}
 					onChange={setForm}
 					onSubmit={submitForm}
 					onClose={() => setFormOpen(false)}

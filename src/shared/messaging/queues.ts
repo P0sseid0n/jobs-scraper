@@ -11,6 +11,8 @@ export const QUEUES = {
 	 * currículo em geração: validar é só compilar, leva segundos.
 	 */
 	cvUpdaterBase: 'cv-updater-base',
+	/** Currículos em PDF para preencher o formulário do currículo base, também consumidos pelo cv-updater. */
+	cvUpdaterImport: 'cv-updater-import',
 	/** Currículos prontos para o discord-bot entregar (é o `replyTo.queue` dos pedidos dele). */
 	discordCv: 'discord-cv',
 	/** Comandos para o scraper (ex.: "coletar agora" vindo de outras fontes). */
@@ -27,6 +29,8 @@ export const QUEUES = {
 	webCv: 'web-cv',
 	/** Validações do currículo base pedidas pelo site (é o `replyTo.queue` delas). */
 	webCvBase: 'web-cv-base',
+	/** Currículos em PDF lidos para o formulário, pedidos pelo site (é o `replyTo.queue` deles). */
+	webCvImport: 'web-cv-import',
 	/** Coletas que começaram ou terminaram, para o site atualizar na hora (ligada à exchange `scraper-run`). */
 	webScraperRun: 'web-scraper-run',
 	/** Candidaturas marcadas fora do site (o botão do Discord), para o site avisar os navegadores abertos. */

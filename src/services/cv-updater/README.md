@@ -48,6 +48,12 @@ Quem não sabe LaTeX pode montar a versão pelo formulário do site, numa modal 
 
 Uma versão nova passa antes pela validação, uma mensagem `CvBaseValidationRequest` na fila `cv-updater-base`. O serviço interpreta o `.tex`, confere se há experiência ou formação (`EXPECTED_SECTIONS` em `base-resume.ts`) e compila com o Tectonic. A resposta, na fila `web-cv-base`, traz os erros e a pré-visualização em PDF. Só uma versão sem erros pode ser ativada. A fila é separada da `cv-updater` e consumida em paralelo: a validação, que só compila, não espera um currículo em geração (com a IA, ele leva um minuto ou mais).
 
+## Importar o currículo de um PDF
+
+Quem já tem o currículo em PDF pode usá-lo para preencher o formulário, em vez de digitar tudo ("importar de um PDF" no Currículo base e no onboarding). O site manda o PDF (até 5 MB) numa mensagem `CvImportRequest` na fila `cv-updater-import`, consumida em paralelo às outras, e recebe o formulário preenchido (ou o motivo da falha) na `web-cv-import`. O PDF não vai para o banco: o resultado fica só na memória do site até a pessoa salvar, e salvar segue o caminho normal do formulário (validação, prévia, versão).
+
+O texto e os links clicáveis saem do PDF pelo pdf.js (`unpdf`, em JS, sem ferramenta no Docker), e o Ollama distribui o texto nos campos do formulário, com a saída validada pelo schema e uma tentativa a mais se vier fora do formato (`pdf-import/`). Nada é reescrito: cada campo devolvido precisa estar escrito no PDF (sem diferenciar maiúsculas, espaços e tipo de traço), senão fica vazio. Seções vazias não entram, as outras seguem a ordem dos títulos do PDF, e os idiomas só entram com o título "Idiomas" (sem ele, o modelo devolve as linguagens de programação). PDF sem texto selecionável (escaneado), corrompido, protegido por senha ou sem experiência nem formação é recusado com a mensagem para a pessoa; OCR não é feito.
+
 ## Como o pedido chega e volta
 
 O pedido (`CvRequest`) traz um `replyTo` com a fila de resposta e um contexto livre. O cv-updater devolve o resultado nessa fila, com o mesmo contexto: o bot usa a `discord-cv` e o site, a `web-cv`.
@@ -61,6 +67,7 @@ O pedido (`CvRequest`) traz um `replyTo` com a fila de resposta e um contexto li
 | `tailor-resume.ts` | monta o currículo da vaga |
 | `application-message.ts` | mensagem de candidatura |
 | `resume-pdf.ts`, `latex-compiler.ts` | PDF em uma página, compilado com o Tectonic |
+| `pdf-import/` | importação de um currículo em PDF para o formulário do site (texto, IA e conferência no PDF) |
 | `resume/` | leitura e escrita do `.tex` sem alterar o design; geração do `.tex` a partir do formulário do site |
 | `skills/` | seção de habilidades e associação entre as competências da vaga e as do currículo |
 | `projects/` | GitHub (API e cache), ranking, escolha e descrição dos projetos |

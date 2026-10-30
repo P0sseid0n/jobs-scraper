@@ -3,6 +3,7 @@ import { z } from 'zod'
 
 import {
 	CvBaseValidationResultSchema,
+	CvImportResultSchema,
 	CvResultSchema,
 	JobAppliedChangeSchema,
 	MailResultSchema,
@@ -28,6 +29,7 @@ import {
 	listCvBaseVersions,
 	saveCvBaseValidation,
 } from './server/cv-base'
+import { CvImports, getCvImport, requestCvImport, saveCvImportResult } from './server/cv-import'
 import { EventHub } from './server/event-hub'
 import { handler } from './server/http'
 import { appliedSimilar, setJobAppliedRoute } from './server/job-applied'
@@ -51,9 +53,11 @@ z.config(z.locales.pt())
 
 const events = new EventHub()
 onShutdown(() => events.close())
+const cvImports = new CvImports()
 
 await queue.assertQueue(QUEUES.cvUpdater)
 await queue.assertQueue(QUEUES.cvUpdaterBase)
+await queue.assertQueue(QUEUES.cvUpdaterImport)
 await queue.assertQueue(QUEUES.scraper)
 await queue.assertQueue(QUEUES.mailer)
 
@@ -72,6 +76,9 @@ await queue.consume(
 
 await queue.consume(QUEUES.webCv, CvResultSchema, result => saveCvResult(result, { events, logger }))
 await queue.consume(QUEUES.webCvBase, CvBaseValidationResultSchema, result => saveCvBaseValidation(result, { events, logger }))
+await queue.consume(QUEUES.webCvImport, CvImportResultSchema, result =>
+	saveCvImportResult(result, { imports: cvImports, events, logger }),
+)
 // Candidatura marcada pelo botão do Discord: o banco já mudou, os navegadores abertos ficam sabendo
 await queue.consume(QUEUES.webMail, MailResultSchema, result => saveMailResult(result, { events, logger }))
 await queue.consume(QUEUES.webApplied, JobAppliedChangeSchema, async change => events.broadcast('applied', change))
@@ -128,6 +135,8 @@ const server = Bun.serve({
 		'/api/cv-base/versions/:versionId': { GET: api(getCvBaseVersion) },
 		'/api/cv-base/versions/:versionId/pdf': { GET: api(getCvBasePdf) },
 		'/api/cv-base/versions/:versionId/activate': { POST: api(req => activateCvBaseVersion(req, { events, logger })) },
+		'/api/cv-base/imports': { POST: api(req => requestCvImport(req, { imports: cvImports, queue, logger })) },
+		'/api/cv-base/imports/:importId': { GET: api(req => getCvImport(req, cvImports)) },
 		'/api/scraper/status': { GET: api(() => scraperStatus({ skipOnboarding: config.SKIP_ONBOARDING })) },
 		'/api/scraper/runs': { GET: api(listRuns) },
 		'/api/scraper/run': { POST: api(() => requestRun(queue)) },
