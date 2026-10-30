@@ -4,6 +4,8 @@ Busca posts de vagas no LinkedIn com o Puppeteer e envia cada um para a fila `po
 
 **Posts traduzidos:** a busca às vezes mostra o post já traduzido para o idioma da conta, com o botão "Exibir original". Antes de ler os cards, o scraper clica nesse botão e espera o texto original (até 5 s; o card que não voltar a tempo é lido traduzido). Lido traduzido, o post em inglês passava pelo filtro de idioma como português e a vaga ficava com o texto da tradução.
 
+**Compartilhamentos com comentário:** o post original vem dentro do card, depois do comentário de quem compartilhou. Texto, autor e id saem do original: antes, o id (e o link) era do original, mas o texto e o autor eram do comentário, e a vaga aparecia como postada por quem só compartilhou. No mesmo card, o "Exibir original" pode ser só do post de dentro.
+
 **Imagens do post:** muitos posts põem a vaga numa arte ("detalhes na imagem 👇"). As imagens do conteúdo (`media.licdn.com/dms/image/.../feedshare-shrink_<tamanho>/...`; avatares e logos ficam de fora) vão junto no `RawPost`, em base64: as URLs do LinkedIn são assinadas e expiram, então são baixadas na coleta. São no máximo 2 por post, de até 1,5 MB cada (`POST_IMAGE_LIMITS`), no tamanho mais legível disponível (`feedshare-shrink_800`/`_1280` em vez da prévia `_160`; nas postadas pela API, `image-shrink_`, `linkedin/post-images.ts`). O download vem do CDN de imagens, não das páginas do LinkedIn, e só acontece para os posts enviados à fila (os já vistos e os de outro idioma não baixam nada). Uma imagem que não baixar fica de fora sem impedir o post.
 
 [← voltar ao README principal](../../../README.md)
