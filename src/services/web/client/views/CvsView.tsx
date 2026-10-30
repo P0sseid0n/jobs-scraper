@@ -1,11 +1,9 @@
 import { Link } from '@tanstack/react-router'
 import { useId, useState, type MouseEvent } from 'react'
 
-import type { CvChanges } from '@shared/contracts'
-
 import type { WebCvBaseVersion, WebCvRequest } from '../../api-types'
 import { cvBasePdfUrl, cvPdfUrl } from '../api'
-import { Changes } from '../components/CvReady'
+import { Changes, ChangeSummary, hasChanges } from '../components/CvReady'
 import { Icon } from '../components/Icon'
 import { Badge } from '../components/ui/Badge'
 import { Button, ButtonLink } from '../components/ui/Button'
@@ -24,9 +22,6 @@ import { formatDateTime } from '../lib/format'
 import { jobParams } from '../router'
 import { requestCv, useCvRequests } from '../stores/cv'
 import { notify } from '../stores/toast'
-
-/** Quantas tecnologias que entraram aparecem no resumo do item; o resto vira "+N". */
-const SUMMARY_ADDED = 4
 
 /** A folha clicável que abre o PDF: sobe um pouco no hover, como os botões. */
 const SHEET_LINK =
@@ -67,46 +62,6 @@ async function retry(request: WebCvRequest) {
 	} catch (error) {
 		notify(`Não consegui pedir o currículo: ${(error as Error).message}`, 'error')
 	}
-}
-
-function hasChanges(changes: CvChanges | null): changes is CvChanges {
-	return (
-		!!changes &&
-		(changes.addedSkills.length > 0 || changes.removedSkills.length > 0 || !!changes.summary || changes.projects.length > 0)
-	)
-}
-
-/**
- * "+React +Docker · −3 tecnologias · 3 projetos · apresentação reescrita": o ajuste numa linha, sem abrir o PDF. O que
- * entrou vem em selos; o que saiu, só contado (riscado e pequeno, era difícil de ler; a lista fica no detalhe).
- */
-function ChangeSummary({ changes }: { changes: CvChanges }) {
-	const added = changes.addedSkills.slice(0, SUMMARY_ADDED)
-	const hidden = changes.addedSkills.length - added.length
-	const removed = changes.removedSkills.length
-	const facts = [
-		removed > 0 && `−${removed} ${removed === 1 ? 'tecnologia' : 'tecnologias'}`,
-		changes.projects.length > 0 && `${changes.projects.length} ${changes.projects.length === 1 ? 'projeto' : 'projetos'}`,
-		changes.summary && 'apresentação reescrita',
-	].filter(Boolean)
-
-	return (
-		<span className="flex flex-wrap items-center gap-1.5">
-			{added.map(skill => (
-				<Badge key={`+${skill}`} tone="running" size="sm">
-					<span className="sr-only">entrou:</span>
-					<span className="max-w-48 truncate">+{skill}</span>
-				</Badge>
-			))}
-			{hidden > 0 && <span className="font-mono text-xs text-muted">+{hidden}</span>}
-			{facts.length > 0 && (
-				<span className="font-mono text-xs text-muted">
-					{added.length > 0 && '· '}
-					{facts.join(' · ')}
-				</span>
-			)}
-		</span>
-	)
 }
 
 type CvItemProps = {

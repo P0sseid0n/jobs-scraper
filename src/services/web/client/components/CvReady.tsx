@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useId, useState, type CSSProperties, type ReactNode } from 'react'
 
 import type { CvChanges } from '@shared/contracts'
 
@@ -7,7 +7,7 @@ import { cvPdfUrl } from '../api'
 import { cx } from '../lib/cx'
 import { reducedMotion } from '../lib/motion'
 import { isJustReady, markShown } from '../stores/cv'
-import { badge, BadgeList } from './ui/Badge'
+import { Badge, badge, BadgeList } from './ui/Badge'
 import { PdfIcon } from './ui/PdfIcon'
 import { LABEL } from './ui/text'
 import { TextLink } from './ui/TextLink'
@@ -25,19 +25,73 @@ const REVEAL_MS = 1600
 
 const delay = (ms: number): CSSProperties => ({ animationDelay: `${ms}ms` })
 
+/** Quantas tecnologias que entraram aparecem no resumo; o resto vira "+N". */
+const SUMMARY_ADDED = 4
+/** Acima disso, as tecnologias que saíram ficam contadas, com a lista a um clique (riscadas, muitas viram ruído). */
+const REMOVED_VISIBLE = 6
+
+/** O ajuste mudou alguma coisa no currículo base. */
+export function hasChanges(changes: CvChanges | null): changes is CvChanges {
+	return (
+		!!changes &&
+		(changes.addedSkills.length > 0 || changes.removedSkills.length > 0 || !!changes.summary || changes.projects.length > 0)
+	)
+}
+
+/**
+ * "+React +Docker · −3 tecnologias · 3 projetos · apresentação reescrita": o ajuste numa linha, sem abrir o PDF. O que
+ * entrou vem em selos; o que saiu, só contado (riscado e pequeno, era difícil de ler; a lista fica no detalhe).
+ */
+export function ChangeSummary({ changes }: { changes: CvChanges }) {
+	const added = changes.addedSkills.slice(0, SUMMARY_ADDED)
+	const hidden = changes.addedSkills.length - added.length
+	const removed = changes.removedSkills.length
+	const facts = [
+		removed > 0 && `−${removed} ${removed === 1 ? 'tecnologia' : 'tecnologias'}`,
+		changes.projects.length > 0 && `${changes.projects.length} ${changes.projects.length === 1 ? 'projeto' : 'projetos'}`,
+		changes.summary && 'apresentação reescrita',
+	].filter(Boolean)
+
+	return (
+		<span className="flex flex-wrap items-center gap-1.5">
+			{added.map(skill => (
+				<Badge key={`+${skill}`} tone="running" size="sm">
+					<span className="sr-only">entrou:</span>
+					<span className="max-w-48 truncate">+{skill}</span>
+				</Badge>
+			))}
+			{hidden > 0 && <span className="font-mono text-xs text-muted">+{hidden}</span>}
+			{facts.length > 0 && (
+				<span className="font-mono text-xs text-muted">
+					{added.length > 0 && '· '}
+					{facts.join(' · ')}
+				</span>
+			)}
+		</span>
+	)
+}
+
+type CvReadyProps = {
+	cv: WebCvRequest
+	/**
+	 * O que mudou já vem aberto. Por padrão, só no currículo que acabou de ficar pronto (para o ajuste ser mostrado sendo
+	 * feito); depois, fica o resumo numa linha e o detalhe a um clique, sem empurrar o resto da página.
+	 */
+	defaultOpen?: boolean
+}
+
 /**
  * O currículo pronto da vaga, com o que mudou em relação ao currículo base (tecnologias que entraram e saíram, a
  * apresentação reescrita e os projetos escolhidos). Na primeira vez que aparece depois de ficar pronto com o site aberto,
- * o ajuste é mostrado sendo feito; depois, já vem pronto.
+ * o ajuste é mostrado sendo feito; depois, já vem pronto e recolhido.
  */
-export function CvReady({ cv }: { cv: WebCvRequest }) {
+export function CvReady({ cv, defaultOpen }: CvReadyProps) {
 	const [fresh] = useState(() => isJustReady(cv.requestId) && !reducedMotion())
+	const [open, setOpen] = useState(defaultOpen ?? fresh)
+	const detailsId = useId()
 	useEffect(() => markShown(cv.requestId), [cv.requestId])
 
-	const { changes } = cv
-	const changed =
-		!!changes &&
-		(changes.addedSkills.length > 0 || changes.removedSkills.length > 0 || !!changes.summary || changes.projects.length > 0)
+	const changes = hasChanges(cv.changes) ? cv.changes : null
 
 	return (
 		<div className="relative flex flex-col gap-3.5 overflow-hidden rounded-md bg-lime-soft p-3">
@@ -64,7 +118,20 @@ export function CvReady({ cv }: { cv: WebCvRequest }) {
 					pré-visualizar
 				</TextLink>
 			</div>
-			{changes && changed && <Changes changes={changes} fresh={fresh} />}
+			{changes && (
+				<div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+					<ChangeSummary changes={changes} />
+					<TextLink className="text-xs" aria-expanded={open} aria-controls={detailsId} onClick={() => setOpen(!open)}>
+						{open ? 'esconder o que mudou' : 'ver o que mudou'}
+					</TextLink>
+				</div>
+			)}
+			{changes && open && (
+				<div id={detailsId} className={cx(!fresh && 'animate-panel-in motion-reduce:animate-none')}>
+					{/* O lime forte é do ajuste sendo mostrado; aberto depois, fica no tom do histórico */}
+					<Changes changes={changes} fresh={fresh} tone={fresh ? 'highlight' : 'quiet'} />
+				</div>
+			)}
 		</div>
 	)
 }
@@ -76,6 +143,8 @@ export function CvReady({ cv }: { cv: WebCvRequest }) {
 export function Changes({ changes, fresh, tone = 'highlight' }: { changes: CvChanges; fresh: boolean; tone?: 'highlight' | 'quiet' }) {
 	const { addedSkills, removedSkills, summary, projects } = changes
 	const quiet = tone === 'quiet'
+	// Sendo mostrado o ajuste, as que saíram aparecem todas, riscadas uma a uma
+	const [showRemoved, setShowRemoved] = useState(fresh || removedSkills.length <= REMOVED_VISIBLE)
 
 	return (
 		<section className="flex flex-col gap-3 border-t border-line pt-3" aria-label="O que mudou no currículo">
@@ -104,17 +173,26 @@ export function Changes({ changes, fresh, tone = 'highlight' }: { changes: CvCha
 								{skill}
 							</li>
 						))}
-						{removedSkills.map((skill, index) => (
-							<li key={`-${skill}`} className={badge({ tone: 'plain', bordered: true, className: 'text-muted' })}>
-								<span className="sr-only">saiu:</span>
-								<span
-									className={cx('strike-through', fresh && 'animate-strike-in')}
-									style={fresh ? delay(AT.removed + index * STEP_MS) : undefined}
-								>
-									{skill}
-								</span>
+						{showRemoved &&
+							removedSkills.map((skill, index) => (
+								<li key={`-${skill}`} className={badge({ tone: 'plain', bordered: true, className: 'text-muted' })}>
+									<span className="sr-only">saiu:</span>
+									<span
+										className={cx('strike-through', fresh && 'animate-strike-in')}
+										style={fresh ? delay(AT.removed + index * STEP_MS) : undefined}
+									>
+										{skill}
+									</span>
+								</li>
+							))}
+						{!showRemoved && (
+							<li className="flex items-center gap-1.5 font-mono text-xs text-muted">
+								−{removedSkills.length} saíram
+								<TextLink className="text-xs" onClick={() => setShowRemoved(true)}>
+									mostrar
+								</TextLink>
 							</li>
-						))}
+						)}
 					</BadgeList>
 				</Row>
 			)}
