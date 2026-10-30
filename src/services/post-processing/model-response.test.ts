@@ -148,6 +148,10 @@ describe('keepEmailIfInPost', () => {
 	})
 })
 
+	test('descarta o telefone que o modelo devolve como e-mail, mesmo escrito no post', () => {
+		expect(keepEmailIfInPost('11 90000-0000', 'Interessados, entrar em contato: 11 90000-0000')).toBeNull()
+	})
+
 describe('keepCompanyIfInPost', () => {
 	test('mantém a empresa escrita no post, junta ou em negrito Unicode', () => {
 		expect(keepCompanyIfInPost('Spread Tecnologia', 'Vaga na Spread Tecnologia, home office')).toBe('Spread Tecnologia')

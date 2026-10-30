@@ -7,6 +7,7 @@ import type { WebJob, WebMail } from '../../api-types'
 import { api, cvPdfUrl, RequestError } from '../api'
 import { cx } from '../lib/cx'
 import { formatDateTime, MESSAGE_LENGTH_LABELS, MESSAGE_TONE_LABELS } from '../lib/format'
+import { shakeFailedAction } from '../lib/motion'
 import { useCvFor, useReadyCvFor } from '../stores/cv'
 import { sendApplication, useJobMails, useMailSetup } from '../stores/mail'
 import { useMessageSettingsState } from '../stores/message-settings'
@@ -37,6 +38,9 @@ type ContactJob = Pick<
 >
 
 const LIST_FORMAT = new Intl.ListFormat('pt-BR')
+
+/** Os campos do envio com o erro embaixo deles na modal. */
+const SHOWN_FIELDS = new Set(['to', 'subject', 'body'])
 
 /** Os nomes como aparecem no modelo: "{{empresa}} e {{local}}". */
 function variableList(names: readonly string[]) {
@@ -212,8 +216,12 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 			notify('Candidatura a caminho: o status aparece no contato quando o e-mail sair')
 			ref.current?.close()
 		} catch (error) {
-			if (error instanceof RequestError && Object.keys(error.fields).length > 0) setErrors(error.fields)
-			else notify(error instanceof RequestError ? error.message : 'Não consegui enviar a candidatura', 'error')
+			const fields = error instanceof RequestError ? Object.keys(error.fields) : []
+			if (fields.length > 0) setErrors((error as RequestError).fields)
+			// Um campo que a modal não mostra (ex.: o currículo) não teria onde aparecer; os mostrados só tremem o "enviar"
+			if (fields.length === 0 || fields.some(name => !SHOWN_FIELDS.has(name))) {
+				notify(error instanceof RequestError ? error.message : 'Não consegui enviar a candidatura', 'error')
+			} else shakeFailedAction()
 			setBusy(false)
 		}
 	}
@@ -278,12 +286,25 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 							)}
 						</div>
 						{recipientFixed ? (
-							// Só para ver e copiar: o destinatário é o contato da vaga
-							<div className="flex min-h-11 min-w-0 items-center rounded-sm border border-line px-3 text-sm">
-								<output id={ids.to} className="block truncate font-mono">
-									{recipient}
-								</output>
-							</div>
+							// Só para ver e copiar: o destinatário é o contato da vaga. O erro dele (o mailer recusou o e-mail) aparece
+							// aqui também: sem campo para editar, ele sumia, e o "enviar" parecia não fazer nada
+							<>
+								<div
+									className={cx(
+										'flex min-h-11 min-w-0 items-center rounded-sm border px-3 text-sm',
+										errors.to ? 'border-danger' : 'border-line',
+									)}
+								>
+									<output
+										id={ids.to}
+										className="block truncate font-mono"
+										aria-describedby={errors.to ? `${ids.to}-error` : undefined}
+									>
+										{recipient}
+									</output>
+								</div>
+								{errors.to && <FieldError id={`${ids.to}-error`}>{errors.to}</FieldError>}
+							</>
 						) : (
 							<>
 								<Input

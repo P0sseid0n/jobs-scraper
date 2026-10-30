@@ -4,10 +4,12 @@
  * - `link` se divide em `postLink` (o post no LinkedIn) e `applyLink` (o site de candidatura);
  * - `sourcePostUrl` (vagas de posts com várias) vira o `postLink`;
  * - `aiJobConfidence` sai (das vagas, das correções e das configurações) e entra `extractionChecks`. Das vagas antigas
- *   só dá para refazer o check do cargo: os outros dependem da resposta original da IA, que não foi guardada.
+ *   só dá para refazer o check do cargo: os outros dependem da resposta original da IA, que não foi guardada;
+ * - o `recruiterEmail` que não é e-mail (o telefone que o modelo devolvia no campo) vira `null`.
  * Uso: bun db:migrate-jobs
  */
 import { loadConfig, mongoEnv } from '@shared/config'
+import { MailAddressSchema } from '@shared/contracts'
 import { connectDatabase, disconnectDatabase, ExtractionFeedback, Job, Settings } from '@shared/database'
 import { createLogger } from '@shared/logging'
 
@@ -45,11 +47,20 @@ for await (const doc of jobs.find({ extractionChecks: { $exists: false } })) {
 	checked++
 }
 
+// O mailer recusa o envio para eles, e o site oferecia o contato por e-mail
+let invalidEmails = 0
+for await (const doc of jobs.find({ recruiterEmail: { $type: 'string' } }, { projection: { recruiterEmail: 1 } })) {
+	if (MailAddressSchema.safeParse(doc.recruiterEmail).success) continue
+
+	await jobs.updateOne({ _id: doc._id }, { $set: { recruiterEmail: null } })
+	invalidEmails++
+}
+
 await ExtractionFeedback.collection.updateMany(
 	{ 'aiOutput.aiJobConfidence': { $exists: true } },
 	{ $unset: { 'aiOutput.aiJobConfidence': '' } },
 )
 await Settings.collection.updateMany({ 'values.minJobConfidence': { $exists: true } }, { $unset: { 'values.minJobConfidence': '' } })
 
-logger.info({ renamed: renamed.modifiedCount, split, checked }, '✅ Vagas migradas')
+logger.info({ renamed: renamed.modifiedCount, split, checked, invalidEmails }, '✅ Vagas migradas')
 await disconnectDatabase()

@@ -1,6 +1,6 @@
 import { jsonrepair } from 'jsonrepair'
 
-import { CONTRACT_TYPES, type ContractType, type WORK_MODES } from '@shared/contracts'
+import { CONTRACT_TYPES, MailAddressSchema, type ContractType, type WORK_MODES } from '@shared/contracts'
 
 import { AiJobOutputSchema, type AiJobOutput } from './extraction-output'
 
@@ -52,10 +52,11 @@ export function keepLinkIfInPost(link: string | null, text: string): string | nu
 
 /**
  * Mantém o e-mail da IA só se ele estiver escrito no texto (sem diferenciar maiúsculas): o modelo às vezes lê errado o
- * e-mail de uma imagem ("pedrowisp2@" → "pedrowiz@"), e o site oferece o contato por ele.
+ * e-mail de uma imagem ("pedrowisp2@" → "pedrowiz@"), e o site oferece o contato por ele. Também precisa ser um e-mail
+ * que o mailer aceite: o modelo às vezes devolve o telefone do contato ("11 90000-0000") no campo.
  */
 export function keepEmailIfInPost(email: string | null, text: string): string | null {
-	if (!email) return null
+	if (!email || !MailAddressSchema.safeParse(email).success) return null
 	return text.toLowerCase().includes(email.toLowerCase()) ? email : null
 }
 
