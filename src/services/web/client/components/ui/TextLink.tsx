@@ -3,7 +3,7 @@ import type { AnchorHTMLAttributes, ButtonHTMLAttributes, Ref } from 'react'
 import type { VariantProps } from 'tailwind-variants'
 
 import { tv } from '../../lib/cx'
-import { NEW_TAB, NEW_TAB_NOTICE } from './link'
+import { NEW_TAB, NewTabNotice } from './link'
 
 const textLink = tv({
 	base: 'text-ink underline underline-offset-3 hover:text-lime-text',
@@ -40,7 +40,7 @@ export function TextLink({ className, size, mono, external, children, ...props }
 			<a {...(external ? NEW_TAB : {})} {...(props as LinkProps)} className={textLink({ as: 'a', size, mono, className })}>
 				{children}
 				{external && <span aria-hidden="true"> ↗</span>}
-				{external && <span className="sr-only">{NEW_TAB_NOTICE}</span>}
+				{external && <NewTabNotice />}
 			</a>
 		)
 	}
@@ -64,5 +64,5 @@ function RouteAnchor({
 	return <a {...props} className={textLink({ as: 'a', size, mono, className })} />
 }
 
-/** Link de texto para uma tela do site, com a rota tipada (`<RouteLink to="/configuracoes">`). */
+/** Link de texto para uma tela do site, com a rota tipada (`<RouteLink to="/settings">`). */
 export const RouteLink = createLink(RouteAnchor)

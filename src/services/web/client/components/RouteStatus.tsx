@@ -1,5 +1,8 @@
 import { useRouter, type ErrorComponentProps } from '@tanstack/react-router'
 
+import type { Messages } from '@shared/i18n'
+
+import { useT } from '../stores/locale'
 import { Button } from './ui/Button'
 import { card } from './ui/Card'
 import { EmptyState } from './ui/EmptyState'
@@ -18,19 +21,20 @@ export function RoutePending({ width = 'wide' }: { width?: PageWidth }) {
 }
 
 /** O `errorComponent` de uma rota: o loader falhou; "tentar de novo" roda o loader outra vez. */
-export function routeError(title: string, width: PageWidth = 'wide') {
+export function routeError(title: keyof Messages['routes']['errors'], width: PageWidth = 'wide') {
 	return function RouteError({ error }: ErrorComponentProps) {
 		const router = useRouter()
+		const t = useT()
 
 		return (
 			<Page width={width}>
 				<EmptyState
 					tone="error"
-					title={title}
+					title={t.routes.errors[title]}
 					description={error.message}
 					action={
 						<Button variant="lime" onClick={() => router.invalidate()}>
-							tentar de novo
+							{t.routes.retry}
 						</Button>
 					}
 				/>

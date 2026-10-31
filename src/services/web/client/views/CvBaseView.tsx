@@ -2,6 +2,7 @@ import { useBlocker } from '@tanstack/react-router'
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 
 import { CV_BASE_TEX_MAX_BYTES, type CvForm } from '@shared/contracts'
+import { t } from '@shared/i18n'
 
 import type { WebCvBaseVersion } from '../../api-types'
 import { api, cvBasePdfUrl, RequestError } from '../api'
@@ -21,12 +22,13 @@ import { SectionCard } from '../components/ui/SectionCard'
 import { StatusLine } from '../components/ui/StatusLine'
 import { LIST, META, SECTION_TITLE } from '../components/ui/text'
 import { activeVersion, formatKilobytes, texBytes, upsertVersion } from '../lib/cv-base'
-import { CV_EXAMPLES, exampleDownloadUrl, type CvExample } from '../lib/cv-examples'
+import { cvExamples, exampleDownloadUrl, type CvExample } from '../lib/cv-examples'
 import { cleanForm, emptyForm, formProblems, sameForm } from '../lib/cv-form'
 import { cx } from '../lib/cx'
 import { formatDateTime } from '../lib/format'
-import { LEAVE_DURING_IMPORT, useCvImport } from '../lib/use-cv-import'
+import { leaveDuringImport, useCvImport } from '../lib/use-cv-import'
 import { connected, onLive } from '../stores/live'
+import { useT } from '../stores/locale'
 import { notify } from '../stores/toast'
 
 const MAX_SIZE = formatKilobytes(CV_BASE_TEX_MAX_BYTES)
@@ -40,16 +42,16 @@ type Source = { text: string; fileName: string | null }
 /** O que vai substituir o editor ou o formulário, à espera da confirmação: uma versão, um modelo ou um PDF importado. */
 type Replacement = { version: WebCvBaseVersion } | { example: CvExample } | { pdf: true }
 
-const origin = (version: WebCvBaseVersion) => (version.fromForm ? 'formulário' : (version.fileName ?? 'editado no site'))
+const origin = (version: WebCvBaseVersion) => (version.fromForm ? t().cvBase.form : (version.fileName ?? t().cvBase.editedOnSite))
 /** Onde a versão abre para editar: no formulário, se veio dele; senão, o `.tex` no editor. */
-const editLabel = (version: WebCvBaseVersion) => (version.fromForm ? 'editar no formulário' : 'editar o .tex')
-const pagesLabel = (pages: number | null) => (pages === null ? null : `${pages} ${pages === 1 ? 'página' : 'páginas'}`)
+const editLabel = (version: WebCvBaseVersion) => (version.fromForm ? t().cvBase.editInForm : t().cvBase.editTex)
+const pagesLabel = (pages: number | null) => (pages === null ? null : t().cvBase.pages(pages))
 
 /** A pré-visualização do PDF: embutida no computador; no celular, que não mostra PDF dentro da página, só o botão. */
 function Preview({ version }: { version: WebCvBaseVersion }) {
 	return (
 		<iframe
-			title={`Pré-visualização do currículo base de ${formatDateTime(version.createdAt)}`}
+			title={t().cvBase.previewOf(formatDateTime(version.createdAt))}
 			src={cvBasePdfUrl(version.versionId)}
 			className="hidden aspect-3/4 max-h-200 w-full rounded-sm border border-line bg-white md:block"
 		/>
@@ -59,7 +61,7 @@ function Preview({ version }: { version: WebCvBaseVersion }) {
 function Errors({ version }: { version: WebCvBaseVersion }) {
 	return (
 		<Notice tone="danger" icon="alert">
-			<p className="font-semibold">Versão recusada; o currículo base continua o mesmo.</p>
+			<p className="font-semibold">{t().cvBase.rejected}</p>
 			<ul className="m-0 mt-1.5 flex list-disc flex-col gap-1 pl-4.5 font-mono text-xs break-words">
 				{version.errors.map(error => (
 					<li key={error}>{error}</li>
@@ -73,9 +75,10 @@ function Errors({ version }: { version: WebCvBaseVersion }) {
  * "Currículo base": o `.tex` de onde saem os currículos ajustados. Uma versão nova (preenchida no formulário, enviada ou
  * editada aqui) é validada
  * pelo cv-updater e só depois pode ser ativada; o histórico permite voltar a uma anterior. Os dados iniciais vêm do
- * loader da rota (`routes/curriculos_.base.tsx`); o resto chega pelo stream (`cvBase`).
+ * loader da rota (`routes/resumes_.base.tsx`); o resto chega pelo stream (`cvBase`).
  */
 export function CvBaseView({ initial }: { initial: CvBaseData }) {
+	const b = useT().cvBase
 	const [versions, setVersions] = useState(initial.versions)
 	const [text, setText] = useState(initial.activeTex)
 	const [source, setSource] = useState<Source>(() => ({
@@ -154,7 +157,7 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 		if (!file) return
 
 		if (file.size > CV_BASE_TEX_MAX_BYTES) {
-			notify(`O arquivo tem ${formatKilobytes(file.size)}; o limite é ${MAX_SIZE}.`, 'error')
+			notify(b.fileTooLarge(formatKilobytes(file.size), MAX_SIZE), 'error')
 			return
 		}
 
@@ -195,7 +198,7 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 			setCandidateId(version.versionId)
 			setSavedText(text)
 		} catch (error) {
-			notify(`Não consegui enviar o .tex: ${(error as Error).message}`, 'error')
+			notify(b.texFailed((error as Error).message), 'error')
 		} finally {
 			setSubmitting(false)
 		}
@@ -221,7 +224,7 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 					Object.fromEntries(Object.entries(error.fields).map(([path, message]) => [path.replace(/^form./, ''), message])),
 				)
 			}
-			notify(`Não consegui enviar o formulário: ${(error as Error).message}`, 'error')
+			notify(b.formFailed((error as Error).message), 'error')
 		} finally {
 			setSubmitting(false)
 		}
@@ -232,9 +235,9 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 		try {
 			const updated = await api.activateCvBaseVersion(version.versionId)
 			setVersions(current => upsertVersion(current, updated))
-			notify('Currículo base trocado: o próximo currículo gerado já usa esta versão.')
+			notify(b.activated)
 		} catch (error) {
-			notify(`Não consegui ativar a versão: ${(error as Error).message}`, 'error')
+			notify(b.activateFailed((error as Error).message), 'error')
 		} finally {
 			setActivating(null)
 		}
@@ -267,7 +270,7 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 			setSavedText(loaded.tex)
 			focusEditor()
 		} catch (error) {
-			notify(`Não consegui carregar a versão: ${(error as Error).message}`, 'error')
+			notify(b.loadFailed((error as Error).message), 'error')
 		}
 	}
 
@@ -295,14 +298,14 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 	/** `ghost` no histórico: lá ativar é raro (e sem conferir a prévia); o lime fica para a versão que acabou de validar. */
 	const activateButton = (version: WebCvBaseVersion, size: 'sm' | 'md' = 'md', variant: 'lime' | 'ghost' = 'lime') => (
 		<Button variant={variant} size={size} disabled={activating !== null} onClick={() => activate(version)}>
-			{activating === version.versionId ? 'ativando…' : 'ativar esta versão'}
+			{activating === version.versionId ? b.activating : b.activate}
 		</Button>
 	)
 
 	function renderActive() {
 		return (
 			<SectionCard
-				title="versão ativa"
+				title={b.activeVersion}
 				aside={
 					active && (
 						<div className="flex gap-2">
@@ -310,7 +313,7 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 								{editLabel(active)}
 							</Button>
 							<Button variant="ghost" size="sm" href={cvBasePdfUrl(active.versionId)} external>
-								abrir PDF
+								{b.openPdf}
 							</Button>
 						</div>
 					)
@@ -320,7 +323,7 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 					<>
 						<p className={META}>
 							{[
-								`ativada ${formatDateTime(active.activatedAt!)}`,
+								b.activatedAt(formatDateTime(active.activatedAt!)),
 								origin(active),
 								pagesLabel(active.pages),
 								formatKilobytes(active.size),
@@ -332,9 +335,9 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 					</>
 				) : (
 					<Notice tone="warn" icon="file">
-						Nenhuma versão ativada pelo site: o cv-updater usa o arquivo <code className="font-mono">data/cv/cv.tex</code> (
-						<code className="font-mono">CV_TEX_FILE</code>). Preencha o formulário ou envie o seu .tex abaixo para trocar o
-						currículo pelo site.
+						{b.noActiveBefore}
+						<code className="font-mono">data/cv/cv.tex</code> (<code className="font-mono">CV_TEX_FILE</code>
+						{b.noActiveAfter}
 					</Notice>
 				)}
 			</SectionCard>
@@ -345,7 +348,7 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 		if (version.status === 'validating') {
 			return (
 				<StatusLine tone="muted" icon="spinner">
-					Validando no cv-updater…
+					{b.validating}
 				</StatusLine>
 			)
 		}
@@ -355,7 +358,7 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 		if (version.versionId === active?.versionId) {
 			return (
 				<StatusLine tone="ok" icon="check">
-					Esta versão é o currículo base.
+					{b.isBase}
 				</StatusLine>
 			)
 		}
@@ -364,17 +367,16 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 			<div className="flex flex-col gap-3.5">
 				<div className="flex flex-wrap items-center gap-3">
 					<StatusLine tone="ok" icon="check" className="grow">
-						{`Compilou sem erros${version.pages ? ` (${pagesLabel(version.pages)})` : ''}. Confira a prévia e ative.`}
+						{b.compiled(pagesLabel(version.pages))}
 					</StatusLine>
 					<Button variant="ghost" href={cvBasePdfUrl(version.versionId)} external>
-						abrir PDF
+						{b.openPdf}
 					</Button>
 					{activateButton(version)}
 				</div>
 				{version.pages !== null && version.pages > 1 && (
 					<Notice tone="warn" icon="alert">
-						O currículo base tem {version.pages} páginas. Cada currículo ajustado precisa caber em uma: o cv-updater tira
-						projetos e volta à apresentação original até caber, e pode não conseguir.
+						{b.multiPage(version.pages)}
 					</Notice>
 				)}
 				<Preview version={version} />
@@ -383,11 +385,11 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 	}
 
 	function renderExamples() {
-		const intro = 'Comece por um modelo: troque os dados pelos seus e valide.'
+		const intro = b.examplesIntro
 		const list = (
 			<ul className={cx(LIST, 'flex flex-col gap-2.5')}>
-				{CV_EXAMPLES.map(example => {
-					const download = `baixar ${example.fileName}`
+				{cvExamples().map(example => {
+					const download = b.downloadExample(example.fileName)
 
 					return (
 						<li key={example.fileName} className={card({ size: 'sm', className: 'flex flex-col gap-1.5' })}>
@@ -413,10 +415,10 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 								<p className="min-w-0 grow basis-60 text-sm text-muted">{example.description}</p>
 								<div className="flex flex-wrap gap-2">
 									<Button variant="ghost" size="sm" onClick={() => loadExample(example)}>
-										usar no editor
+										{b.useInEditor}
 									</Button>
 									<Button variant="ghost" size="sm" href={example.pdfUrl} external>
-										ver PDF
+										{b.seePdf}
 									</Button>
 								</div>
 							</div>
@@ -433,7 +435,7 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 					variant="card"
 					summary={
 						<span className="flex flex-col gap-1.5">
-							<h2 className={SECTION_TITLE}>começar de um modelo</h2>
+							<h2 className={SECTION_TITLE}>{b.startFromExample}</h2>
 							<span className="text-sm text-muted">{intro}</span>
 						</span>
 					}
@@ -444,7 +446,7 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 		}
 
 		return (
-			<SectionCard title="modelos" description={intro}>
+			<SectionCard title={b.examples} description={intro}>
 				{list}
 			</SectionCard>
 		)
@@ -453,20 +455,20 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 	function renderEditor() {
 		return (
 			<SectionCard
-				title="nova versão"
+				title={b.newVersion}
 				aside={
 					<div className="flex flex-wrap gap-2">
 						<Button variant="ghost" size="sm" onClick={() => setFormOpen(true)}>
-							preencher com formulário
+							{b.fillForm}
 						</Button>
 						<Button variant="ghost" size="sm" disabled={cvImport.importing} onClick={() => importPdf()}>
 							<Icon name={cvImport.importing ? 'spinner' : 'file'} size={14} />
-							{cvImport.importing ? 'lendo o PDF…' : 'importar de um PDF'}
+							{cvImport.importing ? b.readingPdf : b.importPdf}
 						</Button>
 						<input ref={pdfInput} type="file" accept=".pdf,application/pdf" hidden onChange={loadPdf} />
 						<Button variant="ghost" size="sm" onClick={() => fileInput.current?.click()}>
 							<Icon name="file" size={14} />
-							carregar .tex
+							{b.loadTex}
 						</Button>
 						<input ref={fileInput} type="file" accept=".tex,text/x-tex,application/x-tex" hidden onChange={loadFile} />
 					</div>
@@ -474,24 +476,21 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 			>
 				{cvImport.importing && (
 					<StatusLine tone="muted" icon="spinner">
-						Lendo o PDF com a IA… costuma levar um minuto. O formulário abre preenchido para você revisar.
+						{b.readingPdfHelp}
 					</StatusLine>
 				)}
 				{formDirty && (
 					<div className="flex flex-wrap items-center justify-between gap-2">
-						<p className={META}>
-							formulário com alterações não validadas: {form.contact.name.trim() || 'sem nome'} · {form.sections.length}{' '}
-							{form.sections.length === 1 ? 'seção' : 'seções'}
-						</p>
+						<p className={META}>{b.formDirty(form.contact.name.trim() || b.noName, form.sections.length)}</p>
 						<Button variant="ghost" size="xs" onClick={discardForm}>
-							descartar
+							{b.discard}
 						</Button>
 					</div>
 				)}
 
 				<div className="flex flex-col gap-1.5">
 					<span className="flex items-center justify-between gap-3">
-						<FieldLabel htmlFor="cv-base-tex">.tex do currículo</FieldLabel>
+						<FieldLabel htmlFor="cv-base-tex">{b.tex}</FieldLabel>
 						<span className={cx('font-mono text-xs', tooBig ? 'text-danger' : 'text-muted')}>
 							{formatKilobytes(size)} / {MAX_SIZE}
 						</span>
@@ -502,24 +501,19 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 						value={text}
 						rows={18}
 						spellCheck={false}
-						placeholder="Cole aqui o .tex do seu currículo, carregue o arquivo ou preencha com o formulário (sem precisar saber LaTeX)."
+						placeholder={b.texPlaceholder}
 						aria-invalid={tooBig || undefined}
 						aria-describedby={tooBig ? 'cv-base-tex-error' : 'cv-base-tex-help'}
 						onChange={event => setText(event.target.value)}
 						className={field({ invalid: tooBig, className: 'resize-y py-2.5 font-mono text-xs leading-relaxed' })}
 					/>
 					{tooBig ? (
-						<FieldError id="cv-base-tex-error">O .tex passa do limite de {MAX_SIZE}.</FieldError>
+						<FieldError id="cv-base-tex-error">{b.texTooLarge(MAX_SIZE)}</FieldError>
 					) : (
 						<>
-							<FieldHelp id="cv-base-tex-help">
-								Precisa de pelo menos uma seção de experiência ou de formação; o cv-updater compila antes de você poder ativar.
-							</FieldHelp>
-							<Disclosure summary="ver o que o .tex precisa ter">
-								<FieldHelp>
-									Resumo, competências e projetos são opcionais. Os títulos aceitam sinônimos (Resumo, Sobre, Competências,
-									Experiência...), em português ou em inglês, como nos modelos.
-								</FieldHelp>
+							<FieldHelp id="cv-base-tex-help">{b.texHelp}</FieldHelp>
+							<Disclosure summary={b.texNeeds}>
+								<FieldHelp>{b.texNeedsHelp}</FieldHelp>
 							</Disclosure>
 						</>
 					)}
@@ -528,9 +522,9 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 				<div className="flex flex-wrap items-center gap-3">
 					{/* Sem mudanças, o texto já está numa versão: validar de novo só repetiria ela no histórico */}
 					<Button variant="lime" size="lg" disabled={submitting || tooBig || !text.trim() || !dirty} onClick={submit}>
-						{submitting ? 'enviando…' : 'validar'}
+						{submitting ? b.sending : b.validate}
 					</Button>
-					{text.trim() && <span className={META}>{dirty ? 'alterações não validadas' : 'sem alterações para validar'}</span>}
+					{text.trim() && <span className={META}>{dirty ? b.unvalidated : b.nothingToValidate}</span>}
 				</div>
 
 				{candidate && renderCandidate(candidate)}
@@ -540,7 +534,7 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 
 	function renderHistory() {
 		return (
-			<SectionCard title="histórico">
+			<SectionCard title={b.history}>
 				<ul className={cx(LIST, 'flex flex-col gap-2.5')}>
 					{versions.map(version => {
 						const isActive = version.versionId === active?.versionId
@@ -559,17 +553,17 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 										<span className="truncate font-semibold">{formatDateTime(version.createdAt)}</span>
 										{isActive && (
 											<Badge tone="lime" size="sm">
-												ativa
+												{b.active}
 											</Badge>
 										)}
 										{version.status === 'validating' && (
 											<Badge tone="running" size="sm">
-												validando
+												{b.validatingBadge}
 											</Badge>
 										)}
 										{version.status === 'invalid' && (
 											<Badge tone="danger" size="sm">
-												recusada
+												{b.rejectedBadge}
 											</Badge>
 										)}
 									</span>
@@ -595,55 +589,53 @@ export function CvBaseView({ initial }: { initial: CvBaseData }) {
 						)
 					})}
 				</ul>
-				<FieldHelp>Versões que nunca foram ativadas saem do histórico depois de 7 dias.</FieldHelp>
+				<FieldHelp>{b.historyHelp}</FieldHelp>
 			</SectionCard>
 		)
 	}
 
 	return (
 		<Page width="medium">
-			<ButtonLink variant="ghost" size="sm" className="self-start" to="/curriculos">
+			<ButtonLink variant="ghost" size="sm" className="self-start" to="/resumes">
 				<Icon name="back" size={14} />
-				meus currículos
+				{b.myCvs}
 			</ButtonLink>
 			<Hero
 				title={
 					<>
-						currículo <Hero.Mono>base.</Hero.Mono>
+						{b.heroTitle} <Hero.Mono>{b.heroTitleMono}</Hero.Mono>
 					</>
 				}
-				lead="O .tex de onde saem todos os currículos, no site e no Discord. Monte pelo formulário (ou importe o seu PDF para preenchê-lo) ou envie o seu .tex; cada versão nova é compilada antes de poder ser ativada."
+				lead={b.heroLead}
 			/>
 
 			{blocker.status === 'blocked' && cvImport.importing && (
-				<ConfirmDialog {...LEAVE_DURING_IMPORT} onConfirm={blocker.proceed} onCancel={blocker.reset} />
+				<ConfirmDialog {...leaveDuringImport()} onConfirm={blocker.proceed} onCancel={blocker.reset} />
 			)}
 			{blocker.status === 'blocked' && !cvImport.importing && (
 				<ConfirmDialog
-					title="Sair sem validar?"
-					description={
-						dirty && formDirty
-							? 'O texto do editor e o formulário têm alterações que ainda não foram validadas e vão se perder.'
-							: formDirty
-								? 'O formulário tem alterações que ainda não foram validadas e vão se perder.'
-								: 'O texto do editor ainda não foi enviado e vai se perder.'
-					}
-					confirmLabel="sair sem validar"
-					cancelLabel="continuar editando"
+					title={b.leaveTitle}
+					description={dirty && formDirty ? b.leaveBoth : formDirty ? b.leaveForm : b.leaveText}
+					confirmLabel={b.leave}
+					cancelLabel={b.keepEditing}
 					onConfirm={blocker.proceed}
 					onCancel={blocker.reset}
 				/>
 			)}
 			{replaceWith && (
 				<ConfirmDialog
-					title={replacesForm ? 'Trocar o formulário?' : 'Trocar o texto do editor?'}
+					title={replacesForm ? b.replaceFormTitle : b.replaceTextTitle}
 					description={
 						replacesForm
-							? `O formulário tem alterações que ainda não foram validadas e vai ser trocado pelo ${'pdf' in replaceWith ? 'que for lido do PDF' : 'da versão escolhida'}.`
-							: `O texto do editor ainda não foi enviado e vai ser trocado pelo ${'version' in replaceWith ? 'da versão escolhida' : 'do modelo'}.`
+							? 'pdf' in replaceWith
+								? b.replaceFormByPdf
+								: b.replaceFormByVersion
+							: 'version' in replaceWith
+								? b.replaceTextByVersion
+								: b.replaceTextByExample
 					}
-					confirmLabel={'pdf' in replaceWith ? 'escolher o PDF' : replacesForm ? 'trocar o formulário' : 'trocar o texto'}
-					cancelLabel="continuar editando"
+					confirmLabel={'pdf' in replaceWith ? b.choosePdf : replacesForm ? b.replaceForm : b.replaceText}
+					cancelLabel={b.keepEditing}
 					onConfirm={() =>
 						'pdf' in replaceWith
 							? importPdf(true)

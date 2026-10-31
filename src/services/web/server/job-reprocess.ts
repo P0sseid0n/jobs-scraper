@@ -1,5 +1,6 @@
 import type { JobLookup, JobReprocessResult, PostReread, RawPost } from '@shared/contracts'
 import { Job, loadJobImages } from '@shared/database'
+import { t } from '@shared/i18n'
 import type { Logger } from '@shared/logging'
 import { QUEUES, type QueueClient } from '@shared/messaging'
 import { readSettings } from '@shared/settings'
@@ -26,7 +27,7 @@ export async function reprocessJob(
 	{ queue, logger }: { queue: QueueClient; logger: Logger },
 ) {
 	const job = await Job.findOne({ postId: req.params.postId }).lean<JobDocument>()
-	if (!job) throw new HttpError(404, 'Vaga não encontrada')
+	if (!job) throw new HttpError(404, t().api.jobNotFound)
 
 	const reprocessId = crypto.randomUUID()
 	const listing = job.sourcePostId ? job.rawContent.match(LISTING_HEADER) : null
@@ -72,7 +73,7 @@ export async function reprocessJob(
 		await queue.publish(QUEUES.postProcessingReprocess, post)
 	} else {
 		if (!job.postLink || !job.postId.startsWith('urn:li:')) {
-			throw new HttpError(409, 'A vaga não tem o link do post no LinkedIn para ler de novo')
+			throw new HttpError(409, t().api.noPostLink)
 		}
 		await requireConsumers(queue, QUEUES.scraperPost)
 
@@ -87,10 +88,10 @@ export async function reprocessJob(
 /** Recusa se o post-processing (e o scraper, quando a fila é dele) não está rodando: o pedido ficaria parado na fila. */
 async function requireConsumers(queue: QueueClient, scraperQueue?: string) {
 	if (scraperQueue && (await queue.consumerCount(scraperQueue)) === 0) {
-		throw new HttpError(503, 'O scraper não está rodando: inicie-o para processar a vaga de novo')
+		throw new HttpError(503, t().api.scraperDownReprocess)
 	}
 	if ((await queue.consumerCount(QUEUES.postProcessingReprocess)) === 0) {
-		throw new HttpError(503, 'O post-processing não está rodando: inicie-o para processar a vaga de novo')
+		throw new HttpError(503, t().api.postProcessingDownReprocess)
 	}
 }
 

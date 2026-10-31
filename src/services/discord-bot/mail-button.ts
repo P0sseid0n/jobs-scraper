@@ -2,6 +2,7 @@ import { MessageFlags, type ButtonInteraction } from 'discord.js'
 
 import type { MailRequest } from '@shared/contracts'
 import { ApplicationMail, createApplicationMail, CvFile, Job, mailBlockers, type CvFileDraft } from '@shared/database'
+import { t } from '@shared/i18n'
 import type { Logger } from '@shared/logging'
 import { QUEUES, type QueueClient } from '@shared/messaging'
 import { loadCredentials } from '@shared/settings'
@@ -9,7 +10,6 @@ import { loadCredentials } from '@shared/settings'
 import type { DiscordReplyContext } from './cv-delivery'
 import { buildMailConfirmation, confirmationRow, MAIL_BUTTON_PREFIX, MAIL_SEND_PREFIX } from './mail-reply'
 
-const NO_ACCOUNT = '✉️ O envio por e-mail está desligado: configure a conta de e-mail em Configurações › Contas, no site.'
 const EXPIRED = '📄 Este currículo não está mais guardado (os PDFs ficam 30 dias). Gere o currículo de novo pelo card da vaga.'
 const SENDING = '📤 Já há um envio desta candidatura em andamento.'
 
@@ -19,8 +19,8 @@ async function loadSendable(fileId: string): Promise<{ error: string } | { error
 	if (!file?.draft) return { error: EXPIRED }
 
 	const job = await Job.findOne({ postId: file.postId }, { recruiterEmail: 1 }).lean()
-	if (!job?.recruiterEmail) return { error: 'Essa vaga não tem e-mail de contato.' }
-	if (!(await loadCredentials('smtp'))) return { error: NO_ACCOUNT }
+	if (!job?.recruiterEmail) return { error: t().discord.noEmail }
+	if (!(await loadCredentials('smtp'))) return { error: t().discord.mailDisabled }
 
 	return { error: null, file, to: job.recruiterEmail }
 }
@@ -108,7 +108,7 @@ export async function handleMailSend(interaction: ButtonInteraction, queue: Queu
 	} catch (error) {
 		await ApplicationMail.updateOne(
 			{ mailId: mail.mailId },
-			{ status: 'failed', error: 'Não consegui pedir o envio ao mailer.', finishedAt: new Date() },
+			{ status: 'failed', error: t().discord.mailerUnreachable, finishedAt: new Date() },
 		)
 		throw error
 	}
@@ -118,5 +118,5 @@ export async function handleMailSend(interaction: ButtonInteraction, queue: Queu
 
 /** "Cancelar": a confirmação some e nada é enviado. */
 export async function handleMailCancel(interaction: ButtonInteraction) {
-	await interaction.update({ content: 'Envio cancelado: nenhum e-mail foi enviado.', components: [] })
+	await interaction.update({ content: t().discord.cancelled, components: [] })
 }

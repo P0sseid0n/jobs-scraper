@@ -1,4 +1,5 @@
 import type { MailRequest, MailResult } from '@shared/contracts'
+import { t } from '@shared/i18n'
 import type { Logger } from '@shared/logging'
 import { PermanentError, type Delivery } from '@shared/messaging'
 
@@ -30,10 +31,11 @@ export type SendDeps = {
 	logger: Logger
 }
 
-export const NO_ACCOUNT_ERROR =
-	'Envio por e-mail desligado: configure a conta de e-mail (SMTP) em Configurações › Contas ou no .env (SMTP_HOST, SMTP_USER, SMTP_PASS).'
+/** Sem conta de e-mail: o envio fica desligado (no idioma do sistema, como os outros motivos). */
+export const noAccountError = () => t().mailErrors.noAccount
 
-export const MISSING_FILE_ERROR = 'O currículo anexado não existe mais (os PDFs ficam 30 dias). Gere o currículo de novo e reenvie.'
+/** O PDF do currículo já saiu do banco. */
+export const missingFileError = () => t().mailErrors.missingFile
 
 /**
  * Envia a candidatura pedida e devolve o resultado a quem pediu:
@@ -73,14 +75,14 @@ export async function sendApplication(request: MailRequest, delivery: Delivery, 
 	const account = await deps.account()
 	if (!account) {
 		log.warn('Candidatura pedida sem conta de e-mail configurada')
-		await fail(NO_ACCOUNT_ERROR)
+		await fail(noAccountError())
 		return
 	}
 
 	const file = await deps.findFile(request.attachment.fileId)
 	if (!file) {
 		log.warn({ fileId: request.attachment.fileId }, 'Currículo anexado não encontrado')
-		await fail(MISSING_FILE_ERROR)
+		await fail(missingFileError())
 		return
 	}
 

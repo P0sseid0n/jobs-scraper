@@ -4,7 +4,7 @@ import { CV_IMPORT_PDF_MAX_BYTES, type CvFormDraft } from '@shared/contracts'
 import { createLogger } from '@shared/logging'
 import type { QueueClient } from '@shared/messaging'
 
-import { CV_IMPORT_TIMEOUT_ERROR, CvImports, requestCvImport } from './cv-import'
+import { CvImports, cvImportTimeoutError, requestCvImport } from './cv-import'
 import { CV_TIMEOUT_MS } from './cv-request.model'
 import { HttpError } from './http'
 
@@ -36,7 +36,7 @@ describe('CvImports', () => {
 		const now = Date.now()
 		const importId = imports.start(now)
 
-		expect(imports.get(importId, now + CV_TIMEOUT_MS + 1)).toMatchObject({ status: 'failed', error: CV_IMPORT_TIMEOUT_ERROR })
+		expect(imports.get(importId, now + CV_TIMEOUT_MS + 1)).toMatchObject({ status: 'failed', error: cvImportTimeoutError() })
 		expect(imports.get(importId, now + 2 * CV_TIMEOUT_MS + 1)).toBeNull()
 	})
 

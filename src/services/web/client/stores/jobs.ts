@@ -1,3 +1,5 @@
+import { t } from '@shared/i18n'
+
 import type { JobFacets, WebJob } from '../../api-types'
 import { isJobRouteId } from '../../job-route-id'
 import { api, type JobFilters } from '../api'
@@ -153,7 +155,7 @@ function setFilters(filters: JobFilters, until?: string) {
  * O loader da lista chama a cada mudança nos filtros da URL. Na primeira vez, espera a primeira página: se ela falhar,
  * o erro vai para o `errorComponent` da rota (e a próxima tentativa carrega de novo). Depois, a lista recarrega no lugar,
  * com os filtros na tela.
- * @param until O id da vaga, quando se chega à lista por `/vagas/$id`: a lista vem até ela, para mostrá-la.
+ * @param until O id da vaga, quando se chega à lista por `/jobs/$id`: a lista vem até ela, para mostrá-la.
  */
 export async function loadJobsFor(filters: JobFilters, until?: string) {
 	if (loaded) {
@@ -167,7 +169,7 @@ export async function loadJobsFor(filters: JobFilters, until?: string) {
 	update({ filters })
 	await loadJobs(until)
 	const { status, error } = jobsStore.get()
-	if (status === 'error') throw new Error(error ?? 'Não consegui carregar as vagas')
+	if (status === 'error') throw new Error(error ?? t().marks.jobsFailed)
 
 	loaded = true
 	void loadFacets()

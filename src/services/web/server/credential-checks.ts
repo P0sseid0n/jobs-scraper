@@ -1,4 +1,5 @@
 import { smtpHostOf, type CredentialsOf } from '@shared/contracts'
+import { t } from '@shared/i18n'
 
 import { classifyMailError, isLoginRefused } from '../../mailer/mail-errors'
 import { createSmtpTransport, senderOf, type MailTransport } from '../../mailer/mail-transport'
@@ -23,26 +24,27 @@ export async function checkDiscord(account: CredentialsOf<'discord'>, fetchFn: F
 
 	return reachable('Discord', async () => {
 		const me = await get('/users/@me')
-		if (me.status === 401) return { ok: false, message: 'O Discord recusou o token do bot.', step: 'token' }
-		if (!me.ok) return { ok: false, message: `O Discord respondeu ${me.status} ao conferir o token.` }
+		if (me.status === 401) return { ok: false, message: t().credentialChecks.discordTokenRefused, step: 'token' }
+		if (!me.ok) return { ok: false, message: t().credentialChecks.discordStatus(me.status, t().credentialChecks.theToken) }
 		const bot = (await me.json()) as { username: string }
 
 		const response = await get(`/channels/${account.channelId}`)
 		if ([403, 404].includes(response.status)) {
 			return {
 				ok: false,
-				message: `Token válido (bot ${bot.username}), mas o canal não existe ou o bot não tem acesso a ele.`,
+				message: t().credentialChecks.channelNoAccess(bot.username),
 				step: 'invite',
 			}
 		}
-		if (!response.ok) return { ok: false, message: `O Discord respondeu ${response.status} ao conferir o canal.` }
+		if (!response.ok)
+			return { ok: false, message: t().credentialChecks.discordStatus(response.status, t().credentialChecks.theChannel) }
 
 		const channel = (await response.json()) as { name?: string; type: number }
 		if (!JOB_CHANNEL_TYPES.has(channel.type)) {
-			return { ok: false, message: `O canal #${channel.name ?? account.channelId} não é de texto nem de fórum.`, step: 'channel' }
+			return { ok: false, message: t().credentialChecks.channelType(channel.name ?? account.channelId), step: 'channel' }
 		}
 
-		return { ok: true, message: `Bot ${bot.username} com acesso ao canal #${channel.name ?? account.channelId}.` }
+		return { ok: true, message: t().credentialChecks.discordOk(bot.username, channel.name ?? account.channelId) }
 	})
 }
 
@@ -57,15 +59,14 @@ export async function checkGithub(account: CredentialsOf<'github'>, fetchFn: Fet
 			signal: AbortSignal.timeout(TIMEOUT_MS),
 		})
 
-		if (response.status === 401) return { ok: false, message: 'O GitHub recusou o token.', step: 'token' }
+		if (response.status === 401) return { ok: false, message: t().credentialChecks.githubTokenRefused, step: 'token' }
 		if (response.status === 404) {
-			return { ok: false, message: `O usuário ${account.username} não existe no GitHub.`, step: 'username' }
+			return { ok: false, message: t().credentialChecks.githubNoUser(account.username), step: 'username' }
 		}
-		if (!response.ok) return { ok: false, message: `O GitHub respondeu ${response.status} ao procurar o usuário.` }
+		if (!response.ok) return { ok: false, message: t().credentialChecks.githubStatus(response.status) }
 
 		const user = (await response.json()) as { login: string; public_repos: number }
-		const repos = `${user.public_repos} ${user.public_repos === 1 ? 'repositório público' : 'repositórios públicos'}`
-		return { ok: true, message: `Usuário ${user.login} encontrado, com ${repos}${account.token ? ', e token aceito' : ''}.` }
+		return { ok: true, message: t().credentialChecks.githubOk(user.login, user.public_repos, !!account.token) }
 	})
 }
 
@@ -86,7 +87,7 @@ export async function checkSmtp(
 		return { ok: false, message: classifyMailError(error).reason, ...(isLoginRefused(error) && { step: 'app-password' }) }
 	}
 
-	return { ok: true, message: `Login aceito em ${smtpHostOf(account)}: as candidaturas saem de ${senderOf(account, senderName)}.` }
+	return { ok: true, message: t().credentialChecks.smtpOk(smtpHostOf(account), senderOf(account, senderName)) }
 }
 
 /** Falha de rede ou tempo esgotado vira uma resposta do teste, em vez de erro da API. */
@@ -95,6 +96,6 @@ async function reachable(service: string, check: () => Promise<CredentialCheck>)
 		return await check()
 	} catch (error) {
 		const timedOut = error instanceof DOMException && error.name === 'TimeoutError'
-		return { ok: false, message: timedOut ? `O ${service} não respondeu a tempo.` : `Não consegui falar com o ${service}.` }
+		return { ok: false, message: timedOut ? t().credentialChecks.timedOut(service) : t().credentialChecks.unreachable(service) }
 	}
 }

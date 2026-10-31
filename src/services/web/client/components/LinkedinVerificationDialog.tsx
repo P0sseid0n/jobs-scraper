@@ -10,6 +10,7 @@ import {
 	verificationKey,
 	watchLinkedinVerification,
 } from '../stores/linkedin-verification'
+import { useT } from '../stores/locale'
 import { notify } from '../stores/toast'
 import { DrawnCheck, Icon } from './Icon'
 import { Button } from './ui/Button'
@@ -36,6 +37,7 @@ export function LinkedinVerificationDialog() {
 }
 
 function VerificationDialog({ login }: { login: LinkedinLoginState }) {
+	const t = useT().linkedinLogin
 	const ref = useRef<HTMLDialogElement>(null)
 	const remaining = useRemaining(login.expiresAt)
 
@@ -47,12 +49,8 @@ function VerificationDialog({ login }: { login: LinkedinLoginState }) {
 	return (
 		<Dialog ref={ref} onClose={dismissLinkedinVerification}>
 			<div className="flex flex-col gap-3 px-5 pt-4 pb-5">
-				<DialogTitle closable>O LinkedIn quer confirmar que é você</DialogTitle>
-				<p className="text-sm text-muted">
-					{login.requestedAt
-						? 'Para terminar o teste do login, confirme o acesso.'
-						: 'A coleta de vagas precisa entrar na sua conta. Confirme o acesso para ela continuar.'}
-				</p>
+				<DialogTitle closable>{t.dialogTitle}</DialogTitle>
+				<p className="text-sm text-muted">{login.requestedAt ? t.forTest : t.forRun}</p>
 
 				{login.challenge === 'app-approval' && <AppApproval />}
 				{login.challenge === 'code' && <CodeForm message={login.message} />}
@@ -62,9 +60,7 @@ function VerificationDialog({ login }: { login: LinkedinLoginState }) {
 					<div className="flex flex-col gap-2">
 						<p className={cx(META, 'flex items-center gap-2')} role="timer">
 							<Icon name="spinner" size={14} />
-							{remaining > 0
-								? `esperando a confirmação · faltam ${formatClock(remaining)}`
-								: 'o tempo acabou: o LinkedIn não confirmou o acesso'}
+							{remaining > 0 ? t.waitingConfirmation(formatClock(remaining)) : t.timeUp}
 						</p>
 						<TimeBar remaining={remaining} />
 					</div>
@@ -76,6 +72,7 @@ function VerificationDialog({ login }: { login: LinkedinLoginState }) {
 
 /** Aprovação no app do celular: o scraper percebe sozinho; "já aprovei" só confere na hora. */
 function AppApproval() {
+	const t = useT().linkedinLogin
 	const [checking, setChecking] = useState(false)
 	const [checked, setChecked] = useState(false)
 
@@ -89,17 +86,15 @@ function AppApproval() {
 	return (
 		<div className="flex flex-col gap-3 rounded-md bg-lime-soft p-4">
 			<ol className="flex list-decimal flex-col gap-1 pl-5 text-sm">
-				<li>Abra o app do LinkedIn no celular: chegou um aviso de acesso.</li>
-				<li>Toque em “Sim, sou eu”.</li>
-				<li>Pronto: a gente percebe sozinho e esta janela fecha.</li>
+				{t.appSteps.map(step => (
+					<li key={step}>{step}</li>
+				))}
 			</ol>
 			<div className="flex flex-wrap items-center gap-2.5">
 				<Button variant="lime" onClick={check} disabled={checking}>
-					{checking ? 'conferindo…' : 'já aprovei'}
+					{checking ? t.checking : t.approved}
 				</Button>
-				{checked && !checking && (
-					<FieldHelp className="text-ink">O LinkedIn ainda não avisou. Depois de aprovar, leva alguns segundos.</FieldHelp>
-				)}
+				{checked && !checking && <FieldHelp className="text-ink">{t.notYet}</FieldHelp>}
 			</div>
 		</div>
 	)
@@ -129,6 +124,7 @@ function TimeBar({ remaining }: { remaining: number }) {
  * tremer; o enviado ganha um check.
  */
 function CodeForm({ message }: { message: string | null }) {
+	const t = useT().linkedinLogin
 	const [code, setCode] = useState('')
 	const [sending, setSending] = useState(false)
 	const [shaking, setShaking] = useState(false)
@@ -144,7 +140,7 @@ function CodeForm({ message }: { message: string | null }) {
 			setSent(true)
 		} catch (error) {
 			setShaking(true)
-			notify(`Não consegui enviar o código: ${(error as Error).message}`, 'error')
+			notify(t.codeFailed((error as Error).message), 'error')
 		} finally {
 			setSending(false)
 		}
@@ -152,7 +148,7 @@ function CodeForm({ message }: { message: string | null }) {
 
 	return (
 		<form className="flex flex-col gap-1.5 rounded-md bg-lime-soft p-4" onSubmit={send}>
-			<FieldLabel htmlFor="linkedin-code">código que chegou no seu e-mail ou celular</FieldLabel>
+			<FieldLabel htmlFor="linkedin-code">{t.code}</FieldLabel>
 			<div className="flex flex-wrap items-center gap-2.5">
 				<Input
 					id="linkedin-code"
@@ -166,12 +162,12 @@ function CodeForm({ message }: { message: string | null }) {
 					onChange={event => setCode(event.target.value.replace(/\D/g, ''))}
 				/>
 				<Button variant="lime" type="submit" disabled={code.length < 4 || sending}>
-					{sending ? 'enviando…' : 'enviar código'}
+					{sending ? t.sending : t.sendCode}
 				</Button>
 				{sent && !code && (
 					<span className="flex items-center gap-1.5 text-sm text-ok animate-pop-in motion-reduce:animate-none" role="status">
 						<DrawnCheck />
-						enviado
+						{t.sent}
 					</span>
 				)}
 			</div>
@@ -181,18 +177,17 @@ function CodeForm({ message }: { message: string | null }) {
 }
 
 function QrCode({ svg }: { svg: string }) {
+	const t = useT().linkedinLogin
 	return (
 		<div className="flex flex-wrap items-center gap-4 rounded-md bg-lime-soft p-4">
 			{/* O SVG vem do servidor, desenhado pela biblioteca `qrcode` a partir do QR da página */}
 			<div
 				className="size-44 shrink-0 rounded-sm bg-white p-2 *:size-full"
 				role="img"
-				aria-label="QR code da verificação do LinkedIn"
+				aria-label={t.qrLabel}
 				dangerouslySetInnerHTML={{ __html: svg }}
 			/>
-			<FieldHelp className="max-w-60 text-ink">
-				Abra o app do LinkedIn no celular, toque na lupa ou no ícone de QR code e aponte a câmera para este código.
-			</FieldHelp>
+			<FieldHelp className="max-w-60 text-ink">{t.qrHelp}</FieldHelp>
 		</div>
 	)
 }

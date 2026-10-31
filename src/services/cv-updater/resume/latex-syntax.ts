@@ -12,19 +12,13 @@
  * Formação, certificações e idiomas não são reescritos: a IA só os lê. Seções ausentes, com outro título ou fora
  * desse formato são mantidas como estão.
  */
+import type { CvFormSectionKind } from '@shared/contracts'
 
-/** Título de cada seção no modelo, usado nas mensagens; o `.tex` pode usar qualquer um de SECTION_ALIASES. */
-export const SECTION_TITLES = {
-	summary: 'Apresentação',
-	skills: 'Habilidades Técnicas',
-	projects: 'Projetos',
-	experience: 'Experiência Profissional',
-	education: 'Formação',
-	certifications: 'Certificações e Cursos',
-	languages: 'Idiomas',
-} as const
-
-export type SectionKey = keyof typeof SECTION_TITLES
+/**
+ * As seções conhecidas: as mesmas do formulário do currículo base. O título padrão de cada uma, por idioma, é o de
+ * `cvSectionTitles`; o `.tex` pode usar qualquer um de SECTION_ALIASES.
+ */
+export type SectionKey = CvFormSectionKind
 
 /** Seções que o ajuste reescreve; as demais só entram no texto que a IA lê. */
 export const EDITABLE_SECTIONS = ['summary', 'skills', 'projects', 'experience'] as const satisfies readonly SectionKey[]

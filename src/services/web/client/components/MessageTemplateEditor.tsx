@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 
 import { MAX_OWN_VARIABLES, OWN_VARIABLE_LIMITS, type MessageSettings } from '@shared/contracts'
+import { t } from '@shared/i18n'
 import {
 	JOB_VARIABLES,
 	PROFILE_VARIABLES,
@@ -15,6 +16,7 @@ import {
 
 import { cx } from '../lib/cx'
 import { insertVariable, type TemplateField } from '../lib/template-editor'
+import { useT } from '../stores/locale'
 import { variablePickerOpen } from '../stores/variable-picker'
 import { Icon } from './Icon'
 import { Button } from './ui/Button'
@@ -44,16 +46,15 @@ type MessageTemplateEditorProps = {
 const SAMPLES = ['complete', 'partial'] as const
 type Sample = (typeof SAMPLES)[number]
 
-const SAMPLE_LABELS: Record<Sample, string> = { complete: 'com todos os dados', partial: 'sem empresa e local' }
-
 /** A vaga de exemplo da prévia, com o cargo-alvo do perfil (assim ela parece uma vaga da área da pessoa). */
 function sampleJob(sample: Sample, targetRole: string): TemplateJob {
+	const example = t().messageEditor.sampleJob
 	const job: TemplateJob = {
-		title: targetRole.trim() || 'Analista de Marketing Digital',
-		company: 'Loja Azul',
-		location: 'Belo Horizonte, MG',
+		title: targetRole.trim() || example.title,
+		company: example.company,
+		location: example.location,
 		workMode: 'hibrido',
-		necessaryKnowledge: ['Excel', 'inglês intermediário'],
+		necessaryKnowledge: example.skills,
 		applyLink: 'https://lojaazul.com.br/vagas/42',
 		postLink: 'https://www.linkedin.com/feed/update/urn:li:activity:7000000000000000000/',
 		author: 'Ana Souza',
@@ -64,22 +65,12 @@ function sampleJob(sample: Sample, targetRole: string): TemplateJob {
 
 const OPTIONAL_JOB_VARIABLES = JOB_VARIABLES.filter(variable => variable.optional)
 
-/** Um exemplo de fallback para cada variável que pode faltar, no placeholder do campo dela. */
-const FALLBACK_EXAMPLES: Record<string, string> = {
-	empresa: 'a sua empresa',
-	local: 'a sua cidade',
-	modalidade: 'a combinar',
-	tecnologias: 'as tecnologias da vaga',
-	link_da_vaga: 'https://www.linkedin.com/jobs',
-	autor_do_post: 'a equipe de recrutamento',
-}
-
-/** Os exemplos da modal de variáveis próprias vazia: um clique cria a variável com o nome e a descrição. */
+/** Os exemplos da modal de variáveis próprias vazia (a descrição fica em `messageEditor.ownExamples`). */
 const OWN_VARIABLE_EXAMPLES = [
-	{ name: 'meu_nome', description: 'Seu nome', type: 'text' },
-	{ name: 'meu_telefone', description: 'Seu telefone', type: 'text' },
-	{ name: 'link_github', description: 'Seu GitHub', type: 'link' },
-	{ name: 'link_linkedin', description: 'Seu LinkedIn', type: 'link' },
+	{ name: 'meu_nome', type: 'text' },
+	{ name: 'meu_telefone', type: 'text' },
+	{ name: 'link_github', type: 'link' },
+	{ name: 'link_linkedin', type: 'link' },
 ] as const
 
 /** As modais do editor: as variáveis próprias e os fallbacks, que ficam fora da tela para o modelo e a prévia caberem. */
@@ -90,6 +81,9 @@ type EditorDialog = 'variables' | 'fallbacks'
  * disponíveis", a prévia numa vaga de exemplo e, em modais, as variáveis próprias e os fallbacks das que podem faltar.
  */
 export function MessageTemplateEditor({ message, profile, errors, edit, revealErrors }: MessageTemplateEditorProps) {
+	const t = useT()
+	const m = t.messageEditor
+	const fallbackExamples: Record<string, string> = m.fallbackExamples
 	const ids = { subject: useId(), body: useId(), warning: useId(), own: useId() }
 	const subjectRef = useRef<HTMLInputElement>(null)
 	const bodyRef = useRef<HTMLTextAreaElement>(null)
@@ -156,39 +150,44 @@ export function MessageTemplateEditor({ message, profile, errors, edit, revealEr
 
 	const groups: VariablePickerGroup[] = [
 		{
-			label: 'da vaga',
+			label: m.fromJob,
 			action: {
-				label: 'fallbacks',
+				label: m.fallbacks,
 				detail: `${fallbackCount}/${OPTIONAL_JOB_VARIABLES.length}`,
-				detailLabel: `${fallbackCount} de ${OPTIONAL_JOB_VARIABLES.length} definidos`,
+				detailLabel: m.fallbacksDefined(fallbackCount, OPTIONAL_JOB_VARIABLES.length),
 				invalid: errorsIn('fallbacks'),
 				onClick: () => setDialog('fallbacks'),
 			},
 			variables: JOB_VARIABLES.map(variable => {
 				const fallback = fallbacks[variable.name]?.trim()
 				return {
-					...variable,
+					name: variable.name,
+					description: variable.description,
+					type: variable.type,
 					mayBeMissing: variable.optional && !fallback,
-					hint: fallback ? `sem ${variable.name.replaceAll('_', ' ')} na vaga: ${fallback}` : undefined,
+					hint: fallback ? m.fallbackHint(variable.name.replaceAll('_', ' '), fallback) : undefined,
 				}
 			}),
 		},
-		{ label: 'do perfil', variables: [...PROFILE_VARIABLES] },
 		{
-			label: 'suas',
+			label: m.fromProfile,
+			variables: PROFILE_VARIABLES.map(({ name, description, type }) => ({ name, description, type })),
+		},
+		{
+			label: m.yours,
 			variables: ownVariables.map(variable => ({
 				name: variable.name.trim(),
-				description: variable.description.trim() || (variable.type === 'link' ? 'Seu link' : 'Seu texto'),
+				description: variable.description.trim() || (variable.type === 'link' ? m.yourLink : m.yourText),
 				type: variable.type,
 			})),
 			action: {
-				label: variables.length ? 'editar' : 'criar',
+				label: variables.length ? m.edit : m.create,
 				icon: variables.length ? undefined : 'plus',
 				invalid: errorsIn('variables'),
 				onClick: () => setDialog('variables'),
 			},
 			// Sem nenhuma (nem rascunho com erro), o grupo vira o botão tracejado de criar
-			empty: variables.length ? undefined : 'Criar variável, como o seu nome ou o link do GitHub',
+			empty: variables.length ? undefined : m.createEmpty,
 		},
 	]
 
@@ -202,7 +201,7 @@ export function MessageTemplateEditor({ message, profile, errors, edit, revealEr
 	return (
 		<div className="flex flex-col gap-5">
 			<div className="flex flex-col gap-1.5">
-				<FieldLabel htmlFor={ids.subject}>assunto</FieldLabel>
+				<FieldLabel htmlFor={ids.subject}>{m.subject}</FieldLabel>
 				{/* As variáveis ficam destacadas atrás do texto, como na mensagem; o espelho rola na horizontal com o campo */}
 				<div className="relative">
 					<div
@@ -238,7 +237,7 @@ export function MessageTemplateEditor({ message, profile, errors, edit, revealEr
 			</div>
 
 			<div className="flex flex-col gap-1.5">
-				<FieldLabel htmlFor={ids.body}>mensagem</FieldLabel>
+				<FieldLabel htmlFor={ids.body}>{m.message}</FieldLabel>
 				{/* As variáveis ficam destacadas atrás do texto (um espelho do campo, com o texto transparente), que rola junto
 				 * com ele; as que podem faltar e ainda não têm fallback, em laranja */}
 				<div className="relative">
@@ -281,14 +280,13 @@ export function MessageTemplateEditor({ message, profile, errors, edit, revealEr
 					<p id={ids.warning} className="flex items-start gap-1.5 text-sm text-warn">
 						<Icon name="alert" size={14} className="mt-0.5" />
 						<span>
-							{unsafe.map(name => `{{${name}}}`).join(', ')}: nem toda vaga tem. Sem fallback, a mensagem dessas vagas fica com
-							um buraco marcado ([{unsafe[0]}]) e o envio espera você completar.{' '}
+							{m.unsafe(unsafe.map(name => `{{${name}}}`).join(', '), unsafe[0]!)}
 							<button
 								type="button"
 								className="underline underline-offset-3 hover:text-ink"
 								onClick={() => setDialog('fallbacks')}
 							>
-								definir fallback
+								{m.setFallback}
 							</button>
 						</span>
 					</p>
@@ -299,8 +297,8 @@ export function MessageTemplateEditor({ message, profile, errors, edit, revealEr
 
 			{dialog === 'variables' && (
 				<EditorDialogBox
-					title="suas variáveis"
-					help="Valores fixos que entram em toda mensagem, como o seu nome, o contato ou links. Use minúsculas sem acento e _ no nome (ex.: meu_nome, link_github). As de link só funcionam na mensagem."
+					title={m.yourVariables}
+					help={m.yourVariablesHelp}
 					// Fechada a modal, as linhas novas que ficaram para trás mostram o que falta
 					onClose={() => {
 						setDialog(null)
@@ -312,13 +310,12 @@ export function MessageTemplateEditor({ message, profile, errors, edit, revealEr
 			)}
 			{dialog === 'fallbacks' && (
 				<EditorDialogBox
-					title="fallbacks: quando a vaga não tem"
+					title={m.fallbacksTitle}
 					help={
 						<>
-							O texto que entra no lugar da variável quando a IA não achou o dado no post. Vazio, a variável fica marcada na
-							mensagem e o envio espera você completar. Para um fallback só num trecho, escreva-o na variável, depois de uma
-							barra: <code className="font-mono text-lime-text">{'{{empresa | a sua empresa}}'}</code> (ele vale mais que o
-							daqui).
+							{m.fallbacksHelpBefore}
+							<code className="font-mono text-lime-text">{m.fallbackExample}</code>
+							{m.fallbacksHelpAfter}
 						</>
 					}
 					onClose={() => setDialog(null)}
@@ -328,13 +325,13 @@ export function MessageTemplateEditor({ message, profile, errors, edit, revealEr
 			)}
 
 			{/* A prévia numa vaga de exemplo: mostra onde o fallback entrou e o que ficaria faltando */}
-			<section aria-label="Prévia da mensagem" className="flex flex-col gap-3 rounded-sm border border-line p-3.5">
+			<section aria-label={m.previewLabel} className="flex flex-col gap-3 rounded-sm border border-line p-3.5">
 				<div className="flex flex-wrap items-center justify-between gap-2">
-					<span className={LABEL}>prévia numa vaga de exemplo</span>
-					<PillGroup role="group" aria-label="Vaga de exemplo">
+					<span className={LABEL}>{m.previewTitle}</span>
+					<PillGroup role="group" aria-label={m.sampleLabel}>
 						{SAMPLES.map(option => (
 							<Pill key={option} pressed={sample === option} onClick={() => setSample(option)}>
-								{SAMPLE_LABELS[option]}
+								{m.samples[option]}
 							</Pill>
 						))}
 					</PillGroup>
@@ -343,12 +340,10 @@ export function MessageTemplateEditor({ message, profile, errors, edit, revealEr
 				<p className="m-0 max-w-prose text-sm leading-relaxed whitespace-pre-wrap wrap-break-word">{renderParts(bodyParts)}</p>
 				<p role="status" className="m-0 text-xs text-muted">
 					{previewMissing.length === 0 && previewFallbacks.length === 0
-						? 'Tudo preenchido com os dados da vaga.'
+						? m.allFilled
 						: [
-								previewFallbacks.length > 0 &&
-									`Fallback em ${previewFallbacks.map(name => `{{${name}}}`).join(', ')} (em verde).`,
-								previewMissing.length > 0 &&
-									`Faltaria ${previewMissing.map(name => `{{${name}}}`).join(', ')} (em laranja): a modal avisa e não envia até você completar.`,
+								previewFallbacks.length > 0 && m.previewFallbacks(previewFallbacks.map(name => `{{${name}}}`).join(', ')),
+								previewMissing.length > 0 && m.previewMissing(previewMissing.map(name => `{{${name}}}`).join(', ')),
 							]
 								.filter(Boolean)
 								.join(' ')}
@@ -362,7 +357,7 @@ export function MessageTemplateEditor({ message, profile, errors, edit, revealEr
 			<div className={FIELDSET}>
 				{variables.length === 0 && (
 					<div className="flex flex-col gap-2 rounded-sm border border-dashed border-line p-3.5">
-						<p className="text-sm text-muted">Nenhuma variável ainda. Comece por um exemplo ou crie do zero:</p>
+						<p className="text-sm text-muted">{m.noVariables}</p>
 						<ul className={cx(LIST, 'flex flex-wrap gap-2')}>
 							{OWN_VARIABLE_EXAMPLES.map(example => (
 								<li key={example.name}>
@@ -373,7 +368,7 @@ export function MessageTemplateEditor({ message, profile, errors, edit, revealEr
 									>
 										<span className="font-mono text-lime-text">{`{{${example.name}}}`}</span>
 										{example.type === 'link' && <Icon name="link" size={13} className="text-muted" />}
-										<span className="text-muted">{example.description}</span>
+										<span className="text-muted">{m.ownExamples[example.name]}</span>
 									</button>
 								</li>
 							))}
@@ -400,13 +395,13 @@ export function MessageTemplateEditor({ message, profile, errors, edit, revealEr
 									<div className="grid grid-cols-2 gap-2.5 max-sm:grid-cols-1">
 										<div className="flex flex-col gap-1">
 											<label htmlFor={fieldId('name')} className={LABEL}>
-												nome
+												{m.name}
 											</label>
 											<Input
 												id={fieldId('name')}
-												aria-label={`Nome da variável ${index + 1}`}
+												aria-label={m.nameLabel(index + 1)}
 												className="font-mono"
-												placeholder="meu_nome"
+												placeholder={m.namePlaceholder}
 												maxLength={OWN_VARIABLE_LIMITS.name}
 												value={variable.name}
 												invalid={!!at('name')}
@@ -420,12 +415,12 @@ export function MessageTemplateEditor({ message, profile, errors, edit, revealEr
 										</div>
 										<div className="flex flex-col gap-1">
 											<label htmlFor={fieldId('description')} className={LABEL}>
-												descrição (no painel)
+												{m.description}
 											</label>
 											<Input
 												id={fieldId('description')}
-												aria-label={`Descrição da variável ${index + 1}`}
-												placeholder="Seu nome"
+												aria-label={m.descriptionLabel(index + 1)}
+												placeholder={m.descriptionPlaceholder}
 												maxLength={OWN_VARIABLE_LIMITS.description}
 												value={variable.description}
 												invalid={!!at('description')}
@@ -441,9 +436,9 @@ export function MessageTemplateEditor({ message, profile, errors, edit, revealEr
 									<div className="flex items-end gap-2.5 max-sm:flex-wrap">
 										<div className="flex shrink-0 flex-col gap-1">
 											<span className={LABEL} aria-hidden>
-												tipo
+												{m.type}
 											</span>
-											<PillGroup role="group" aria-label={`Tipo da variável ${index + 1}`} className="flex-nowrap">
+											<PillGroup role="group" aria-label={m.typeLabel(index + 1)} className="flex-nowrap">
 												{(['text', 'link'] as const).map(type => (
 													<Pill
 														key={type}
@@ -455,20 +450,20 @@ export function MessageTemplateEditor({ message, profile, errors, edit, revealEr
 														}
 													>
 														{type === 'link' && <Icon name="link" size={13} />}
-														{type === 'text' ? 'texto' : 'link'}
+														{type === 'text' ? m.text : m.link}
 													</Pill>
 												))}
 											</PillGroup>
 										</div>
 										<div className="flex grow flex-col gap-1">
 											<label htmlFor={fieldId('value')} className={LABEL}>
-												valor (o que entra na mensagem)
+												{m.value}
 											</label>
 											<Input
 												id={fieldId('value')}
-												aria-label={`Valor da variável ${index + 1}`}
+												aria-label={m.valueLabel(index + 1)}
 												className={cx(variable.type === 'link' && 'font-mono')}
-												placeholder={variable.type === 'link' ? 'https://github.com/voce' : 'Carla Lima'}
+												placeholder={variable.type === 'link' ? m.linkPlaceholder : m.textPlaceholder}
 												maxLength={OWN_VARIABLE_LIMITS.value}
 												value={variable.value}
 												invalid={!!at('value')}
@@ -481,7 +476,7 @@ export function MessageTemplateEditor({ message, profile, errors, edit, revealEr
 											/>
 										</div>
 										<IconButton
-											label={`Apagar a variável ${variable.name || index + 1}`}
+											label={m.deleteVariable(variable.name || String(index + 1))}
 											onClick={() => removeVariable(index)}
 										>
 											<Icon name="trash" />
@@ -502,7 +497,7 @@ export function MessageTemplateEditor({ message, profile, errors, edit, revealEr
 					onClick={() => addVariable()}
 				>
 					<Icon name="plus" size={14} />
-					adicionar variável
+					{m.addVariable}
 				</Button>
 			</div>
 		)
@@ -514,7 +509,7 @@ export function MessageTemplateEditor({ message, profile, errors, edit, revealEr
 		edit(next => {
 			next.variables.push({
 				name: example?.name ?? '',
-				description: example?.description ?? '',
+				description: example ? m.ownExamples[example.name] : '',
 				type: example?.type ?? 'text',
 				value: '',
 			})
@@ -553,22 +548,19 @@ export function MessageTemplateEditor({ message, profile, errors, edit, revealEr
 			<div className="flex flex-col gap-5">
 				{used.length > 0 ? (
 					<div className="flex flex-col gap-2">
-						<span className={LABEL}>no seu modelo</span>
+						<span className={LABEL}>{m.inYourTemplate}</span>
 						{renderFallbackFields(used)}
 					</div>
 				) : (
-					<p className="rounded-sm border border-dashed border-line p-3.5 text-sm text-muted">
-						Seu modelo ainda não usa nenhuma variável que pode faltar, então nenhum fallback entra agora. Ele só vale quando a
-						variável estiver no assunto ou na mensagem.
-					</p>
+					<p className="rounded-sm border border-dashed border-line p-3.5 text-sm text-muted">{m.noOptional}</p>
 				)}
 
 				{others.length > 0 && (
 					<Disclosure
 						summary={
 							<>
-								{used.length > 0 ? 'as outras variáveis' : 'definir mesmo assim'} ({others.length})
-								{othersDefined > 0 && `, ${othersDefined} com fallback`}
+								{used.length > 0 ? m.otherVariables : m.defineAnyway} ({others.length})
+								{othersDefined > 0 && m.withFallback(othersDefined)}
 							</>
 						}
 						// Com erro num campo recolhido, ela já abre: o erro não fica escondido
@@ -581,11 +573,8 @@ export function MessageTemplateEditor({ message, profile, errors, edit, revealEr
 				{/* O efeito na hora, numa vaga sem os dados que costumam faltar (a prévia da tela fica atrás da modal); sem
 				 * nenhuma variável que pode faltar no modelo, ela sairia igual à mensagem e não mostraria nada */}
 				{used.length > 0 && (
-					<section
-						aria-label="Prévia numa vaga sem empresa e local"
-						className="flex flex-col gap-2 rounded-sm bg-surface-2 p-3.5"
-					>
-						<span className={LABEL}>prévia numa vaga {SAMPLE_LABELS.partial}</span>
+					<section aria-label={m.partialPreviewLabel} className="flex flex-col gap-2 rounded-sm bg-surface-2 p-3.5">
+						<span className={LABEL}>{m.partialPreviewTitle(m.samples.partial)}</span>
 						<p className="m-0 text-sm font-semibold wrap-break-word">
 							{renderParts(templateParts(template.subject, partial, fallbacks))}
 						</p>
@@ -614,7 +603,7 @@ export function MessageTemplateEditor({ message, profile, errors, edit, revealEr
 									{variable.type === 'link' && (
 										<>
 											<Icon name="link" size={13} className="text-muted" />
-											<span className="sr-only">(link)</span>
+											<span className="sr-only">{m.linkType}</span>
 										</>
 									)}
 								</FieldLabel>
@@ -625,7 +614,7 @@ export function MessageTemplateEditor({ message, profile, errors, edit, revealEr
 							<Input
 								id={id}
 								className={cx(variable.type === 'link' && 'font-mono')}
-								placeholder={FALLBACK_EXAMPLES[variable.name] && `ex.: ${FALLBACK_EXAMPLES[variable.name]}`}
+								placeholder={fallbackExamples[variable.name] && m.example(fallbackExamples[variable.name]!)}
 								value={fallbacks[variable.name] ?? ''}
 								invalid={!!error}
 								aria-describedby={cx(`${id}-description`, error && `${id}-error`)}
@@ -662,6 +651,7 @@ function EditorDialogBox({
 	children: ReactNode
 }) {
 	const ref = useRef<HTMLDialogElement>(null)
+	const m = useT().messageEditor
 
 	return (
 		// Aberta, vira coluna: o meio rola e o topo e o rodapé ficam à vista
@@ -673,9 +663,9 @@ function EditorDialogBox({
 			<div className="min-h-0 grow overflow-y-auto px-5 py-4">{children}</div>
 			{/* O "pronto" só fecha: quem salva é o "salvar alterações" da tela */}
 			<div className="flex items-center justify-between gap-3 border-t border-line px-5 py-3.5">
-				<p className="text-xs text-muted">As mudanças entram no rascunho; salve em “salvar alterações”.</p>
+				<p className="text-xs text-muted">{m.draftNote}</p>
 				<Button variant="lime" className="shrink-0" onClick={() => ref.current?.close()}>
-					pronto
+					{m.done}
 				</Button>
 			</div>
 		</Dialog>
@@ -710,14 +700,18 @@ function renderParts(parts: TemplatePart[]) {
 		const key = `${index}-${part.kind}`
 		if (part.kind === 'fallback') {
 			return (
-				<mark key={key} title={`fallback de {{${part.name}}}`} className="rounded-xs bg-lime-soft px-0.5 text-lime-text">
+				<mark
+					key={key}
+					title={t().messageEditor.fallbackOf(part.name ?? '')}
+					className="rounded-xs bg-lime-soft px-0.5 text-lime-text"
+				>
 					{part.text}
 				</mark>
 			)
 		}
 		if (part.kind === 'missing') {
 			return (
-				<mark key={key} title={`a vaga não tem {{${part.name}}}`} className="rounded-xs bg-warn-bg px-0.5 text-warn">
+				<mark key={key} title={t().messageEditor.jobLacks(part.name ?? '')} className="rounded-xs bg-warn-bg px-0.5 text-warn">
 					{part.text}
 				</mark>
 			)
@@ -728,32 +722,38 @@ function renderParts(parts: TemplatePart[]) {
 
 /** O mini-tutorial do "como funciona", com um exemplo de modelo e o resultado preenchido. */
 function HowTo() {
+	const { howTo: h, fallbackExample } = useT().messageEditor
 	return (
 		<div className="flex flex-col gap-2 text-sm text-ink">
 			<p className="m-0">
-				Escreva a variável entre chaves duplas, como <code className="font-mono text-lime-text">{'{{empresa}}'}</code>. Ao abrir o
-				contato de uma vaga, ela vira o dado da vaga.
+				{h.writeBefore}
+				<code className="font-mono text-lime-text">{'{{empresa}}'}</code>
+				{h.writeAfter}
 			</p>
 			<p className="m-0">
-				<strong>Fallback</strong> é o texto usado quando a vaga não tem o dado. Defina em “fallbacks”, no grupo “da vaga” do painel
-				de variáveis, ou na própria variável, depois de uma barra:{' '}
-				<code className="font-mono text-lime-text">{'{{empresa | a sua empresa}}'}</code> (o da variável vale mais).
+				<strong>{h.fallbackTitle}</strong>
+				{h.fallbackText}
+				<code className="font-mono text-lime-text">{fallbackExample}</code>
+				{h.fallbackAfter}
 			</p>
 			<p className="m-0">
-				Sem o dado e sem fallback, a variável fica marcada na mensagem, como <code className="font-mono">[empresa]</code>, e o
-				envio espera você completar ou apagar o trecho.
+				{h.missingBefore}
+				<code className="font-mono">[empresa]</code>
+				{h.missingAfter}
 			</p>
 			<div className="grid grid-cols-2 gap-2 max-sm:grid-cols-1">
 				<div className="flex flex-col gap-1 rounded-sm bg-surface p-2.5">
-					<span className={LABEL}>modelo</span>
-					<span className="font-mono text-xs">{'Vi a vaga de {{cargo}} na {{empresa | sua empresa}}, em {{local}}.'}</span>
+					<span className={LABEL}>{h.template}</span>
+					<span className="font-mono text-xs">{h.templateExample}</span>
 				</div>
 				<div className="flex flex-col gap-1 rounded-sm bg-surface p-2.5">
-					<span className={LABEL}>numa vaga sem empresa e sem local</span>
+					<span className={LABEL}>{h.result}</span>
 					<span className="text-xs">
-						Vi a vaga de Analista de Marketing na{' '}
-						<mark className="rounded-xs bg-lime-soft px-0.5 text-lime-text">sua empresa</mark>, em{' '}
-						<mark className="rounded-xs bg-warn-bg px-0.5 text-warn">[local]</mark>.
+						{h.resultBefore}
+						<mark className="rounded-xs bg-lime-soft px-0.5 text-lime-text">{h.resultFallback}</mark>
+						{h.resultMiddle}
+						<mark className="rounded-xs bg-warn-bg px-0.5 text-warn">[local]</mark>
+						{h.resultAfter}
 					</span>
 				</div>
 			</div>

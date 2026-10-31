@@ -5,13 +5,13 @@ import { routeError, RoutePending } from '../components/RouteStatus'
 import { runsPageSize } from '../stores/runs-page-size'
 import { RunsView } from '../views/RunsView'
 
-export const Route = createFileRoute('/coletas')({
-	staticData: { title: 'Coletas' },
+export const Route = createFileRoute('/runs')({
+	staticData: { title: 'runs' },
 	loader: async () => {
 		const [status, runs] = await Promise.all([api.scraperStatus(), api.runs(1, runsPageSize.get())])
 		return { status, runs }
 	},
 	pendingComponent: () => <RoutePending />,
-	errorComponent: routeError('Não consegui carregar as coletas'),
+	errorComponent: routeError('runs'),
 	component: () => <RunsView initial={Route.useLoaderData()} />,
 })

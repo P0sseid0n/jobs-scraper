@@ -14,15 +14,6 @@ export type ContractType = (typeof CONTRACT_TYPES)[number]
 export const EXTRACTION_CHECKS = ['title', 'company', 'workMode', 'contractTypes', 'necessaryKnowledge', 'applyLink'] as const
 export type ExtractionCheck = (typeof EXTRACTION_CHECKS)[number]
 
-export const EXTRACTION_CHECK_LABELS: Record<ExtractionCheck, string> = {
-	title: 'cargo',
-	company: 'empresa',
-	workMode: 'modalidade',
-	contractTypes: 'regime',
-	necessaryKnowledge: 'tecnologias',
-	applyLink: 'link',
-}
-
 /** Quantos checks a vaga precisa ter para pedir que a pessoa confira o post original (`percent` dos checks). */
 export function reviewChecksThreshold(percent: number) {
 	return Math.max(1, Math.ceil((EXTRACTION_CHECKS.length * percent) / 100))

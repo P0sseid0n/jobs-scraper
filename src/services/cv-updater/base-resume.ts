@@ -1,9 +1,11 @@
+import { cvSectionTitles } from '@shared/contracts'
 import { findActiveCvBase } from '@shared/database'
+import { t } from '@shared/i18n'
 import type { Logger } from '@shared/logging'
 
 import { compileLatex, LatexCompileError, type CompileOptions, type CompileResult } from './latex-compiler'
 import { readResumeTex } from './resume/latex-reader'
-import { SECTION_TITLES, type SectionKey } from './resume/latex-syntax'
+import type { SectionKey } from './resume/latex-syntax'
 import type { ParsedResume } from './resume/resume.types'
 
 /**
@@ -18,7 +20,7 @@ export type BaseResume = { resume: ParsedResume; versionId: string | null }
 /** Nenhum currículo base: nem versão ativa no banco, nem o arquivo. A mensagem vai para quem pediu o currículo. */
 export class MissingBaseResumeError extends Error {
 	constructor() {
-		super('Currículo não configurado: envie o seu .tex pelo site, em Meus currículos › Currículo base.')
+		super(t().cvErrors.missingBase)
 	}
 }
 
@@ -44,8 +46,8 @@ export async function loadBaseResume(
 export function missingSections(resume: ParsedResume) {
 	if (EXPECTED_SECTIONS.some(section => resume.sections[section])) return []
 
-	const titles = EXPECTED_SECTIONS.map(section => `\\section*{${SECTION_TITLES[section]}}`)
-	return [`Falta uma seção de experiência ou de formação, como ${titles.join(' ou ')}.`]
+	const titles = cvSectionTitles()
+	return [t().cvErrors.missingSection(`\\section*{${titles.experience}}`, `\\section*{${titles.education}}`)]
 }
 
 export type BaseValidation = { errors: string[]; pdf: Buffer | null; pages: number | null }

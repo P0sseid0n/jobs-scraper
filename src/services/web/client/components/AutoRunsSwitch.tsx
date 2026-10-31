@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
 
+import { t } from '@shared/i18n'
+
 import { SwitchField } from './ui/Switch'
 
 /**
@@ -22,7 +24,7 @@ export function AutoRunsSwitch({
 	return (
 		<SwitchField
 			id={id}
-			title="coletas automáticas"
+			title={t().ui.autoRuns}
 			description={description}
 			checked={!paused}
 			disabled={disabled}

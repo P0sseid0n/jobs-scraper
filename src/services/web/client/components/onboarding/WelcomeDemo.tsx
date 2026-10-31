@@ -1,6 +1,7 @@
-import type { ReactNode } from 'react'
+import { Fragment, type ReactNode } from 'react'
 
 import { cx } from '../../lib/cx'
+import { useT } from '../../stores/locale'
 import { Cursor, Swap, useDemoRound } from '../demo-parts'
 import { Icon } from '../Icon'
 import { badge, BadgeList } from '../ui/Badge'
@@ -9,6 +10,9 @@ import { StatusDot } from '../ui/StatusDot'
 import { META } from '../ui/text'
 
 const RISE = 'animate-rise-in motion-reduce:animate-none'
+
+/** Quando o marca-texto acende cada trecho do post, um depois do outro. */
+const MARK_DELAYS = ['stagger-13', 'stagger-15', 'stagger-17', 'stagger-18', 'stagger-20']
 
 /** Uma volta até começar a sumir: uns 8 s montando e uns 12 s parada no fim, com o e-mail enviado. */
 const ROUND_MS = 20000
@@ -34,11 +38,12 @@ function Mark({ delay, children }: { delay: string; children: ReactNode }) {
  */
 export function WelcomeDemo() {
 	const { round, leaving } = useDemoRound(ROUND_MS)
+	const demo = useT().welcomeDemo
 
 	return (
 		<figure
 			key={round}
-			aria-label="Exemplo: um post do LinkedIn que vira uma vaga"
+			aria-label={demo.label}
 			className={cx('m-0 flex flex-col gap-3 transition-opacity duration-500', leaving && 'opacity-0')}
 		>
 			<div className={cx(card({ size: 'sm' }), 'flex flex-col gap-3', RISE, 'stagger-4')}>
@@ -51,7 +56,7 @@ export function WelcomeDemo() {
 					</span>
 					<span className="text-sm leading-tight">
 						<span className="block font-semibold">Ana Souza</span>
-						<span className="block text-xs text-muted">recrutadora · há 2 h</span>
+						<span className="block text-xs text-muted">{demo.recruiter}</span>
 					</span>
 				</div>
 				{/* A faixa de leitura desce pelo texto, e o marca-texto acende cada trecho logo depois que ela passa */}
@@ -61,9 +66,12 @@ export function WelcomeDemo() {
 						className="pointer-events-none absolute inset-x-0 h-6 bg-linear-to-b from-transparent via-lime/30 to-transparent animate-scan motion-reduce:hidden stagger-11"
 					/>
 					<p className="text-sm leading-relaxed">
-						Estamos contratando! Vaga para <Mark delay="stagger-13">dev front-end</Mark>,{' '}
-						<Mark delay="stagger-15">100% remoto</Mark>, contrato <Mark delay="stagger-17">PJ</Mark>. Stack:{' '}
-						<Mark delay="stagger-18">React</Mark> e <Mark delay="stagger-20">TypeScript</Mark>. Chama no direct!
+						{demo.post.parts.map((part, index) => (
+							<Fragment key={index}>
+								{part}
+								{demo.post.marks[index] && <Mark delay={MARK_DELAYS[index]!}>{demo.post.marks[index]}</Mark>}
+							</Fragment>
+						))}
 					</p>
 				</div>
 				<span className={cx(META, 'border-t border-line pt-2.5', RISE, 'stagger-8')}>
@@ -72,12 +80,14 @@ export function WelcomeDemo() {
 						inDelay="stagger-28"
 						working={
 							<>
-								<StatusDot tone="lime" pulse />a IA está lendo o post
+								<StatusDot tone="lime" pulse />
+								{demo.reading}
 							</>
 						}
 						done={
 							<>
-								<Icon name="check" size={14} className="text-lime-text" />5 detalhes encontrados
+								<Icon name="check" size={14} className="text-lime-text" />
+								{demo.found}
 							</>
 						}
 					/>
@@ -86,21 +96,24 @@ export function WelcomeDemo() {
 
 			<p aria-hidden="true" className={cx(META, 'flex items-center gap-1.5 self-center', RISE, 'stagger-31')}>
 				<Icon name="chevron" size={14} />
-				vira uma vaga para você
+				{demo.becomesJob}
 			</p>
 
 			<div className={cx(card({ size: 'sm' }), 'flex flex-col gap-3', RISE, 'stagger-33')}>
 				<div className="flex items-start justify-between gap-3">
 					<span className="leading-tight">
-						<span className="block font-semibold">Desenvolvedor(a) Front-end</span>
-						<span className="block text-sm text-muted">vista no post de Ana Souza</span>
+						<span className="block font-semibold">{demo.jobTitle}</span>
+						<span className="block text-sm text-muted">{demo.seenIn}</span>
 					</span>
 					<span className="flex shrink-0 gap-1.5">
-						<span className={badge({ size: 'sm' })}>remoto</span>
-						<span className={badge({ size: 'sm' })}>PJ</span>
+						{demo.badges.map(label => (
+							<span key={label} className={badge({ size: 'sm' })}>
+								{label}
+							</span>
+						))}
 					</span>
 				</div>
-				<BadgeList aria-label="Tecnologias">
+				<BadgeList aria-label={demo.technologies}>
 					<li className={badge({ size: 'sm', tone: 'plain', bordered: true })}>React</li>
 					<li className={badge({ size: 'sm', tone: 'plain', bordered: true })}>TypeScript</li>
 				</BadgeList>
@@ -116,13 +129,13 @@ export function WelcomeDemo() {
 						working={
 							<>
 								<Icon name="spinner" size={14} />
-								ajustando o currículo
+								{demo.tailoring}
 							</>
 						}
 						done={
 							<>
 								<Icon name="check" size={14} />
-								currículo ajustado para esta vaga
+								{demo.tailored}
 							</>
 						}
 					/>
@@ -136,7 +149,7 @@ export function WelcomeDemo() {
 							working={
 								<>
 									<Icon name="mail" size={14} />
-									enviar candidatura
+									{demo.send}
 								</>
 							}
 							done={
@@ -146,13 +159,13 @@ export function WelcomeDemo() {
 									working={
 										<>
 											<Icon name="spinner" size={14} />
-											enviando o e-mail
+											{demo.sending}
 										</>
 									}
 									done={
 										<>
 											<Icon name="check" size={14} />
-											e-mail enviado para Ana
+											{demo.sent}
 										</>
 									}
 								/>

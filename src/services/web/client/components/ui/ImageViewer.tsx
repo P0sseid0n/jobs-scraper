@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react'
 
+import { t } from '@shared/i18n'
+
 import { cx } from '../../lib/cx'
 import { stepImage, swipeStep } from '../../lib/image-viewer'
 import { Icon } from '../Icon'
 import { Badge } from './Badge'
 import { IconButton } from './IconButton'
-import { NEW_TAB_NOTICE } from './link'
+import { NewTabNotice } from './link'
 import { META } from './text'
 
 /** Uma imagem do visualizador: o endereço e o texto alternativo (que também nomeia o visualizador aberto nela). */
@@ -103,12 +105,12 @@ export function ImageViewer({ images, start = 0, original = true, onClose }: Ima
 								target="_blank"
 								rel="noreferrer"
 							>
-								abrir original
-								<span className="sr-only">{NEW_TAB_NOTICE}</span>
+								{t().ui.openOriginal}
+								<NewTabNotice />
 								<Icon name="external" size={13} />
 							</a>
 						)}
-						<IconButton data-close label="fechar imagem" onClick={() => ref.current?.close()}>
+						<IconButton data-close label={t().ui.closeImage} onClick={() => ref.current?.close()}>
 							<Icon name="close" size={18} />
 						</IconButton>
 					</div>
@@ -129,7 +131,7 @@ export function ImageViewer({ images, start = 0, original = true, onClose }: Ima
 				{count > 1 && (
 					<>
 						<IconButton
-							label="imagem anterior"
+							label={t().ui.previousImage}
 							variant="ghost"
 							className="fixed top-1/2 left-4 -translate-y-1/2 bg-inv-bg/60 max-md:hidden"
 							onClick={() => go(-1)}
@@ -137,7 +139,7 @@ export function ImageViewer({ images, start = 0, original = true, onClose }: Ima
 							<Icon name="back" size={18} />
 						</IconButton>
 						<IconButton
-							label="próxima imagem"
+							label={t().ui.nextImage}
 							variant="ghost"
 							className="fixed top-1/2 right-4 -translate-y-1/2 bg-inv-bg/60 max-md:hidden"
 							onClick={() => go(1)}

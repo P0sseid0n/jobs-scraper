@@ -1,7 +1,8 @@
 import { z } from 'zod'
 
 import { booleanFromEnv } from '../config/load-config'
-import { DATE_POSTED_FILTERS, SENIORITY_LEVELS, type SettingsInput, type SettingsKey } from '../contracts/settings'
+import { CV_LANGUAGE_MODES, DATE_POSTED_FILTERS, SENIORITY_LEVELS, type SettingsInput, type SettingsKey } from '../contracts/settings'
+import { LOCALE_CODES } from '../i18n'
 
 /**
  * Os valores iniciais de todas as configurações da coleção `settings`. Todo serviço com banco os lê ao subir, antes de
@@ -36,6 +37,12 @@ export const settingsEnv = {
 	PROFILE_SENIORITY: z.union([z.literal(''), z.enum(SENIORITY_LEVELS)]).default(''),
 	/** Idiomas em que a pessoa trabalha (ISO 639-1) separados por vírgula. */
 	PROFILE_LANGUAGES: z.string().default('pt'),
+
+	// Idioma
+	/** Idioma do sistema (site, Discord e validação): pt-BR, en… Vazio: o site usa o do navegador. */
+	LOCALE: z.union([z.literal(''), z.enum(LOCALE_CODES)]).default(''),
+	/** Idioma da candidatura (currículo ajustado e mensagem melhorada pela IA): `system` (o do sistema) ou `job` (o do post da vaga). */
+	CV_LANGUAGE: z.enum(CV_LANGUAGE_MODES).default('system'),
 }
 
 export type SettingsEnv = z.infer<z.ZodObject<typeof settingsEnv>>
@@ -74,6 +81,7 @@ export function settingsSeedsFromEnv(env: SettingsEnv): SettingsSeeds {
 		},
 		// Sem variável no `.env`: o tom e o tamanho começam nos padrões e mudam pelo site
 		message: {},
+		language: { locale: env.LOCALE || null, cvLanguage: env.CV_LANGUAGE },
 	}
 }
 

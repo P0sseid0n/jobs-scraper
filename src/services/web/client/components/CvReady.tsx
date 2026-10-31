@@ -1,12 +1,14 @@
 import { useEffect, useId, useState, type CSSProperties, type ReactNode } from 'react'
 
 import type { CvChanges } from '@shared/contracts'
+import { languageName } from '@shared/i18n'
 
 import type { WebCvRequest } from '../../api-types'
 import { cvPdfUrl } from '../api'
 import { cx } from '../lib/cx'
 import { reducedMotion } from '../lib/motion'
 import { isJustReady, markShown } from '../stores/cv'
+import { useT } from '../stores/locale'
 import { Badge, badge, BadgeList } from './ui/Badge'
 import { PdfIcon } from './ui/PdfIcon'
 import { LABEL, LIST, META } from './ui/text'
@@ -43,20 +45,21 @@ export function hasChanges(changes: CvChanges | null): changes is CvChanges {
  * entrou vem em selos; o que saiu, só contado (riscado e pequeno, era difícil de ler; a lista fica no detalhe).
  */
 export function ChangeSummary({ changes }: { changes: CvChanges }) {
+	const t = useT().cvReady
 	const added = changes.addedSkills.slice(0, SUMMARY_ADDED)
 	const hidden = changes.addedSkills.length - added.length
 	const removed = changes.removedSkills.length
 	const facts = [
-		removed > 0 && `−${removed} ${removed === 1 ? 'tecnologia' : 'tecnologias'}`,
-		changes.projects.length > 0 && `${changes.projects.length} ${changes.projects.length === 1 ? 'projeto' : 'projetos'}`,
-		changes.summary && 'apresentação reescrita',
+		removed > 0 && t.removedSkills(removed),
+		changes.projects.length > 0 && t.projects(changes.projects.length),
+		changes.summary && t.summaryRewritten,
 	].filter(Boolean)
 
 	return (
 		<span className="flex flex-wrap items-center gap-1.5">
 			{added.map(skill => (
 				<Badge key={`+${skill}`} tone="running" size="sm">
-					<span className="sr-only">entrou:</span>
+					<span className="sr-only">{t.added}</span>
 					<span className="max-w-48 truncate">+{skill}</span>
 				</Badge>
 			))}
@@ -86,12 +89,14 @@ type CvReadyProps = {
  * o ajuste é mostrado sendo feito; depois, já vem pronto e recolhido.
  */
 export function CvReady({ cv, defaultOpen }: CvReadyProps) {
+	const t = useT().cvReady
 	const [fresh] = useState(() => isJustReady(cv.requestId) && !reducedMotion())
 	const [open, setOpen] = useState(defaultOpen ?? fresh)
 	const detailsId = useId()
 	useEffect(() => markShown(cv.requestId), [cv.requestId])
 
 	const changes = hasChanges(cv.changes) ? cv.changes : null
+	const language = cv.changes?.language
 
 	return (
 		<div className="relative flex flex-col gap-3.5 overflow-hidden rounded-md bg-lime-soft p-3">
@@ -111,18 +116,24 @@ export function CvReady({ cv, defaultOpen }: CvReadyProps) {
 					</span>
 				</span>
 				<div className="grow min-w-0">
-					<div className="font-semibold text-sm">currículo pronto</div>
+					<div className="font-semibold text-sm">{t.ready}</div>
 					<div className={cx(META, 'block truncate')}>{cv.fileName}</div>
+					{language && (
+						<div className={cx(META, 'block')}>
+							{/* Só o idioma, sem a região: "em português", não "em português (brasil)" */}
+							{t.language(languageName(language.locale.split('-')[0]!), language.source === 'job')}
+						</div>
+					)}
 				</div>
 				<TextLink size="sm" href={cvPdfUrl(cv.requestId)} external>
-					pré-visualizar
+					{t.preview}
 				</TextLink>
 			</div>
 			{changes && (
 				<div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
 					<ChangeSummary changes={changes} />
 					<TextLink size="xs" aria-expanded={open} aria-controls={detailsId} onClick={() => setOpen(!open)}>
-						{open ? 'esconder o que mudou' : 'ver o que mudou'}
+						{open ? t.hideChanges : t.showChanges}
 					</TextLink>
 				</div>
 			)}
@@ -141,13 +152,14 @@ export function CvReady({ cv, defaultOpen }: CvReadyProps) {
  * as tecnologias novas no tom suave; o lime forte fica para o currículo que acabou de ficar pronto.
  */
 export function Changes({ changes, fresh, tone = 'highlight' }: { changes: CvChanges; fresh: boolean; tone?: 'highlight' | 'quiet' }) {
+	const t = useT().cvReady
 	const { addedSkills, removedSkills, summary, projects } = changes
 	const quiet = tone === 'quiet'
 	// Sendo mostrado o ajuste, as que saíram aparecem todas, riscadas uma a uma
 	const [showRemoved, setShowRemoved] = useState(fresh || removedSkills.length <= REMOVED_VISIBLE)
 
 	return (
-		<section className="flex flex-col gap-3 border-t border-line pt-3" aria-label="O que mudou no currículo">
+		<section className="flex flex-col gap-3 border-t border-line pt-3" aria-label={t.changesLabel}>
 			<span
 				className={cx(
 					LABEL,
@@ -156,19 +168,19 @@ export function Changes({ changes, fresh, tone = 'highlight' }: { changes: CvCha
 				)}
 				style={fresh ? delay(AT.mark) : undefined}
 			>
-				ajustado para esta vaga
+				{t.tailored}
 			</span>
 
 			{(addedSkills.length > 0 || removedSkills.length > 0) && (
-				<Row label="tecnologias">
-					<BadgeList aria-label="Tecnologias que entraram e saíram">
+				<Row label={t.technologies}>
+					<BadgeList aria-label={t.technologiesLabel}>
 						{addedSkills.map((skill, index) => (
 							<li
 								key={`+${skill}`}
 								className={badge({ tone: quiet ? 'running' : 'lime', className: cx(fresh && 'animate-pop-in') })}
 								style={fresh ? delay(AT.added + index * STEP_MS) : undefined}
 							>
-								<span className="sr-only">entrou:</span>
+								<span className="sr-only">{t.added}</span>
 								<span aria-hidden="true">+</span>
 								{skill}
 							</li>
@@ -176,7 +188,7 @@ export function Changes({ changes, fresh, tone = 'highlight' }: { changes: CvCha
 						{showRemoved &&
 							removedSkills.map((skill, index) => (
 								<li key={`-${skill}`} className={badge({ tone: 'plain', bordered: true, className: 'text-muted' })}>
-									<span className="sr-only">saiu:</span>
+									<span className="sr-only">{t.removed}</span>
 									<span
 										className={cx('strike-through', fresh && 'animate-strike-in')}
 										style={fresh ? delay(AT.removed + index * STEP_MS) : undefined}
@@ -187,9 +199,9 @@ export function Changes({ changes, fresh, tone = 'highlight' }: { changes: CvCha
 							))}
 						{!showRemoved && (
 							<li className={cx(META, 'flex items-center gap-1.5')}>
-								−{removedSkills.length} saíram
+								{t.removedCount(removedSkills.length)}
 								<TextLink size="xs" onClick={() => setShowRemoved(true)}>
-									mostrar
+									{t.show}
 								</TextLink>
 							</li>
 						)}
@@ -198,14 +210,14 @@ export function Changes({ changes, fresh, tone = 'highlight' }: { changes: CvCha
 			)}
 
 			{summary && (
-				<Row label="apresentação">
+				<Row label={t.summary}>
 					<Summary summary={summary} fresh={fresh} />
 				</Row>
 			)}
 
 			{projects.length > 0 && (
-				<Row label="projetos">
-					<ol className={cx(LIST, 'flex flex-wrap gap-x-1.5 gap-y-1 text-sm')} aria-label="Projetos no currículo, na ordem">
+				<Row label={t.projectsLabel}>
+					<ol className={cx(LIST, 'flex flex-wrap gap-x-1.5 gap-y-1 text-sm')} aria-label={t.projectsOrder}>
 						{projects.map((name, index) => (
 							<li
 								key={name}
@@ -237,6 +249,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
  * chega palavra por palavra no lugar dela; depois, a antiga fica a um clique.
  */
 function Summary({ summary, fresh }: { summary: NonNullable<CvChanges['summary']>; fresh: boolean }) {
+	const t = useT().cvReady
 	const [phase, setPhase] = useState<'before' | 'reveal' | 'done'>(fresh ? 'before' : 'done')
 	const [showOriginal, setShowOriginal] = useState(false)
 	const text = summary.after
@@ -279,11 +292,11 @@ function Summary({ summary, fresh }: { summary: NonNullable<CvChanges['summary']
 				<>
 					<p>{text}</p>
 					<TextLink size="xs" className="self-start" aria-expanded={showOriginal} onClick={() => setShowOriginal(!showOriginal)}>
-						{showOriginal ? 'esconder a apresentação original' : 'ver a apresentação original'}
+						{showOriginal ? t.hideOriginal : t.showOriginal}
 					</TextLink>
 					{showOriginal && (
 						<p className="text-muted animate-panel-in motion-reduce:animate-none">
-							<span className="sr-only">original, trocada pela de cima:</span>
+							<span className="sr-only">{t.originalReplaced}</span>
 							<span className="strike-through">{summary.before}</span>
 						</p>
 					)}

@@ -6,6 +6,7 @@ import { ollamaEnv } from '@shared/config'
 import {
 	CvBaseValidationRequestSchema,
 	CvImportRequestSchema,
+	cvLocaleFor,
 	CvRequestSchema,
 	type CvBaseValidationRequest,
 	type CvBaseValidationResult,
@@ -15,6 +16,7 @@ import {
 	type CvResult,
 } from '@shared/contracts'
 import { Job } from '@shared/database'
+import { t } from '@shared/i18n'
 import { QUEUES } from '@shared/messaging'
 import { startService } from '@shared/service'
 import { loadCredentials, readSettings } from '@shared/settings'
@@ -28,6 +30,7 @@ import { PdfImportError } from './pdf-import/pdf-text'
 import { chooseProjects } from './projects/choose-projects'
 import { GithubRepositories } from './projects/github-repositories'
 import { pdfFileName, renderOnePagePdf } from './resume-pdf'
+import { translateResume } from './resume-translation'
 import { tailorResumeToJob } from './tailor-resume'
 import { requestTailoringSuggestions } from './tailoring-suggestions'
 import type { CvJob } from './target-job'
@@ -67,7 +70,7 @@ async function generateCv(request: CvRequest) {
 		await reply({
 			jobTitle: null,
 			file: null,
-			error: 'Não encontrei essa vaga no banco de dados.',
+			error: t().cvErrors.jobNotFound,
 			changes: null,
 			base: null,
 		})
@@ -85,12 +88,23 @@ async function generateCv(request: CvRequest) {
 		return
 	}
 
-	log.info({ title: job.title }, 'Gerando currículo ajustado')
+	// O idioma do currículo é resolvido uma vez para a vaga: vale para o currículo inteiro (e para a mensagem, no site)
+	const language = cvLocaleFor(await readSettings('language'), job.language)
+	log.info({ title: job.title, locale: language.locale, localeFrom: language.source }, 'Gerando currículo ajustado')
 
-	const { resume: base, versionId } = loaded
+	const { versionId } = loaded
+	// Em outro idioma, o ajuste parte do currículo base já traduzido
+	const base = await translateResume({ ollama, model: config.OLLAMA_MODEL }, loaded.resume, language.locale, log)
 	// Sem perfil, área e cargo-alvo ficam ausentes e os prompts não citam a área
 	const profile = await readSettings('profile')
-	const suggestions = await requestTailoringSuggestions({ ollama, model: config.OLLAMA_MODEL }, base.model, job, profile, log)
+	const suggestions = await requestTailoringSuggestions(
+		{ ollama, model: config.OLLAMA_MODEL },
+		base.model,
+		job,
+		profile,
+		language.locale,
+		log,
+	)
 
 	const { cv, report } = tailorResumeToJob(base.model, job, suggestions)
 	if (report.summaryRejected) {
@@ -98,7 +112,7 @@ async function generateCv(request: CvRequest) {
 	}
 
 	cv.projects = await chooseProjects(
-		{ github: await githubClient(), ollama, model: config.OLLAMA_MODEL },
+		{ github: await githubClient(), ollama, model: config.OLLAMA_MODEL, locale: language.locale },
 		base,
 		cv.projects,
 		job,
@@ -115,7 +129,7 @@ async function generateCv(request: CvRequest) {
 		await reply({
 			jobTitle: job.title,
 			file: null,
-			error: 'O LaTeX do currículo não compilou. Veja os logs do cv-updater.',
+			error: t().cvErrors.latexFailed,
 			changes: null,
 			base: null,
 		})
@@ -130,7 +144,7 @@ async function generateCv(request: CvRequest) {
 		jobTitle: job.title,
 		file: { name, base64: pdf.toString('base64') },
 		error: null,
-		changes: cvChanges(base.model, resume, report),
+		changes: cvChanges(base.model, resume, report, language),
 		base: { versionId },
 	})
 

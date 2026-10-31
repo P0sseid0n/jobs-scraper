@@ -1,3 +1,5 @@
+import { t } from '@shared/i18n'
+
 import { shakeFailedAction } from '../lib/motion'
 import { createStore, useStore } from '../lib/store'
 
@@ -43,10 +45,10 @@ export function dismissToast(id: number) {
 export async function copyText(text: string, what: string, action?: ToastAction) {
 	try {
 		await navigator.clipboard.writeText(text)
-		notify(`${what} copiado`, 'info', action)
+		notify(t().copy.done(what), 'info', action)
 		return true
 	} catch {
-		notify(`Não consegui copiar ${what.toLowerCase()}; selecione e copie manualmente`, 'error')
+		notify(t().copy.failed(what), 'error')
 		return false
 	}
 }

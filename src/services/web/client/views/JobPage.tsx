@@ -9,12 +9,14 @@ import { card } from '../components/ui/Card'
 import { EmptyState } from '../components/ui/EmptyState'
 import { Page } from '../components/ui/Page'
 import { jobsStore } from '../stores/jobs'
+import { useT } from '../stores/locale'
 
 /**
- * Página da vaga no celular (a rota `/vagas/$id` carrega a vaga). No desktop, a mesma rota abre a lista com a vaga no
+ * Página da vaga no celular (a rota `/jobs/$id` carrega a vaga). No desktop, a mesma rota abre a lista com a vaga no
  * painel ao lado. Sem `job`, mostra o carregamento ou, com `error`, a falha.
  */
 export function JobPage({ job, error }: { job?: WebJob; error?: string }) {
+	const t = useT()
 	let content: ReactNode
 	if (job) {
 		content = (
@@ -29,7 +31,7 @@ export function JobPage({ job, error }: { job?: WebJob; error?: string }) {
 				title={error}
 				action={
 					<ButtonLink variant="lime" to="/" search={() => jobsStore.get().filters}>
-						ver todas as vagas
+						{t.routes.allJobs}
 					</ButtonLink>
 				}
 			/>
@@ -54,6 +56,7 @@ export function JobPage({ job, error }: { job?: WebJob; error?: string }) {
 function BackToList() {
 	const router = useRouter()
 	const canGoBack = useCanGoBack()
+	const t = useT()
 
 	return (
 		<ButtonLink
@@ -69,7 +72,7 @@ function BackToList() {
 			}}
 		>
 			<Icon name="back" />
-			vagas
+			{t.routes.jobs}
 		</ButtonLink>
 	)
 }

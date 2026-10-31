@@ -1,3 +1,5 @@
+import { t } from '@shared/i18n'
+
 import type { LinkedinLoginState } from '../../api-types'
 import { api } from '../api'
 import { createStore, useStore } from '../lib/store'
@@ -30,9 +32,9 @@ export async function refreshLinkedinVerification() {
 	const previous = store.get().login
 
 	if (previous?.status === 'verification' && login && login.status !== 'verification') {
-		if (login.status === 'success') notify('Pronto: o LinkedIn confirmou que é você')
+		if (login.status === 'success') notify(t().linkedinLogin.confirmed)
 		else if (login.status === 'failed') {
-			notify('A verificação do LinkedIn não foi concluída. Teste o login de novo em Configurações › Contas.', 'error')
+			notify(t().linkedinLogin.notConfirmed, 'error')
 		}
 	}
 	store.set(current => ({ ...current, login }))

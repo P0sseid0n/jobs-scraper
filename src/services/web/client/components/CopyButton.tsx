@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
+import { useT } from '../stores/locale'
 import { copyText, type ToastAction } from '../stores/toast'
 import { Icon } from './Icon'
 import { Button } from './ui/Button'
@@ -37,6 +38,7 @@ type CopyButtonProps = {
  * "copiado"). Se a cópia falhar, só o aviso de erro aparece.
  */
 export function CopyButton({ text, what, toastAction, className, ...props }: CopyButtonProps) {
+	const t = useT()
 	const [copied, setCopied] = useState(false)
 	const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
 	useEffect(() => () => clearTimeout(timer.current), [])
@@ -60,7 +62,7 @@ export function CopyButton({ text, what, toastAction, className, ...props }: Cop
 	return (
 		<Button variant={props.variant ?? 'ghost'} size={size} disabled={props.disabled} className={className} onClick={copy}>
 			<Icon name={copied ? 'check' : 'copy'} size={size === 'xs' ? 13 : 14} />
-			{copied ? 'copiado' : (props.label ?? 'copiar')}
+			{copied ? t.copy.copied : (props.label ?? t.copy.copy)}
 		</Button>
 	)
 }

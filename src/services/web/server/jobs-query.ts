@@ -3,6 +3,7 @@ import { z } from 'zod'
 
 import { CONTRACT_TYPES, needsReview, WORK_MODES, type ProcessedJob } from '@shared/contracts'
 import type { JobApplicationState, JobCorrectionState, JobDuplicateState, JobExtractionSource, JobViewState } from '@shared/database'
+import { t } from '@shared/i18n'
 
 import type { WebJob } from '../api-types'
 import { decodeCursor, type Cursor } from './http'
@@ -167,7 +168,7 @@ export function toWebJob(doc: JobDocument, reviewChecksPercent: number): WebJob 
 
 	return {
 		postId: doc.postId,
-		title: doc.title ?? 'Vaga sem título',
+		title: doc.title ?? t().serverErrors.untitledJob,
 		company: doc.company ?? null,
 		companyConfidential: doc.companyConfidential ?? false,
 		location: doc.location ?? null,

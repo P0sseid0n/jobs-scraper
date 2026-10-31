@@ -5,7 +5,7 @@ import type { VariantProps } from 'tailwind-variants'
 import { tv } from '../../lib/cx'
 import { Icon } from '../Icon'
 import { useButtonMotion } from './button-motion'
-import { NEW_TAB, NEW_TAB_NOTICE } from './link'
+import { NEW_TAB, NewTabNotice } from './link'
 import { OUTLINED } from './outlined'
 import { PRESS } from './press'
 
@@ -65,7 +65,7 @@ export function Button({ variant, size, className, external, externalIcon = true
 		<>
 			{external && externalIcon && <Icon name="external" size={size === 'lg' ? 16 : 14} />}
 			{children}
-			{external && <span className="sr-only">{NEW_TAB_NOTICE}</span>}
+			{external && <NewTabNotice />}
 		</>,
 		props.onPointerDown as ((event: PointerEvent<HTMLElement>) => void) | undefined,
 	)
@@ -112,5 +112,5 @@ function ButtonAnchor({
 	)
 }
 
-/** Botão que leva a uma tela do site, com a rota tipada (`<ButtonLink variant="lime" to="/coletas">`). */
+/** Botão que leva a uma tela do site, com a rota tipada (`<ButtonLink variant="lime" to="/runs">`). */
 export const ButtonLink = createLink(ButtonAnchor)

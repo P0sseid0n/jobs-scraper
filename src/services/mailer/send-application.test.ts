@@ -5,7 +5,7 @@ import { createLogger } from '@shared/logging'
 import { PermanentError } from '@shared/messaging'
 
 import type { OutgoingMail } from './mail-transport'
-import { MISSING_FILE_ERROR, NO_ACCOUNT_ERROR, sendApplication, type SendDeps } from './send-application'
+import { missingFileError, noAccountError, sendApplication, type SendDeps } from './send-application'
 
 const logger = createLogger('test')
 
@@ -134,8 +134,8 @@ describe('sendApplication', () => {
 		ctx.withoutAccount()
 		await sendApplication(request, firstTry, ctx.deps)
 
-		expect(ctx.record).toMatchObject({ status: 'failed', error: NO_ACCOUNT_ERROR })
-		expect(ctx.replies[0]?.result).toMatchObject({ status: 'failed', error: NO_ACCOUNT_ERROR, sentAt: null })
+		expect(ctx.record).toMatchObject({ status: 'failed', error: noAccountError() })
+		expect(ctx.replies[0]?.result).toMatchObject({ status: 'failed', error: noAccountError(), sentAt: null })
 	})
 
 	test('sem o PDF (expirou), falha pedindo para gerar de novo', async () => {
@@ -143,7 +143,7 @@ describe('sendApplication', () => {
 		await sendApplication(request, firstTry, ctx.deps)
 
 		expect(ctx.sent).toHaveLength(0)
-		expect(ctx.replies[0]?.result.error).toBe(MISSING_FILE_ERROR)
+		expect(ctx.replies[0]?.result.error).toBe(missingFileError())
 	})
 
 	test('erro transitório volta para a fila sem avisar o canal (o envio continua "enviando")', async () => {

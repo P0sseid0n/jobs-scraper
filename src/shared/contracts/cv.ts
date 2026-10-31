@@ -1,6 +1,8 @@
 import { z } from 'zod'
 
+import { LOCALE_CODES } from '../i18n'
 import { CvFormDraftSchema } from './cv-form'
+import { CV_LANGUAGE_MODES } from './settings'
 
 /**
  * Para onde o resultado do currículo volta: a fila de quem pediu e um contexto que o cv-updater devolve sem
@@ -31,6 +33,15 @@ export const CvChangesSchema = z.object({
 	summary: z.object({ before: z.string(), after: z.string() }).nullable(),
 	/** Os projetos que ficaram no PDF, na ordem em que aparecem. */
 	projects: z.array(z.string()),
+	/**
+	 * Em que idioma o currículo foi gerado (`cvLocaleFor`) e se ele veio do sistema ou da vaga. `null` nos currículos de
+	 * antes do campo, ou num idioma que deixou de existir.
+	 */
+	language: z
+		.object({ locale: z.enum(LOCALE_CODES), source: z.enum(CV_LANGUAGE_MODES) })
+		.nullable()
+		.default(null)
+		.catch(null),
 })
 export type CvChanges = z.infer<typeof CvChangesSchema>
 

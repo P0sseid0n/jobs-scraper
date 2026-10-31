@@ -12,6 +12,7 @@ import type {
 	DatePostedFilter,
 	JobAppliedChange,
 	JobReprocessResult,
+	LanguageSettings,
 	MailStatus,
 	MessageSettings,
 	PostProcessingSettings,
@@ -261,6 +262,7 @@ export type WebSettings = {
 	'post-processing': PostProcessingSettings
 	profile: ProfileSettings
 	message: MessageSettings
+	language: LanguageSettings
 }
 export type { SettingsKey }
 

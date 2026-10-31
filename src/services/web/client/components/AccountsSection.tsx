@@ -1,16 +1,18 @@
 import { useEffect, useId, useState } from 'react'
 
 import { isMicrosoftPersonalAccount, smtpHostFor } from '@shared/contracts'
+import { t, type Messages } from '@shared/i18n'
 
 import type { CredentialCheck, CredentialGroup, WebCredentials } from '../../api-types'
 import { api, RequestError } from '../api'
-import { ACCOUNT_TUTORIALS } from '../lib/account-tutorials'
+import { accountTutorials } from '../lib/account-tutorials'
 import { cx } from '../lib/cx'
 import { shakeInvalid } from '../lib/motion'
-import { GMAIL_PRESET, initialSmtpProvider, SMTP_PROVIDER_OPTIONS, type SmtpProviderChoice } from '../lib/smtp-presets'
+import { GMAIL_PRESET, initialSmtpProvider, smtpProviderOptions, type SmtpProviderChoice } from '../lib/smtp-presets'
 import { useStore } from '../lib/store'
 import { useFlash } from '../lib/use-flash'
 import { accountTutorialOpen, accountTutorialRequest } from '../stores/account-tutorial'
+import { useT } from '../stores/locale'
 import { notify } from '../stores/toast'
 import { accountScene } from './AccountTutorialScenes'
 import { DrawnCheck, Icon } from './Icon'
@@ -78,105 +80,83 @@ type GroupDef = {
 	fields: FieldDef[]
 }
 
-const GROUPS: Record<CredentialGroup, GroupDef> = {
-	linkedin: {
-		title: 'LinkedIn',
-		note: 'Usada pelo scraper a partir da próxima coleta. O teste faz o login de verdade e guarda a sessão para as coletas.',
-		missing: 'Sem ela, o scraper fica em espera e não coleta posts. A coleta começa sozinha depois de salvar.',
-		testable: false,
-		fields: [
-			{ name: 'email', label: 'e-mail', type: 'email', placeholder: 'voce@exemplo.com' },
-			{ name: 'password', label: 'senha', secret: true },
-			{
-				name: 'liAt',
-				label: 'cookie li_at',
-				secret: true,
-				optional: true,
-				help: 'Opcional: o cookie de uma sessão já logada, usado enquanto o scraper não tem uma salva (no primeiro login, por exemplo). Ajuda quando não dá para confirmar o acesso que o LinkedIn pede.',
-				span: 4,
-				advanced: true,
-			},
-		],
-	},
-	discord: {
-		title: 'Discord',
-		note: 'O bot reconecta sozinho em até 30 s depois de salvar.',
-		missing: 'Sem ele, as vagas ficam só no site: não são publicadas no Discord, nem depois de configurar.',
-		testable: true,
-		fields: [
-			{ name: 'token', label: 'token do bot', secret: true },
-			{
-				name: 'channelId',
-				label: 'ID do canal',
-				inputMode: 'numeric',
-				placeholder: 'ex.: 123456789012345678',
-				help: 'Canal de texto ou de fórum. Com o modo desenvolvedor ligado: botão direito no canal › Copiar ID.',
-			},
-		],
-	},
-	github: {
-		title: 'GitHub',
-		note: 'Usado a partir do próximo currículo, para escolher os seus projetos mais próximos da vaga.',
-		testable: true,
-		fields: [
-			{ name: 'username', label: 'usuário', placeholder: 'ex.: octocat' },
-			{
-				name: 'token',
-				label: 'token',
-				secret: true,
-				optional: true,
-				help: 'Opcional: sem token, a API do GitHub permite só 60 requisições por hora.',
-			},
-		],
-	},
-	smtp: {
-		title: 'E-mail',
-		account: 'conta de e-mail',
-		note: 'Usada pelo mailer para enviar as candidaturas, pelo site e pelo Discord, sempre depois da sua confirmação.',
-		testable: true,
-		testHelp: 'O teste faz o login sem enviar nada.',
-		fields: [
-			{
-				name: 'user',
-				label: 'usuário',
-				type: 'email',
-				placeholder: 'voce@gmail.com',
-				live: values => ({ help: smtpUserHelp(values) }),
-				revealsAdvanced: values => needsSmtpHost(values),
-			},
-			{
-				name: 'password',
-				label: 'senha de app',
-				secret: true,
-				help: 'A senha de app do provedor (no Gmail, com a verificação em duas etapas ligada): a senha normal é recusada.',
-			},
-			{
-				name: 'host',
-				label: 'servidor SMTP',
-				span: 3,
-				advanced: true,
-				live: values => ({ placeholder: smtpHostFor(values.user ?? '') ?? 'ex.: smtp.empresa.com.br' }),
-				help: 'Vazio: deduzido do e-mail do usuário (Gmail, Yahoo e iCloud).',
-			},
-			{
-				name: 'port',
-				label: 'porta',
-				inputMode: 'numeric',
-				placeholder: '587',
-				help: 'Opcional: 587 (STARTTLS) por padrão; use 465 para TLS direto.',
-				span: 1,
-				advanced: true,
-			},
-			{
-				name: 'from',
-				label: 'remetente',
-				placeholder: 'ex.: Ana Souza <voce@gmail.com>',
-				help: 'Opcional: o nome e o e-mail que o recrutador vê. Vazio usa o nome do currículo base (o feito pelo formulário) com o usuário.',
-				span: 4,
-				advanced: true,
-			},
-		],
-	},
+/** As contas, com os textos do idioma escolhido. */
+function groupsOf(t: Messages): Record<CredentialGroup, GroupDef> {
+	const { linkedin, discord, github, smtp } = t.accounts
+	return {
+		linkedin: {
+			title: 'LinkedIn',
+			note: linkedin.note,
+			missing: linkedin.missing,
+			testable: false,
+			fields: [
+				{ name: 'email', label: linkedin.email, type: 'email', placeholder: linkedin.emailPlaceholder },
+				{ name: 'password', label: linkedin.password, secret: true },
+				{ name: 'liAt', label: linkedin.liAt, secret: true, optional: true, help: linkedin.liAtHelp, span: 4, advanced: true },
+			],
+		},
+		discord: {
+			title: 'Discord',
+			note: discord.note,
+			missing: discord.missing,
+			testable: true,
+			fields: [
+				{ name: 'token', label: discord.token, secret: true },
+				{
+					name: 'channelId',
+					label: discord.channelId,
+					inputMode: 'numeric',
+					placeholder: discord.channelIdPlaceholder,
+					help: discord.channelIdHelp,
+				},
+			],
+		},
+		github: {
+			title: 'GitHub',
+			note: github.note,
+			testable: true,
+			fields: [
+				{ name: 'username', label: github.username, placeholder: github.usernamePlaceholder },
+				{ name: 'token', label: github.token, secret: true, optional: true, help: github.tokenHelp },
+			],
+		},
+		smtp: {
+			title: smtp.title,
+			account: smtp.account,
+			note: smtp.note,
+			testable: true,
+			testHelp: smtp.testHelp,
+			fields: [
+				{
+					name: 'user',
+					label: smtp.user,
+					type: 'email',
+					placeholder: smtp.userPlaceholder,
+					live: values => ({ help: smtpUserHelp(values, t) }),
+					revealsAdvanced: values => needsSmtpHost(values),
+				},
+				{ name: 'password', label: smtp.password, secret: true, help: smtp.passwordHelp },
+				{
+					name: 'host',
+					label: smtp.host,
+					span: 3,
+					advanced: true,
+					live: values => ({ placeholder: smtpHostFor(values.user ?? '') ?? smtp.hostPlaceholder }),
+					help: smtp.hostHelp,
+				},
+				{
+					name: 'port',
+					label: smtp.port,
+					inputMode: 'numeric',
+					placeholder: '587',
+					help: smtp.portHelp,
+					span: 1,
+					advanced: true,
+				},
+				{ name: 'from', label: smtp.from, placeholder: smtp.fromPlaceholder, help: smtp.fromHelp, span: 4, advanced: true },
+			],
+		},
+	}
 }
 
 /** Um e-mail com domínio, mas sem servidor conhecido nem informado: o servidor precisa ser preenchido em "avançado". */
@@ -186,28 +166,19 @@ function needsSmtpHost(values: Record<string, string>) {
 }
 
 /** Diz, abaixo do usuário, de onde sai o servidor: o deduzido do domínio ou o pedido em "avançado". */
-function smtpUserHelp(values: Record<string, string>) {
+function smtpUserHelp(values: Record<string, string>, t: Messages) {
 	// A conta pessoal da Microsoft tem o aviso próprio (`SmtpProviderGuide`)
 	if (values.host?.trim() || isMicrosoftPersonalAccount(values)) return undefined
 
 	const host = smtpHostFor(values.user ?? '')
-	if (host) return `O servidor (${host}) sai do domínio do e-mail.`
-	if (needsSmtpHost(values)) return `Não conheço o servidor de ${values.user?.split('@')[1]}: informe em "avançado".`
+	if (host) return t.accounts.smtp.hostFromDomain(host)
+	if (needsSmtpHost(values)) return t.accounts.smtp.unknownHost(values.user?.split('@')[1] ?? '')
 	return undefined
 }
 
-const SOURCE_BADGES = {
-	database: { tone: 'ok', label: 'salva no site' },
-	env: {
-		tone: 'neutral',
-		label: 'usando o .env',
-		title: 'Nada salvo no site: valem as credenciais do arquivo .env. Salvar aqui passa a valer no lugar delas.',
-	},
-	none: { tone: 'muted', label: 'não configurada' },
-} as const
+const SOURCE_TONES = { database: 'ok', env: 'neutral', none: 'muted' } as const
 
-const GROUP_KEYS = Object.keys(GROUPS) as CredentialGroup[]
-const TABS = GROUP_KEYS.map(group => ({ value: group, label: GROUPS[group].title }))
+const GROUP_KEYS: CredentialGroup[] = ['linkedin', 'discord', 'github', 'smtp']
 
 /**
  * As contas do LinkedIn, do Discord, do GitHub e do e-mail (SMTP), uma por aba. Cada uma é salva à parte, no MongoDB local, e vale no
@@ -227,13 +198,15 @@ export function AccountsSection({
 	className?: string
 	id?: string
 }) {
+	const t = useT()
+	const groups = groupsOf(t)
 	const [status, setStatus] = useState(initial)
 	const [selected, setSelected] = useState<CredentialGroup>(initialGroup)
 	// Outro link para a tela já aberta (ex.: de "e-mail" para "LinkedIn") troca a aba
 	useEffect(() => setSelected(initialGroup), [initialGroup])
 	const [dirtyGroups, setDirtyGroups] = useState<CredentialGroup[]>([])
 
-	useEffect(() => onDirtyChange?.(dirtyGroups.map(accountNameOf)), [dirtyGroups])
+	useEffect(() => onDirtyChange?.(dirtyGroups.map(group => accountNameOf(groups, group, t))), [dirtyGroups, t])
 
 	function setGroupDirty(group: CredentialGroup, dirty: boolean) {
 		setDirtyGroups(current =>
@@ -244,17 +217,24 @@ export function AccountsSection({
 	return (
 		<SectionCard
 			{...props}
-			title="contas"
-			tag="credenciais"
+			title={t.accounts.title}
+			tag={t.accounts.tag}
 			description={
 				<>
-					Ficam no MongoDB desta máquina e valem no lugar das do <code className="font-mono">.env</code>. Os segredos salvos não
-					são mostrados: deixe o campo vazio para manter o atual.
+					{t.accounts.descriptionBefore}
+					<code className="font-mono">.env</code>
+					{t.accounts.descriptionAfter}
 				</>
 			}
 		>
 			<div className="flex flex-col gap-6">
-				<Tabs id="accounts" label="Contas" items={TABS} selected={selected} onSelect={setSelected} />
+				<Tabs
+					id="accounts"
+					label={t.accounts.tabs}
+					items={GROUP_KEYS.map(group => ({ value: group, label: groups[group].title }))}
+					selected={selected}
+					onSelect={setSelected}
+				/>
 
 				{GROUP_KEYS.map(group => (
 					<TabPanel key={group} tabsId="accounts" value={group} selected={group === selected} className="flex flex-col gap-4">
@@ -273,8 +253,8 @@ export function AccountsSection({
 }
 
 /** Como a conta é chamada nos avisos ("conta do LinkedIn", "conta de e-mail"). */
-function accountNameOf(group: CredentialGroup) {
-	return GROUPS[group].account ?? `conta do ${GROUPS[group].title}`
+function accountNameOf(groups: Record<CredentialGroup, GroupDef>, group: CredentialGroup, t: Messages) {
+	return groups[group].account ?? t.accounts.accountOf(groups[group].title)
 }
 
 function capitalize(text: string) {
@@ -284,20 +264,22 @@ function capitalize(text: string) {
 /** Os campos de um grupo como estão salvos: os públicos com o valor e os segredos vazios. */
 function draftOf(group: CredentialGroup, status: WebCredentials) {
 	const values: Record<string, string | null> = status[group].values
-	return Object.fromEntries(GROUPS[group].fields.map(field => [field.name, field.secret ? '' : (values[field.name] ?? '')]))
+	// Só os nomes dos campos: o idioma não importa
+	return Object.fromEntries(groupsOf(t())[group].fields.map(field => [field.name, field.secret ? '' : (values[field.name] ?? '')]))
 }
 
 /** O teste do login do LinkedIn, com a conta salva. */
 function LinkedinLoginTest({ configured }: { configured: boolean }) {
 	const login = useLinkedinLogin()
+	const t = useT()
 
 	return (
 		<div className="flex flex-col gap-3 border-t border-line pt-4">
 			<div className="flex flex-wrap items-center gap-3">
 				<Button variant="ghost" disabled={!configured || login.active} onClick={login.start}>
-					{login.active ? 'testando…' : 'testar login'}
+					{login.active ? t.accounts.testing : t.accounts.testLogin}
 				</Button>
-				<FieldHelp>Se o LinkedIn pedir uma verificação, ela abre numa janela.</FieldHelp>
+				<FieldHelp>{t.accounts.verificationHelp}</FieldHelp>
 			</div>
 			<LinkedinLoginStatus login={login} />
 		</div>
@@ -323,8 +305,11 @@ export function AccountGroup({
 	onDirtyChange?: (dirty: boolean) => void
 	compact?: boolean
 }) {
-	const config = GROUPS[group]
-	const accountName = accountNameOf(group)
+	const t = useT()
+	const groups = groupsOf(t)
+	const config = groups[group]
+	const accountName = accountNameOf(groups, group, t)
+	const tutorials = accountTutorials(t)
 	const current = status[group]
 	const secrets: Record<string, boolean> = current.secrets
 
@@ -395,24 +380,21 @@ export function AccountGroup({
 				onSaved(next)
 				reset(next)
 				if (action === 'save') flashSaved()
-				notify(action === 'save' ? `${capitalize(accountName)} salva` : `${capitalize(accountName)} apagada do site`)
+				notify(action === 'save' ? t.accounts.saved(capitalize(accountName)) : t.accounts.deleted(capitalize(accountName)))
 			}
 		} catch (error) {
 			setErrors(error instanceof RequestError ? error.fields : {})
 			shakeInvalid(() => document.getElementById('main'))
 			if (action === 'test') setCheck(null)
 			if (!(error instanceof RequestError && Object.keys(error.fields).length > 0)) {
-				notify(
-					`Não consegui ${action === 'save' ? 'salvar' : action === 'test' ? 'testar' : 'apagar'}: ${(error as Error).message}`,
-					'error',
-				)
+				notify(t.accounts.failed(t.accounts.actions[action], (error as Error).message), 'error')
 			}
 		} finally {
 			setBusy(null)
 		}
 	}
 
-	const badge = SOURCE_BADGES[current.source ?? 'none']
+	const source = current.source ?? 'none'
 
 	const mainFields = config.fields.filter(field => !field.advanced)
 	const advancedFields = config.fields.filter(field => field.advanced)
@@ -439,7 +421,7 @@ export function AccountGroup({
 		const isRemoved = removed.includes(field.name)
 		const hasSaved = field.secret && secrets[field.name]
 		const live = field.live?.(draft as Record<string, string>) ?? {}
-		const help = isRemoved ? 'Será removido ao salvar.' : (live.help ?? field.help)
+		const help = isRemoved ? t.accounts.willRemove : (live.help ?? field.help)
 		const placeholder = live.placeholder ?? field.placeholder
 
 		return (
@@ -447,7 +429,7 @@ export function AccountGroup({
 				{/* O segredo salvo fica dito ao lado do rótulo, e não só no placeholder, que some ao digitar */}
 				<div className="flex items-center gap-2">
 					<FieldLabel htmlFor={id}>{field.label}</FieldLabel>
-					{hasSaved && !isRemoved && <span className="text-xs text-muted">salvo · vazio mantém</span>}
+					{hasSaved && !isRemoved && <span className="text-xs text-muted">{t.accounts.savedKeep}</span>}
 				</div>
 				<div className="flex items-center gap-2.5">
 					<Input
@@ -459,7 +441,7 @@ export function AccountGroup({
 						spellCheck={false}
 						value={draft[field.name] ?? ''}
 						disabled={isRemoved}
-						placeholder={hasSaved ? '••••••••' : (placeholder ?? (field.optional ? 'opcional' : ''))}
+						placeholder={hasSaved ? '••••••••' : (placeholder ?? (field.optional ? t.accounts.optional : ''))}
 						invalid={!!errors[field.name]}
 						aria-describedby={errors[field.name] ? `${id}-error` : help ? `${id}-help` : undefined}
 						onChange={event => {
@@ -474,7 +456,7 @@ export function AccountGroup({
 					/>
 					{field.optional && hasSaved && (
 						<IconButton
-							label={isRemoved ? `Manter o ${field.label} salvo` : `Remover o ${field.label} salvo`}
+							label={isRemoved ? t.accounts.keepSaved(field.label) : t.accounts.removeSaved(field.label)}
 							variant="ghost"
 							onClick={() => {
 								setRemoved(current => (isRemoved ? current.filter(name => name !== field.name) : [...current, field.name]))
@@ -509,7 +491,7 @@ export function AccountGroup({
 
 	/** O último passo do tutorial leva ao primeiro campo da conta. */
 	const toFields = {
-		label: 'ir para os campos',
+		label: t.accounts.goToFields,
 		onClick: () => requestAnimationFrame(() => document.getElementById(`${group}-${mainFields[0]?.name}`)?.focus()),
 	}
 
@@ -528,7 +510,7 @@ export function AccountGroup({
 
 			{/* O que tem um padrão que serve para quase todo mundo fica recolhido; abre sozinho quando um campo de lá é pedido */}
 			{advancedFields.length > 0 && (
-				<Disclosure summary={`avançado: ${advancedFields.map(field => field.label).join(', ')}`} defaultOpen={advancedOpen}>
+				<Disclosure summary={t.accounts.advanced(advancedFields.map(field => field.label).join(', '))} defaultOpen={advancedOpen}>
 					<div className={cx(FIELD_GRID, 'mt-3 text-ink')}>{advancedFields.map(renderField)}</div>
 				</Disclosure>
 			)}
@@ -541,7 +523,7 @@ export function AccountGroup({
 				<div className="flex flex-wrap items-center gap-3">
 					{current.source === 'database' && (
 						<Button variant="ghost" disabled={busy !== null} onClick={() => setConfirmDelete(true)}>
-							apagar do site
+							{t.accounts.deleteFromSite}
 						</Button>
 					)}
 					<div className="ml-auto flex flex-wrap items-center justify-end gap-3">
@@ -551,11 +533,11 @@ export function AccountGroup({
 								disabled={busy !== null || (current.source === null && !dirty)}
 								onClick={() => run('test')}
 							>
-								{busy === 'test' ? 'testando…' : 'testar'}
+								{busy === 'test' ? t.accounts.testing : t.accounts.test}
 							</Button>
 						)}
 						<Button variant="ghost" disabled={!dirty || busy !== null} onClick={() => reset(status)}>
-							descartar
+							{t.accounts.discard}
 						</Button>
 						{/* Salvo, o check desenhado aparece no botão por um instante */}
 						<Button
@@ -566,15 +548,15 @@ export function AccountGroup({
 							{busy === 'save' ? (
 								<>
 									<Icon name="spinner" />
-									salvando…
+									{t.accounts.saving}
 								</>
 							) : savedFlash ? (
 								<>
 									<DrawnCheck />
-									salvo
+									{t.accounts.savedButton}
 								</>
 							) : (
-								'salvar'
+								t.accounts.save
 							)}
 						</Button>
 					</div>
@@ -593,7 +575,7 @@ export function AccountGroup({
 								<>
 									{' · '}
 									<TextLink size="sm" onClick={() => showTutorial(check.step)}>
-										ver o passo a passo
+										{t.accounts.stepByStep}
 									</TextLink>
 								</>
 							)}
@@ -608,13 +590,9 @@ export function AccountGroup({
 		<>
 			{dialog && (
 				<TutorialDialog
-					{...ACCOUNT_TUTORIALS[group]}
+					{...tutorials[group]}
 					// O provedor fica atrás da modal: ela diz como trocar de caminho
-					intro={
-						group === 'smtp'
-							? `${ACCOUNT_TUTORIALS.smtp.intro} Para outro provedor, feche e troque a escolha na conta.`
-							: ACCOUNT_TUTORIALS[group].intro
-					}
+					intro={group === 'smtp' ? `${tutorials.smtp.intro} ${t.accounts.otherProvider}` : tutorials[group].intro}
 					path={tutorialPath}
 					highlight={dialog.step}
 					scene={(path, step) => accountScene(group, path, step.id)}
@@ -624,10 +602,10 @@ export function AccountGroup({
 			)}
 			{confirmDelete && (
 				<ConfirmDialog
-					title={`Apagar a ${accountName}?`}
-					description="As credenciais salvas no site são apagadas. Se o .env tiver as dele, elas voltam a valer."
-					confirmLabel="apagar"
-					cancelLabel="cancelar"
+					title={t.accounts.deleteTitle(accountName)}
+					description={t.accounts.deleteText}
+					confirmLabel={t.accounts.delete}
+					cancelLabel={t.accounts.cancel}
 					onConfirm={() => {
 						setConfirmDelete(false)
 						run('delete')
@@ -642,11 +620,15 @@ export function AccountGroup({
 					<FieldHelp className="min-w-0">
 						{config.note}{' '}
 						<TextLink size="sm" onClick={() => showTutorial()}>
-							como configurar
+							{t.accounts.howTo}
 						</TextLink>
 					</FieldHelp>
-					<Badge className="shrink-0" tone={badge.tone} title={'title' in badge ? badge.title : undefined}>
-						{badge.label}
+					<Badge
+						className="shrink-0"
+						tone={SOURCE_TONES[source]}
+						title={source === 'env' ? t.accounts.sources.envTitle : undefined}
+					>
+						{t.accounts.sources[source]}
 					</Badge>
 				</div>
 			)}
@@ -659,19 +641,19 @@ export function AccountGroup({
 						// Sem moldura própria (já está dentro do cartão): só a linha que o separa dos campos
 						<Tutorial
 							id={tutorialId}
-							{...ACCOUNT_TUTORIALS[group]}
+							{...tutorials[group]}
 							path={tutorialPath}
 							highlight={highlight}
 							scene={(path, step) => accountScene(group, path, step.id)}
 							onClose={closePanel}
-							closeLabel="Esconder os tutoriais das contas (voltam em “como configurar”)"
+							closeLabel={t.accounts.hideTutorials}
 							done={toFields}
 							className="border-b border-line pb-6"
 						/>
 					) : (
 						<Button id={`${tutorialId}-open`} variant="ghost" size="sm" className="self-start" onClick={() => showTutorial()}>
 							<Icon name="info" />
-							como configurar
+							{t.accounts.howTo}
 						</Button>
 					)}
 					<div className="flex min-w-0 flex-col gap-5">{fields}</div>
@@ -699,15 +681,16 @@ function SmtpProviderGuide({
 	onChoose: (next: SmtpProviderChoice) => void
 }) {
 	const labelId = useId()
+	const t = useT()
 
 	return (
 		<div className="flex flex-col gap-3">
 			<div className="flex items-center gap-2 max-sm:flex-col max-sm:items-start max-sm:gap-1.5">
 				<span id={labelId} className={LABEL}>
-					provedor
+					{t.accounts.smtp.provider}
 				</span>
 				<PillGroup role="group" aria-labelledby={labelId}>
-					{SMTP_PROVIDER_OPTIONS.map(option => (
+					{smtpProviderOptions(t).map(option => (
 						<Pill key={option.id} pressed={provider === option.id} onClick={() => onChoose(option.id)}>
 							{option.label}
 						</Pill>
@@ -718,12 +701,11 @@ function SmtpProviderGuide({
 			{isMicrosoftPersonalAccount(values) && (
 				<Notice tone="warn" icon="alert">
 					<p>
-						A Microsoft não aceita senha, nem senha de app, no SMTP das contas pessoais (Outlook, Hotmail e Live): o teste e o
-						envio vão falhar.{' '}
+						{t.accounts.smtp.microsoftWarning}{' '}
 						<TextLink size="sm" onClick={() => onChoose(GMAIL_PRESET.id)}>
-							usar o Gmail
+							{t.accounts.smtp.useGmail}
 						</TextLink>
-						. Contas Microsoft 365 de trabalho ou escola funcionam se o administrador liberar o SMTP AUTH.
+						{t.accounts.smtp.microsoftWork}
 					</p>
 				</Notice>
 			)}

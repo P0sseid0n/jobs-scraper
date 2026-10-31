@@ -1,4 +1,5 @@
 import { isMicrosoftPersonalAccount, smtpHostFor } from '@shared/contracts'
+import type { Messages } from '@shared/i18n'
 
 /**
  * Um provedor recomendado na conta de e-mail (os passos da senha de app ficam no tutorial da conta). O servidor e a
@@ -30,11 +31,13 @@ export const MICROSOFT_365_HOST = 'smtp.office365.com'
 export type SmtpProviderChoice = SmtpPreset['id'] | 'outlook' | 'other'
 
 /** As opções da escolha, na ordem em que aparecem. */
-export const SMTP_PROVIDER_OPTIONS: { id: SmtpProviderChoice; label: string }[] = [
-	{ id: GMAIL_PRESET.id, label: `${GMAIL_PRESET.label} (recomendado)` },
-	{ id: 'outlook', label: 'Outlook (trabalho)' },
-	{ id: 'other', label: 'outro' },
-]
+export const SMTP_PROVIDER_CHOICES: SmtpProviderChoice[] = [GMAIL_PRESET.id, 'outlook', 'other']
+
+/** As opções da escolha com o nome no idioma escolhido. */
+export function smtpProviderOptions(t: Messages) {
+	const names: Record<string, string> = t.tutorials.smtp.providers
+	return SMTP_PROVIDER_CHOICES.map(id => ({ id, label: names[id] ?? id }))
+}
 
 /** O provedor recomendado do usuário digitado (`ana@gmail.com` → Gmail), ou `null`. */
 export function smtpPresetOf(user: string) {

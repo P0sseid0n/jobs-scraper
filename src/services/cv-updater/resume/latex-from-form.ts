@@ -3,7 +3,7 @@
  * (`assets/cv.neutral.example.tex`). Cada seção sai no formato que o latex-reader.ts lê, para o ajuste à vaga
  * funcionar como num `.tex` escrito à mão. Seções e itens vazios ficam de fora.
  */
-import { CV_FORM_DEFAULT_TITLES, type CvForm, type CvFormSection, type CvFormSectionOf } from '@shared/contracts'
+import { cvSectionTitles, type CvForm, type CvFormSection, type CvFormSectionOf } from '@shared/contracts'
 
 import neutralTex from '../assets/cv.neutral.example.tex' with { type: 'text' }
 import { escapeLatex } from './latex-syntax'
@@ -19,9 +19,10 @@ export function formToLatex(form: CvForm) {
 		() => `pdfauthor={${name}}`,
 	)
 
+	const titles = cvSectionTitles()
 	const sections = form.sections.flatMap(section => {
 		const body = renderSection(section)
-		const title = escapeText(section.title) || CV_FORM_DEFAULT_TITLES[section.kind]
+		const title = escapeText(section.title) || titles[section.kind]
 		return body ? [`\\section*{${title}}\n\n${body}`] : []
 	})
 

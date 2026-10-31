@@ -12,6 +12,7 @@ import {
 	saveCvFile,
 	type ApplicationMailDocument,
 } from '@shared/database'
+import { message, t } from '@shared/i18n'
 import type { Logger } from '@shared/logging'
 import { QUEUES, type QueueClient } from '@shared/messaging'
 import { loadCredentials } from '@shared/settings'
@@ -29,7 +30,7 @@ type Deps = { queue: QueueClient; events: EventHub; logger: Logger }
 const WebMailContextSchema = z.object({ mailId: z.uuid() })
 
 export const MailDraftSchema = z.object({
-	requestId: z.uuid('Escolha o currículo a anexar'),
+	requestId: z.uuid(message(m => m.serverErrors.chooseCv)),
 	to: MailAddressSchema,
 	subject: MailSubjectSchema,
 	body: MailBodySchema,
@@ -82,19 +83,19 @@ export async function sendJobMail(req: Request & { params: { postId: string } },
 	const draft = MailDraftSchema.parse(await readJson(req))
 
 	if (!(await loadCredentials('smtp'))) {
-		throw new HttpError(409, 'Envio por e-mail desligado: configure a conta de e-mail em Configurações › Contas.')
+		throw new HttpError(409, t().api.mailDisabled)
 	}
 
-	if (!(await Job.exists({ ...LISTABLE_JOBS, postId }))) throw new HttpError(404, 'Vaga não encontrada')
+	if (!(await Job.exists({ ...LISTABLE_JOBS, postId }))) throw new HttpError(404, t().api.jobNotFound)
 
 	// Sem `.lean()`: com ele o `pdf` vem como `Binary` do BSON, não como Buffer
 	const cv = await CvRequestRecord.findOne({ requestId: draft.requestId, postId, status: 'ready' }, { pdf: 1, fileName: 1 })
-	if (!cv?.pdf) throw new HttpError(409, 'O currículo desta vaga não está pronto: gere o currículo antes de enviar.')
+	if (!cv?.pdf) throw new HttpError(409, t().api.mailCvNotReady)
 
 	const { sending, sent } = await mailBlockers(postId)
-	if (sending) throw new HttpError(409, 'Já há um envio desta candidatura em andamento.')
+	if (sending) throw new HttpError(409, t().api.mailSending)
 	if (sent && !draft.force) {
-		throw new HttpError(409, 'Esta vaga já recebeu candidatura por e-mail. Confirme para enviar de novo.')
+		throw new HttpError(409, t().api.mailAlreadySent)
 	}
 
 	const fileName = cv.fileName ?? 'Curriculo.pdf'
@@ -126,7 +127,7 @@ export async function sendJobMail(req: Request & { params: { postId: string } },
 	} catch (error) {
 		await ApplicationMail.updateOne(
 			{ mailId: mail.mailId },
-			{ status: 'failed', error: 'Não consegui pedir o envio ao mailer.', finishedAt: new Date() },
+			{ status: 'failed', error: t().serverErrors.mailerUnreachable, finishedAt: new Date() },
 		)
 		throw error
 	}

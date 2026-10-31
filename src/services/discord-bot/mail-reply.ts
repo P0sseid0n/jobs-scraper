@@ -10,6 +10,7 @@ import {
 } from 'discord.js'
 
 import type { MailResult } from '@shared/contracts'
+import { t } from '@shared/i18n'
 
 import { templateNotes } from './template-message'
 
@@ -35,7 +36,7 @@ export function sendApplicationRow(fileId: string, retry = false) {
 		new ButtonBuilder()
 			.setCustomId(`${MAIL_BUTTON_PREFIX}${fileId}`)
 			.setStyle(retry ? ButtonStyle.Secondary : ButtonStyle.Primary)
-			.setLabel(retry ? 'Tentar de novo' : 'Enviar candidatura')
+			.setLabel(retry ? t().discord.retry : t().discord.sendApplication)
 			.setEmoji(retry ? '🔁' : '✉️'),
 	)
 }
@@ -46,9 +47,9 @@ export function confirmationRow(fileId: string, resend: boolean) {
 		new ButtonBuilder()
 			.setCustomId(`${MAIL_SEND_PREFIX}${fileId}`)
 			.setStyle(ButtonStyle.Success)
-			.setLabel(resend ? 'Enviar de novo' : 'Confirmar envio')
+			.setLabel(resend ? t().discord.sendAgain : t().discord.confirmSend)
 			.setEmoji('📤'),
-		new ButtonBuilder().setCustomId(`${MAIL_CANCEL_PREFIX}${fileId}`).setStyle(ButtonStyle.Secondary).setLabel('Cancelar'),
+		new ButtonBuilder().setCustomId(`${MAIL_CANCEL_PREFIX}${fileId}`).setStyle(ButtonStyle.Secondary).setLabel(t().discord.cancel),
 	)
 }
 
@@ -68,25 +69,20 @@ export function buildMailConfirmation(mail: {
 	// Três crases no texto fechariam o bloco de código antes da hora
 	const body = mail.body.replaceAll('```', "'''")
 	const cut = body.length > BODY_PREVIEW_MAX
-	const warning = mail.lastSentAt
-		? [
-				`⚠️ **Esta vaga já recebeu sua candidatura por e-mail** ${time(mail.lastSentAt, TimestampStyles.RelativeTime)}. Confirmar manda outro e-mail.`,
-				'',
-			]
-		: []
+	const warning = mail.lastSentAt ? [t().discord.alreadySent(time(mail.lastSentAt, TimestampStyles.RelativeTime)), ''] : []
 
 	const content = [
 		...warning,
-		'**Revise a candidatura antes de enviar:**',
-		`📧 **Para:** ${mail.to}`,
-		`📝 **Assunto:** ${mail.subject}`,
+		t().discord.reviewBeforeSending,
+		t().discord.to(mail.to),
+		t().discord.subject(mail.subject),
 		'```',
 		cut ? `${body.slice(0, BODY_PREVIEW_MAX).trimEnd()}\n[…]` : body,
 		'```',
-		`📎 ${mail.fileName}${cut ? ' · o texto completo vai no e-mail' : ''}`,
+		`📎 ${mail.fileName}${cut ? t().discord.fullTextInEmail : ''}`,
 		...templateNotes({ fallbacks: mail.fallbacks ?? [], missing: [] }),
 		'',
-		'Nada é enviado sem o “Confirmar envio”. Para mudar o texto, use o site.',
+		t().discord.nothingSent,
 	].join('\n')
 
 	return content.slice(0, CONTENT_MAX)
@@ -94,7 +90,5 @@ export function buildMailConfirmation(mail: {
 
 /** O texto da confirmação depois do resultado do mailer. */
 export function mailResultContent(result: Pick<MailResult, 'status' | 'error'>, to: string) {
-	return result.status === 'sent'
-		? `✅ Candidatura enviada para **${to}**, com o currículo anexado. A vaga ficou marcada como candidatura enviada.`
-		: `⚠️ O envio para **${to}** falhou: ${result.error ?? 'erro desconhecido'}`
+	return result.status === 'sent' ? t().discord.sent(to) : t().discord.sendFailed(to, result.error ?? t().discord.unknownError)
 }

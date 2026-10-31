@@ -1,8 +1,9 @@
 import { z } from 'zod'
 
+import { BASE_LOCALE, LOCALE_CODES, localeForLanguage, message, t, type Locale } from '../i18n'
 import {
 	BUILT_IN_VARIABLES,
-	DEFAULT_TEMPLATE,
+	defaultTemplate,
 	OPTIONAL_VARIABLE_NAMES,
 	TEMPLATE_VARIABLE_TYPES,
 	templateTokens,
@@ -55,7 +56,7 @@ export const ScraperSettingsSchema = z
 		paused: z.boolean().default(false),
 	})
 	.refine(settings => new Set(settings.searchTerms.map(term => term.term.toLowerCase())).size === settings.searchTerms.length, {
-		message: 'Há termos de busca repetidos',
+		...message(m => m.validation.duplicateSearchTerms),
 		path: ['searchTerms'],
 	})
 
@@ -91,7 +92,10 @@ export const PostProcessingSettingsSchema = z.object({
 				.string()
 				.trim()
 				.toLowerCase()
-				.regex(/^[a-z]{2}$/, 'Use o código ISO 639-1 do idioma (ex.: "pt", "en")'),
+				.regex(
+					/^[a-z]{2}$/,
+					message(m => m.validation.isoLanguage),
+				),
 		)
 		.max(20)
 		.default(['pt'])
@@ -144,10 +148,26 @@ export const MAX_PROFILE_LANGUAGES = 10
  */
 export const ProfileSettingsSchema = z.object({
 	/** A área de atuação (ex.: "Marketing", "Enfermagem"). */
-	area: z.string().trim().min(1, 'Informe a área').max(80).optional(),
+	area: z
+		.string()
+		.trim()
+		.min(
+			1,
+			message(m => m.validation.areaRequired),
+		)
+		.max(80)
+		.optional(),
 
 	/** O cargo procurado (ex.: "Analista de Marketing Digital"). */
-	targetRole: z.string().trim().min(1, 'Informe o cargo-alvo').max(100).optional(),
+	targetRole: z
+		.string()
+		.trim()
+		.min(
+			1,
+			message(m => m.validation.targetRoleRequired),
+		)
+		.max(100)
+		.optional(),
 
 	seniority: z.enum(SENIORITY_LEVELS).nullable().default(null),
 
@@ -158,9 +178,15 @@ export const ProfileSettingsSchema = z.object({
 				.string()
 				.trim()
 				.toLowerCase()
-				.regex(/^[a-z]{2}$/, 'Use o código ISO 639-1 do idioma (ex.: "pt", "en")'),
+				.regex(
+					/^[a-z]{2}$/,
+					message(m => m.validation.isoLanguage),
+				),
 		)
-		.min(1, 'Escolha pelo menos um idioma')
+		.min(
+			1,
+			message(m => m.validation.languagesRequired),
+		)
 		.max(MAX_PROFILE_LANGUAGES)
 		.default(['pt'])
 		.transform(languages => [...new Set(languages)]),
@@ -191,20 +217,38 @@ const OwnVariableSchema = z.object({
 	name: z
 		.string()
 		.trim()
-		.min(1, 'Dê um nome à variável')
-		.max(OWN_VARIABLE_LIMITS.name, `Use até ${OWN_VARIABLE_LIMITS.name} caracteres`)
-		.regex(VARIABLE_NAME, 'Use minúsculas sem acento, números e _ entre as palavras (ex.: meu_nome)'),
+		.min(
+			1,
+			message(m => m.validation.variableNameRequired),
+		)
+		.max(
+			OWN_VARIABLE_LIMITS.name,
+			message(m => m.validation.maxChars(OWN_VARIABLE_LIMITS.name)),
+		)
+		.regex(
+			VARIABLE_NAME,
+			message(m => m.validation.variableNameFormat),
+		),
 	description: z
 		.string()
 		.trim()
-		.max(OWN_VARIABLE_LIMITS.description, `Use até ${OWN_VARIABLE_LIMITS.description} caracteres`)
+		.max(
+			OWN_VARIABLE_LIMITS.description,
+			message(m => m.validation.maxChars(OWN_VARIABLE_LIMITS.description)),
+		)
 		.default(''),
 	type: z.enum(TEMPLATE_VARIABLE_TYPES).default('text'),
 	value: z
 		.string()
 		.trim()
-		.min(1, 'Informe o valor')
-		.max(OWN_VARIABLE_LIMITS.value, `Use até ${OWN_VARIABLE_LIMITS.value} caracteres`),
+		.min(
+			1,
+			message(m => m.validation.valueRequired),
+		)
+		.max(
+			OWN_VARIABLE_LIMITS.value,
+			message(m => m.validation.maxChars(OWN_VARIABLE_LIMITS.value)),
+		),
 })
 
 const HTTP_LINK = /^https?:\/\/[^\s/$.?#][^\s]*$/i
@@ -219,7 +263,7 @@ function moveSignatureToTemplate(values: unknown) {
 
 	const { signature, ...rest } = values as { signature?: unknown; template?: { subject?: unknown; body?: unknown } }
 	const footer = typeof signature === 'string' ? signature.trim() : ''
-	const template = { ...DEFAULT_TEMPLATE, ...rest.template }
+	const template = { ...defaultTemplate(), ...rest.template }
 	if (!footer || typeof template.body !== 'string' || template.body.includes(footer)) return rest
 
 	return { ...rest, template: { ...template, body: `${template.body.trimEnd()}\n\n${footer}` } }
@@ -238,17 +282,35 @@ const MessageSettingsObject = z
 				subject: z
 					.string()
 					.trim()
-					.min(1, 'Escreva o assunto')
-					.max(MESSAGE_SUBJECT_MAX, `Use até ${MESSAGE_SUBJECT_MAX} caracteres`),
+					.min(
+						1,
+						message(m => m.validation.subjectRequired),
+					)
+					.max(
+						MESSAGE_SUBJECT_MAX,
+						message(m => m.validation.maxChars(MESSAGE_SUBJECT_MAX)),
+					),
 				body: z
 					.string()
 					.trim()
-					.min(1, 'Escreva a mensagem')
-					.max(MESSAGE_TEMPLATE_MAX, `Use até ${MESSAGE_TEMPLATE_MAX.toLocaleString('pt-BR')} caracteres`),
+					.min(
+						1,
+						message(m => m.validation.bodyRequired),
+					)
+					.max(
+						MESSAGE_TEMPLATE_MAX,
+						message(m => m.validation.maxChars(MESSAGE_TEMPLATE_MAX)),
+					),
 			})
-			.default(DEFAULT_TEMPLATE),
+			.default(() => defaultTemplate()),
 		/** As variáveis da pessoa (`{{meu_nome}}`, `{{link_github}}`), com um valor fixo. */
-		variables: z.array(OwnVariableSchema).max(MAX_OWN_VARIABLES, `Use no máximo ${MAX_OWN_VARIABLES} variáveis`).default([]),
+		variables: z
+			.array(OwnVariableSchema)
+			.max(
+				MAX_OWN_VARIABLES,
+				message(m => m.validation.maxVariables(MAX_OWN_VARIABLES)),
+			)
+			.default([]),
 		/** O texto usado quando a vaga não tem o valor de uma variável que pode faltar (`empresa` → "a sua empresa"). */
 		fallbacks: z
 			.record(
@@ -256,8 +318,14 @@ const MessageSettingsObject = z
 				z
 					.string()
 					.trim()
-					.min(1, 'Escreva o texto usado quando a vaga não tem o valor, ou apague o fallback')
-					.max(FALLBACK_MAX, `Use até ${FALLBACK_MAX} caracteres`),
+					.min(
+						1,
+						message(m => m.validation.fallbackRequired),
+					)
+					.max(
+						FALLBACK_MAX,
+						message(m => m.validation.maxChars(FALLBACK_MAX)),
+					),
 			)
 			.default({}),
 	})
@@ -270,10 +338,10 @@ const MessageSettingsObject = z
 				ctx.addIssue({
 					code: 'custom',
 					path: ['variables', index, 'name'],
-					message: `{{${variable.name}}} já é uma variável pronta: use outro nome`,
+					message: t().validation.builtInVariable(variable.name),
 				})
 			} else if (seen.has(variable.name)) {
-				ctx.addIssue({ code: 'custom', path: ['variables', index, 'name'], message: 'Já há uma variável com esse nome' })
+				ctx.addIssue({ code: 'custom', path: ['variables', index, 'name'], message: t().validation.duplicateVariable })
 			}
 			seen.add(variable.name)
 
@@ -281,14 +349,14 @@ const MessageSettingsObject = z
 				ctx.addIssue({
 					code: 'custom',
 					path: ['variables', index, 'value'],
-					message: 'Use um link que comece com http:// ou https://',
+					message: t().validation.linkVariable,
 				})
 			}
 		})
 
 		for (const name of Object.keys(settings.fallbacks)) {
 			if (!OPTIONAL_VARIABLE_NAMES.includes(name)) {
-				ctx.addIssue({ code: 'custom', path: ['fallbacks', name], message: `{{${name}}} nunca falta: não precisa de fallback` })
+				ctx.addIssue({ code: 'custom', path: ['fallbacks', name], message: t().validation.fallbackNeverMissing(name) })
 			}
 		}
 
@@ -308,19 +376,56 @@ function templateProblem(text: string, field: 'subject' | 'body', variables: Map
 	for (const token of templateTokens(text)) {
 		const variable = variables.get(token.name)
 		if (!variable) {
-			return token.name
-				? `A variável {{${token.name}}} não existe: confira o nome ou crie em “suas variáveis”`
-				: 'Há uma variável sem nome ({{ }}): escreva o nome dentro das chaves'
+			return token.name ? t().validation.unknownVariable(token.name) : t().validation.unnamedVariable
 		}
 		if (field === 'subject' && variable.type === 'link') {
-			return `{{${token.name}}} é um link e só funciona na mensagem: tire do assunto`
+			return t().validation.linkInSubject(token.name)
 		}
 		if (token.fallback === '') {
-			return `O fallback de {{${token.name}}} está vazio: escreva o texto depois da barra ou tire a barra`
+			return t().validation.emptyFallback(token.name)
 		}
 	}
 
 	return null
+}
+
+/**
+ * O idioma da candidatura (o currículo ajustado e a mensagem melhorada pela IA). `system`: sempre o idioma do sistema.
+ * `job`: o idioma detectado do post.
+ */
+export const CV_LANGUAGE_MODES = ['system', 'job'] as const
+export type CvLanguageMode = (typeof CV_LANGUAGE_MODES)[number]
+
+/**
+ * O idioma do sistema (site, Discord e validação) e o da candidatura. Não se confunde com os idiomas do perfil
+ * (`profile.languages`) nem com os aceitos nos posts (`allowedLanguages`).
+ */
+export const LanguageSettingsSchema = z.object({
+	/**
+	 * `null`: ainda não escolhido. O site usa o do navegador e o salva; os outros serviços, o `pt-BR`. Um idioma que
+	 * deixou de existir volta a `null`.
+	 */
+	locale: z.enum(LOCALE_CODES).nullable().default(null).catch(null),
+	cvLanguage: z.enum(CV_LANGUAGE_MODES).default('system'),
+})
+
+export type LanguageSettings = z.output<typeof LanguageSettingsSchema>
+
+/** O idioma do sistema salvo, ou o `pt-BR` enquanto ninguém escolheu. */
+export function systemLocale(settings: Pick<LanguageSettings, 'locale'>) {
+	return settings.locale ?? BASE_LOCALE
+}
+
+/**
+ * O idioma do currículo ajustado de uma vaga, resolvido uma vez por vaga: com `job`, o do post, se o sistema tiver o
+ * idioma (`source: 'job'`); sem idioma detectado ou sem tradução para ele, o do sistema.
+ */
+export function cvLocaleFor(
+	settings: LanguageSettings,
+	jobLanguage: string | null | undefined,
+): { locale: Locale; source: CvLanguageMode } {
+	const fromJob = settings.cvLanguage === 'job' && jobLanguage ? localeForLanguage(jobLanguage) : null
+	return fromJob ? { locale: fromJob, source: 'job' } : { locale: systemLocale(settings), source: 'system' }
 }
 
 /** Schema de cada documento da coleção `settings`, pelo `_id`. */
@@ -329,6 +434,7 @@ export const SETTINGS_SCHEMAS = {
 	'post-processing': PostProcessingSettingsSchema,
 	profile: ProfileSettingsSchema,
 	message: MessageSettingsSchema,
+	language: LanguageSettingsSchema,
 } as const
 
 export type SettingsKey = keyof typeof SETTINGS_SCHEMAS
@@ -340,24 +446,48 @@ export type SettingsInput<K extends SettingsKey> = z.input<(typeof SETTINGS_SCHE
  * ou pelo `.env`. Cada grupo vale por inteiro: o do banco, se existir; senão, o do `.env`.
  */
 export const LinkedinCredentialsSchema = z.object({
-	email: z.string('Informe o e-mail').trim().pipe(z.email('Informe um e-mail válido')),
-	password: z.string('Informe a senha').min(1, 'Informe a senha'),
+	email: z
+		.string(message(m => m.validation.emailRequired))
+		.trim()
+		.pipe(z.email(message(m => m.validation.emailInvalid))),
+	password: z.string(message(m => m.validation.passwordRequired)).min(
+		1,
+		message(m => m.validation.passwordRequired),
+	),
 	/** Cookie `li_at` de uma sessão já logada, usado enquanto o scraper não tem uma sessão salva. */
 	liAt: z.string().trim().min(1).optional(),
 })
 
 export const DiscordCredentialsSchema = z.object({
-	token: z.string('Informe o token do bot').trim().min(1, 'Informe o token do bot'),
-	channelId: z.string('Informe o ID do canal').trim().regex(/^\d+$/, 'Use o ID numérico do canal'),
+	token: z
+		.string(message(m => m.validation.botTokenRequired))
+		.trim()
+		.min(
+			1,
+			message(m => m.validation.botTokenRequired),
+		),
+	channelId: z
+		.string(message(m => m.validation.channelIdRequired))
+		.trim()
+		.regex(
+			/^\d+$/,
+			message(m => m.validation.channelIdFormat),
+		),
 })
 
 export const GithubCredentialsSchema = z.object({
 	username: z
-		.string('Informe o usuário')
+		.string(message(m => m.validation.userRequired))
 		.trim()
-		.min(1, 'Informe o usuário')
+		.min(
+			1,
+			message(m => m.validation.userRequired),
+		)
 		.max(39)
-		.regex(/^[a-z\d][a-z\d-]*$/i, 'Use o nome de usuário do GitHub (letras, números e hífen)'),
+		.regex(
+			/^[a-z\d][a-z\d-]*$/i,
+			message(m => m.validation.githubUserFormat),
+		),
 	/** Opcional: sem token, a API do GitHub permite só 60 requisições por hora. */
 	token: z.string().trim().min(1).optional(),
 })
@@ -423,23 +553,49 @@ export const SmtpCredentialsSchema = z
 			z
 				.string()
 				.trim()
-				.regex(/^[a-z\d.-]+$/i, 'Use só o endereço do servidor (ex.: smtp.gmail.com)'),
+				.regex(
+					/^[a-z\d.-]+$/i,
+					message(m => m.validation.smtpHostFormat),
+				),
 		),
 		/** Opcional: sem porta, vale a 587. Texto, como os outros campos do formulário. */
 		port: emptyAsUndefined(
 			z
 				.string()
 				.trim()
-				.regex(/^\d{1,5}$/, 'Use o número da porta (ex.: 587 ou 465)')
-				.refine(port => Number(port) >= 1 && Number(port) <= 65_535, 'Porta fora do intervalo 1-65535'),
+				.regex(
+					/^\d{1,5}$/,
+					message(m => m.validation.smtpPortFormat),
+				)
+				.refine(
+					port => Number(port) >= 1 && Number(port) <= 65_535,
+					message(m => m.validation.smtpPortRange),
+				),
 		),
-		user: z.string('Informe o usuário').trim().min(1, 'Informe o usuário (em geral, o e-mail)'),
-		password: z.string('Informe a senha').min(1, 'Informe a senha (de app, no Gmail)'),
+		user: z
+			.string(message(m => m.validation.userRequired))
+			.trim()
+			.min(
+				1,
+				message(m => m.validation.smtpUserRequired),
+			),
+		password: z.string(message(m => m.validation.passwordRequired)).min(
+			1,
+			message(m => m.validation.smtpPasswordRequired),
+		),
 		/**
 		 * Opcional: o remetente ("Nome <email>" ou só o e-mail); sem ele, o nome do currículo base com o `user`
 		 * (`senderOf`, no mailer).
 		 */
-		from: emptyAsUndefined(z.string().trim().max(200, 'Use até 200 caracteres')),
+		from: emptyAsUndefined(
+			z
+				.string()
+				.trim()
+				.max(
+					200,
+					message(m => m.validation.maxChars(200)),
+				),
+		),
 	})
 	.superRefine((account, ctx) => {
 		if (account.host || smtpHostFor(account.user)) return
@@ -449,10 +605,10 @@ export const SmtpCredentialsSchema = z
 			code: 'custom',
 			path: ['host'],
 			message: isMicrosoftPersonalAccount(account)
-				? `Informe o servidor SMTP, mas a Microsoft não aceita senha no SMTP das contas pessoais (${domain}): use uma conta do Gmail`
+				? t().validation.smtpHostMicrosoft(domain ?? '')
 				: domain
-					? `Informe o servidor SMTP: não conheço o de ${domain}`
-					: 'Informe o servidor SMTP (ou use o e-mail inteiro no usuário, para ele ser deduzido)',
+					? t().validation.smtpHostUnknown(domain)
+					: t().validation.smtpHostMissing,
 		})
 	})
 

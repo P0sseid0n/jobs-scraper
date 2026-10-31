@@ -1,22 +1,15 @@
 import type { Message, Ollama } from 'ollama'
 import { z } from 'zod'
 
-import { MESSAGE_LENGTHS, MESSAGE_TONES, type MessageLength } from '@shared/contracts'
+import { cvLocaleFor, MESSAGE_LENGTHS, MESSAGE_TONES, type MessageLength } from '@shared/contracts'
 import { Job } from '@shared/database'
+import { languageName, message, t, type Locale } from '@shared/i18n'
 import type { Logger } from '@shared/logging'
-import {
-	claimsYears,
-	cleanMessageBody,
-	clichesIn,
-	MESSAGE_LANGUAGE_NAMES,
-	messageLanguage,
-	messageStyleRules,
-	messageTextProblem,
-	newProperNouns,
-	type MessageLanguage,
-} from '@shared/templates'
+import { readSettings } from '@shared/settings'
+import { claimsYears, cleanMessageBody, clichesIn, messageStyleRules, messageTextProblem, newProperNouns } from '@shared/templates'
 
 import type { WebImprovedMessage } from '../api-types'
+import { CvRequestRecord } from './cv-request.model'
 import { HttpError, readJson } from './http'
 
 // Modelos pequenos tendem a copiar frases da mensagem atual, clichês inclusive: uma tentativa a mais
@@ -51,13 +44,13 @@ Return JSON with "body", following these rules:
 const DIRECT_RULE =
 	'- Make it more direct: cut filler and pleasantries, lead with the role and the most relevant fact, and use fewer, shorter sentences.'
 
-/** Monta o pedido de reescrita: a mensagem atual, a vaga e o estilo pedido. */
-export function buildRewriteRequest(body: string, job: RewriteJob, language: MessageLanguage, request: RewriteRequest) {
+/** Monta o pedido de reescrita: a mensagem atual, a vaga, o idioma da candidatura e o estilo pedido. */
+export function buildRewriteRequest(body: string, job: RewriteJob, locale: Locale, request: RewriteRequest) {
 	const cliches = clichesIn(body)
 	const rules = [SYSTEM_PROMPT, messageStyleRules(request.tone, request.length), ...(request.direct ? [DIRECT_RULE] : [])]
 
 	const content = [
-		`## Message language\n${MESSAGE_LANGUAGE_NAMES[language]}`,
+		`## Message language\n${languageName(locale, 'en')}`,
 		[
 			'## Job opening',
 			`Title: ${job.title ?? 'not stated'}`,
@@ -118,17 +111,18 @@ export function validateRewrite(
 }
 
 /**
- * Pede a reescrita à IA; se a resposta for recusada, pede outra (até `MODEL_ATTEMPTS`). `null` se a IA falhar ou todas
- * forem recusadas.
+ * Pede a reescrita à IA, em `locale`; se a resposta for recusada, pede outra (até `MODEL_ATTEMPTS`). `null` se a IA
+ * falhar ou todas forem recusadas.
  */
 export async function requestRewrite(
 	ai: Deps['ai'],
 	body: string,
-	job: RewriteJob & { language: string | null },
+	job: RewriteJob,
+	locale: Locale,
 	request: RewriteRequest,
 	log: Logger,
 ): Promise<string | null> {
-	const { messages, format } = buildRewriteRequest(body, job, messageLanguage(job.language), request)
+	const { messages, format } = buildRewriteRequest(body, job, locale, request)
 
 	for (let attempt = 1; attempt <= MODEL_ATTEMPTS; attempt++) {
 		let content: string
@@ -166,7 +160,14 @@ function parseBody(content: string) {
 
 /** "Melhorar com a IA": o texto da modal (o modelo preenchido ou o que a pessoa editou) e o estilo. */
 export const ImproveRequestSchema = RewriteRequestSchema.extend({
-	body: z.string().trim().min(1, 'Escreva a mensagem antes de pedir à IA').max(5000),
+	body: z
+		.string()
+		.trim()
+		.min(
+			1,
+			message(m => m.serverErrors.writeFirst),
+		)
+		.max(5000),
 })
 
 /**
@@ -179,9 +180,10 @@ export async function improveJobMessage(req: Request & { params: { postId: strin
 		{ postId: req.params.postId },
 		{ title: 1, company: 1, necessaryKnowledge: 1, rawContent: 1, language: 1 },
 	).lean()
-	if (!job) throw new HttpError(404, 'Vaga não encontrada')
+	if (!job) throw new HttpError(404, t().api.jobNotFound)
 
 	const log = logger.child({ postId: req.params.postId })
+	const locale = await applicationLocale(req.params.postId, job.language ?? null)
 	const rewritten = await requestRewrite(
 		ai,
 		body,
@@ -190,14 +192,29 @@ export async function improveJobMessage(req: Request & { params: { postId: strin
 			company: job.company ?? null,
 			necessaryKnowledge: job.necessaryKnowledge ?? [],
 			rawContent: job.rawContent,
-			language: job.language ?? null,
 		},
+		locale,
 		request,
 		log,
 	)
-	if (!rewritten) throw new HttpError(502, 'A IA não conseguiu melhorar a mensagem agora; ela continua como estava.')
+	if (!rewritten) throw new HttpError(502, t().api.aiRewriteFailed)
 
-	log.info({ tone: request.tone, length: request.length, direct: request.direct }, 'Mensagem melhorada pela IA')
+	log.info({ tone: request.tone, length: request.length, direct: request.direct, locale }, 'Mensagem melhorada pela IA')
 
 	return Response.json({ body: rewritten } satisfies WebImprovedMessage)
+}
+
+/**
+ * O idioma da candidatura da vaga, para a mensagem sair no mesmo idioma do currículo: o do último currículo gerado para
+ * ela; sem currículo (ou de antes do campo), o que o cv-updater escolheria agora (`cvLocaleFor`).
+ */
+export async function applicationLocale(postId: string, jobLanguage: string | null): Promise<Locale> {
+	const cv = await CvRequestRecord.findOne(
+		{ postId, status: 'ready', 'changes.language.locale': { $ne: null } },
+		{ changes: 1 },
+		{ sort: { requestedAt: -1 } },
+	).lean()
+	const fromCv = cv?.changes?.language ?? null
+
+	return fromCv ? fromCv.locale : cvLocaleFor(await readSettings('language'), jobLanguage).locale
 }

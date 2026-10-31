@@ -1,5 +1,6 @@
 import type { Message, Ollama } from 'ollama'
 
+import type { Locale } from '@shared/i18n'
 import type { Logger } from '@shared/logging'
 
 import type { ResumeContent } from './resume/resume.types'
@@ -18,8 +19,8 @@ const MODEL_ATTEMPTS = 2
 type AiOptions = { ollama: Ollama; model: string }
 
 /**
- * Pede à IA a nova apresentação e as sugestões de habilidades e projetos; se a apresentação for
- * rejeitada, pede outra versão uma vez.
+ * Pede à IA a nova apresentação (em `locale`, o idioma do currículo da vaga) e as sugestões de habilidades e projetos;
+ * se a apresentação for rejeitada, pede outra versão uma vez.
  * @returns As sugestões, ou `null` se a IA falhar (o currículo ainda é ajustado, sem apresentação nova).
  */
 export async function requestTailoringSuggestions(
@@ -27,9 +28,10 @@ export async function requestTailoringSuggestions(
 	resume: ResumeContent,
 	job: TargetJob,
 	profile: TailoringProfile,
+	locale: Locale,
 	log: Logger,
 ): Promise<TailoringSuggestions | null> {
-	const request = buildTailoringRequest(resume, job, profile)
+	const request = buildTailoringRequest(resume, job, profile, locale)
 	const messages: Message[] = request.messages
 	let suggestions: TailoringSuggestions | null = null
 

@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { Job } from '@shared/database'
+import { t } from '@shared/i18n'
 
 import type { JobsViewedChange } from '../api-types'
 import type { EventHub } from './event-hub'
@@ -51,7 +52,7 @@ export async function setJobViewed(req: Request & { params: { postId: string } }
 	await applyViewed([postId], viewed, events)
 
 	const doc = await Job.findOne({ ...LISTABLE_JOBS, postId }, { viewedAt: 1 }).lean<{ viewedAt?: Date | null }>()
-	if (!doc) throw new HttpError(404, 'Vaga não encontrada')
+	if (!doc) throw new HttpError(404, t().api.jobNotFound)
 
 	return Response.json({ postId, viewedAt: doc.viewedAt?.toISOString() ?? null })
 }

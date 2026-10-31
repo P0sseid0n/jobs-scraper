@@ -1,23 +1,24 @@
 import {
-	CV_FORM_DEFAULT_TITLES,
 	CV_FORM_MAX_ITEMS,
 	CV_FORM_TOOLS_LABELS,
+	cvSectionTitles,
 	type CvForm,
 	type CvFormSection,
 	type CvFormSectionKind,
 } from '@shared/contracts'
+import { t } from '@shared/i18n'
 
 import { isSectionTitle } from '../../../cv-updater/resume/latex-syntax'
 
-/** Nome de cada seção no formulário (o título padrão no PDF é `CV_FORM_DEFAULT_TITLES`). */
-export const SECTION_LABELS: Record<CvFormSectionKind, string> = {
-	summary: 'Apresentação',
-	skills: 'Habilidades',
-	experience: 'Experiência profissional',
-	education: 'Formação',
-	certifications: 'Certificações e cursos',
-	languages: 'Idiomas',
-	projects: 'Projetos',
+/** O rótulo da linha de ferramentas dos projetos no idioma escolhido ("Ferramentas", "Tools"). */
+export function defaultToolsLabel(): (typeof CV_FORM_TOOLS_LABELS)[number] {
+	const label = t().resume.tools
+	return CV_FORM_TOOLS_LABELS.find(item => item === label) ?? CV_FORM_TOOLS_LABELS[0]
+}
+
+/** Nome de cada seção no formulário, no idioma escolhido (o título padrão no PDF é `cvSectionTitles`). */
+export function sectionLabels(): Record<CvFormSectionKind, string> {
+	return t().resume.labels
 }
 
 type EntryOf<K extends CvFormSectionKind> = Extract<CvFormSection, { kind: K; entries: unknown[] }>['entries'][number]
@@ -40,7 +41,7 @@ export function emptySection(kind: CvFormSectionKind): CvFormSection {
 		case 'skills':
 			return { kind, title: '', groups: [EMPTY_ENTRY.skillGroup()] }
 		case 'projects':
-			return { kind, title: '', entries: [EMPTY_ENTRY.projects()], toolsLabel: CV_FORM_TOOLS_LABELS[0] }
+			return { kind, title: '', entries: [EMPTY_ENTRY.projects()], toolsLabel: defaultToolsLabel() }
 		default:
 			return { kind, title: '', entries: [EMPTY_ENTRY[kind]()] } as CvFormSection
 	}
@@ -101,26 +102,29 @@ export function cleanForm(form: CvForm): CvForm {
  */
 export function formProblems(form: CvForm) {
 	const problems: Record<string, string> = {}
+	const rules = t().cvFormRules
 	const clean = cleanForm(form)
 
-	if (!clean.contact.name.trim()) problems['contact.name'] = 'Preencha o nome.'
-	if (clean.contact.links.length > CV_FORM_MAX_ITEMS) problems['contact.links'] = `No máximo ${CV_FORM_MAX_ITEMS} links.`
+	if (!clean.contact.name.trim()) problems['contact.name'] = rules.nameRequired
+	if (clean.contact.links.length > CV_FORM_MAX_ITEMS) problems['contact.links'] = rules.maxLinks(CV_FORM_MAX_ITEMS)
 
 	const hasBase = clean.sections.some(
 		section => (section.kind === 'experience' || section.kind === 'education') && section.entries.length,
 	)
-	if (!hasBase) problems.sections = 'Preencha pelo menos uma experiência ou uma formação.'
+	if (!hasBase) problems.sections = rules.baseRequired
 
 	// No formulário como está (não no limpo), para o caminho apontar o item da tela
 	form.sections.forEach((section, index) => {
 		if (!isSectionTitle(section.kind, section.title)) {
-			problems[`sections.${index}.title`] =
-				`Esse título não é reconhecido como ${SECTION_LABELS[section.kind].toLowerCase()}; use um sinônimo (ex.: ${CV_FORM_DEFAULT_TITLES[section.kind]}) ou deixe vazio.`
+			problems[`sections.${index}.title`] = rules.unknownTitle(
+				sectionLabels()[section.kind].toLowerCase(),
+				cvSectionTitles()[section.kind],
+			)
 		}
 		if (section.kind !== 'experience') return
 		section.entries.forEach((entry, entryIndex) => {
 			if (lines(entry.bullets).length > CV_FORM_MAX_ITEMS) {
-				problems[`sections.${index}.entries.${entryIndex}.bullets`] = `No máximo ${CV_FORM_MAX_ITEMS} tópicos.`
+				problems[`sections.${index}.entries.${entryIndex}.bullets`] = rules.maxBullets(CV_FORM_MAX_ITEMS)
 			}
 		})
 	})

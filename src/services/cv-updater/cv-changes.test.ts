@@ -24,28 +24,31 @@ const report: TailoringReport = {
 	summaryRejected: null,
 }
 
+const language = { locale: 'en', source: 'job' } as const
+
 describe('cvChanges', () => {
 	test('lista as habilidades que entraram e saíram e os projetos na ordem do PDF', () => {
 		const resume = { ...base, projects: [base.projects[1]!] }
 
-		expect(cvChanges(base, resume, report)).toEqual({
+		expect(cvChanges(base, resume, report, language)).toEqual({
 			addedSkills: ['Angular'],
 			removedSkills: ['jQuery'],
 			summary: null,
 			projects: ['Painel'],
+			language,
 		})
 	})
 
 	test('traz a apresentação de antes e a nova quando ela mudou', () => {
 		const resume = { ...base, summary: 'Desenvolvedora front-end com Angular.' }
 
-		expect(cvChanges(base, resume, report).summary).toEqual({
+		expect(cvChanges(base, resume, report, language).summary).toEqual({
 			before: 'Desenvolvedora front-end.',
 			after: 'Desenvolvedora front-end com Angular.',
 		})
 	})
 
 	test('a apresentação igual à do currículo base (só com espaços a mais) não conta como trocada', () => {
-		expect(cvChanges(base, { ...base, summary: ' Desenvolvedora front-end. ' }, report).summary).toBeNull()
+		expect(cvChanges(base, { ...base, summary: ' Desenvolvedora front-end. ' }, report, language).summary).toBeNull()
 	})
 })

@@ -1,5 +1,6 @@
 import { needsReview, ProcessedJobSchema, type JobPublished } from '@shared/contracts'
 import { Job } from '@shared/database'
+import { t } from '@shared/i18n'
 import type { Logger } from '@shared/logging'
 import { EXCHANGES, type QueueClient } from '@shared/messaging'
 import { readSettings } from '@shared/settings'
@@ -20,7 +21,7 @@ export async function ungroupRepost(
 	const { postId, repostId } = req.params
 
 	const original = await Job.findOne({ ...LISTABLE_JOBS, postId, 'reposts.postId': repostId }, { _id: 1 }).lean()
-	if (!original) throw new HttpError(404, 'Repostagem não encontrada nesta vaga')
+	if (!original) throw new HttpError(404, t().api.repostNotFound)
 
 	const repost = await Job.findOneAndUpdate(
 		{ postId: repostId, duplicateOf: postId },
@@ -32,7 +33,7 @@ export async function ungroupRepost(
 		{ $pull: { reposts: { postId: repostId } } },
 		{ returnDocument: 'after', lean: true },
 	)
-	if (!updated) throw new HttpError(404, 'Vaga não encontrada')
+	if (!updated) throw new HttpError(404, t().api.jobNotFound)
 
 	const { reviewChecksPercent } = await readSettings('post-processing')
 

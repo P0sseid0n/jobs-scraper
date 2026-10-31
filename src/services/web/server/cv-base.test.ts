@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test'
 import { ZodError } from 'zod'
 
-import { CV_BASE_TIMEOUT_ERROR, parseNewVersion, storedForm, toWebCvBaseVersion } from './cv-base'
+import { cvBaseTimeoutError, parseNewVersion, storedForm, toWebCvBaseVersion } from './cv-base'
 import { CV_TIMEOUT_MS } from './cv-request.model'
 import { fieldErrors, HttpError } from './http'
 
@@ -26,7 +26,7 @@ test('versão validando dentro do prazo continua validando', () => {
 test('sem resposta do cv-updater no prazo, aparece como recusada com o motivo', () => {
 	const version = toWebCvBaseVersion(doc, new Date(createdAt.getTime() + CV_TIMEOUT_MS + 1))
 
-	expect(version).toMatchObject({ status: 'invalid', errors: [CV_BASE_TIMEOUT_ERROR], createdAt: createdAt.toISOString() })
+	expect(version).toMatchObject({ status: 'invalid', errors: [cvBaseTimeoutError()], createdAt: createdAt.toISOString() })
 })
 
 test('os problemas da validação vão como erros da versão', () => {

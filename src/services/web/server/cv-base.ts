@@ -2,14 +2,15 @@ import { z } from 'zod'
 
 import {
 	CV_BASE_TEX_MAX_BYTES,
-	CV_FORM_DEFAULT_TITLES,
 	CvBaseTexSchema,
 	CvFormSchema,
+	cvSectionTitles,
 	type CvBaseValidationRequest,
 	type CvBaseValidationResult,
 	type CvForm,
 } from '@shared/contracts'
 import { ACTIVE_CV_BASE, CvBaseVersion, type CvBaseVersionDocument } from '@shared/database'
+import { t } from '@shared/i18n'
 import type { Logger } from '@shared/logging'
 import { QUEUES, type QueueClient } from '@shared/messaging'
 
@@ -25,7 +26,8 @@ const LIST_LIMIT = 30
 const UNUSED_DAYS = 7
 const SUMMARY = { tex: 0, pdf: 0, form: 0 } as const
 
-export const CV_BASE_TIMEOUT_ERROR = 'O cv-updater não respondeu em 10 minutos. Confira se ele está rodando e envie de novo.'
+/** A validação que passou do prazo, no idioma de quem pergunta. */
+export const cvBaseTimeoutError = () => t().serverErrors.cvBaseTimeout
 
 /** Corpo do `POST /api/cv-base/versions` com o `.tex` enviado ou escrito no site. */
 const TexVersionSchema = z.object({
@@ -40,7 +42,7 @@ const FormVersionSchema = z.object({ form: CvFormSchema }).superRefine(({ form }
 		ctx.addIssue({
 			code: 'custom',
 			path: ['form', 'sections', index, 'title'],
-			message: `O cv-updater não reconhece "${section.title}" como esta seção; use um sinônimo (ex.: ${CV_FORM_DEFAULT_TITLES[section.kind]}) ou deixe vazio.`,
+			message: t().serverErrors.unknownSection(section.title, cvSectionTitles()[section.kind]),
 		})
 	})
 })
@@ -62,7 +64,7 @@ export function parseNewVersion(body: unknown): { tex: string; fileName: string 
 		const { form } = FormVersionSchema.parse(body)
 		const tex = formToLatex(form)
 		if (!CvBaseTexSchema.safeParse(tex).success) {
-			throw new HttpError(400, `O currículo gerado passa de ${CV_BASE_TEX_MAX_BYTES / 1024} KB; encurte os textos`)
+			throw new HttpError(400, t().api.cvTooLarge(CV_BASE_TEX_MAX_BYTES / 1024))
 		}
 		return { tex, fileName: null, form }
 	}
@@ -83,7 +85,7 @@ export function toWebCvBaseVersion(doc: VersionSummary, now = new Date()): WebCv
 		fileName: doc.fileName,
 		fromForm: doc.fromForm ?? false,
 		status: timedOut ? 'invalid' : doc.status,
-		errors: timedOut ? [CV_BASE_TIMEOUT_ERROR] : doc.problems,
+		errors: timedOut ? [cvBaseTimeoutError()] : doc.problems,
 		pages: doc.pages,
 		size: doc.size,
 		createdAt: doc.createdAt.toISOString(),
@@ -109,7 +111,7 @@ export async function listCvBaseVersions() {
 /** `GET /api/cv-base/versions/:versionId`: a versão com o `.tex`. */
 export async function getCvBaseVersion(req: Request & { params: { versionId: string } }) {
 	const doc = await CvBaseVersion.findOne({ versionId: req.params.versionId }, { pdf: 0 }).lean<Omit<CvBaseVersionDocument, 'pdf'>>()
-	if (!doc) throw new HttpError(404, 'Versão do currículo base não encontrada')
+	if (!doc) throw new HttpError(404, t().api.cvBaseVersionNotFound)
 
 	return Response.json({ ...toWebCvBaseVersion(doc), tex: doc.tex, form: storedForm(doc.form) } satisfies WebCvBaseVersionWithTex)
 }
@@ -118,7 +120,7 @@ export async function getCvBaseVersion(req: Request & { params: { versionId: str
 export async function getCvBasePdf(req: Request & { params: { versionId: string } }) {
 	// Sem `.lean()`: com ele o `pdf` vem como `Binary` do BSON (ver getCvPdf)
 	const doc = await CvBaseVersion.findOne({ versionId: req.params.versionId }, { pdf: 1 })
-	if (!doc?.pdf) throw new HttpError(404, 'Pré-visualização não encontrada (a versão ainda está validando ou não compilou)')
+	if (!doc?.pdf) throw new HttpError(404, t().api.cvBasePreviewNotFound)
 
 	return new Response(new Blob([new Uint8Array(doc.pdf)]), {
 		headers: {
@@ -182,9 +184,7 @@ export async function activateCvBaseVersion(
 
 	if (!doc) {
 		const exists = await CvBaseVersion.exists({ versionId })
-		throw exists
-			? new HttpError(409, 'Só uma versão validada, sem erros, pode virar o currículo base')
-			: new HttpError(404, 'Versão do currículo base não encontrada')
+		throw exists ? new HttpError(409, t().api.cvBaseNotValidated) : new HttpError(404, t().api.cvBaseVersionNotFound)
 	}
 
 	const version = toWebCvBaseVersion(doc)
@@ -202,7 +202,7 @@ export async function saveCvBaseValidation(result: CvBaseValidationResult, { eve
 		{ versionId: result.validationId },
 		{
 			status: valid ? 'valid' : 'invalid',
-			problems: valid ? [] : result.errors.length ? result.errors : ['O cv-updater não devolveu a pré-visualização.'],
+			problems: valid ? [] : result.errors.length ? result.errors : [t().serverErrors.noPreview],
 			pages: result.pages,
 			pdf: result.pdf ? Buffer.from(result.pdf, 'base64') : null,
 			validatedAt: new Date(),

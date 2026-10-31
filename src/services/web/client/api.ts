@@ -1,4 +1,5 @@
 import type { CvForm, JobCorrectionInput, MessageLength, MessageTone } from '@shared/contracts'
+import { currentLocale, t } from '@shared/i18n'
 
 import type {
 	ApiError,
@@ -50,16 +51,20 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 	let response: Response
 
 	try {
-		response = await fetch(path, { ...init, headers: { 'Content-Type': 'application/json', ...init?.headers } })
+		// O idioma escolhido, para os erros (validação e mensagens do servidor) virem nele
+		response = await fetch(path, {
+			...init,
+			headers: { 'Content-Type': 'application/json', 'Accept-Language': currentLocale(), ...init?.headers },
+		})
 	} catch {
-		throw new RequestError('Sem conexão com o servidor do site', 0)
+		throw new RequestError(t().api.noConnection, 0)
 	}
 
 	const body = (await response.json().catch(() => null)) as unknown
 
 	if (!response.ok) {
 		const error = (body ?? {}) as Partial<ApiError>
-		throw new RequestError(error.error ?? `Erro ${response.status}`, response.status, error.fields)
+		throw new RequestError(error.error ?? t().api.status(response.status), response.status, error.fields)
 	}
 
 	return body as T

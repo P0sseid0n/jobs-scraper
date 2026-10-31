@@ -1,4 +1,5 @@
 import { CV_IMPORT_PDF_MAX_BYTES, type CvImportRequest, type CvImportResult } from '@shared/contracts'
+import { t } from '@shared/i18n'
 import type { Logger } from '@shared/logging'
 import { QUEUES, type QueueClient } from '@shared/messaging'
 
@@ -7,7 +8,8 @@ import { CV_TIMEOUT_MS } from './cv-request.model'
 import type { EventHub } from './event-hub'
 import { HttpError } from './http'
 
-export const CV_IMPORT_TIMEOUT_ERROR = 'O cv-updater não leu o PDF em 10 minutos. Confira se ele está rodando e envie de novo.'
+/** A leitura que passou do prazo, no idioma de quem pergunta. */
+export const cvImportTimeoutError = () => t().serverErrors.cvImportTimeout
 
 const MAX_SIZE_MB = CV_IMPORT_PDF_MAX_BYTES / 1024 / 1024
 
@@ -34,7 +36,7 @@ export class CvImports {
 			importId: result.importId,
 			status: result.form ? 'done' : 'failed',
 			form: result.form,
-			error: result.form ? null : (result.error ?? 'O cv-updater não devolveu o formulário.'),
+			error: result.form ? null : (result.error ?? t().serverErrors.noForm),
 		}
 		this.imports.set(result.importId, { ...done, createdAt: current.createdAt })
 		return done
@@ -48,7 +50,7 @@ export class CvImports {
 
 		const { createdAt, ...current } = found
 		if (current.status === 'pending' && now - createdAt > CV_TIMEOUT_MS) {
-			return { ...current, status: 'failed', error: CV_IMPORT_TIMEOUT_ERROR }
+			return { ...current, status: 'failed', error: cvImportTimeoutError() }
 		}
 		return current
 	}
@@ -69,11 +71,11 @@ type Deps = { imports: CvImports; queue: QueueClient; events: EventHub; logger: 
  */
 export async function requestCvImport(req: Request, { imports, queue, logger }: Omit<Deps, 'events'>) {
 	const declared = Number(req.headers.get('Content-Length'))
-	if (declared > CV_IMPORT_PDF_MAX_BYTES) throw new HttpError(413, `O PDF passa de ${MAX_SIZE_MB} MB`)
+	if (declared > CV_IMPORT_PDF_MAX_BYTES) throw new HttpError(413, t().serverErrors.pdfTooLarge(MAX_SIZE_MB))
 
 	const pdf = Buffer.from(await req.arrayBuffer())
-	if (pdf.length === 0) throw new HttpError(400, 'Envie o PDF do currículo')
-	if (pdf.length > CV_IMPORT_PDF_MAX_BYTES) throw new HttpError(413, `O PDF passa de ${MAX_SIZE_MB} MB`)
+	if (pdf.length === 0) throw new HttpError(400, t().serverErrors.pdfRequired)
+	if (pdf.length > CV_IMPORT_PDF_MAX_BYTES) throw new HttpError(413, t().serverErrors.pdfTooLarge(MAX_SIZE_MB))
 
 	const importId = imports.start()
 	const request: CvImportRequest = {
@@ -91,7 +93,7 @@ export async function requestCvImport(req: Request, { imports, queue, logger }: 
 /** `GET /api/cv-base/imports/:importId`: a importação, para quem perdeu o evento do stream. */
 export function getCvImport(req: Request & { params: { importId: string } }, imports: CvImports) {
 	const found = imports.get(req.params.importId)
-	if (!found) throw new HttpError(404, 'Importação não encontrada (o site reiniciou ou ela expirou). Envie o PDF de novo.')
+	if (!found) throw new HttpError(404, t().serverErrors.importNotFound)
 
 	return Response.json(found satisfies WebCvImport)
 }

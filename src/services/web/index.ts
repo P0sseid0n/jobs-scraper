@@ -1,5 +1,4 @@
 import { Ollama } from 'ollama'
-import { z } from 'zod'
 
 import {
 	CvBaseValidationResultSchema,
@@ -12,6 +11,7 @@ import {
 	ScraperRunEventSchema,
 } from '@shared/contracts'
 import { isDatabaseConnected, Job } from '@shared/database'
+import { localizeZodErrors, t } from '@shared/i18n'
 import { onShutdown } from '@shared/lifecycle'
 import { EXCHANGES, QUEUES } from '@shared/messaging'
 import { startService } from '@shared/service'
@@ -51,8 +51,8 @@ import { searchSuggestions, setupStatus } from './server/setup'
 const { config, logger, queue } = await startService({ name: 'web', env: webEnv, database: true })
 const ai = { ollama: new Ollama({ host: config.OLLAMA_HOST }), model: config.OLLAMA_MODEL }
 
-// Os erros de validação vão para a interface: mensagens do zod em português
-z.config(z.locales.pt())
+// Os erros de validação vão para a interface: mensagens do zod no idioma da requisição (ver `handler`)
+localizeZodErrors()
 
 const events = new EventHub()
 onShutdown(() => events.close())
@@ -99,7 +99,7 @@ await queue.consume(QUEUES.webReprocess, JobReprocessResultSchema, result => bro
 // a queda no meio de uma consulta fica com o `handler`
 const api = <R extends Request>(fn: (req: R) => Promise<Response> | Response) =>
 	handler<R>(logger, req => {
-		if (!isDatabaseConnected()) throw new HttpError(503, 'Banco de dados fora do ar')
+		if (!isDatabaseConnected()) throw new HttpError(503, t().api.databaseDown)
 		return fn(req)
 	})
 
@@ -174,7 +174,7 @@ const server = Bun.serve({
 				return suggestSearchTerms(req)
 			},
 		},
-		'/api/*': Response.json({ error: 'Rota da API não encontrada' } satisfies ApiError, { status: 404 }),
+		'/api/*': handler(logger, () => Response.json({ error: t().api.routeNotFound } satisfies ApiError, { status: 404 })),
 		// O resto é a aplicação (as rotas do navegador são resolvidas no cliente)
 		'/*': app,
 	},

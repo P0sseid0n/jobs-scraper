@@ -2,6 +2,7 @@ import { useLayoutEffect, type ReactNode } from 'react'
 
 import { cx } from '../../lib/cx'
 import { createStore, useStore } from '../../lib/store'
+import { useT } from '../../stores/locale'
 import { Icon, type IconName } from '../Icon'
 import { Button } from '../ui/Button'
 
@@ -117,6 +118,7 @@ export function useCurrentSubSteps() {
  */
 export function StepBar() {
 	const state = useStore(stepBar)
+	const t = useT()
 	if (!state) return null
 
 	return (
@@ -127,7 +129,7 @@ export function StepBar() {
 			{state.onBack ? (
 				<Button variant="ghost" onClick={state.onBack}>
 					<Icon name="back" />
-					voltar
+					{t.common.back}
 				</Button>
 			) : (
 				state.hint && <span className="text-sm text-muted">{state.hint}</span>

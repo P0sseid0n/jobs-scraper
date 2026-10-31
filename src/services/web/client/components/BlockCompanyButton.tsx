@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { WebBlockedCompanyJobs, WebJob } from '../../api-types'
 import { api } from '../api'
 import { removeJob } from '../stores/jobs'
+import { useT } from '../stores/locale'
 import { notify } from '../stores/toast'
 import { Icon } from './Icon'
 import { Button } from './ui/Button'
@@ -44,12 +45,13 @@ export type CompanyBlock = ReturnType<typeof useCompanyBlock>
  * vermelho. No toque, sem a dica do mouse, a palavra aparece ao lado do ícone.
  */
 export function BlockCompanyButton({ block, onClick }: { block: CompanyBlock; onClick: () => void }) {
+	const t = useT().blockCompany
 	if (!block.company) return null
 	const blocked = block.status?.company ?? null
 
 	return (
 		<IconButton
-			label={blocked ? `${block.company} está bloqueada: desbloquear ou tirar da lista` : `bloquear ${block.company}`}
+			label={blocked ? t.blockedLabel(block.company) : t.blockLabel(block.company)}
 			size="xs"
 			tone={blocked ? 'danger' : 'muted'}
 			className="ml-1 align-middle pointer-coarse:w-auto pointer-coarse:grid-flow-col pointer-coarse:gap-1 pointer-coarse:px-1.5"
@@ -57,7 +59,7 @@ export function BlockCompanyButton({ block, onClick }: { block: CompanyBlock; on
 			onClick={onClick}
 		>
 			<Icon name="block" size={14} />
-			<span className="hidden font-mono text-xs pointer-coarse:inline">{blocked ? 'bloqueada' : 'bloquear'}</span>
+			<span className="hidden font-mono text-xs pointer-coarse:inline">{blocked ? t.blocked : t.block}</span>
 		</IconButton>
 	)
 }
@@ -79,6 +81,7 @@ export function BlockCompanyDialog({
 	/** A vaga aberta saiu da lista junto com as outras da empresa. */
 	onRemoved: () => void
 }) {
+	const t = useT().blockCompany
 	const ref = useRef<HTMLDialogElement>(null)
 	// Acabou de bloquear: o título confirma o bloqueio, e fechar avisa no toast
 	const [justBlocked, setJustBlocked] = useState(false)
@@ -91,35 +94,35 @@ export function BlockCompanyDialog({
 	const jobs = block.status?.jobs ?? 0
 	const close = () => ref.current?.close()
 
-	async function run(action: NonNullable<typeof busy>, failure: string, work: () => Promise<void>) {
+	async function run(action: NonNullable<typeof busy>, work: () => Promise<void>) {
 		if (busy) return
 		setBusy(action)
 		try {
 			await work()
 		} catch (error) {
-			notify(`Não consegui ${failure}: ${(error as Error).message}`, 'error')
+			notify(t.failed(t.actions[action], (error as Error).message), 'error')
 		} finally {
 			setBusy(null)
 		}
 	}
 
 	const blockCompany = () =>
-		run('block', 'bloquear', async () => {
+		run('block', async () => {
 			block.setStatus(await api.blockCompany(company))
 			setJustBlocked(true)
 		})
 
 	const unblock = () =>
-		run('unblock', 'desbloquear', async () => {
+		run('unblock', async () => {
 			block.setStatus(await api.unblockCompany(company))
-			notify(`${blocked} desbloqueada`)
+			notify(t.unblockedToast(blocked ?? company))
 			close()
 		})
 
 	const removeJobs = () =>
-		run('remove', 'tirar da lista', async () => {
+		run('remove', async () => {
 			const { postIds } = await api.removeBlockedJobs(company)
-			notify(postIds.length === 1 ? 'Vaga tirada da lista' : `${postIds.length} vagas tiradas da lista`)
+			notify(t.removedToast(postIds.length))
 			block.setStatus({ company: blocked, jobs: 0 })
 			// Sem o aviso de bloqueada ao fechar: o de vagas tiradas já confirma
 			setJustBlocked(false)
@@ -129,7 +132,7 @@ export function BlockCompanyDialog({
 		})
 
 	function closed() {
-		if (justBlocked && blocked) notify(`${blocked} bloqueada`)
+		if (justBlocked && blocked) notify(t.blockedToast(blocked))
 		onClose()
 	}
 
@@ -137,49 +140,39 @@ export function BlockCompanyDialog({
 		<Dialog ref={ref} onClose={closed}>
 			<div className="flex flex-col gap-2.5 px-5 pt-4 pb-5">
 				<DialogTitle>
-					{!blocked ? `Bloquear a ${company}?` : justBlocked ? `${blocked} bloqueada` : `${blocked} está bloqueada`}
+					{!blocked ? t.confirmTitle(company) : justBlocked ? t.blockedTitle(blocked) : t.isBlockedTitle(blocked)}
 				</DialogTitle>
 
 				{!blocked ? (
 					<>
-						<p className="text-sm text-muted">
-							As próximas vagas dela são descartadas na coleta, sem aparecer no site nem no Discord. Dá para desbloquear aqui ou
-							em Configurações › Filtros.
-						</p>
+						<p className="text-sm text-muted">{t.confirmText}</p>
 						<div className={DIALOG_ACTIONS}>
 							<Button variant="ghost" onClick={close}>
-								cancelar
+								{t.cancel}
 							</Button>
 							<Button variant="danger" disabled={busy !== null} onClick={() => void blockCompany()}>
-								{busy === 'block' ? 'bloqueando…' : 'bloquear'}
+								{busy === 'block' ? t.blocking : t.block}
 							</Button>
 						</div>
 					</>
 				) : (
 					<>
 						<p className="text-sm text-muted">
-							{justBlocked
-								? 'As próximas vagas dela são descartadas na coleta.'
-								: 'As vagas dela são descartadas na coleta. Desbloquear vale para os posts que aparecerem de novo: não traz de volta as vagas tiradas.'}{' '}
-							{jobs === 0
-								? 'Nenhuma vaga dela está na lista.'
-								: jobs === 1
-									? 'Remover a vaga dela que já está na lista?'
-									: `Remover as ${jobs} vagas dela que já estão na lista?`}
+							{justBlocked ? t.justBlocked : t.alreadyBlocked} {t.jobsInList(jobs)}
 						</p>
 						<div className={DIALOG_ACTIONS}>
 							{/* Longe do remover: desbloquear é a ação oposta */}
 							{!justBlocked && (
 								<Button variant="ghost" className="mr-auto" disabled={busy !== null} onClick={() => void unblock()}>
-									{busy === 'unblock' ? 'desbloqueando…' : 'desbloquear'}
+									{busy === 'unblock' ? t.unblocking : t.unblock}
 								</Button>
 							)}
 							<Button variant="ghost" onClick={close}>
-								{jobs === 0 ? 'fechar' : 'manter'}
+								{jobs === 0 ? t.close : t.keep}
 							</Button>
 							{jobs > 0 && (
 								<Button variant="danger" disabled={busy !== null} onClick={() => void removeJobs()}>
-									{busy === 'remove' ? 'removendo…' : jobs === 1 ? 'remover a vaga' : `remover ${jobs} vagas`}
+									{busy === 'remove' ? t.removing : t.remove(jobs)}
 								</Button>
 							)}
 						</div>

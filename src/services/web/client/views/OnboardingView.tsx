@@ -1,9 +1,12 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
 
+import type { CvLanguageMode } from '@shared/contracts'
+
 import type { SetupStatus, WebCredentials, WebCvBaseVersion } from '../../api-types'
 import { api } from '../api'
 import { Icon } from '../components/Icon'
+import { LanguageSelect } from '../components/LanguageSelect'
 import { Logo } from '../components/Logo'
 import { EmailStep, ExtrasStep, LinkedinStep } from '../components/onboarding/AccountSteps'
 import { CvStep } from '../components/onboarding/CvStep'
@@ -16,6 +19,7 @@ import { IconButton } from '../components/ui/IconButton'
 import { Hero } from '../components/ui/Page'
 import { LIST, META } from '../components/ui/text'
 import { cx } from '../lib/cx'
+import { useT } from '../stores/locale'
 import { loadSetup } from '../stores/setup'
 import { toggleTheme } from '../stores/theme'
 import { notify } from '../stores/toast'
@@ -25,14 +29,16 @@ export type OnboardingData = {
 	settings: ProfileStepData
 	credentials: WebCredentials
 	cvVersions: WebCvBaseVersion[]
+	/** O idioma do currículo ajustado, escolhido no passo do currículo. */
+	cvLanguage: CvLanguageMode
 }
 
 const TOTAL = NUMBERED_STEPS.length
 
 /**
- * O onboarding do primeiro acesso (`/boas-vindas`), numa tela só dele, sem o cabeçalho do site: a abertura e os cinco
+ * O onboarding do primeiro acesso (`/onboarding`), numa tela só dele, sem o cabeçalho do site: a abertura e os cinco
  * passos (área, LinkedIn, currículo, extras, e-mail e revisão). Cada passo salva ao continuar, então dá para sair e voltar; o
- * passo atual fica na URL (`?passo=`), e "voltar" do navegador também volta um passo.
+ * passo atual fica na URL (`?step=`), e "voltar" do navegador também volta um passo.
  */
 export function OnboardingView({
 	initial,
@@ -45,6 +51,7 @@ export function OnboardingView({
 	part?: ProfilePart
 }) {
 	const navigate = useNavigate()
+	const t = useT()
 	const [setup, setSetup] = useState(initial.setup)
 	const [settings, setSettings] = useState(initial.settings)
 	const [credentials, setCredentials] = useState(initial.credentials)
@@ -70,35 +77,35 @@ export function OnboardingView({
 			setSetup(fresh)
 			setSettings({ profile, scraper, 'post-processing': processing })
 		} catch (error) {
-			notify(`Não consegui conferir o que já está pronto: ${(error as Error).message}`, 'error')
+			notify(t.onboarding.refreshFailed((error as Error).message), 'error')
 		}
 	}
 
 	function goTo(next: OnboardingStep) {
-		void navigate({ to: '/boas-vindas', search: { passo: next } })
+		void navigate({ to: '/onboarding', search: { step: next } })
 	}
 
-	const go = (delta: 1 | -1) => () => goTo(ONBOARDING_STEPS[index + delta] ?? 'revisao')
+	const go = (delta: 1 | -1) => () => goTo(ONBOARDING_STEPS[index + delta] ?? 'review')
 	const afterSave = (delta: 1 | -1) => async () => {
 		await refresh()
 		go(delta)()
 	}
 
-	const numbered = NUMBERED_STEPS.findIndex(item => item.step === step)
-	const eyebrow = `passo ${numbered + 1} de ${TOTAL}`
+	const numbered = NUMBERED_STEPS.indexOf(step as (typeof NUMBERED_STEPS)[number])
+	const eyebrow = t.onboarding.stepOf(numbered + 1, TOTAL)
 
 	function renderStep() {
 		switch (step) {
-			case 'inicio':
+			case 'welcome':
 				return <Welcome onStart={go(1)} />
-			case 'area':
+			case 'field':
 				return (
 					<ProfileStep
 						eyebrow={eyebrow}
 						initial={settings}
 						part={part ?? defaultProfilePart(settings.profile)}
 						searchDone={setup.steps.profile}
-						onPart={next => void navigate({ to: '/boas-vindas', search: { passo: 'area', parte: next } })}
+						onPart={next => void navigate({ to: '/onboarding', search: { step: 'field', part: next } })}
 						onBack={go(-1)}
 						onDone={afterSave(1)}
 					/>
@@ -116,11 +123,12 @@ export function OnboardingView({
 						onNext={go(1)}
 					/>
 				)
-			case 'curriculo':
+			case 'resume':
 				return (
 					<CvStep
 						eyebrow={eyebrow}
 						initialVersions={initial.cvVersions}
+						initialCvLanguage={initial.cvLanguage}
 						fromFile={setup.steps.cv}
 						onBack={go(-1)}
 						onNext={afterSave(1)}
@@ -152,7 +160,7 @@ export function OnboardingView({
 						onNext={afterSave(1)}
 					/>
 				)
-			case 'revisao':
+			case 'review':
 				return (
 					<ReviewStep
 						eyebrow={eyebrow}
@@ -174,8 +182,15 @@ export function OnboardingView({
 					<Logo size="lg" className="max-lg:hidden" />
 					<Logo size="md" className="lg:hidden" />
 				</p>
+				{/* Antes de qualquer passo, para quem não lê português conseguir seguir */}
+				<LanguageSelect
+					id="onboarding-locale"
+					size="sm"
+					invite={step === 'welcome'}
+					className="absolute top-6 left-8 w-48 max-lg:top-3 max-lg:left-4 max-lg:w-36"
+				/>
 				<IconButton
-					label="Alternar tema claro/escuro"
+					label={t.common.toggleTheme}
 					variant="ghost"
 					className="absolute top-6 right-8 max-lg:top-3 max-lg:right-4"
 					onClick={event => toggleTheme(event.currentTarget)}
@@ -194,7 +209,7 @@ export function OnboardingView({
 				{numbered >= 0 && (
 					<div className="flex w-full max-w-240 flex-col gap-1.5 lg:hidden">
 						<p className={META}>
-							{eyebrow} · {NUMBERED_STEPS[numbered]!.label}
+							{eyebrow} · {t.onboarding.steps[NUMBERED_STEPS[numbered]!]}
 						</p>
 						<div className="h-1.5 overflow-hidden rounded-pill bg-surface-2">
 							<div
@@ -224,7 +239,7 @@ export function OnboardingView({
 				{numbered >= 0 && (
 					<aside className="flex w-48 shrink-0 flex-col gap-8 max-lg:hidden">
 						<Stepper current={step} setup={setup} onSelect={goTo} />
-						<p className="text-xs text-muted">Pode parar quando quiser: a gente volta para o passo em que você parou.</p>
+						<p className="text-xs text-muted">{t.onboarding.resumeLater}</p>
 					</aside>
 				)}
 			</div>
@@ -242,20 +257,21 @@ function Stepper({
 	setup: SetupStatus
 	onSelect: (step: OnboardingStep) => void
 }) {
-	const currentIndex = NUMBERED_STEPS.findIndex(item => item.step === current)
+	const t = useT()
+	const currentIndex = NUMBERED_STEPS.indexOf(current as (typeof NUMBERED_STEPS)[number])
 	const subSteps = useCurrentSubSteps()
 
 	return (
-		<nav aria-label="Passos do onboarding">
+		<nav aria-label={t.onboarding.stepsNav}>
 			<ol className={cx(LIST, 'flex flex-col')}>
 				{NUMBERED_STEPS.map((item, index) => {
-					const done = stepDone(item.step, setup)
-					const isCurrent = item.step === current
+					const done = stepDone(item, setup)
+					const isCurrent = item === current
 					const last = index === NUMBERED_STEPS.length - 1
 
 					return (
 						<li
-							key={item.step}
+							key={item}
 							className={cx('relative flex flex-col animate-step-back motion-reduce:animate-none', STEPPER_STAGGER[index])}
 						>
 							{/* A linha até o próximo passo, que acende ao passar dele */}
@@ -271,7 +287,7 @@ function Stepper({
 							)}
 							<button
 								type="button"
-								onClick={() => onSelect(item.step)}
+								onClick={() => onSelect(item)}
 								aria-current={isCurrent ? 'step' : undefined}
 								className="group flex items-center gap-4 rounded-md py-2.5 text-left"
 							>
@@ -297,7 +313,7 @@ function Stepper({
 										isCurrent ? 'font-semibold text-ink' : 'text-muted group-hover:text-ink',
 									)}
 								>
-									{item.label}
+									{t.onboarding.steps[item]}
 								</span>
 							</button>
 							{isCurrent && subSteps && <SubStepList {...subSteps} />}
@@ -354,20 +370,16 @@ function SubStepList({ items, current }: SubStepsState) {
 
 const SUB_STAGGER = ['stagger-0', 'stagger-1', 'stagger-2']
 
-const WELCOME_ITEMS = [
-	{ title: 'Conte a sua área', text: 'A gente sugere o que buscar no LinkedIn.' },
-	{ title: 'Conecte o LinkedIn', text: 'Para ler os posts com vagas por você.' },
-	{ title: 'Monte o seu currículo', text: 'Ele vira um currículo ajustado para cada vaga.' },
-]
-
 /**
  * A abertura: o que o onboarding vai pedir, em três linhas que chegam pelo lado, e o "começar". Ao lado (só no desktop),
  * a demonstração do que a pessoa ganha: um post que vira vaga.
  */
 function Welcome({ onStart }: { onStart: () => void }) {
+	const t = useT()
+	const welcome = t.onboarding.welcome
 	useStepBar({
-		hint: 'leva uns 5 minutos, e dá para parar e continuar depois',
-		primary: { label: 'começar', trailingIcon: 'back', onClick: onStart },
+		hint: welcome.hint,
+		primary: { label: welcome.start, trailingIcon: 'back', onClick: onStart },
 	})
 
 	return (
@@ -375,22 +387,20 @@ function Welcome({ onStart }: { onStart: () => void }) {
 			<div className="flex min-w-0 flex-1 flex-col gap-10">
 				<div className="flex flex-col gap-4">
 					<Rise>
-						<p className="font-mono text-sm text-lime-text">oi! que bom ter você aqui</p>
+						<p className="font-mono text-sm text-lime-text">{welcome.greeting}</p>
 					</Rise>
 					<Rise order={1}>
 						<h1 className="text-4xl font-bold tracking-tight text-balance md:text-6xl">
-							Vamos achar vagas <Hero.Mono>para você.</Hero.Mono>
+							{welcome.title} <Hero.Mono>{welcome.titleMono}</Hero.Mono>
 						</h1>
 					</Rise>
 					<Rise order={2}>
-						<p className="max-w-130 text-lg text-pretty text-muted">
-							Em poucos passos você conta o que procura e a gente passa a buscar vagas no LinkedIn sozinho, todos os dias.
-						</p>
+						<p className="max-w-130 text-lg text-pretty text-muted">{welcome.lead}</p>
 					</Rise>
 				</div>
 
 				<ol className={cx(LIST, 'flex flex-col gap-3')}>
-					{WELCOME_ITEMS.map((item, index) => (
+					{welcome.items.map((item, index) => (
 						<li
 							key={item.title}
 							className={cx(
@@ -408,9 +418,7 @@ function Welcome({ onStart }: { onStart: () => void }) {
 						</li>
 					))}
 				</ol>
-				<p className="-mt-4 animate-rise-in text-sm text-muted motion-reduce:animate-none stagger-6">
-					Dá para mudar tudo depois, nas configurações.
-				</p>
+				<p className="-mt-4 animate-rise-in text-sm text-muted motion-reduce:animate-none stagger-6">{welcome.changeLater}</p>
 			</div>
 			<div className="w-80 shrink-0 max-lg:hidden">
 				<WelcomeDemo />

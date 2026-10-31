@@ -72,7 +72,8 @@ test('formatInterval', () => {
 
 test('idiomas com nome legível', () => {
 	expect(languageLabel('pt')).toBe('Português (pt)')
-	expect(languageLabel('nl')).toBe('nl')
+	expect(languageLabel('nl')).toBe('Holandês (nl)')
+	expect(languageLabel('zz')).toBe('zz')
 })
 
 test('só links http(s) viram botão', () => {

@@ -1,13 +1,12 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 
 import {
-	CV_FORM_DEFAULT_TITLES,
 	CV_FORM_MAX_ITEMS,
 	CV_FORM_SECTIONS,
 	CV_FORM_TOOLS_LABELS,
+	cvSectionTitles,
 	type CvForm,
 	type CvFormSection,
-	type CvFormSectionKind,
 } from '@shared/contracts'
 
 import {
@@ -18,11 +17,12 @@ import {
 	formSteps,
 	moveItem,
 	problemStep,
-	SECTION_LABELS,
+	sectionLabels,
 	stepProblems,
 	type FormStep,
 } from '../lib/cv-form'
 import { cx } from '../lib/cx'
+import { useT } from '../stores/locale'
 import { Icon } from './Icon'
 import { Button } from './ui/Button'
 import { Dialog, DialogTitle } from './ui/Dialog'
@@ -55,35 +55,6 @@ function itemsOf(section: CvFormSection): unknown[] {
 /** Uma lista editável: o item na posição e as funções que a seção usa para mexer nela. */
 type ListControls = { move: (index: number, delta: -1 | 1) => void; remove: (index: number) => void; count: number }
 
-/** Itens adicionados pelo nome (ex.: "experiência") nos botões e rótulos. */
-const ENTRY_NAMES: Record<Exclude<CvFormSectionKind, 'summary'>, string> = {
-	skills: 'grupo',
-	experience: 'experiência',
-	education: 'formação',
-	certifications: 'certificação ou curso',
-	languages: 'idioma',
-	projects: 'projeto',
-}
-
-/** Plural dos itens, para o resumo da revisão ("3 experiências"). */
-const ENTRY_PLURALS: Record<Exclude<CvFormSectionKind, 'summary'>, string> = {
-	skills: 'grupos',
-	experience: 'experiências',
-	education: 'formações',
-	certifications: 'certificações ou cursos',
-	languages: 'idiomas',
-	projects: 'projetos',
-}
-
-const STEP_NAMES: Record<FormStep, string> = { contact: 'Contato', sections: 'Seções', review: 'Revisar', ...SECTION_LABELS }
-
-/** O que cada etapa pede, abaixo do título dela. */
-const STEP_HELP: Partial<Record<FormStep, string>> = {
-	contact: 'Os dados do topo do currículo. Só o nome é obrigatório.',
-	sections: 'Escolha as seções e a ordem em que aparecem no PDF. Cada seção incluída vira uma etapa.',
-	review: 'Confira o que entra no currículo. O cv-updater gera o PDF para você ver antes de ativar.',
-}
-
 /**
  * O currículo base em formulário, para quem não sabe LaTeX, numa modal com etapas: contato, escolha das seções, uma
  * etapa por seção e a revisão. O cv-updater gera o `.tex` a partir dos dados (`resume/latex-from-form.ts`). Controlado:
@@ -91,6 +62,15 @@ const STEP_HELP: Partial<Record<FormStep, string>> = {
  */
 export function CvBaseFormDialog({ form, serverProblems, submitting, importedFrom, onChange, onSubmit, onClose }: Props) {
 	const id = useId()
+	const t = useT()
+	const f = t.cvForm
+	const back = t.common.back
+	/** Os itens pelo nome ("experiência"), nos botões e rótulos, e o plural, no resumo da revisão. */
+	const ENTRY_NAMES = f.entries
+	const ENTRY_PLURALS = f.plurals
+	const STEP_NAMES: Record<FormStep, string> = { ...f.steps, ...sectionLabels() }
+	const STEP_HELP: Partial<Record<FormStep, string>> = f.stepHelp
+	const defaultTitles = cvSectionTitles()
 	const ref = useRef<HTMLDialogElement>(null)
 	const body = useRef<HTMLDivElement>(null)
 	const [step, setStep] = useState<FormStep>('contact')
@@ -156,15 +136,15 @@ export function CvBaseFormDialog({ form, serverProblems, submitting, importedFro
 
 		return (
 			<div className="grid gap-4 md:grid-cols-2">
-				{text('name', 'Nome', 'Maria Souza', 'name')}
-				{text('headline', 'Cargo ou título', 'Enfermeira | COREN-SP 000.000', 'organization-title')}
-				{text('location', 'Cidade', 'São Paulo, SP', 'address-level2')}
-				{text('email', 'E-mail', 'maria@example.com', 'email')}
-				{text('phone', 'Telefone', '(11) 90000-0000', 'tel')}
+				{text('name', f.name, f.namePlaceholder, 'name')}
+				{text('headline', f.headline, f.headlinePlaceholder, 'organization-title')}
+				{text('location', f.city, f.cityPlaceholder, 'address-level2')}
+				{text('email', f.email, f.emailPlaceholder, 'email')}
+				{text('phone', f.phone, f.phonePlaceholder, 'tel')}
 				<LinesField
 					id={`${id}-contact-links`}
-					label="Links"
-					help="Um por linha: LinkedIn, portfólio, site. No PDF, aparecem sem o https://."
+					label={f.links}
+					help={f.linksHelp}
 					rows={2}
 					value={contact.links}
 					error={problems['contact.links']}
@@ -197,13 +177,13 @@ export function CvBaseFormDialog({ form, serverProblems, submitting, importedFro
 				body = (
 					<TextField
 						id={`${sectionId}-text`}
-						label="Texto"
+						label={f.text}
 						labelHidden
 						multiline
 						rows={4}
 						value={section.text}
-						placeholder="Quem você é, a experiência principal e no que é forte, em duas ou três frases."
-						help="O cv-updater reescreve a apresentação para cada vaga."
+						placeholder={f.summaryPlaceholder}
+						help={f.summaryHelp}
 						onChange={value =>
 							updateSection(index, draft => {
 								;(draft as typeof section).text = value
@@ -230,13 +210,13 @@ export function CvBaseFormDialog({ form, serverProblems, submitting, importedFro
 								<div key={item} className="flex flex-col gap-4">
 									<TextField
 										id={`${sectionId}-${item}-category`}
-										label="Categoria"
+										label={f.category}
 										value={group.category}
-										placeholder="Assistência, Gestão, Sistemas..."
+										placeholder={f.categoryPlaceholder}
 										onChange={value => set('category', value)}
 									/>
 									<div className="flex flex-col gap-1.5">
-										<FieldLabel htmlFor={itemsId}>Itens</FieldLabel>
+										<FieldLabel htmlFor={itemsId}>{f.items}</FieldLabel>
 										<KeywordInput
 											id={itemsId}
 											value={group.items}
@@ -270,29 +250,29 @@ export function CvBaseFormDialog({ form, serverProblems, submitting, importedFro
 								<div key={item} className="grid gap-4 md:grid-cols-2">
 									<TextField
 										id={`${prefix}-role`}
-										label="Cargo"
+										label={f.role}
 										value={entry.role}
-										placeholder="Enfermeira Assistencial"
+										placeholder={f.rolePlaceholder}
 										onChange={value => set('role', value)}
 									/>
 									<TextField
 										id={`${prefix}-company`}
-										label="Empresa"
+										label={f.company}
 										value={entry.company}
-										placeholder="Hospital Exemplo"
+										placeholder={f.companyPlaceholder}
 										onChange={value => set('company', value)}
 									/>
 									<TextField
 										id={`${prefix}-period`}
-										label="Período"
+										label={f.period}
 										value={entry.period}
-										placeholder="Março 2021 - Presente"
+										placeholder={f.periodPlaceholder}
 										onChange={value => set('period', value)}
 									/>
 									<LinesField
 										id={`${prefix}-bullets`}
-										label="Tópicos"
-										help="Um por linha: o que você fez e os resultados. O cv-updater reordena pela vaga."
+										label={f.bullets}
+										help={f.bulletsHelp}
 										rows={4}
 										value={entry.bullets}
 										error={at(`entries.${item}.bullets`)}
@@ -322,23 +302,23 @@ export function CvBaseFormDialog({ form, serverProblems, submitting, importedFro
 								<div key={item} className="grid gap-4 md:grid-cols-3">
 									<TextField
 										id={`${prefix}-course`}
-										label="Curso"
+										label={f.course}
 										value={entry.course}
-										placeholder="Bacharelado em Enfermagem"
+										placeholder={f.coursePlaceholder}
 										onChange={value => set('course', value)}
 									/>
 									<TextField
 										id={`${prefix}-institution`}
-										label="Instituição"
+										label={f.institution}
 										value={entry.institution}
-										placeholder="Universidade Exemplo"
+										placeholder={f.institutionPlaceholder}
 										onChange={value => set('institution', value)}
 									/>
 									<TextField
 										id={`${prefix}-period`}
-										label="Período"
+										label={f.period}
 										value={entry.period}
-										placeholder="2014 - 2018"
+										placeholder={f.educationPeriodPlaceholder}
 										onChange={value => set('period', value)}
 									/>
 								</div>
@@ -367,21 +347,21 @@ export function CvBaseFormDialog({ form, serverProblems, submitting, importedFro
 								<div key={item} className="grid gap-4 md:grid-cols-3">
 									<TextField
 										id={`${prefix}-name`}
-										label="Nome"
+										label={f.name}
 										value={entry.name}
-										placeholder="Suporte Avançado de Vida (ACLS)"
+										placeholder={f.certificationPlaceholder}
 										onChange={value => set('name', value)}
 									/>
 									<TextField
 										id={`${prefix}-issuer`}
-										label="Instituição"
+										label={f.institution}
 										value={entry.issuer}
-										placeholder="opcional"
+										placeholder={f.optional}
 										onChange={value => set('issuer', value)}
 									/>
 									<TextField
 										id={`${prefix}-year`}
-										label="Ano"
+										label={f.year}
 										value={entry.year}
 										placeholder="2023"
 										onChange={value => set('year', value)}
@@ -410,16 +390,16 @@ export function CvBaseFormDialog({ form, serverProblems, submitting, importedFro
 								<div key={item} className="grid gap-4 md:grid-cols-2">
 									<TextField
 										id={`${prefix}-language`}
-										label="Idioma"
+										label={f.language}
 										value={entry.language}
-										placeholder="Inglês"
+										placeholder={f.languagePlaceholder}
 										onChange={value => set('language', value)}
 									/>
 									<TextField
 										id={`${prefix}-level`}
-										label="Nível"
+										label={f.level}
 										value={entry.level}
-										placeholder="intermediário"
+										placeholder={f.levelPlaceholder}
 										onChange={value => set('level', value)}
 									/>
 								</div>
@@ -445,17 +425,17 @@ export function CvBaseFormDialog({ form, serverProblems, submitting, importedFro
 
 							return (
 								<div key={item} className="grid gap-4 md:grid-cols-2">
-									<TextField id={`${prefix}-name`} label="Nome" value={entry.name} onChange={value => set('name', value)} />
+									<TextField id={`${prefix}-name`} label={f.name} value={entry.name} onChange={value => set('name', value)} />
 									<TextField
 										id={`${prefix}-url`}
-										label="Link"
+										label={f.link}
 										value={entry.url}
-										placeholder="opcional"
+										placeholder={f.optional}
 										onChange={value => set('url', value)}
 									/>
 									<TextField
 										id={`${prefix}-description`}
-										label="Descrição"
+										label={f.description}
 										multiline
 										rows={2}
 										className="md:col-span-2"
@@ -481,17 +461,17 @@ export function CvBaseFormDialog({ form, serverProblems, submitting, importedFro
 				break
 		}
 
-		const defaultTitle = CV_FORM_DEFAULT_TITLES[section.kind]
+		const defaultTitle = defaultTitles[section.kind]
 
 		return (
 			<div className="flex flex-col gap-5">
 				<div className="grid gap-4 md:grid-cols-2">
 					<TextField
 						id={`${sectionId}-title`}
-						label="Título no PDF"
+						label={f.pdfTitle}
 						value={section.title}
 						placeholder={defaultTitle}
-						help={`Vazio usa "${defaultTitle}". Outro título precisa ser um sinônimo que o cv-updater reconhece.`}
+						help={f.pdfTitleHelp(defaultTitle)}
 						error={at('title')}
 						onChange={value =>
 							updateSection(index, draft => {
@@ -501,7 +481,7 @@ export function CvBaseFormDialog({ form, serverProblems, submitting, importedFro
 					/>
 					{section.kind === 'projects' && (
 						<div className="flex flex-col gap-1.5">
-							<FieldLabel htmlFor={`${sectionId}-tools-label`}>Rótulo das ferramentas</FieldLabel>
+							<FieldLabel htmlFor={`${sectionId}-tools-label`}>{f.toolsLabel}</FieldLabel>
 							<SelectMenu
 								id={`${sectionId}-tools-label`}
 								value={section.toolsLabel}
@@ -513,9 +493,7 @@ export function CvBaseFormDialog({ form, serverProblems, submitting, importedFro
 									})
 								}
 							/>
-							<FieldHelp id={`${sectionId}-tools-label-help`}>
-								A linha abaixo de cada projeto: "{section.toolsLabel}: ...".
-							</FieldHelp>
+							<FieldHelp id={`${sectionId}-tools-label-help`}>{f.toolsHelp(section.toolsLabel)}</FieldHelp>
 						</div>
 					)}
 				</div>
@@ -529,18 +507,18 @@ export function CvBaseFormDialog({ form, serverProblems, submitting, importedFro
 			<div className="flex flex-col gap-5">
 				<ol className={cx(LIST, 'flex flex-col gap-2')}>
 					{form.sections.map((section, index) => {
-						const label = SECTION_LABELS[section.kind]
+						const label = sectionLabels()[section.kind]
 						return (
 							<li key={section.kind} className="flex items-center gap-3 rounded-md border border-line px-4 py-2.5">
 								<span className={cx(META, 'w-5 shrink-0')}>{index + 1}</span>
 								<span className="flex min-w-0 grow flex-col">
 									<span className="font-medium">{label}</span>
 									<span className="truncate text-xs text-muted">
-										no PDF: {section.title.trim() || CV_FORM_DEFAULT_TITLES[section.kind]}
+										{f.inPdf(section.title.trim() || defaultTitles[section.kind])}
 									</span>
 								</span>
 								<MoveButtons
-									name={`a seção ${label}`}
+									name={f.theSection(label)}
 									index={index}
 									count={form.sections.length}
 									onMove={delta =>
@@ -554,11 +532,11 @@ export function CvBaseFormDialog({ form, serverProblems, submitting, importedFro
 						)
 					})}
 				</ol>
-				{form.sections.length === 0 && <FieldHelp>Nenhuma seção: adicione pelo menos experiência ou formação.</FieldHelp>}
+				{form.sections.length === 0 && <FieldHelp>{f.noSections}</FieldHelp>}
 
 				{missing.length > 0 && (
 					<div className="flex flex-col gap-2">
-						<span className={LABEL}>adicionar seção</span>
+						<span className={LABEL}>{f.addSection}</span>
 						<div className="flex flex-wrap gap-2">
 							{missing.map(kind => (
 								<Button
@@ -568,7 +546,7 @@ export function CvBaseFormDialog({ form, serverProblems, submitting, importedFro
 									onClick={() => update(draft => void draft.sections.push(emptySection(kind)))}
 								>
 									<Icon name="plus" size={14} />
-									{SECTION_LABELS[kind]}
+									{sectionLabels()[kind]}
 								</Button>
 							))}
 						</div>
@@ -585,23 +563,23 @@ export function CvBaseFormDialog({ form, serverProblems, submitting, importedFro
 		return (
 			<div className="flex flex-col gap-5">
 				<dl className="m-0 flex flex-col gap-2">
-					<ReviewRow label="Contato" onEdit={() => goTo('contact')}>
-						{[clean.contact.name.trim() || 'sem nome', clean.contact.headline, clean.contact.email].filter(Boolean).join(' · ')}
+					<ReviewRow label={f.steps.contact} onEdit={() => goTo('contact')}>
+						{[clean.contact.name.trim() || f.noName, clean.contact.headline, clean.contact.email].filter(Boolean).join(' · ')}
 					</ReviewRow>
 					{clean.sections.map(section => {
 						const count = itemsOf(section).length
 						const summary =
 							section.kind === 'summary'
-								? section.text && `${section.text.length} caracteres`
+								? section.text && f.characters(section.text.length)
 								: count && `${count} ${count === 1 ? ENTRY_NAMES[section.kind] : ENTRY_PLURALS[section.kind]}`
 
 						return (
 							<ReviewRow
 								key={section.kind}
-								label={section.title || CV_FORM_DEFAULT_TITLES[section.kind]}
+								label={section.title || defaultTitles[section.kind]}
 								onEdit={() => goTo(section.kind)}
 							>
-								{summary || <span className="text-muted">vazia: fica de fora do PDF</span>}
+								{summary || <span className="text-muted">{f.empty}</span>}
 							</ReviewRow>
 						)
 					})}
@@ -609,7 +587,7 @@ export function CvBaseFormDialog({ form, serverProblems, submitting, importedFro
 
 				{entries.length > 0 && (
 					<div role="alert" className="flex flex-col gap-2 rounded-md border border-danger px-4 py-3">
-						<p className="text-sm font-semibold text-danger">Corrija antes de gerar:</p>
+						<p className="text-sm font-semibold text-danger">{f.fixFirst}</p>
 						<ul className={cx(LIST, 'flex flex-col gap-1.5')}>
 							{entries.map(([path, message]) => {
 								const target = problemStep(path, form)
@@ -619,7 +597,7 @@ export function CvBaseFormDialog({ form, serverProblems, submitting, importedFro
 											<span className="font-medium">{STEP_NAMES[target]}:</span> {message}
 										</span>
 										<Button variant="ghost" size="xs" onClick={() => goTo(target)}>
-											corrigir
+											{f.fix}
 										</Button>
 									</li>
 								)
@@ -650,8 +628,8 @@ export function CvBaseFormDialog({ form, serverProblems, submitting, importedFro
 			className="w-3xl open:flex open:flex-col"
 		>
 			<div className="flex flex-col gap-3 border-b border-line px-6 pt-5 pb-4 max-md:px-4.5">
-				<DialogTitle closable>currículo pelo formulário</DialogTitle>
-				<nav aria-label="Etapas">
+				<DialogTitle closable>{f.title}</DialogTitle>
+				<nav aria-label={f.stepsNav}>
 					<ol className={cx(LIST, 'flex flex-wrap gap-x-3 gap-y-1 max-md:hidden')}>
 						{steps.map((item, position) => (
 							<li key={item}>
@@ -669,9 +647,7 @@ export function CvBaseFormDialog({ form, serverProblems, submitting, importedFro
 							</li>
 						))}
 					</ol>
-					<p className={cx(META, 'md:hidden')}>
-						etapa {index + 1} de {steps.length}: {STEP_NAMES[current].toLowerCase()}
-					</p>
+					<p className={cx(META, 'md:hidden')}>{f.stepOf(index + 1, steps.length, STEP_NAMES[current].toLowerCase())}</p>
 				</nav>
 				<div className="h-1 overflow-hidden rounded-pill bg-surface-2" aria-hidden>
 					<div
@@ -688,8 +664,9 @@ export function CvBaseFormDialog({ form, serverProblems, submitting, importedFro
 				</div>
 				{importedFrom && (current === 'contact' || current === 'review') && (
 					<Notice tone="warn" icon="alert">
-						Preenchido com o que a IA leu em <span className="font-semibold break-all">{importedFrom}</span>. Revise cada etapa
-						antes de gerar: o que ela não achou no PDF ficou vazio.
+						{f.importedBefore}
+						<span className="font-semibold break-all">{importedFrom}</span>
+						{f.importedAfter}
 					</Notice>
 				)}
 				{renderStep()}
@@ -698,15 +675,15 @@ export function CvBaseFormDialog({ form, serverProblems, submitting, importedFro
 			<div className="flex items-center justify-between gap-3 border-t border-line px-6 py-4 max-md:px-4.5">
 				<Button variant="ghost" disabled={index === 0} onClick={() => goTo(steps[index - 1]!)}>
 					<Icon name="back" size={14} />
-					voltar
+					{back}
 				</Button>
 				{current === 'review' ? (
 					<Button variant="lime" disabled={submitting || Object.keys(allProblems).length > 0} onClick={onSubmit}>
-						{submitting ? 'enviando…' : 'gerar e validar'}
+						{submitting ? f.sending : f.generate}
 					</Button>
 				) : (
 					<Button variant="lime" onClick={next}>
-						próximo
+						{f.next}
 					</Button>
 				)}
 			</div>
@@ -716,12 +693,13 @@ export function CvBaseFormDialog({ form, serverProblems, submitting, importedFro
 
 /** Uma linha da revisão: o nome da seção, o resumo do que foi preenchido e o atalho para a etapa dela. */
 function ReviewRow({ label, onEdit, children }: { label: string; onEdit: () => void; children: ReactNode }) {
+	const f = useT().cvForm
 	return (
 		<div className="flex items-center gap-3 rounded-md border border-line px-4 py-2.5">
 			<dt className="w-40 shrink-0 font-medium max-md:w-28">{label}</dt>
 			<dd className="m-0 min-w-0 grow truncate text-sm">{children}</dd>
 			<Button variant="ghost" size="xs" onClick={onEdit}>
-				editar
+				{f.edit}
 			</Button>
 		</div>
 	)
@@ -739,6 +717,7 @@ function EntryList({
 	onAdd: () => void
 	children: ReactNode[]
 }) {
+	const f = useT().cvForm
 	return (
 		<div className="flex flex-col gap-3">
 			{children.map((child, index) => (
@@ -760,7 +739,7 @@ function EntryList({
 			))}
 			<Button variant="ghost" size="sm" className="self-start" disabled={controls.count >= CV_FORM_MAX_ITEMS} onClick={onAdd}>
 				<Icon name="plus" size={14} />
-				adicionar {name}
+				{f.add(name)}
 			</Button>
 		</div>
 	)
@@ -780,15 +759,16 @@ function MoveButtons({
 	onMove: (delta: -1 | 1) => void
 	onRemove: () => void
 }) {
+	const f = useT().cvForm
 	return (
 		<div className="flex shrink-0 gap-1">
-			<IconButton label={`Subir ${name}`} size="sm" tone="muted" disabled={index === 0} onClick={() => onMove(-1)}>
+			<IconButton label={f.moveUp(name)} size="sm" tone="muted" disabled={index === 0} onClick={() => onMove(-1)}>
 				<Icon name="chevron" size={16} className="rotate-180" />
 			</IconButton>
-			<IconButton label={`Descer ${name}`} size="sm" tone="muted" disabled={index === count - 1} onClick={() => onMove(1)}>
+			<IconButton label={f.moveDown(name)} size="sm" tone="muted" disabled={index === count - 1} onClick={() => onMove(1)}>
 				<Icon name="chevron" size={16} />
 			</IconButton>
-			<IconButton label={`Remover ${name}`} size="sm" tone="destructive" onClick={onRemove}>
+			<IconButton label={f.remove(name)} size="sm" tone="destructive" onClick={onRemove}>
 				<Icon name="trash" size={16} />
 			</IconButton>
 		</div>

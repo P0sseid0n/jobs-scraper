@@ -9,204 +9,204 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as VagasRouteImport } from './routes/_vagas'
-import { Route as BoasVindasRouteImport } from './routes/boas-vindas'
-import { Route as ColetasRouteImport } from './routes/coletas'
-import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
-import { Route as CurriculosRouteImport } from './routes/curriculos'
-import { Route as VagasIndexRouteImport } from './routes/_vagas/index'
-import { Route as CurriculosBaseRouteImport } from './routes/curriculos_.base'
-import { Route as VagasVagasIdRouteImport } from './routes/_vagas/vagas.$id'
+import { Route as JobsRouteImport } from './routes/_jobs'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as ResumesRouteImport } from './routes/resumes'
+import { Route as RunsRouteImport } from './routes/runs'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as JobsIndexRouteImport } from './routes/_jobs/index'
+import { Route as ResumesBaseRouteImport } from './routes/resumes_.base'
+import { Route as JobsJobsIdRouteImport } from './routes/_jobs/jobs.$id'
 
-const VagasRoute = VagasRouteImport.update({
-  id: '/_vagas',
+const JobsRoute = JobsRouteImport.update({
+  id: '/_jobs',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BoasVindasRoute = BoasVindasRouteImport.update({
-  id: '/boas-vindas',
-  path: '/boas-vindas',
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ColetasRoute = ColetasRouteImport.update({
-  id: '/coletas',
-  path: '/coletas',
+const ResumesRoute = ResumesRouteImport.update({
+  id: '/resumes',
+  path: '/resumes',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
-  id: '/configuracoes',
-  path: '/configuracoes',
+const RunsRoute = RunsRouteImport.update({
+  id: '/runs',
+  path: '/runs',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CurriculosRoute = CurriculosRouteImport.update({
-  id: '/curriculos',
-  path: '/curriculos',
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
-const VagasIndexRoute = VagasIndexRouteImport.update({
+const JobsIndexRoute = JobsIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => VagasRoute,
+  getParentRoute: () => JobsRoute,
 } as any)
-const CurriculosBaseRoute = CurriculosBaseRouteImport.update({
-  id: '/curriculos_/base',
-  path: '/curriculos/base',
+const ResumesBaseRoute = ResumesBaseRouteImport.update({
+  id: '/resumes_/base',
+  path: '/resumes/base',
   getParentRoute: () => rootRouteImport,
 } as any)
-const VagasVagasIdRoute = VagasVagasIdRouteImport.update({
-  id: '/vagas/$id',
-  path: '/vagas/$id',
-  getParentRoute: () => VagasRoute,
+const JobsJobsIdRoute = JobsJobsIdRouteImport.update({
+  id: '/jobs/$id',
+  path: '/jobs/$id',
+  getParentRoute: () => JobsRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof VagasIndexRoute
-  '/boas-vindas': typeof BoasVindasRoute
-  '/coletas': typeof ColetasRoute
-  '/configuracoes': typeof ConfiguracoesRoute
-  '/curriculos': typeof CurriculosRoute
-  '/curriculos/base': typeof CurriculosBaseRoute
-  '/vagas/$id': typeof VagasVagasIdRoute
+  '/': typeof JobsIndexRoute
+  '/onboarding': typeof OnboardingRoute
+  '/resumes': typeof ResumesRoute
+  '/runs': typeof RunsRoute
+  '/settings': typeof SettingsRoute
+  '/resumes/base': typeof ResumesBaseRoute
+  '/jobs/$id': typeof JobsJobsIdRoute
 }
 export interface FileRoutesByTo {
-  '/boas-vindas': typeof BoasVindasRoute
-  '/coletas': typeof ColetasRoute
-  '/configuracoes': typeof ConfiguracoesRoute
-  '/curriculos': typeof CurriculosRoute
-  '/curriculos/base': typeof CurriculosBaseRoute
-  '/': typeof VagasIndexRoute
-  '/vagas/$id': typeof VagasVagasIdRoute
+  '/onboarding': typeof OnboardingRoute
+  '/resumes': typeof ResumesRoute
+  '/runs': typeof RunsRoute
+  '/settings': typeof SettingsRoute
+  '/resumes/base': typeof ResumesBaseRoute
+  '/': typeof JobsIndexRoute
+  '/jobs/$id': typeof JobsJobsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/_vagas': typeof VagasRouteWithChildren
-  '/boas-vindas': typeof BoasVindasRoute
-  '/coletas': typeof ColetasRoute
-  '/configuracoes': typeof ConfiguracoesRoute
-  '/curriculos': typeof CurriculosRoute
-  '/curriculos_/base': typeof CurriculosBaseRoute
-  '/_vagas/': typeof VagasIndexRoute
-  '/_vagas/vagas/$id': typeof VagasVagasIdRoute
+  '/_jobs': typeof JobsRouteWithChildren
+  '/onboarding': typeof OnboardingRoute
+  '/resumes': typeof ResumesRoute
+  '/runs': typeof RunsRoute
+  '/settings': typeof SettingsRoute
+  '/resumes_/base': typeof ResumesBaseRoute
+  '/_jobs/': typeof JobsIndexRoute
+  '/_jobs/jobs/$id': typeof JobsJobsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/boas-vindas'
-    | '/coletas'
-    | '/configuracoes'
-    | '/curriculos'
-    | '/curriculos/base'
-    | '/vagas/$id'
+    | '/onboarding'
+    | '/resumes'
+    | '/runs'
+    | '/settings'
+    | '/resumes/base'
+    | '/jobs/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/boas-vindas'
-    | '/coletas'
-    | '/configuracoes'
-    | '/curriculos'
-    | '/curriculos/base'
+    | '/onboarding'
+    | '/resumes'
+    | '/runs'
+    | '/settings'
+    | '/resumes/base'
     | '/'
-    | '/vagas/$id'
+    | '/jobs/$id'
   id:
     | '__root__'
-    | '/_vagas'
-    | '/boas-vindas'
-    | '/coletas'
-    | '/configuracoes'
-    | '/curriculos'
-    | '/curriculos_/base'
-    | '/_vagas/'
-    | '/_vagas/vagas/$id'
+    | '/_jobs'
+    | '/onboarding'
+    | '/resumes'
+    | '/runs'
+    | '/settings'
+    | '/resumes_/base'
+    | '/_jobs/'
+    | '/_jobs/jobs/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  VagasRoute: typeof VagasRouteWithChildren
-  BoasVindasRoute: typeof BoasVindasRoute
-  ColetasRoute: typeof ColetasRoute
-  ConfiguracoesRoute: typeof ConfiguracoesRoute
-  CurriculosRoute: typeof CurriculosRoute
-  CurriculosBaseRoute: typeof CurriculosBaseRoute
+  JobsRoute: typeof JobsRouteWithChildren
+  OnboardingRoute: typeof OnboardingRoute
+  ResumesRoute: typeof ResumesRoute
+  RunsRoute: typeof RunsRoute
+  SettingsRoute: typeof SettingsRoute
+  ResumesBaseRoute: typeof ResumesBaseRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/_vagas': {
-      id: '/_vagas'
+    '/_jobs': {
+      id: '/_jobs'
       path: ''
       fullPath: '/'
-      preLoaderRoute: typeof VagasRouteImport
+      preLoaderRoute: typeof JobsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/boas-vindas': {
-      id: '/boas-vindas'
-      path: '/boas-vindas'
-      fullPath: '/boas-vindas'
-      preLoaderRoute: typeof BoasVindasRouteImport
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/coletas': {
-      id: '/coletas'
-      path: '/coletas'
-      fullPath: '/coletas'
-      preLoaderRoute: typeof ColetasRouteImport
+    '/resumes': {
+      id: '/resumes'
+      path: '/resumes'
+      fullPath: '/resumes'
+      preLoaderRoute: typeof ResumesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/configuracoes': {
-      id: '/configuracoes'
-      path: '/configuracoes'
-      fullPath: '/configuracoes'
-      preLoaderRoute: typeof ConfiguracoesRouteImport
+    '/runs': {
+      id: '/runs'
+      path: '/runs'
+      fullPath: '/runs'
+      preLoaderRoute: typeof RunsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/curriculos': {
-      id: '/curriculos'
-      path: '/curriculos'
-      fullPath: '/curriculos'
-      preLoaderRoute: typeof CurriculosRouteImport
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_vagas/': {
-      id: '/_vagas/'
+    '/_jobs/': {
+      id: '/_jobs/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof VagasIndexRouteImport
-      parentRoute: typeof VagasRoute
+      preLoaderRoute: typeof JobsIndexRouteImport
+      parentRoute: typeof JobsRoute
     }
-    '/curriculos_/base': {
-      id: '/curriculos_/base'
-      path: '/curriculos/base'
-      fullPath: '/curriculos/base'
-      preLoaderRoute: typeof CurriculosBaseRouteImport
+    '/resumes_/base': {
+      id: '/resumes_/base'
+      path: '/resumes/base'
+      fullPath: '/resumes/base'
+      preLoaderRoute: typeof ResumesBaseRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_vagas/vagas/$id': {
-      id: '/_vagas/vagas/$id'
-      path: '/vagas/$id'
-      fullPath: '/vagas/$id'
-      preLoaderRoute: typeof VagasVagasIdRouteImport
-      parentRoute: typeof VagasRoute
+    '/_jobs/jobs/$id': {
+      id: '/_jobs/jobs/$id'
+      path: '/jobs/$id'
+      fullPath: '/jobs/$id'
+      preLoaderRoute: typeof JobsJobsIdRouteImport
+      parentRoute: typeof JobsRoute
     }
   }
 }
 
-interface VagasRouteChildren {
-  VagasIndexRoute: typeof VagasIndexRoute
-  VagasVagasIdRoute: typeof VagasVagasIdRoute
+interface JobsRouteChildren {
+  JobsIndexRoute: typeof JobsIndexRoute
+  JobsJobsIdRoute: typeof JobsJobsIdRoute
 }
 
-const VagasRouteChildren: VagasRouteChildren = {
-  VagasIndexRoute: VagasIndexRoute,
-  VagasVagasIdRoute: VagasVagasIdRoute,
+const JobsRouteChildren: JobsRouteChildren = {
+  JobsIndexRoute: JobsIndexRoute,
+  JobsJobsIdRoute: JobsJobsIdRoute,
 }
 
-const VagasRouteWithChildren = VagasRoute._addFileChildren(VagasRouteChildren)
+const JobsRouteWithChildren = JobsRoute._addFileChildren(JobsRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-  VagasRoute: VagasRouteWithChildren,
-  BoasVindasRoute: BoasVindasRoute,
-  ColetasRoute: ColetasRoute,
-  ConfiguracoesRoute: ConfiguracoesRoute,
-  CurriculosRoute: CurriculosRoute,
-  CurriculosBaseRoute: CurriculosBaseRoute,
+  JobsRoute: JobsRouteWithChildren,
+  OnboardingRoute: OnboardingRoute,
+  ResumesRoute: ResumesRoute,
+  RunsRoute: RunsRoute,
+  SettingsRoute: SettingsRoute,
+  ResumesBaseRoute: ResumesBaseRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

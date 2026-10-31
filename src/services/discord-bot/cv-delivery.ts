@@ -3,6 +3,7 @@ import { z } from 'zod'
 
 import type { CvResult } from '@shared/contracts'
 import { Job, saveCvFile } from '@shared/database'
+import { t } from '@shared/i18n'
 import type { Logger } from '@shared/logging'
 import { PermanentError } from '@shared/messaging'
 import { loadCredentials } from '@shared/settings'
@@ -25,9 +26,9 @@ export function buildCvDeliveryContent(
 	result: Pick<CvResult, 'file' | 'jobTitle' | 'error'>,
 	template: Pick<TemplateMessage, 'missing'> | null = null,
 ) {
-	if (!result.file) return `⚠️ Não consegui gerar o currículo: ${result.error ?? 'erro desconhecido'}`
+	if (!result.file) return t().discord.cvFailed(result.error ?? t().discord.unknownError)
 
-	const header = `📄 Currículo ajustado para **${result.jobTitle ?? 'a vaga'}**`
+	const header = t().discord.cvReady(result.jobTitle ?? t().discord.theJob)
 	// O que usou o fallback já foi avisado no clique
 	return [header, ...(template?.missing.length ? templateNotes({ fallbacks: [], missing: template.missing }) : [])].join('\n')
 }

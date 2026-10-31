@@ -32,6 +32,12 @@ const OUTSIDE_VOICE = [
 	/\b(suas|seus) (habilidades|competências|conhecimentos)\b/i,
 	/\bpara (esta|essa) (posição|vaga|oportunidade|função)\b/i,
 	/\bconjunto de habilidades\b/i,
+	// O mesmo em inglês, para o currículo da vaga em inglês
+	/\b(the|this) (profile|candidate)\b/i,
+	/\b(demonstrates|possesses|showcases)\b/i,
+	/\b(his|her|their) (skills|expertise|knowledge)\b/i,
+	/\bfor (this|the) (position|role|opportunity)\b/i,
+	/\bskill set\b/i,
 ]
 
 /** Monta o currículo da vaga: habilidades, projetos e experiência reordenados e a nova apresentação (se válida). */

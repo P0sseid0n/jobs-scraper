@@ -1,5 +1,7 @@
 import { extractLinks, extractText, getDocumentProxy } from 'unpdf'
 
+import { t } from '@shared/i18n'
+
 /** Menos que isso de texto (sem os espaços) é PDF escaneado ou uma imagem: não há o que ler sem OCR. */
 const MIN_TEXT_CHARS = 100
 
@@ -15,7 +17,7 @@ export type PdfText = { text: string; links: string[]; pages: number }
  */
 export async function extractPdfText(pdf: Uint8Array): Promise<PdfText> {
 	if (new TextDecoder().decode(pdf.subarray(0, 1024)).indexOf('%PDF-') === -1) {
-		throw new PdfImportError('O arquivo enviado não é um PDF.')
+		throw new PdfImportError(t().cvErrors.notPdf)
 	}
 
 	let document: Awaited<ReturnType<typeof getDocumentProxy>>
@@ -25,9 +27,9 @@ export async function extractPdfText(pdf: Uint8Array): Promise<PdfText> {
 		document = await getDocumentProxy(new Uint8Array(pdf), { verbosity: 0 })
 	} catch (error) {
 		if ((error as Error).name === 'PasswordException') {
-			throw new PdfImportError('O PDF está protegido por senha. Salve uma cópia sem a senha e envie de novo.')
+			throw new PdfImportError(t().cvErrors.passwordProtected)
 		}
-		throw new PdfImportError('Não consegui abrir o PDF: ele parece estar corrompido. Exporte de novo e envie.')
+		throw new PdfImportError(t().cvErrors.corruptedPdf)
 	}
 
 	try {
@@ -37,9 +39,7 @@ export async function extractPdfText(pdf: Uint8Array): Promise<PdfText> {
 		])
 
 		if (text.replace(/\s/g, '').length < MIN_TEXT_CHARS) {
-			throw new PdfImportError(
-				'O PDF não tem texto selecionável (parece escaneado ou uma imagem). Envie o PDF exportado do editor do currículo (Word, Google Docs, Canva...) ou preencha o formulário.',
-			)
+			throw new PdfImportError(t().cvErrors.noText)
 		}
 
 		const urls = links.flat().filter(link => /^https?:\/\//i.test(link))

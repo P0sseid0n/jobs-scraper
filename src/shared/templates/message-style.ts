@@ -5,14 +5,8 @@ import type { MessageLength, MessageTone } from '../contracts/settings'
  * Os prompts ficam em inglês, como os outros: modelos pequenos seguem melhor.
  */
 
-export type MessageLanguage = 'pt' | 'en'
-
-export const MESSAGE_LANGUAGE_NAMES: Record<MessageLanguage, string> = { pt: 'Brazilian Portuguese', en: 'English' }
-
-/** Idioma da mensagem: o do post quando é inglês; português nos outros casos (inclusive idioma desconhecido). */
-export function messageLanguage(postLanguage: string | null): MessageLanguage {
-	return postLanguage === 'en' ? 'en' : 'pt'
-}
+/** Os idiomas das saudações e despedidas de cada tom. O idioma da reescrita é o da candidatura (`cvLocaleFor`). */
+type MessageLanguage = 'pt' | 'en'
 
 /** Tamanho aceito do corpo, em caracteres. O prompt pede 100 a menos que o máximo, para sobrar folga. */
 export const BODY_LIMITS: Record<MessageLength, { min: number; max: number }> = {

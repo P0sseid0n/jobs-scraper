@@ -1,7 +1,8 @@
 import type { z } from 'zod'
 
-import { SETTINGS_SCHEMAS, type SettingsInput, type SettingsKey, type SettingsOf } from '../contracts/settings'
+import { SETTINGS_SCHEMAS, systemLocale, type SettingsInput, type SettingsKey, type SettingsOf } from '../contracts/settings'
 import { Settings } from '../database/settings.model'
+import { setSystemLocale } from '../i18n'
 import type { SettingsSeeds } from './settings-env'
 
 /** Os valores do `.env` (guardados por `seedSettings`), usados sempre que um documento ainda não existe. */
@@ -63,6 +64,27 @@ export async function updateSettings<K extends SettingsKey>(key: K, patch: Parti
 	await Settings.updateOne({ _id: key }, { values, updatedAt: new Date() }, { upsert: true })
 
 	return values
+}
+
+/** Quanto o idioma escolhido no site demora a valer num serviço que não recebe a troca (o mesmo das credenciais). */
+const LOCALE_REFRESH_MS = 30_000
+
+/**
+ * O idioma do sistema salvo vira o idioma atual do serviço (`t()`, mensagens do Discord e dos e-mails), relido a cada
+ * 30 s para uma troca pelo site valer sem reiniciar. Chamada por `startService`; devolve a função que para a releitura.
+ */
+export async function followSystemLocale() {
+	const refresh = async () => {
+		try {
+			setSystemLocale(systemLocale(await readSettings('language')))
+		} catch {
+			// sem o banco agora: fica o idioma de antes, e a próxima volta tenta de novo
+		}
+	}
+
+	await refresh()
+	const timer = setInterval(refresh, LOCALE_REFRESH_MS)
+	return () => clearInterval(timer)
 }
 
 function parseSettings<K extends SettingsKey>(key: K, values: unknown): SettingsOf<K> {

@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 
-import { PROFILE_AREAS, SENIORITY_LEVELS, suggestedRoles, type SeniorityLevel } from '@shared/contracts'
+import { SENIORITY_LEVELS, suggestedRoles } from '@shared/contracts'
 
 import type { SearchSuggestions, WebSettings } from '../../../api-types'
 import { api, RequestError } from '../../api'
 import { cx } from '../../lib/cx'
-import { LANGUAGE_NAMES, languageLabel } from '../../lib/format'
+import { COMMON_LANGUAGES, languageLabel } from '../../lib/format'
 import { LIMITS, profileDraftOf, validateProfile, type ProfileDraft } from '../../lib/settings-form'
+import { useT } from '../../stores/locale'
 import { notify } from '../../stores/toast'
 import { Combobox } from '../ui/Combobox'
 import { FieldError, FieldHelp, FieldLabel } from '../ui/Field'
@@ -20,26 +21,18 @@ import { StatusLine } from '../ui/StatusLine'
 import { FIELDSET, LEGEND, META } from '../ui/text'
 import { Rise, StepHeading, useStepBar, useSubSteps } from './parts'
 
-const SENIORITY_NAMES: Record<SeniorityLevel, string> = {
-	intern: 'Estágio',
-	junior: 'Júnior',
-	mid: 'Pleno',
-	senior: 'Sênior',
-	lead: 'Liderança',
-}
-
 /** O que vai para a busca: os termos e as palavras-chave, revisados pela pessoa antes de salvar. */
 type SearchDraft = { searchTerms: string[]; requiredKeywords: string[]; excludedKeywords: string[] }
 
 export type ProfileStepData = Pick<WebSettings, 'profile' | 'scraper' | 'post-processing'>
 
-/** As duas partes do passo 1, como aparecem na URL (`/boas-vindas?passo=area&parte=busca`). */
-export const PROFILE_PARTS = ['sobre', 'busca'] as const
+/** As duas partes do passo 1, como aparecem na URL (`/onboarding?step=field&part=search`). */
+export const PROFILE_PARTS = ['about', 'search'] as const
 export type ProfilePart = (typeof PROFILE_PARTS)[number]
 
 /** Sem a parte na URL: a busca, se o perfil já foi salvo (pelo .env ou numa visita anterior); senão, o começo. */
 export function defaultProfilePart(profile: WebSettings['profile']): ProfilePart {
-	return profile.area && profile.targetRole ? 'busca' : 'sobre'
+	return profile.area && profile.targetRole ? 'search' : 'about'
 }
 
 /**
@@ -65,25 +58,26 @@ export function ProfileStep({
 	onBack?: () => void
 	onDone: () => void
 }) {
+	const t = useT()
 	const [profile, setProfile] = useState<ProfileDraft>(() => profileDraftOf(initial.profile))
 	const [scraper, setScraper] = useState(initial.scraper)
-	const [aboutSaved, setAboutSaved] = useState(defaultProfilePart(initial.profile) === 'busca')
+	const [aboutSaved, setAboutSaved] = useState(defaultProfilePart(initial.profile) === 'search')
 	// A busca pela URL sem o perfil salvo: as sugestões não teriam de onde sair
-	const shown = part === 'busca' && !aboutSaved ? 'sobre' : part
+	const shown = part === 'search' && !aboutSaved ? 'about' : part
 
 	useSubSteps({
 		items: [
-			{ label: 'Sobre você', done: aboutSaved, onSelect: () => onPart('sobre') },
+			{ label: t.profileStep.about, done: aboutSaved, onSelect: () => onPart('about') },
 			// Só dá para ir à busca com o perfil salvo: as sugestões saem dele
-			{ label: 'O que buscar', done: searchDone, onSelect: aboutSaved ? () => onPart('busca') : undefined },
+			{ label: t.profileStep.search, done: searchDone, onSelect: aboutSaved ? () => onPart('search') : undefined },
 		],
 		current: PROFILE_PARTS.indexOf(shown),
 	})
 
 	return (
 		// A parte nova entra pelo lado, como um passo
-		<div key={shown} className={cx(shown === 'busca' ? 'animate-step-next' : 'animate-step-back', 'motion-reduce:animate-none')}>
-			{shown === 'sobre' ? (
+		<div key={shown} className={cx(shown === 'search' ? 'animate-step-next' : 'animate-step-back', 'motion-reduce:animate-none')}>
+			{shown === 'about' ? (
 				<AboutYou
 					eyebrow={eyebrow}
 					profile={profile}
@@ -91,7 +85,7 @@ export function ProfileStep({
 					onBack={onBack}
 					onSaved={() => {
 						setAboutSaved(true)
-						onPart('busca')
+						onPart('search')
 					}}
 				/>
 			) : (
@@ -100,7 +94,7 @@ export function ProfileStep({
 					targetRole={profile.targetRole}
 					scraper={scraper}
 					processing={initial['post-processing']}
-					onBack={() => onPart('sobre')}
+					onBack={() => onPart('about')}
 					onSaved={saved => {
 						setScraper(saved)
 						onDone()
@@ -124,13 +118,14 @@ function AboutYou({
 	onBack?: () => void
 	onSaved: () => void
 }) {
+	const t = useT()
 	const [tried, setTried] = useState(false)
 	const [saving, setSaving] = useState(false)
 	const [serverErrors, setServerErrors] = useState<Record<string, string>>({})
 
 	const errors = { ...serverErrors, ...(tried ? validateProfile(profile) : {}) }
-	const roles = suggestedRoles(profile.area)
-	const languages = [...new Set([...Object.keys(LANGUAGE_NAMES), ...profile.languages])]
+	const roles = suggestedRoles(t.profile.areas, profile.area)
+	const languages = [...new Set([...COMMON_LANGUAGES, ...profile.languages])]
 
 	function edit(patch: Partial<ProfileDraft>) {
 		onChange({ ...profile, ...patch })
@@ -152,31 +147,27 @@ function AboutYou({
 			onSaved()
 		} catch (error) {
 			if (error instanceof RequestError) setServerErrors(error.fields)
-			notify(`Não consegui salvar: ${(error as Error).message}`, 'error')
+			notify(t.actions.saveFailed((error as Error).message), 'error')
 		} finally {
 			setSaving(false)
 		}
 	}
 
-	useStepBar({ onBack, primary: { label: saving ? 'salvando…' : 'continuar', disabled: saving, onClick: save } })
+	useStepBar({ onBack, primary: { label: saving ? t.actions.saving : t.actions.continue, disabled: saving, onClick: save } })
 
 	return (
 		<div className="flex flex-col gap-9">
-			<StepHeading
-				eyebrow={eyebrow}
-				title="Em que área você trabalha?"
-				lead="Assim a gente procura vagas do seu jeito, e não de outra área. Pode escolher uma sugestão ou escrever do seu jeito."
-			/>
+			<StepHeading eyebrow={eyebrow} title={t.profileStep.title} lead={t.profileStep.lead} />
 
 			<Rise order={3} className="grid grid-cols-2 gap-5 max-md:grid-cols-1">
 				<div className="flex flex-col gap-1.5">
-					<FieldLabel htmlFor="onboarding-area">sua área</FieldLabel>
+					<FieldLabel htmlFor="onboarding-area">{t.profileStep.area}</FieldLabel>
 					<Combobox
 						id="onboarding-area"
 						value={profile.area}
-						options={Object.keys(PROFILE_AREAS)}
+						options={t.profile.areas.map(item => item.area)}
 						maxLength={LIMITS.area}
-						placeholder="ex.: Marketing, Enfermagem"
+						placeholder={t.profileStep.areaPlaceholder}
 						invalid={!!errors.area}
 						describedBy={errors.area ? 'onboarding-area-error' : undefined}
 						onChange={area => edit({ area })}
@@ -184,13 +175,13 @@ function AboutYou({
 					{errors.area && <FieldError id="onboarding-area-error">{errors.area}</FieldError>}
 				</div>
 				<div className="flex flex-col gap-1.5">
-					<FieldLabel htmlFor="onboarding-role">a vaga que você quer</FieldLabel>
+					<FieldLabel htmlFor="onboarding-role">{t.profileStep.role}</FieldLabel>
 					<Combobox
 						id="onboarding-role"
 						value={profile.targetRole}
 						options={roles}
 						maxLength={LIMITS.targetRole}
-						placeholder="ex.: Analista de Marketing Digital"
+						placeholder={t.profileStep.rolePlaceholder}
 						invalid={!!errors.targetRole}
 						describedBy={errors.targetRole ? 'onboarding-role-error' : 'onboarding-role-help'}
 						onChange={targetRole => edit({ targetRole })}
@@ -199,9 +190,7 @@ function AboutYou({
 						<FieldError id="onboarding-role-error">{errors.targetRole}</FieldError>
 					) : (
 						<FieldHelp id="onboarding-role-help">
-							{roles.length > 0
-								? `Algumas ideias para ${profile.area.trim()} aparecem ao clicar.`
-								: 'O nome do cargo, como aparece nas vagas.'}
+							{roles.length > 0 ? t.profileStep.roleIdeas(profile.area.trim()) : t.profileStep.roleHelp}
 						</FieldHelp>
 					)}
 				</div>
@@ -209,11 +198,11 @@ function AboutYou({
 
 			<Rise order={4}>
 				<fieldset className={FIELDSET}>
-					<legend className={LEGEND}>seu nível de experiência</legend>
+					<legend className={LEGEND}>{t.profileStep.seniority}</legend>
 					<PillGroup>
 						{[...SENIORITY_LEVELS, null].map(level => (
 							<Pill key={level ?? 'none'} pressed={profile.seniority === level} onClick={() => edit({ seniority: level })}>
-								{level ? SENIORITY_NAMES[level] : 'Prefiro não dizer'}
+								{level ? t.profile.seniority[level] : t.profileStep.seniorityNone}
 							</Pill>
 						))}
 					</PillGroup>
@@ -222,7 +211,7 @@ function AboutYou({
 
 			<Rise order={5}>
 				<fieldset className={FIELDSET}>
-					<legend className={LEGEND}>idiomas em que você trabalha</legend>
+					<legend className={LEGEND}>{t.profileStep.languages}</legend>
 					<PillGroup>
 						{languages.map(code => (
 							<label key={code} className={pill({ className: 'cursor-pointer' })}>
@@ -262,6 +251,7 @@ function WhatToSearch({
 	onBack: () => void
 	onSaved: (scraper: WebSettings['scraper']) => void
 }) {
+	const t = useT()
 	const existing = scraper.searchTerms.filter(term => term.enabled).map(term => term.term)
 	// Com termos já salvos, começa por eles; senão, pede as sugestões à IA
 	const [draft, setDraft] = useState<SearchDraft | null>(() =>
@@ -285,7 +275,7 @@ function WhatToSearch({
 			})
 			setFromAi(suggestions.fromAi)
 		} catch (error) {
-			notify(`Não consegui sugerir: ${(error as Error).message}`, 'error')
+			notify(t.profileStep.suggestFailed((error as Error).message), 'error')
 			setDraft(current => current ?? { searchTerms: [targetRole], requiredKeywords: [], excludedKeywords: [] })
 			setFromAi(false)
 		} finally {
@@ -315,7 +305,7 @@ function WhatToSearch({
 			})
 			onSaved(saved)
 		} catch (error) {
-			notify(`Não consegui salvar: ${(error as Error).message}`, 'error')
+			notify(t.actions.saveFailed((error as Error).message), 'error')
 		} finally {
 			setSaving(false)
 		}
@@ -325,8 +315,8 @@ function WhatToSearch({
 
 	useStepBar({
 		onBack,
-		secondary: [{ label: 'sugerir de novo', icon: 'refresh', disabled: suggesting || saving, onClick: suggest }],
-		primary: { label: saving ? 'salvando…' : 'continuar', disabled: suggesting || saving || !draft, onClick: save },
+		secondary: [{ label: t.profileStep.suggestAgain, icon: 'refresh', disabled: suggesting || saving, onClick: suggest }],
+		primary: { label: saving ? t.actions.saving : t.actions.continue, disabled: suggesting || saving || !draft, onClick: save },
 	})
 
 	return (
@@ -335,17 +325,15 @@ function WhatToSearch({
 				eyebrow={eyebrow}
 				title={
 					<>
-						É isso que vamos <Hero.Mono>procurar.</Hero.Mono>
+						{t.profileStep.searchTitle} <Hero.Mono>{t.profileStep.searchTitleMono}</Hero.Mono>
 					</>
 				}
-				lead="Separamos algumas buscas e palavras a partir do seu cargo. Tire o que não fizer sentido e adicione o que faltar: dá para mudar depois."
+				lead={t.profileStep.searchLead}
 			/>
 
 			{suggesting || !draft ? (
 				<Rise order={3} className="flex flex-col gap-4">
-					<StatusLine icon="spinner">
-						Pensando nas melhores buscas para {targetRole.trim() || 'você'}… pode levar alguns segundos.
-					</StatusLine>
+					<StatusLine icon="spinner">{t.profileStep.thinking(targetRole.trim() || t.profileStep.thinkingYou)}</StatusLine>
 					<div className="flex flex-wrap gap-2" aria-hidden="true">
 						{[28, 36, 24, 32, 20].map((width, index) => (
 							<Skeleton key={index} shape="pill" className={cx('h-8', WIDTHS[width])} />
@@ -358,17 +346,14 @@ function WhatToSearch({
 					{!fromAi && (
 						<Rise order={3}>
 							<Notice tone="warn" icon="alert">
-								<p>
-									A IA não respondeu agora, então sugerimos só o seu cargo. Adicione outras formas de escrever a vaga, ou
-									tente de novo.
-								</p>
+								<p>{t.profileStep.aiFailed}</p>
 							</Notice>
 						</Rise>
 					)}
 
 					<Rise order={3} className="flex flex-col gap-1.5">
 						<span className="flex items-center justify-between gap-3">
-							<FieldLabel htmlFor="onboarding-terms">o que buscar nos posts do LinkedIn</FieldLabel>
+							<FieldLabel htmlFor="onboarding-terms">{t.profileStep.terms}</FieldLabel>
 							<span className={META}>
 								{draft.searchTerms.length} / {LIMITS.searchTerms}
 							</span>
@@ -384,18 +369,15 @@ function WhatToSearch({
 							onChange={searchTerms => edit({ searchTerms })}
 						/>
 						{tried && draft.searchTerms.length === 0 ? (
-							<FieldError>Coloque pelo menos uma busca.</FieldError>
+							<FieldError>{t.profileStep.termsRequired}</FieldError>
 						) : (
-							<FieldHelp id="onboarding-terms-help">
-								Cada uma vira uma busca, como se você digitasse no LinkedIn. Use o nome da vaga do jeito que as empresas
-								escrevem.
-							</FieldHelp>
+							<FieldHelp id="onboarding-terms-help">{t.profileStep.termsHelp}</FieldHelp>
 						)}
 					</Rise>
 
 					<Rise order={4} className="grid grid-cols-2 gap-5 max-md:grid-cols-1">
 						<div className="flex flex-col gap-1.5">
-							<FieldLabel htmlFor="onboarding-required">a vaga precisa falar de pelo menos uma</FieldLabel>
+							<FieldLabel htmlFor="onboarding-required">{t.profileStep.required}</FieldLabel>
 							<KeywordInput
 								id="onboarding-required"
 								value={draft.requiredKeywords}
@@ -404,12 +386,10 @@ function WhatToSearch({
 								describedBy="onboarding-required-help"
 								onChange={requiredKeywords => edit({ requiredKeywords })}
 							/>
-							<FieldHelp id="onboarding-required-help">
-								Vaga sem nenhuma destas palavras no cargo ou nos requisitos é deixada de fora.
-							</FieldHelp>
+							<FieldHelp id="onboarding-required-help">{t.profileStep.requiredHelp}</FieldHelp>
 						</div>
 						<div className="flex flex-col gap-1.5">
-							<FieldLabel htmlFor="onboarding-excluded">esconder vagas que falem de</FieldLabel>
+							<FieldLabel htmlFor="onboarding-excluded">{t.profileStep.excluded}</FieldLabel>
 							<KeywordInput
 								id="onboarding-excluded"
 								value={draft.excludedKeywords}
@@ -418,9 +398,7 @@ function WhatToSearch({
 								describedBy="onboarding-excluded-help"
 								onChange={excludedKeywords => edit({ excludedKeywords })}
 							/>
-							<FieldHelp id="onboarding-excluded-help">
-								Para tirar vagas parecidas que não são para você. Pode deixar vazio.
-							</FieldHelp>
+							<FieldHelp id="onboarding-excluded-help">{t.profileStep.excludedHelp}</FieldHelp>
 						</div>
 					</Rise>
 				</>

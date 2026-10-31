@@ -1,5 +1,6 @@
 import { CONTRACT_TYPES } from '@shared/contracts'
 import { findJobImage, Job } from '@shared/database'
+import { t } from '@shared/i18n'
 import { readSettings } from '@shared/settings'
 
 import type { JobFacets, JobsPage, WebJob } from '../api-types'
@@ -20,7 +21,7 @@ const TOP_SKILLS = 40
 /** Até quantas vagas o `until` traz de uma vez; mais longe que isso, a lista começa normal e a vaga fica só no painel. */
 const UNTIL_MAX = 300
 
-/** A vaga do id da URL (`/vagas/<id>`), entre as que a interface mostra. */
+/** A vaga do id da URL (`/jobs/<id>`), entre as que a interface mostra. */
 const routeJob = (routeId: string) => ({
 	...LISTABLE_JOBS,
 	postId: { ...LISTABLE_JOBS.postId, $in: postIdCandidates(routeId) },
@@ -109,7 +110,7 @@ export async function jobFacets() {
 export async function getJob(req: Request & { params: { postId: string } }) {
 	// O site pede pelo id curto da URL (sem `urn:li:<tipo>:`); o postId inteiro também vale
 	const doc = await Job.findOne(routeJob(req.params.postId)).lean<JobDocument>()
-	if (!doc) throw new HttpError(404, 'Vaga não encontrada')
+	if (!doc) throw new HttpError(404, t().api.jobNotFound)
 
 	const { reviewChecksPercent } = await readSettings('post-processing')
 	return Response.json(toWebJob(doc, reviewChecksPercent) satisfies WebJob)
@@ -121,7 +122,7 @@ export async function getJob(req: Request & { params: { postId: string } }) {
  */
 export async function getRawJob(req: Request & { params: { postId: string } }) {
 	const doc = await Job.findOne({ postId: req.params.postId }).lean()
-	if (!doc) throw new HttpError(404, 'Vaga não encontrada')
+	if (!doc) throw new HttpError(404, t().api.jobNotFound)
 
 	return Response.json(doc)
 }
@@ -132,10 +133,10 @@ export async function getRawJob(req: Request & { params: { postId: string } }) {
  */
 export async function getJobImage(req: Request & { params: { postId: string; index: string } }) {
 	const index = Number(req.params.index)
-	if (!Number.isInteger(index) || index < 0) throw new HttpError(404, 'Imagem não encontrada')
+	if (!Number.isInteger(index) || index < 0) throw new HttpError(404, t().api.imageNotFound)
 
 	const image = await findJobImage(req.params.postId, index)
-	if (!image) throw new HttpError(404, 'Imagem não encontrada')
+	if (!image) throw new HttpError(404, t().api.imageNotFound)
 
 	return new Response(new Blob([new Uint8Array(image.data)]), {
 		headers: {

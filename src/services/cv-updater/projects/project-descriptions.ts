@@ -1,21 +1,24 @@
 import type { Message } from 'ollama'
 import { z } from 'zod'
 
+import { BASE_LOCALE, languageName, type Locale } from '@shared/i18n'
+
 import type { ProjectCandidate } from './project-ranking'
 
 const DESCRIPTION_MIN = 40
 const DESCRIPTION_MAX = 260
 
-const SYSTEM_PROMPT = `You write project descriptions for a developer's résumé, in Brazilian Portuguese.
+/** As instruções; `language` é o idioma das descrições, em inglês ("Brazilian Portuguese", "English"). */
+const systemPrompt = (language: string) => `You write project descriptions for a developer's résumé, in ${language}.
 For each repository, write 1 or 2 sentences (at most 220 characters) saying what the project does and how, based ONLY on its description and README.
-Match the style of the example. Do not list technologies (they are shown separately) and do not invent features.`
+Match the style of the example (but write in ${language}). Do not list technologies (they are shown separately) and do not invent features.`
 
 const DescriptionsSchema = z.object({
 	projects: z.array(z.object({ repo: z.string(), description: z.string() })).default([]),
 })
 
-/** Monta o pedido à IA de descrições para os projetos que vieram só do GitHub. */
-export function buildDescriptionRequest(candidates: ProjectCandidate[], example: string | undefined) {
+/** Monta o pedido à IA de descrições para os projetos que vieram só do GitHub, no idioma do currículo da vaga. */
+export function buildDescriptionRequest(candidates: ProjectCandidate[], example: string | undefined, locale: Locale = BASE_LOCALE) {
 	const repos = candidates.flatMap(candidate => (!candidate.fromTex && candidate.repo ? [candidate.repo] : []))
 	const names = repos.map(repo => repo.name)
 
@@ -33,7 +36,7 @@ export function buildDescriptionRequest(candidates: ProjectCandidate[], example:
 		.join('\n\n')
 
 	const messages: Message[] = [
-		{ role: 'system', content: `${SYSTEM_PROMPT}${example ? `\n\nExample: ${example}` : ''}` },
+		{ role: 'system', content: `${systemPrompt(languageName(locale, 'en'))}${example ? `\n\nExample: ${example}` : ''}` },
 		{ role: 'user', content },
 	]
 

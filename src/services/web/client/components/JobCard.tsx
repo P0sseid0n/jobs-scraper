@@ -7,13 +7,13 @@ import { openJobFromCard } from '../lib/job-opening'
 import { jobParams } from '../router'
 import { useAppliedAt } from '../stores/applied'
 import { filtersOpen } from '../stores/filters-panel'
+import { useT } from '../stores/locale'
 import { setViewed, useViewed } from '../stores/viewed'
 import { ContractTypeBadge } from './ContractTypeBadge'
 import { CorrectedBadge } from './CorrectedBadge'
 import { ExtractionChecksBadge } from './ExtractionChecksBadge'
 import { Icon } from './Icon'
 import { JobSubtitle } from './JobSubtitle'
-import { LISTING_TITLE } from './ListingBadge'
 import { PostImagesBadge } from './PostImages'
 import { badge, BadgeList } from './ui/Badge'
 import { card } from './ui/Card'
@@ -38,6 +38,7 @@ export function JobCard({
 	/** Não volta ao topo ao abrir: no desktop a vaga abre no painel ao lado da lista. */
 	keepScroll?: boolean
 }) {
+	const t = useT()
 	const viewed = useViewed(job)
 	const appliedAt = useAppliedAt(job)
 	const skills = job.necessaryKnowledge ?? []
@@ -65,7 +66,7 @@ export function JobCard({
 				{/* O card todo abre a vaga: o after do link cobre o card; só a bolinha fica por cima */}
 				<Link
 					className="group flex min-w-0 flex-1 flex-col gap-1 no-underline after:absolute after:inset-0 after:rounded-lg"
-					to="/vagas/$id"
+					to="/jobs/$id"
 					params={jobParams(job.postId)}
 					// Os filtros da lista continuam na URL
 					search
@@ -86,7 +87,7 @@ export function JobCard({
 							viewed && 'text-muted',
 						)}
 					>
-						{!viewed && <span className="sr-only">não vista:</span>}
+						{!viewed && <span className="sr-only">{t.jobCard.unviewed}</span>}
 						{job.title}
 					</span>
 					<span className="text-muted text-sm">
@@ -104,15 +105,15 @@ export function JobCard({
 					<time
 						className="font-mono text-muted text-sm whitespace-nowrap"
 						dateTime={job.createdAt}
-						title={job.postedAt ? `publicada ${timeAgo(job.postedAt)}` : undefined}
+						title={job.postedAt ? t.jobCard.published(timeAgo(job.postedAt)) : undefined}
 					>
-						coletada {timeAgo(job.createdAt)}
+						{t.jobCard.collected(timeAgo(job.createdAt))}
 					</time>
 				</div>
 			</div>
 
 			{skills.length > 0 && (
-				<BadgeList aria-label="Tecnologias">
+				<BadgeList aria-label={t.jobCard.technologies}>
 					{skills.slice(0, VISIBLE_SKILLS).map(skill => (
 						<li className={badge()} key={skill}>
 							{skill}
@@ -134,19 +135,19 @@ export function JobCard({
 					{appliedAt ? (
 						<span className={badge({ tone: 'running', size: 'sm' })}>
 							<Icon name="check" size={13} />
-							candidatura enviada {timeAgo(appliedAt)}
+							{t.jobCard.applied(timeAgo(appliedAt))}
 						</span>
 					) : job.recruiterEmail ? (
 						<>
 							<Icon name="mail" size={14} />
-							com e-mail de contato
+							{t.jobCard.withEmail}
 						</>
 					) : safeLink(job.applyLink) ? (
-						'candidatura pelo site da vaga'
+						t.jobCard.viaSite
 					) : (
-						'candidatura pelo post'
+						t.jobCard.viaPost
 					)}
-					{job.sourcePostId && <span title={LISTING_TITLE}>· de uma lista</span>}
+					{job.sourcePostId && <span title={t.jobCard.listingTitle}>{t.jobCard.fromListing}</span>}
 				</span>
 				<PostImagesBadge job={job} />
 			</div>
@@ -164,7 +165,8 @@ export function JobCard({
  * aparece na hora e se desfaz com outro toque, e abrir a vaga sem querer troca de página (e ainda a marca como vista).
  */
 function ViewedDot({ job, viewed }: { job: WebJob; viewed: boolean }) {
-	const action = viewed ? 'marcar como não vista' : 'marcar como vista'
+	const t = useT()
+	const action = viewed ? t.jobCard.markUnviewed : t.jobCard.markViewed
 
 	return (
 		<button

@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
-import { CV_FORM_DEFAULT_TITLES, CV_FORM_SECTIONS, CvFormSchema, type CvFormInput } from '@shared/contracts'
+import { CV_FORM_SECTIONS, CvFormSchema, cvSectionTitles, type CvFormInput } from '@shared/contracts'
+import { LOCALE_CODES } from '@shared/i18n'
 
 import { missingSections } from '../base-resume'
 import { formToLatex } from './latex-from-form'
@@ -68,8 +69,11 @@ const form: CvFormInput = {
 const latex = (form: CvFormInput) => formToLatex(CvFormSchema.parse(form))
 
 describe('currículo gerado do formulário', () => {
-	test('os títulos das seções são reconhecidos pelo leitor', () => {
-		for (const kind of CV_FORM_SECTIONS) expect(sectionKey(CV_FORM_DEFAULT_TITLES[kind])).toBe(kind)
+	test('os títulos das seções, em todos os idiomas, são reconhecidos pelo leitor', () => {
+		for (const locale of LOCALE_CODES) {
+			const titles = cvSectionTitles(locale)
+			for (const kind of CV_FORM_SECTIONS) expect(sectionKey(titles[kind])).toBe(kind)
+		}
 	})
 
 	test('cada seção sai no formato que o leitor interpreta', () => {
@@ -165,7 +169,7 @@ describe('currículo gerado do formulário', () => {
 		const tex = latex({ contact, sections: [...form.sections].reverse() })
 		const titles = [...tex.matchAll(/\\section\*\{([^}]*)\}/g)].map(match => match[1])
 
-		expect(titles).toEqual([...CV_FORM_SECTIONS].reverse().map(kind => CV_FORM_DEFAULT_TITLES[kind]))
+		expect(titles).toEqual([...CV_FORM_SECTIONS].reverse().map(kind => cvSectionTitles()[kind]))
 	})
 
 	test('usa o título escrito na seção e o rótulo escolhido para as ferramentas dos projetos', () => {

@@ -1,14 +1,15 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 
 import { MESSAGE_LENGTHS, MESSAGE_TONES, type MessageLength, type MessageTone } from '@shared/contracts'
-import { DEFAULT_TEMPLATE, templateMessage, unresolvedMissing } from '@shared/templates'
+import { defaultTemplate, templateMessage, unresolvedMissing } from '@shared/templates'
 
 import type { WebJob, WebMail } from '../../api-types'
 import { api, cvPdfUrl, RequestError } from '../api'
 import { cx } from '../lib/cx'
-import { formatDateTime, MESSAGE_LENGTH_LABELS, MESSAGE_TONE_LABELS } from '../lib/format'
+import { formatDateTime, formatList } from '../lib/format'
 import { shakeFailedAction } from '../lib/motion'
 import { useCvFor, useReadyCvFor } from '../stores/cv'
+import { useT } from '../stores/locale'
 import { sendApplication, useJobMails, useMailSetup } from '../stores/mail'
 import { useMessageSettingsState } from '../stores/message-settings'
 import { notify, type ToastAction } from '../stores/toast'
@@ -37,14 +38,17 @@ type ContactJob = Pick<
 	'postId' | 'title' | 'company' | 'location' | 'workMode' | 'necessaryKnowledge' | 'applyLink' | 'postLink' | 'author'
 >
 
-const LIST_FORMAT = new Intl.ListFormat('pt-BR')
-
 /** Os campos do envio com o erro embaixo deles na modal. */
 const SHOWN_FIELDS = new Set(['to', 'subject', 'body'])
 
 /** Os nomes como aparecem no modelo: "{{empresa}} e {{local}}". */
 function variableList(names: readonly string[]) {
-	return LIST_FORMAT.format(names.map(name => `{{${name}}}`))
+	return formatList(names.map(name => `{{${name}}}`))
+}
+
+/** As marcas que ficaram no texto: "[empresa] e [local]". */
+function markList(names: readonly string[]) {
+	return formatList(names.map(name => `[${name}]`))
 }
 
 type ContactDialogProps = {
@@ -69,6 +73,8 @@ type ContactDialogProps = {
  * currículo pronto anexado, só depois de clicar em "enviar"; sem ela, só copiar.
  */
 export function ContactDialog({ job, recipient, recipientReadOnly = false, copyAction, onClose }: ContactDialogProps) {
+	const t = useT()
+	const c = t.contact
 	const ref = useRef<HTMLDialogElement>(null)
 	const ids = {
 		to: useId(),
@@ -97,7 +103,11 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 	const [tone, setTone] = useState<MessageTone>('neutral')
 	const [length, setLength] = useState<MessageLength>('medium')
 	// Sem as configurações (a leitura falhou), vale o modelo padrão
-	const message = templateMessage(messageSettings ?? { template: DEFAULT_TEMPLATE, fallbacks: {}, variables: [] }, job, profile ?? {})
+	const message = templateMessage(
+		messageSettings ?? { template: defaultTemplate(), fallbacks: {}, variables: [] },
+		job,
+		profile ?? {},
+	)
 	const sourceBody = message.body
 
 	// O texto nos campos começa com o modelo preenchido. Quando ele muda sozinho (as configurações lidas de novo), o texto
@@ -125,7 +135,7 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 	// desligado é para o que não se pode usar, não para o que ainda está chegando
 	const bodyLoading = !textReady
 	const fieldsBusy = bodyLoading || !!rewriting
-	const busyLabel = rewriting ? 'a IA está reescrevendo a mensagem…' : 'carregando a mensagem…'
+	const busyLabel = rewriting ? c.rewritingLabel : c.loadingLabel
 	// Sem saber ainda se há conta de e-mail, os campos aparecem como editáveis (desligados), no lugar em que vão ficar
 	const editable = canSend || setup === null
 
@@ -154,20 +164,20 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 		!canSend || bodyLoading
 			? null
 			: rewriting
-				? 'Espere a IA terminar de reescrever.'
+				? c.waitAi
 				: unresolved.length > 0
-					? `Troque ${LIST_FORMAT.format(unresolved.map(name => `[${name}]`))} no texto para enviar.`
+					? c.replaceMarks(markList(unresolved))
 					: !readyCv
 						? cv?.status === 'pending'
-							? 'O currículo ainda está sendo gerado: ele vai anexado.'
-							: 'Gere o currículo para enviar: ele vai anexado.'
+							? c.cvGenerating
+							: c.cvMissing
 						: null
 
 	// O que entrou pelo fallback não pede nada: só uma nota embaixo da mensagem
 	const hasFallbacks = textReady && message.fallbacks.length > 0
 	const fallbackNote = hasFallbacks && (
 		<FieldHelp id={ids.fallbacks} className="text-xs">
-			A vaga não tem {variableList(message.fallbacks)}: entrou o texto do fallback.
+			{c.fallbackNote(variableList(message.fallbacks))}
 		</FieldHelp>
 	)
 
@@ -185,7 +195,7 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 			setBody(improved.body)
 			setEdited(true)
 		} catch (error) {
-			notify(error instanceof RequestError ? error.message : 'Não consegui melhorar a mensagem', 'error')
+			notify(error instanceof RequestError ? error.message : c.improveFailed, 'error')
 		} finally {
 			setRewriting(false)
 		}
@@ -213,14 +223,14 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 				body,
 				force: !!lastSent,
 			})
-			notify('Candidatura a caminho: o status aparece no contato quando o e-mail sair')
+			notify(c.sent)
 			ref.current?.close()
 		} catch (error) {
 			const fields = error instanceof RequestError ? Object.keys(error.fields) : []
 			if (fields.length > 0) setErrors((error as RequestError).fields)
 			// Um campo que a modal não mostra (ex.: o currículo) não teria onde aparecer; os mostrados só tremem o "enviar"
 			if (fields.length === 0 || fields.some(name => !SHOWN_FIELDS.has(name))) {
-				notify(error instanceof RequestError ? error.message : 'Não consegui enviar a candidatura', 'error')
+				notify(error instanceof RequestError ? error.message : c.sendFailed, 'error')
 			} else shakeFailedAction()
 			setBusy(false)
 		}
@@ -236,7 +246,7 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 			className="w-180 open:flex open:flex-col"
 		>
 			<div className="flex flex-col gap-1 border-b border-line px-5 pt-4 pb-3.5">
-				<DialogTitle closable>Entrar em contato</DialogTitle>
+				<DialogTitle closable>{c.title}</DialogTitle>
 				{/* A vaga, para não mandar a mensagem certa para a vaga errada */}
 				<p className="m-0 min-w-0 truncate text-sm">
 					<span className="font-semibold">{job.title}</span>
@@ -244,15 +254,12 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 				</p>
 				{setup &&
 					(canSend ? (
-						<FieldHelp>
-							Revise e envie daqui{setup.from ? `, de ${setup.from}` : ''}, com o currículo anexado, ou copie para enviar pelo
-							seu e-mail. Nada é enviado sem o clique em “enviar”.
-						</FieldHelp>
+						<FieldHelp>{c.canSend(setup.from)}</FieldHelp>
 					) : (
 						<FieldHelp>
-							Copie e envie pelo seu e-mail. Para editar e enviar daqui, com o currículo anexado, configure a conta de e-mail em{' '}
-							<RouteLink size="sm" to="/configuracoes" search={{ conta: 'smtp' }} hash="contas">
-								Configurações › Contas
+							{c.copyOnly}
+							<RouteLink size="sm" to="/settings" search={{ account: 'smtp' }} hash="accounts">
+								{c.accountsLink}
 							</RouteLink>
 							.
 						</FieldHelp>
@@ -263,23 +270,20 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 				<div className="flex min-h-0 grow flex-col gap-4 overflow-y-auto px-5 py-4">
 					{lastSent && (
 						<Notice tone="warn" icon="alert">
-							<p className="m-0">
-								Esta vaga já recebeu sua candidatura por e-mail ({formatDateTime(lastSent.sentAt ?? lastSent.requestedAt)},
-								para {lastSent.to}). Enviar de novo manda outro e-mail.
-							</p>
+							<p className="m-0">{c.alreadySent(formatDateTime(lastSent.sentAt ?? lastSent.requestedAt), lastSent.to)}</p>
 						</Notice>
 					)}
 
 					<div className="flex flex-col gap-1.5">
 						{/* Cada campo tem o botão de copiar só com o ícone, na linha do rótulo */}
 						<div className="flex items-center justify-between gap-2">
-							<FieldLabel htmlFor={ids.to}>para</FieldLabel>
+							<FieldLabel htmlFor={ids.to}>{c.to}</FieldLabel>
 							{recipientFixed && (
 								<CopyButton
 									icon
 									text={recipient}
-									what="E-mail"
-									label="copiar e-mail"
+									what={c.emailWhat}
+									label={c.copyEmail}
 									toastAction={copyAction}
 									className="text-muted hover:text-ink"
 								/>
@@ -321,17 +325,15 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 						)}
 					</div>
 
-					<section aria-label="Mensagem de candidatura" className="flex flex-col gap-3 rounded-sm bg-surface-2 p-3.5">
+					<section aria-label={c.messageSection} className="flex flex-col gap-3 rounded-sm bg-surface-2 p-3.5">
 						{/* Em caixa, só o que pede uma ação: o que ficou marcado no texto (e segura o envio), o modelo que não deu para
 						 * ler e o modelo que mudou. O que entrou pelo fallback é só uma nota embaixo da mensagem */}
 						{textReady && unresolved.length > 0 && (
 							<Notice tone="warn" icon="alert">
 								<p className="m-0">
-									A vaga não tem {variableList(unresolved)}, e o modelo não tem fallback: troque{' '}
-									{LIST_FORMAT.format(unresolved.map(name => `[${name}]`))} no texto antes de enviar. Para as próximas vagas,
-									defina um fallback em{' '}
-									<RouteLink size="sm" to="/configuracoes" hash="mensagem">
-										Configurações › Mensagem
+									{c.unresolved(variableList(unresolved), markList(unresolved))}
+									<RouteLink size="sm" to="/settings" hash="message">
+										{c.messageLink}
 									</RouteLink>
 									.
 								</p>
@@ -341,9 +343,9 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 						{settingsStatus === 'failed' && (
 							<Notice tone="warn" icon="alert">
 								<p className="m-0">
-									Não consegui ler o seu modelo das configurações: a mensagem saiu do modelo padrão.{' '}
+									{c.settingsFailed}{' '}
 									<TextLink size="sm" onClick={retrySettings}>
-										tentar de novo
+										{c.retry}
 									</TextLink>
 								</p>
 							</Notice>
@@ -352,11 +354,11 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 						{newerSource && (
 							<Notice tone="warn" icon="info">
 								<p className="m-0">
-									O modelo mudou enquanto você editava.{' '}
+									{c.templateChanged}{' '}
 									<TextLink size="sm" onClick={adoptSource}>
-										usar a nova
+										{c.useNew}
 									</TextLink>{' '}
-									troca o que você editou.
+									{c.replacesEdit}
 								</p>
 							</Notice>
 						)}
@@ -366,12 +368,12 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 								<>
 									<div className="flex flex-col gap-1.5">
 										<div className="flex items-center justify-between gap-2">
-											<FieldLabel htmlFor={ids.subject}>assunto</FieldLabel>
+											<FieldLabel htmlFor={ids.subject}>{c.subject}</FieldLabel>
 											<CopyButton
 												icon
 												text={subject}
-												what="Assunto"
-												label="copiar assunto"
+												what={c.subjectWhat}
+												label={c.copySubject}
 												className="text-muted hover:text-ink"
 											/>
 										</div>
@@ -391,13 +393,13 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 									</div>
 									<div className="flex flex-col gap-1.5">
 										<div className="flex items-center justify-between gap-2">
-											<FieldLabel htmlFor={ids.body}>mensagem</FieldLabel>
+											<FieldLabel htmlFor={ids.body}>{c.message}</FieldLabel>
 											{!bodyLoading && (
 												<CopyButton
 													icon
 													text={body}
-													what="Texto da mensagem"
-													label="copiar mensagem"
+													what={c.messageWhat}
+													label={c.copyMessage}
 													toastAction={copyAction}
 													className="text-muted hover:text-ink"
 												/>
@@ -427,18 +429,18 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 								<>
 									{/* O botão de copiar fica preso no fim da linha do assunto: nunca cai sozinho na linha de baixo */}
 									<p className="m-0 flex items-baseline gap-2 text-sm leading-relaxed">
-										<span className={cx(LABEL, 'shrink-0')}>assunto</span>
+										<span className={cx(LABEL, 'shrink-0')}>{c.subject}</span>
 										<span className="min-w-0 font-semibold wrap-break-word">{subject}</span>
 										<CopyButton
 											icon
 											text={subject}
-											what="Assunto"
-											label="copiar assunto"
+											what={c.subjectWhat}
+											label={c.copySubject}
 											className="shrink-0 self-center text-muted hover:text-ink"
 										/>
 									</p>
 									{/* A mensagem se copia pelo botão do rodapé, a ação principal sem a conta de e-mail */}
-									<span className={LABEL}>mensagem</span>
+									<span className={LABEL}>{c.message}</span>
 									{/* Texto corrido, para revisar: sem a fonte mono e com a linha numa largura confortável de ler */}
 									{fieldsBusy ? (
 										<FieldScan label={busyLabel} className="min-h-40 rounded-sm bg-surface" />
@@ -452,16 +454,13 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 
 						{/* A IA só entra a pedido: primeiro o estilo (recolhido, para não pesar na tela), depois o botão que reescreve o texto atual nele */}
 						<div className="flex flex-col gap-2 border-t border-line-strong pt-3">
-							<Disclosure
-								summary={`estilo: ${MESSAGE_TONE_LABELS[tone]}, ${MESSAGE_LENGTH_LABELS[length]}`}
-								className="text-xs"
-							>
+							<Disclosure summary={c.style(t.format.messageTones[tone], t.format.messageLengths[length])} className="text-xs">
 								<div className="flex flex-col gap-2.5 pt-1">
 									{/* Tom e tamanho lado a lado; sem espaço, o tamanho desce para a linha de baixo */}
 									<div className="flex flex-wrap items-center gap-x-5 gap-y-2.5">
 										<div className={MESSAGE_OPTION}>
 											<span id={ids.tone} className={LABEL}>
-												tom
+												{c.tone}
 											</span>
 											<PillGroup role="group" aria-labelledby={ids.tone}>
 												{MESSAGE_TONES.map(option => (
@@ -471,14 +470,14 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 														disabled={rewriting}
 														onClick={() => setTone(option)}
 													>
-														{MESSAGE_TONE_LABELS[option]}
+														{t.format.messageTones[option]}
 													</Pill>
 												))}
 											</PillGroup>
 										</div>
 										<div className={MESSAGE_OPTION}>
 											<span id={ids.length} className={LABEL}>
-												tamanho
+												{c.length}
 											</span>
 											<PillGroup role="group" aria-labelledby={ids.length}>
 												{MESSAGE_LENGTHS.map(option => (
@@ -488,13 +487,13 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 														disabled={rewriting}
 														onClick={() => setLength(option)}
 													>
-														{MESSAGE_LENGTH_LABELS[option]}
+														{t.format.messageLengths[option]}
 													</Pill>
 												))}
 											</PillGroup>
 										</div>
 									</div>
-									<p className="m-0">A IA reescreve o texto atual nesse estilo, sem inventar fatos.</p>
+									<p className="m-0">{c.styleHelp}</p>
 								</div>
 							</Disclosure>
 							<div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
@@ -506,7 +505,7 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 										onClick={improveMessage}
 									>
 										<Icon name={rewriting ? 'spinner' : 'refresh'} size={13} />
-										melhorar com a IA
+										{c.improve}
 									</Button>
 									{/* Some quando a pessoa edita o corpo: voltar ao de antes perderia a edição */}
 									{beforeImprove !== null && (
@@ -520,38 +519,34 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 													setBeforeImprove(null)
 												}}
 											>
-												desfazer
+												{c.undo}
 											</TextLink>
 										</>
 									)}
 								</div>
 								<span role="status" className="text-muted text-xs">
-									{rewriting
-										? 'a IA está reescrevendo…'
-										: unresolved.length > 0
-											? 'complete o que faltou antes de pedir à IA'
-											: ''}
+									{rewriting ? c.rewriting : unresolved.length > 0 ? c.completeFirst : ''}
 								</span>
 							</div>
 						</div>
 					</section>
 
 					{/* O currículo é escolha de quem abriu: ele vai anexado ao e-mail */}
-					<section aria-label="Currículo" className="flex flex-col gap-2.5 rounded-sm border border-line p-2.5">
+					<section aria-label={c.cvSection} className="flex flex-col gap-2.5 rounded-sm border border-line p-2.5">
 						{readyCv ? (
 							<div className="flex items-center gap-3">
 								<PdfIcon>PDF</PdfIcon>
 								<div className="min-w-0 grow">
-									<div className="text-sm font-semibold">{canSend ? 'anexo' : 'currículo'}</div>
+									<div className="text-sm font-semibold">{canSend ? c.attachment : c.cv}</div>
 									<div className={cx(META, 'block truncate')}>{readyCv.fileName}</div>
 								</div>
 								<div className="flex shrink-0 items-center gap-3 whitespace-nowrap">
 									<TextLink size="sm" href={cvPdfUrl(readyCv.requestId)} external>
-										pré-visualizar
+										{c.preview}
 									</TextLink>
 									{!canSend && (
 										<TextLink size="sm" href={cvPdfUrl(readyCv.requestId, true)} download={readyCv.fileName ?? undefined}>
-											baixar
+											{c.download}
 										</TextLink>
 									)}
 								</div>
@@ -559,12 +554,8 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 						) : (
 							<div className="flex flex-wrap items-center gap-3">
 								<FieldHelp className="min-w-0 basis-60 grow text-xs">
-									{cv?.status === 'pending'
-										? 'Gerando o currículo ajustado para a vaga.'
-										: canSend
-											? 'Gere o currículo ajustado para a vaga: ele vai anexado ao e-mail.'
-											: 'Gere o currículo ajustado para a vaga: o PDF fica para você anexar.'}
-									{cv?.status === 'failed' && <span className="block text-danger">O último falhou: {cv.error}</span>}
+									{cv?.status === 'pending' ? c.generatingCv : canSend ? c.generateToAttach : c.generateToKeep}
+									{cv?.status === 'failed' && <span className="block text-danger">{c.lastFailed(cv.error ?? '')}</span>}
 								</FieldHelp>
 								<CvButton job={job} className="shrink-0" />
 							</div>
@@ -579,7 +570,7 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 					</p>
 					<div className="flex shrink-0 gap-2">
 						<Button variant="ghost" type="button" disabled={busy} onClick={() => ref.current?.close()}>
-							{editable ? 'cancelar' : 'fechar'}
+							{editable ? c.cancel : c.close}
 						</Button>
 						{editable ? (
 							<Button
@@ -589,14 +580,14 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 								disabled={busy || !readyCv || sending || rewriting || bodyLoading || unresolved.length > 0}
 							>
 								<Icon name={busy || sending ? 'spinner' : 'mail'} size={14} />
-								{sending ? 'enviando…' : lastSent ? 'enviar de novo' : 'enviar candidatura'}
+								{sending ? c.sending : lastSent ? c.sendAgain : c.send}
 							</Button>
 						) : (
 							<CopyButton
 								variant="lime"
 								text={body}
-								what="Texto da mensagem"
-								label="copiar mensagem"
+								what={c.messageWhat}
+								label={c.copyMessage}
 								toastAction={copyAction}
 								disabled={bodyLoading}
 							/>
@@ -610,17 +601,18 @@ export function ContactDialog({ job, recipient, recipientReadOnly = false, copyA
 
 /** O status do último envio da vaga: enviando, enviada (com a data) ou falhou (com o motivo). */
 export function MailStatus({ mail }: { mail: WebMail }) {
+	const c = useT().contact
 	return (
 		<span role="status" className="text-xs">
-			{mail.status === 'sending' && <span className="text-muted">enviando para {mail.to}…</span>}
+			{mail.status === 'sending' && <span className="text-muted">{c.sendingTo(mail.to)}</span>}
 			{mail.status === 'sent' && (
 				<span className={badge({ tone: 'running' })}>
 					<Icon name="check" size={13} />
-					enviada para {mail.to} {formatDateTime(mail.sentAt ?? mail.requestedAt)}
-					{mail.channel === 'discord' && ' (pelo Discord)'}
+					{c.sentTo(mail.to, formatDateTime(mail.sentAt ?? mail.requestedAt))}
+					{mail.channel === 'discord' && c.viaDiscord}
 				</span>
 			)}
-			{mail.status === 'failed' && <span className="text-danger">o envio falhou: {mail.error ?? 'erro desconhecido'}</span>}
+			{mail.status === 'failed' && <span className="text-danger">{c.sendFailedStatus(mail.error ?? c.unknownError)}</span>}
 		</span>
 	)
 }
@@ -637,13 +629,14 @@ export function JobContact({
 	copyAction?: ToastAction
 	className?: string
 }) {
+	const t = useT()
 	const [open, setOpen] = useState(false)
 
 	return (
 		<>
 			<Button variant="lime" size="lg" className={className} aria-haspopup="dialog" onClick={() => setOpen(true)}>
 				<Icon name="mail" />
-				entrar em contato
+				{t.contact.contact}
 			</Button>
 			{open && (
 				<ContactDialog

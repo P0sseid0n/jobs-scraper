@@ -1,4 +1,5 @@
 import { MessageSettingsSchema } from '@shared/contracts'
+import { t } from '@shared/i18n'
 
 import type { WebSettings } from '../../api-types'
 
@@ -39,6 +40,7 @@ export function profileDraftOf(profile: WebSettings['profile']): ProfileDraft {
  */
 export function validateDraft(draft: SettingsDraft) {
 	const errors: Record<string, string> = {}
+	const f = t().settingsForm
 	const { searchTerms, minJobsPerRun, intervalMinutes } = draft.scraper
 	const seen = new Set<string>()
 
@@ -46,30 +48,28 @@ export function validateDraft(draft: SettingsDraft) {
 		const term = item.term.trim()
 		const key = term.toLowerCase()
 
-		if (!term) errors[`searchTerms.${index}.term`] = 'Escreva o termo ou remova a linha'
-		else if (term.length > LIMITS.termLength) errors[`searchTerms.${index}.term`] = `Use até ${LIMITS.termLength} caracteres`
-		else if (seen.has(key)) errors[`searchTerms.${index}.term`] = 'Termo repetido'
+		if (!term) errors[`searchTerms.${index}.term`] = f.termRequired
+		else if (term.length > LIMITS.termLength) errors[`searchTerms.${index}.term`] = t().validation.maxChars(LIMITS.termLength)
+		else if (seen.has(key)) errors[`searchTerms.${index}.term`] = f.termRepeated
 		seen.add(key)
 	})
 
 	// Sem termos ativos é válido: o scraper fica em espera (a tela avisa)
-	if (searchTerms.length > LIMITS.searchTerms) errors.searchTerms = `Use no máximo ${LIMITS.searchTerms} termos`
+	if (searchTerms.length > LIMITS.searchTerms) errors.searchTerms = f.maxTerms(LIMITS.searchTerms)
 
-	if (!isIntIn(minJobsPerRun, LIMITS.minJobsPerRun)) errors.minJobsPerRun = 'Use um número inteiro de 1 a 50'
-	if (!isIntIn(intervalMinutes, LIMITS.intervalMinutes)) errors.intervalMinutes = 'Use de 1 minuto a 7 dias'
+	if (!isIntIn(minJobsPerRun, LIMITS.minJobsPerRun)) errors.minJobsPerRun = f.minJobsRange
+	if (!isIntIn(intervalMinutes, LIMITS.intervalMinutes)) errors.intervalMinutes = f.intervalRange
 
 	const processing = draft['post-processing']
-	if (processing.allowedLanguages.length > LIMITS.languages) errors.allowedLanguages = `Escolha no máximo ${LIMITS.languages} idiomas`
+	if (processing.allowedLanguages.length > LIMITS.languages) errors.allowedLanguages = f.maxLanguages(LIMITS.languages)
 
 	for (const field of ['requiredKeywords', 'excludedKeywords'] as const) {
-		if (processing[field].length > LIMITS.keywords) errors[field] = `Use no máximo ${LIMITS.keywords} palavras`
+		if (processing[field].length > LIMITS.keywords) errors[field] = f.maxKeywords(LIMITS.keywords)
 	}
 
-	if (processing.blockedCompanies.length > LIMITS.blockedCompanies)
-		errors.blockedCompanies = `Bloqueie no máximo ${LIMITS.blockedCompanies} empresas`
+	if (processing.blockedCompanies.length > LIMITS.blockedCompanies) errors.blockedCompanies = f.maxBlocked(LIMITS.blockedCompanies)
 
-	if (!isIntIn(processing.duplicateWindowDays, LIMITS.duplicateWindowDays))
-		errors.duplicateWindowDays = 'Use um número inteiro de 1 a 365'
+	if (!isIntIn(processing.duplicateWindowDays, LIMITS.duplicateWindowDays)) errors.duplicateWindowDays = f.windowRange
 
 	// O modelo, as variáveis próprias e os fallbacks: as regras do próprio schema, com as mesmas mensagens do servidor
 	for (const [path, message] of Object.entries(messageTemplateErrors(draft.message))) errors[path] ??= message
@@ -98,18 +98,18 @@ export function messageTemplateErrors(message: SettingsDraft['message']) {
  */
 export function validateProfile(profile: ProfileDraft) {
 	const errors: Record<string, string> = {}
+	const { validation, settingsForm } = t()
 	const area = profile.area.trim()
 	const targetRole = profile.targetRole.trim()
 
-	if (!area) errors.area = 'Informe a área'
-	else if (area.length > LIMITS.area) errors.area = `Use até ${LIMITS.area} caracteres`
+	if (!area) errors.area = validation.areaRequired
+	else if (area.length > LIMITS.area) errors.area = validation.maxChars(LIMITS.area)
 
-	if (!targetRole) errors.targetRole = 'Informe o cargo-alvo'
-	else if (targetRole.length > LIMITS.targetRole) errors.targetRole = `Use até ${LIMITS.targetRole} caracteres`
+	if (!targetRole) errors.targetRole = validation.targetRoleRequired
+	else if (targetRole.length > LIMITS.targetRole) errors.targetRole = validation.maxChars(LIMITS.targetRole)
 
-	if (profile.languages.length === 0) errors.languages = 'Escolha pelo menos um idioma'
-	else if (profile.languages.length > LIMITS.profileLanguages)
-		errors.languages = `Escolha no máximo ${LIMITS.profileLanguages} idiomas`
+	if (profile.languages.length === 0) errors.languages = validation.languagesRequired
+	else if (profile.languages.length > LIMITS.profileLanguages) errors.languages = settingsForm.maxLanguages(LIMITS.profileLanguages)
 
 	return errors
 }
@@ -129,9 +129,10 @@ export function errorFor(errors: Record<string, string>, field: string) {
  * por volta de 80%; outra vaga da mesma empresa escrita no mesmo modelo de post, por volta de 40%.
  */
 export function duplicateSimilarityHint(percent: number) {
-	if (percent < 30) return 'Muito solto: pode juntar vagas diferentes da mesma empresa.'
-	if (percent < 50) return 'Solto: agrupa repostagens bem reescritas, mas pode juntar vagas diferentes.'
-	if (percent < 70) return 'Equilibrado (recomendado): agrupa repostagens com pequenas mudanças no texto.'
-	if (percent < 90) return 'Rígido: repostagens com parte do texto reescrita ficam separadas.'
-	return 'Muito rígido: só agrupa textos quase iguais.'
+	const hint = t().settingsForm.similarity
+	if (percent < 30) return hint.veryLoose
+	if (percent < 50) return hint.loose
+	if (percent < 70) return hint.balanced
+	if (percent < 90) return hint.strict
+	return hint.veryStrict
 }

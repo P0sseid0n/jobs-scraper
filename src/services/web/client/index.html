@@ -12,6 +12,11 @@
 			href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap"
 		/>
 		<script>
+			// O idioma escolhido antes de pintar a página (o espelho do salvo nas configurações, ver stores/locale.ts)
+			try {
+				const locale = JSON.parse(localStorage.getItem('locale') ?? 'null')
+				if (locale) document.documentElement.lang = locale
+			} catch {}
 			// Aplica o tema antes de pintar a página (evita o flash do tema claro)
 			try {
 				const saved = JSON.parse(localStorage.getItem('theme') ?? '"system"')

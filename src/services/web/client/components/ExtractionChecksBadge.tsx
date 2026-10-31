@@ -1,7 +1,8 @@
-import { EXTRACTION_CHECK_LABELS, EXTRACTION_CHECKS, type ExtractionCheck } from '@shared/contracts'
+import { EXTRACTION_CHECKS, type ExtractionCheck } from '@shared/contracts'
 
 import type { WebJob } from '../../api-types'
 import { cx } from '../lib/cx'
+import { useLocale, useT } from '../stores/locale'
 import { Icon } from './Icon'
 import { Badge } from './ui/Badge'
 import { LIST, META } from './ui/text'
@@ -12,27 +13,12 @@ import { LIST, META } from './ui/text'
  */
 const LEVEL_COLORS = ['text-check-1', 'text-check-2', 'text-check-3', 'text-check-4', 'text-check-5', 'text-check-6']
 
-/** Os nomes dos checks que falharam, para o texto do leitor de tela. */
-function extractionCheckList(job: Pick<WebJob, 'extractionChecks'>) {
-	return job.extractionChecks.map(check => EXTRACTION_CHECK_LABELS[check])
-}
-
-/** O artigo de cada check, para citá-los numa frase ("o cargo e as tecnologias"). */
-const CHECK_ARTICLES: Record<ExtractionCheck, string> = {
-	title: 'o',
-	company: 'a',
-	workMode: 'a',
-	contractTypes: 'o',
-	necessaryKnowledge: 'as',
-	applyLink: 'o',
-}
-
-const LIST_FORMAT = new Intl.ListFormat('pt-BR')
-
 /** "o **cargo** e as **tecnologias**": os checks que falharam, com artigo e o nome em negrito, para o meio de uma frase. */
 export function MissedChecks({ job }: { job: Pick<WebJob, 'extractionChecks'> }) {
+	const { checks } = useT()
+	const locale = useLocale()
 	// O Intl junta com vírgulas e "e"; os índices marcam onde entra cada check
-	const parts = LIST_FORMAT.formatToParts(job.extractionChecks.map((_, index) => String(index)))
+	const parts = new Intl.ListFormat(locale).formatToParts(job.extractionChecks.map((_, index) => String(index)))
 	return (
 		<>
 			{parts.map(part => {
@@ -40,7 +26,7 @@ export function MissedChecks({ job }: { job: Pick<WebJob, 'extractionChecks'> })
 				const check = job.extractionChecks[Number(part.value)] as ExtractionCheck
 				return (
 					<span key={check}>
-						{CHECK_ARTICLES[check]} <strong className="font-semibold">{EXTRACTION_CHECK_LABELS[check]}</strong>
+						{checks.articles[check]} <strong className="font-semibold">{checks.labels[check]}</strong>
 					</span>
 				)
 			})}
@@ -61,13 +47,14 @@ export function ExtractionChecksBadge({
 	iconOnly?: boolean
 	className?: string
 }) {
+	const { checks } = useT()
 	const count = job.extractionChecks.length
 	if (count === 0) return null
 
 	const total = EXTRACTION_CHECKS.length
 	const review = job.needsReview
 	const color = LEVEL_COLORS[count - 1]
-	const description = `${count} de ${total} checks da extração faltaram: ${extractionCheckList(job).join(', ')}.`
+	const description = checks.description(count, total, job.extractionChecks.map(check => checks.labels[check]).join(', '))
 
 	return (
 		// Por cima do link que cobre o card (`z-10`), para o hover chegar ao selo; aberto, sobe acima dos cards de baixo.
@@ -97,6 +84,7 @@ export function ExtractionChecksBadge({
 
 /** A lista do hover: só os checks que falharam. Só visual: o `sr-only` do selo já diz o mesmo. */
 function ChecksList({ job, alignRight }: { job: Pick<WebJob, 'extractionChecks' | 'needsReview'>; alignRight: boolean }) {
+	const { checks } = useT()
 	return (
 		<span
 			aria-hidden="true"
@@ -106,16 +94,16 @@ function ChecksList({ job, alignRight }: { job: Pick<WebJob, 'extractionChecks' 
 				alignRight ? 'right-0 max-md:right-auto max-md:left-0' : 'left-0',
 			)}
 		>
-			<span className={META}>checks que falharam</span>
+			<span className={META}>{checks.failed}</span>
 			<ul className={cx(LIST, 'flex flex-col gap-1 text-sm')}>
 				{job.extractionChecks.map(check => (
 					<li key={check} className="flex items-center gap-2">
 						<Icon name="close" size={14} className="text-danger" />
-						<span className="font-medium">{EXTRACTION_CHECK_LABELS[check]}</span>
+						<span className="font-medium">{checks.labels[check]}</span>
 					</li>
 				))}
 			</ul>
-			{job.needsReview && <span className="max-w-56 text-muted text-xs">Confira o post original e reporte a vaga.</span>}
+			{job.needsReview && <span className="max-w-56 text-muted text-xs">{checks.review}</span>}
 		</span>
 	)
 }

@@ -3,6 +3,7 @@ import type { Ollama } from 'ollama'
 
 import { activeSearchTerms, isProfileComplete } from '@shared/contracts'
 import { findActiveCvBase } from '@shared/database'
+import { t } from '@shared/i18n'
 import type { Logger } from '@shared/logging'
 import { readCredentialsStatus, readSettings } from '@shared/settings'
 
@@ -54,7 +55,7 @@ export async function setupStatus({ skipOnboarding, cvTexFile, findActiveCv = fi
  */
 export async function searchSuggestions(ai: { ollama: Ollama; model: string }, logger: Logger) {
 	const profile = await readSettings('profile')
-	if (!profile.area || !profile.targetRole) throw new HttpError(409, 'Salve a área e o cargo-alvo antes de pedir sugestões')
+	if (!profile.area || !profile.targetRole) throw new HttpError(409, t().api.profileFirst)
 
 	return Response.json(await suggestSearchSettings(ai, { ...profile, area: profile.area, targetRole: profile.targetRole }, logger))
 }

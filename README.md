@@ -193,6 +193,7 @@ Painéis, todos só em `127.0.0.1`:
 | `bun db:migrate-jobs`                         | Atualiza as vagas salvas para o formato atual                      |
 | `bun routes`                                  | Gera a árvore de rotas do site (`routeTree.gen.ts`)                |
 | `bun instance <nome>`                         | Cria ou liga uma instância isolada no Docker (veja acima)          |
+| `bun i18n:status [idioma]`                    | Quanto cada idioma do site já foi traduzido e as chaves que faltam |
 | `bun eval:extraction`                         | Mede o acerto da IA por campo nas vagas corrigidas pelo site       |
 | `bun eval:export-fixtures`                    | Exporta as correções, sem dados pessoais, como casos versionados   |
 | `bun run typecheck` / `lint` / `format:check` | Tipos, Biome e Prettier                                            |
@@ -214,3 +215,5 @@ O CI roda `typecheck`, `lint`, `format:check` e `test` em todo push e PR.
 ## 🤝 Contribuindo
 
 O padrão das issues, branches e commits está no [CONTRIBUTING.md](CONTRIBUTING.md). Licença [MIT](LICENSE).
+
+O site está em português e em inglês. Não achou o seu idioma? Veja como [traduzir o site](CONTRIBUTING.md#traduzir-o-site): uma tradução parcial já pode entrar.

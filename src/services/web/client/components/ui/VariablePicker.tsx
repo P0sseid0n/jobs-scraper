@@ -1,5 +1,7 @@
 import { useId, type ReactNode } from 'react'
 
+import { t } from '@shared/i18n'
+
 import { cx } from '../../lib/cx'
 import { useStore } from '../../lib/store'
 import { variablePickerOpen } from '../../stores/variable-picker'
@@ -81,7 +83,7 @@ export function VariablePicker({ groups, onInsert, linkDisabled = false, howTo, 
 						onClick={() => variablePickerOpen.set(!open)}
 						className="flex w-full items-center justify-between gap-3 text-left hover:text-ink"
 					>
-						Variáveis disponíveis
+						{t().ui.variables}
 						<Icon
 							name="chevron"
 							size={14}
@@ -89,11 +91,7 @@ export function VariablePicker({ groups, onInsert, linkDisabled = false, howTo, 
 						/>
 					</button>
 				</h3>
-				<p className="text-xs text-muted">
-					{open
-						? 'Clique para inserir no último campo selecionado.'
-						: 'Abra para inserir uma variável com um clique, criar as suas ou definir os fallbacks.'}
-				</p>
+				<p className="text-xs text-muted">{open ? t().ui.variablesOpenHelp : t().ui.variablesClosedHelp}</p>
 			</div>
 
 			<div id={listId} hidden={!open} className="flex flex-col gap-3">
@@ -110,7 +108,7 @@ export function VariablePicker({ groups, onInsert, linkDisabled = false, howTo, 
 										{group.variables.some(variable => variable.mayBeMissing) && (
 											<span className="flex items-center gap-1.5 text-xs text-muted">
 												<StatusDot className="text-warn" />
-												nem toda vaga tem
+												{t().ui.mayBeMissing}
 											</span>
 										)}
 									</span>
@@ -179,13 +177,15 @@ export function VariablePicker({ groups, onInsert, linkDisabled = false, howTo, 
 															{variable.mayBeMissing && (
 																<>
 																	<StatusDot className="text-warn" />
-																	<span className="sr-only">(nem toda vaga tem)</span>
+																	<span className="sr-only">{t().ui.mayBeMissingLabel}</span>
 																</>
 															)}
 														</span>
 														<span className="text-xs text-muted">{variable.description}</span>
 														{(disabled || variable.hint) && (
-															<span className="text-xs text-muted">{disabled ? 'só na mensagem' : variable.hint}</span>
+															<span className="text-xs text-muted">
+																{disabled ? t().ui.messageOnly : variable.hint}
+															</span>
 														)}
 													</span>
 													{!disabled && (
@@ -204,7 +204,7 @@ export function VariablePicker({ groups, onInsert, linkDisabled = false, howTo, 
 						)
 					})}
 
-				{howTo && <Disclosure summary="como funciona">{howTo}</Disclosure>}
+				{howTo && <Disclosure summary={t().ui.howItWorks}>{howTo}</Disclosure>}
 			</div>
 		</section>
 	)

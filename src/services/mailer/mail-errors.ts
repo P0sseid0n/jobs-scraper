@@ -1,4 +1,5 @@
 import { GMAIL_APP_PASSWORDS_URL } from '@shared/contracts'
+import { t } from '@shared/i18n'
 
 /** O erro do provedor, já decidido: `transient` volta para a fila (retry); `permanent` vai para a DLQ e vira falha. */
 export type MailErrorKind = 'transient' | 'permanent'
@@ -37,28 +38,26 @@ export function classifyMailError(error: unknown): ClassifiedMailError {
 	}
 
 	if (code === 'EENVELOPE' && smtp === null) {
-		return { kind: 'permanent', reason: 'O endereço do destinatário ou do remetente é inválido.' }
+		return { kind: 'permanent', reason: t().mailErrors.invalidAddress }
 	}
 
 	if (smtp !== null && smtp >= 500) {
 		const recipient = smtp === 550 || smtp === 551 || smtp === 553 || code === 'EENVELOPE'
 		return {
 			kind: 'permanent',
-			reason: recipient
-				? `O servidor recusou o endereço do destinatário (SMTP ${smtp}). Confira o e-mail do recrutador.`
-				: `O servidor de e-mail recusou a mensagem (SMTP ${smtp}).`,
+			reason: recipient ? t().mailErrors.recipientRefused(smtp) : t().mailErrors.messageRefused(smtp),
 		}
 	}
 
 	if (smtp !== null && smtp >= 400) {
-		return { kind: 'transient', reason: `O servidor de e-mail pediu para tentar mais tarde (SMTP ${smtp}).` }
+		return { kind: 'transient', reason: t().mailErrors.tryLater(smtp) }
 	}
 
 	if (typeof code === 'string' && TRANSIENT_CODES.has(code)) {
-		return { kind: 'transient', reason: 'Não consegui falar com o servidor SMTP (fora do ar ou sem resposta).' }
+		return { kind: 'transient', reason: t().mailErrors.unreachable }
 	}
 
-	return { kind: 'transient', reason: 'Erro inesperado ao enviar o e-mail. Veja os logs do mailer.' }
+	return { kind: 'transient', reason: t().mailErrors.unexpected }
 }
 
 /** O servidor recusou o usuário ou a senha (`EAUTH`, 530/534/535): tentar de novo não adianta. */
@@ -79,15 +78,12 @@ function loginRefusedReason(error: unknown, smtp: number | null) {
 	const codes = smtp === null ? '' : ` (SMTP ${smtp}${extended ? ` ${extended}` : ''})`
 
 	if (extended === '5.7.139' || /basic authentication is disabled|SmtpClientAuthentication is disabled/i.test(text)) {
-		return (
-			`A Microsoft não aceita senha, nem senha de app, no SMTP das contas pessoais do Outlook, Hotmail e Live${codes}. ` +
-			'Use uma conta do Gmail com senha de app; contas Microsoft 365 de trabalho ou escola funcionam se o administrador liberar o SMTP AUTH.'
-		)
+		return t().mailErrors.microsoft(codes)
 	}
 
 	if (extended === '5.7.8' && /Username and Password not accepted|gsmtp/i.test(text)) {
-		return `O Gmail recusou o login${codes}: ele só aceita senha de app aqui, não a senha normal da conta. Crie uma em ${GMAIL_APP_PASSWORDS_URL}.`
+		return t().mailErrors.gmail(codes, GMAIL_APP_PASSWORDS_URL)
 	}
 
-	return `O servidor SMTP recusou o login${codes}: confira o usuário e a senha (de app, no Gmail) da conta de e-mail.`
+	return t().mailErrors.loginRefused(codes)
 }

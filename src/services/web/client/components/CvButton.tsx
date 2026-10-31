@@ -6,6 +6,7 @@ import { celebrate } from '../lib/celebrate'
 import { flyToTray } from '../lib/cv-flight'
 import { cx } from '../lib/cx'
 import { requestCv, useCvFor } from '../stores/cv'
+import { useT } from '../stores/locale'
 import { notify } from '../stores/toast'
 import { Icon } from './Icon'
 import { Button } from './ui/Button'
@@ -15,6 +16,7 @@ import { Button } from './ui/Button'
  * se falhou. A largura do botão é sempre a mesma; ficando pronto com a vaga na tela, vem uma comemoração discreta.
  */
 export function CvButton({ job, size = 'md', className }: { job: Pick<WebJob, 'postId'>; size?: 'md' | 'lg'; className?: string }) {
+	const t = useT()
 	const [sending, setSending] = useState(false)
 	const cv = useCvFor(job.postId)
 	const slot = useRef<HTMLDivElement>(null)
@@ -38,7 +40,7 @@ export function CvButton({ job, size = 'md', className }: { job: Pick<WebJob, 'p
 			await requestCv(job)
 			flyToTray(from)
 		} catch (error) {
-			notify(`Não consegui pedir o currículo: ${(error as Error).message}`, 'error')
+			notify(t.cvButton.requestFailed((error as Error).message), 'error')
 		} finally {
 			setSending(false)
 		}
@@ -55,7 +57,7 @@ export function CvButton({ job, size = 'md', className }: { job: Pick<WebJob, 'p
 					download={cv.fileName ?? undefined}
 				>
 					<Icon name="download" />
-					baixar currículo
+					{t.cvButton.download}
 				</Button>
 			)
 		}
@@ -64,7 +66,7 @@ export function CvButton({ job, size = 'md', className }: { job: Pick<WebJob, 'p
 			return (
 				<Button variant="lime" size={size} className="w-full" disabled>
 					<Icon name="spinner" />
-					gerando…
+					{t.cvButton.generating}
 				</Button>
 			)
 		}
@@ -72,7 +74,7 @@ export function CvButton({ job, size = 'md', className }: { job: Pick<WebJob, 'p
 		return (
 			<Button variant="lime" size={size} className="w-full" onClick={generate} title={cv?.error ?? undefined}>
 				<Icon name={cv?.status === 'failed' ? 'refresh' : 'file'} />
-				{cv?.status === 'failed' ? 'tentar de novo' : 'gerar currículo'}
+				{cv?.status === 'failed' ? t.cvButton.retry : t.cvButton.generate}
 			</Button>
 		)
 	}

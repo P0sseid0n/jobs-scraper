@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 import type { CredentialGroup, WebCredentials } from '../../../api-types'
+import { useT } from '../../stores/locale'
 import { AccountGroup } from '../AccountsSection'
 import { Icon } from '../Icon'
 import { LinkedinLoginStatus, useLinkedinLogin } from '../LinkedinLogin'
@@ -24,18 +25,15 @@ type AccountStepProps = {
  * código ou aprovação no app), ela aparece aqui.
  */
 export function LinkedinStep({ eyebrow, credentials, onCredentials, onBack, onNext }: AccountStepProps) {
+	const t = useT()
 	const login = useLinkedinLogin()
 	const saved = credentials.linkedin.source !== null
 
-	useStepBar({ onBack, primary: { label: 'continuar', disabled: !saved, onClick: onNext } })
+	useStepBar({ onBack, primary: { label: t.actions.continue, disabled: !saved, onClick: onNext } })
 
 	return (
 		<div className="flex flex-col gap-9">
-			<StepHeading
-				eyebrow={eyebrow}
-				title="Conecte o seu LinkedIn"
-				lead="A gente usa a sua conta para ler os posts com vagas, como se fosse você rolando o feed. A senha fica guardada só nesta máquina, no banco local."
-			/>
+			<StepHeading eyebrow={eyebrow} title={t.accountSteps.linkedinTitle} lead={t.accountSteps.linkedinLead} />
 
 			<Rise order={3} className={card({ size: 'lg', className: 'flex flex-col gap-5' })}>
 				<AccountGroup
@@ -53,13 +51,9 @@ export function LinkedinStep({ eyebrow, credentials, onCredentials, onBack, onNe
 			<Rise order={4} className="flex flex-col gap-3">
 				<div className="flex flex-wrap items-center gap-3">
 					<Button variant="ghost" disabled={!saved || login.active} onClick={login.start}>
-						{login.active ? 'testando…' : 'testar login'}
+						{login.active ? t.accountSteps.testing : t.accountSteps.testLogin}
 					</Button>
-					<FieldHelp>
-						{saved
-							? 'Ao salvar, a gente já testa. Se o LinkedIn pedir uma confirmação, ela abre numa janela.'
-							: 'Depois de salvar, a gente entra no LinkedIn para conferir.'}
-					</FieldHelp>
+					<FieldHelp>{saved ? t.accountSteps.testOnSave : t.accountSteps.testAfterSave}</FieldHelp>
 				</div>
 				<LinkedinLoginStatus login={login} />
 			</Rise>
@@ -67,22 +61,15 @@ export function LinkedinStep({ eyebrow, credentials, onCredentials, onBack, onNe
 	)
 }
 
-const EXTRAS: { group: Exclude<CredentialGroup, 'linkedin'>; title: string; description: string }[] = [
-	{
-		group: 'discord',
-		title: 'Receber as vagas no Discord',
-		description:
-			'Um bot manda cada vaga nova num canal seu, com o botão para gerar o currículo. Sem ele, as vagas ficam só aqui no site.',
-	},
-	{
-		group: 'github',
-		title: 'Mostrar seus projetos do GitHub',
-		description: 'A gente escolhe os seus projetos mais parecidos com cada vaga para pôr no currículo. Bom para quem programa.',
-	},
-]
+/** As contas opcionais do passo, com o título e a descrição de cada uma no catálogo (`accountSteps`). */
+const EXTRAS = [
+	{ group: 'discord', title: 'discordTitle', description: 'discordDescription' },
+	{ group: 'github', title: 'githubTitle', description: 'githubDescription' },
+] as const
 
 /** Passo 4: Discord e GitHub, os dois opcionais; cada um abre o formulário da conta, e dá para pular. */
 export function ExtrasStep({ eyebrow, credentials, onCredentials, onBack, onNext }: AccountStepProps) {
+	const t = useT()
 	const [open, setOpen] = useState<CredentialGroup | null>(null)
 	const anySaved = EXTRAS.some(extra => credentials[extra.group].source !== null)
 
@@ -103,7 +90,7 @@ export function ExtrasStep({ eyebrow, credentials, onCredentials, onBack, onNext
 
 	useStepBar({
 		onBack,
-		primary: { label: anySaved ? 'continuar' : 'pular por agora', variant: anySaved ? 'lime' : 'ghost', onClick: onNext },
+		primary: { label: anySaved ? t.actions.continue : t.accountSteps.skip, variant: anySaved ? 'lime' : 'ghost', onClick: onNext },
 	})
 
 	return (
@@ -112,10 +99,10 @@ export function ExtrasStep({ eyebrow, credentials, onCredentials, onBack, onNext
 				eyebrow={eyebrow}
 				title={
 					<>
-						Quer ir <Hero.Mono>além?</Hero.Mono>
+						{t.accountSteps.extrasTitle} <Hero.Mono>{t.accountSteps.extrasTitleMono}</Hero.Mono>
 					</>
 				}
-				lead="Estas duas são opcionais. Dá para configurar agora ou mais tarde, em Configurações › Contas."
+				lead={t.accountSteps.extrasLead}
 			/>
 
 			<div className="flex flex-col gap-4">
@@ -133,10 +120,10 @@ export function ExtrasStep({ eyebrow, credentials, onCredentials, onBack, onNext
 							<div className="flex flex-wrap items-start justify-between gap-3">
 								<div className="flex max-w-120 flex-col gap-1">
 									<h2 className="flex items-center gap-2 text-base font-semibold">
-										{extra.title}
-										<Badge tone={done ? 'ok' : 'muted'}>{done ? 'pronto' : 'opcional'}</Badge>
+										{t.accountSteps[extra.title]}
+										<Badge tone={done ? 'ok' : 'muted'}>{done ? t.accountSteps.ready : t.accountSteps.optional}</Badge>
 									</h2>
-									<FieldHelp>{extra.description}</FieldHelp>
+									<FieldHelp>{t.accountSteps[extra.description]}</FieldHelp>
 								</div>
 								<Button
 									variant="ghost"
@@ -145,7 +132,7 @@ export function ExtrasStep({ eyebrow, credentials, onCredentials, onBack, onNext
 									onClick={() => setOpen(expanded ? null : extra.group)}
 								>
 									<Icon name="chevron" className={expanded ? 'rotate-180 transition' : 'transition'} />
-									{expanded ? 'fechar' : done ? 'mudar' : 'configurar'}
+									{expanded ? t.accountSteps.close : done ? t.accountSteps.change : t.accountSteps.configure}
 								</Button>
 							</div>
 							{expanded && (
@@ -174,11 +161,12 @@ export function ExtrasStep({ eyebrow, credentials, onCredentials, onBack, onNext
  * sempre depois de confirmar. Sem ela, a mensagem continua pronta para copiar.
  */
 export function EmailStep({ eyebrow, credentials, onCredentials, onBack, onNext }: AccountStepProps) {
+	const t = useT()
 	const saved = credentials.smtp.source !== null
 
 	useStepBar({
 		onBack,
-		primary: { label: saved ? 'continuar' : 'pular por agora', variant: saved ? 'lime' : 'ghost', onClick: onNext },
+		primary: { label: saved ? t.actions.continue : t.accountSteps.skip, variant: saved ? 'lime' : 'ghost', onClick: onNext },
 	})
 
 	return (
@@ -187,10 +175,10 @@ export function EmailStep({ eyebrow, credentials, onCredentials, onBack, onNext 
 				eyebrow={eyebrow}
 				title={
 					<>
-						Enviar a candidatura <Hero.Mono>daqui</Hero.Mono>
+						{t.accountSteps.emailTitle} <Hero.Mono>{t.accountSteps.emailTitleMono}</Hero.Mono>
 					</>
 				}
-				lead="Com a sua conta de e-mail, o botão “enviar candidatura” manda a mensagem revisada e o currículo da vaga em anexo para o recrutador, sempre depois de você confirmar. É opcional: sem ela, você copia a mensagem e envia pelo seu e-mail."
+				lead={t.accountSteps.emailLead}
 			/>
 
 			<Rise order={3} className={card({ size: 'lg', className: 'flex flex-col gap-5' })}>

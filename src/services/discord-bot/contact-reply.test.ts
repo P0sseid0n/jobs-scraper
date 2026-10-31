@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test'
 import type { JobPublished } from '@shared/contracts'
 import { DEFAULT_TEMPLATE, templateMessage } from '@shared/templates'
 
-import { buildContactReply, CONTACT_BUTTON_PREFIX, CV_PENDING_NOTE, emailFromEmbed, parseContactButton } from './contact-reply'
+import { buildContactReply, CONTACT_BUTTON_PREFIX, cvPendingNote, emailFromEmbed, parseContactButton } from './contact-reply'
 import { buildJobCard } from './job-card'
 
 const job: JobPublished = {
@@ -41,7 +41,7 @@ describe('botão de contato', () => {
 		expect(reply).toContain('rh@citiustech.com')
 		expect(reply).toContain('Mensagem do seu modelo para copiar:')
 		expect(reply).toContain('Candidatura – Lead Engineer - Vue.js')
-		expect(reply).toContain(CV_PENDING_NOTE)
+		expect(reply).toContain(cvPendingNote())
 	})
 
 	test('a mensagem preenchida avisa o que usou fallback e o que faltou', () => {
@@ -57,7 +57,7 @@ describe('botão de contato', () => {
 	})
 
 	test('sem e-mail, só o aviso do currículo', () => {
-		expect(buildContactReply(null, filled(), { generatingCv: true })).toBe(CV_PENDING_NOTE)
+		expect(buildContactReply(null, filled(), { generatingCv: true })).toBe(cvPendingNote())
 	})
 
 	test('custom_id novo traz o postId; o antigo trazia o e-mail', () => {

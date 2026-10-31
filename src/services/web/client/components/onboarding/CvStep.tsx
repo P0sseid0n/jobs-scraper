@@ -1,16 +1,18 @@
 import { useBlocker } from '@tanstack/react-router'
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 
-import { CV_BASE_TEX_MAX_BYTES, CV_IMPORT_PDF_MAX_BYTES } from '@shared/contracts'
+import { CV_BASE_TEX_MAX_BYTES, CV_IMPORT_PDF_MAX_BYTES, type CvLanguageMode } from '@shared/contracts'
 
 import type { WebCvBaseVersion } from '../../../api-types'
 import { api, cvBasePdfUrl, RequestError } from '../../api'
 import { activeVersion, formatKilobytes, upsertVersion } from '../../lib/cv-base'
 import { cleanForm, emptyForm, formProblems, sameForm } from '../../lib/cv-form'
-import { LEAVE_DURING_IMPORT, useCvImport } from '../../lib/use-cv-import'
+import { leaveDuringImport, useCvImport } from '../../lib/use-cv-import'
 import { onLive } from '../../stores/live'
+import { useT } from '../../stores/locale'
 import { notify } from '../../stores/toast'
 import { CvBaseFormDialog } from '../CvBaseForm'
+import { CvLanguageChoice } from '../CvLanguageChoice'
 import { Icon } from '../Icon'
 import { Button } from '../ui/Button'
 import { card } from '../ui/Card'
@@ -25,15 +27,16 @@ const POLL_MS = 4_000
 
 /** A prévia do PDF: dentro da página no computador; no celular, que não mostra PDF embutido, só o botão de abrir. */
 function Preview({ version }: { version: WebCvBaseVersion }) {
+	const t = useT()
 	return (
 		<div className="flex flex-col gap-3">
 			<iframe
-				title="Prévia do currículo"
+				title={t.cvStep.previewTitle}
 				src={cvBasePdfUrl(version.versionId)}
 				className="hidden aspect-3/4 max-h-150 w-full rounded-sm border border-line bg-white md:block"
 			/>
 			<Button variant="ghost" className="self-start md:hidden" href={cvBasePdfUrl(version.versionId)} external>
-				abrir o PDF
+				{t.cvStep.openPdf}
 			</Button>
 		</div>
 	)
@@ -46,17 +49,20 @@ function Preview({ version }: { version: WebCvBaseVersion }) {
 export function CvStep({
 	eyebrow,
 	initialVersions,
+	initialCvLanguage,
 	fromFile,
 	onBack,
 	onNext,
 }: {
 	eyebrow: string
 	initialVersions: WebCvBaseVersion[]
+	initialCvLanguage: CvLanguageMode
 	/** O cv-updater já tem o currículo pelo arquivo `CV_TEX_FILE`, sem versão ativada pelo site. */
 	fromFile: boolean
 	onBack: () => void
 	onNext: () => void
 }) {
+	const t = useT()
 	const [versions, setVersions] = useState(initialVersions)
 	const [candidateId, setCandidateId] = useState<string | null>(null)
 	const [form, setForm] = useState(emptyForm)
@@ -74,7 +80,7 @@ export function CvStep({
 		setFormOpen(true)
 	})
 
-	// O "voltar" e as etapas também mudam a rota (`?passo=`): o bloqueio cobre todas as saídas durante a leitura
+	// O "voltar" e as etapas também mudam a rota (`?step=`): o bloqueio cobre todas as saídas durante a leitura
 	const blocker = useBlocker({
 		shouldBlockFn: () => cvImport.importing,
 		enableBeforeUnload: () => cvImport.importing,
@@ -135,7 +141,7 @@ export function CvStep({
 					Object.fromEntries(Object.entries(error.fields).map(([path, message]) => [path.replace(/^form./, ''), message])),
 				)
 			}
-			notify(`Não consegui enviar o formulário: ${(error as Error).message}`, 'error')
+			notify(t.cvStep.formFailed((error as Error).message), 'error')
 		} finally {
 			setSubmitting(false)
 		}
@@ -147,7 +153,7 @@ export function CvStep({
 		if (!file) return
 
 		if (file.size > CV_BASE_TEX_MAX_BYTES) {
-			notify(`O arquivo tem ${formatKilobytes(file.size)}; o limite é ${formatKilobytes(CV_BASE_TEX_MAX_BYTES)}.`, 'error')
+			notify(t.cvStep.fileTooLarge(formatKilobytes(file.size), formatKilobytes(CV_BASE_TEX_MAX_BYTES)), 'error')
 			return
 		}
 
@@ -157,7 +163,7 @@ export function CvStep({
 			setVersions(current => upsertVersion(current, version))
 			setCandidateId(version.versionId)
 		} catch (error) {
-			notify(`Não consegui enviar o arquivo: ${(error as Error).message}`, 'error')
+			notify(t.cvStep.fileFailed((error as Error).message), 'error')
 		} finally {
 			setSubmitting(false)
 		}
@@ -177,7 +183,7 @@ export function CvStep({
 			setCandidateId(null)
 			onNext()
 		} catch (error) {
-			notify(`Não consegui usar este currículo: ${(error as Error).message}`, 'error')
+			notify(t.cvStep.activateFailed((error as Error).message), 'error')
 		} finally {
 			setActivating(false)
 		}
@@ -188,10 +194,8 @@ export function CvStep({
 			return (
 				<div className={card({ size: 'lg', className: 'flex flex-col items-center gap-3 py-12 text-center' })} role="status">
 					<Icon name="spinner" size={28} className="text-lime-text" />
-					<p className="text-base font-semibold">Montando o PDF do seu currículo…</p>
-					<FieldHelp className="max-w-100">
-						Costuma levar alguns segundos. Na primeira vez pode passar de um minuto, porque o gerador baixa o que precisa.
-					</FieldHelp>
+					<p className="text-base font-semibold">{t.cvStep.building}</p>
+					<FieldHelp className="max-w-100">{t.cvStep.buildingHelp}</FieldHelp>
 				</div>
 			)
 		}
@@ -199,15 +203,13 @@ export function CvStep({
 		if (version.status === 'invalid') {
 			return (
 				<Notice tone="danger" icon="alert" size="lg">
-					<p className="font-semibold">Esse currículo não deu certo.</p>
+					<p className="font-semibold">{t.cvStep.invalid}</p>
 					<ul className="m-0 mt-1.5 flex list-disc flex-col gap-1 pl-4.5 text-sm break-words">
 						{version.errors.map(error => (
 							<li key={error}>{error}</li>
 						))}
 					</ul>
-					<p className="mt-2 text-sm">
-						{version.fromForm ? 'Abra o formulário para corrigir.' : 'Corrija o arquivo e envie de novo.'}
-					</p>
+					<p className="mt-2 text-sm">{version.fromForm ? t.cvStep.fixInForm : t.cvStep.fixFile}</p>
 				</Notice>
 			)
 		}
@@ -215,13 +217,11 @@ export function CvStep({
 		return (
 			<div className="flex flex-col gap-4 animate-panel-in motion-reduce:animate-none">
 				<StatusLine tone="ok" icon="check">
-					Ficou pronto! Dê uma olhada e, se estiver bom, use este currículo.
+					{t.cvStep.ready}
 				</StatusLine>
 				{version.pages !== null && version.pages > 1 && (
 					<Notice tone="warn" icon="alert">
-						<p>
-							Ele tem {version.pages} páginas. Cada currículo ajustado precisa caber em uma, então alguns projetos podem sair.
-						</p>
+						<p>{t.cvStep.pages(version.pages)}</p>
 					</Notice>
 				)}
 				<Preview version={version} />
@@ -232,27 +232,20 @@ export function CvStep({
 	const choices = cvImport.importing ? (
 		<div className={card({ size: 'lg', className: 'flex flex-col items-center gap-3 py-12 text-center' })} role="status">
 			<Icon name="spinner" size={28} className="text-lime-text" />
-			<p className="text-base font-semibold">Lendo o seu currículo…</p>
-			<FieldHelp className="max-w-100">
-				A IA passa o texto do PDF para o formulário. Costuma levar um minuto; depois você revisa cada etapa antes de salvar.
-			</FieldHelp>
+			<p className="text-base font-semibold">{t.cvStep.reading}</p>
+			<FieldHelp className="max-w-100">{t.cvStep.readingHelp}</FieldHelp>
 		</div>
 	) : (
 		<div className="grid grid-cols-3 gap-4 max-lg:grid-cols-1">
+			<ChoiceCard title={t.cvStep.formTitle} description={t.cvStep.formDescription} badge={t.cvStep.easiest} onClick={openForm} />
 			<ChoiceCard
-				title="Preencher com a gente"
-				description="Um formulário simples, em etapas: contato, experiências, formação. A gente monta o PDF."
-				badge="mais fácil"
-				onClick={openForm}
-			/>
-			<ChoiceCard
-				title="Importar o meu PDF"
-				description={`Envie o currículo que você já tem em PDF (até ${CV_IMPORT_PDF_MAX_BYTES / 1024 / 1024} MB). O formulário abre preenchido para você revisar.`}
+				title={t.cvStep.pdfTitle}
+				description={t.cvStep.pdfDescription(CV_IMPORT_PDF_MAX_BYTES / 1024 / 1024)}
 				onClick={() => pdfInput.current?.click()}
 			/>
 			<ChoiceCard
-				title="Já tenho um arquivo .tex"
-				description={`Envie o seu currículo em LaTeX (até ${formatKilobytes(CV_BASE_TEX_MAX_BYTES)}).`}
+				title={t.cvStep.texTitle}
+				description={t.cvStep.texDescription(formatKilobytes(CV_BASE_TEX_MAX_BYTES))}
 				onClick={() => fileInput.current?.click()}
 			/>
 		</div>
@@ -264,7 +257,7 @@ export function CvStep({
 	// Onde está o envio: escolher como, o PDF sendo gerado, conferir e usar. Com um currículo já salvo, tudo feito
 	const stage = !candidate ? 0 : candidate.status === 'validating' ? 1 : 2
 	useSubSteps({
-		items: ['Escolher como', 'Gerar o PDF', 'Conferir e usar'].map((label, index) => ({
+		items: t.cvStep.subSteps.map((label, index) => ({
 			label,
 			done: index < stage || (ready && !candidate),
 		})),
@@ -275,26 +268,22 @@ export function CvStep({
 		onBack,
 		secondary:
 			candidate?.status === 'invalid'
-				? [{ label: candidate.fromForm ? 'corrigir no formulário' : 'enviar outro arquivo', onClick: editCandidate }]
+				? [{ label: candidate.fromForm ? t.cvStep.fixForm : t.cvStep.otherFile, onClick: editCandidate }]
 				: reviewing
-					? [{ label: 'mudar algo', onClick: editCandidate }]
+					? [{ label: t.cvStep.changeSomething, onClick: editCandidate }]
 					: [],
 		primary: reviewing
 			? {
-					label: activating ? 'salvando…' : 'usar este currículo e continuar',
+					label: activating ? t.actions.saving : t.cvStep.useAndContinue,
 					disabled: activating,
 					onClick: () => candidate && activate(candidate),
 				}
-			: { label: 'continuar', disabled: !ready || validating || submitting || cvImport.importing, onClick: onNext },
+			: { label: t.actions.continue, disabled: !ready || validating || submitting || cvImport.importing, onClick: onNext },
 	})
 
 	return (
 		<div className="flex flex-col gap-9">
-			<StepHeading
-				eyebrow={eyebrow}
-				title="Agora, o seu currículo"
-				lead="É dele que saem os currículos ajustados para cada vaga. Pode preencher um formulário, importar o PDF que você já tem ou enviar um .tex."
-			/>
+			<StepHeading eyebrow={eyebrow} title={t.cvStep.title} lead={t.cvStep.lead} />
 
 			<input ref={fileInput} type="file" accept=".tex,text/x-tex,application/x-tex" hidden onChange={loadFile} />
 			<input ref={pdfInput} type="file" accept=".pdf,application/pdf" hidden onChange={loadPdf} />
@@ -304,18 +293,22 @@ export function CvStep({
 			) : ready ? (
 				<Rise order={3} className="flex flex-col gap-4">
 					<StatusLine tone="ok" icon="check">
-						{active ? 'Você já tem um currículo salvo.' : 'Você já tem um currículo no arquivo data/cv/cv.tex.'}
+						{active ? t.cvStep.alreadySaved : t.cvStep.alreadyInFile}
 					</StatusLine>
 					{active && <Preview version={active} />}
-					<p className="text-sm text-muted">Quer trocar? Escolha um jeito:</p>
+					<p className="text-sm text-muted">{t.cvStep.replace}</p>
 					{choices}
 				</Rise>
 			) : (
 				<Rise order={3}>{choices}</Rise>
 			)}
 
+			<Rise order={4}>
+				<CvLanguageChoice initial={initialCvLanguage} />
+			</Rise>
+
 			{blocker.status === 'blocked' && (
-				<ConfirmDialog {...LEAVE_DURING_IMPORT} onConfirm={blocker.proceed} onCancel={blocker.reset} />
+				<ConfirmDialog {...leaveDuringImport()} onConfirm={blocker.proceed} onCancel={blocker.reset} />
 			)}
 
 			{formOpen && (

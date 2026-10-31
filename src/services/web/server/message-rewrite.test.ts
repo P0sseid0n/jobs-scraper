@@ -10,7 +10,6 @@ const job = {
 	company: 'Acme',
 	necessaryKnowledge: ['Vue 3', 'TypeScript', 'Pinia'],
 	rawContent: 'Vaga para Dev Front-end Pleno com Vue 3, TypeScript e Pinia na Acme. Envie o currículo para rh@acme.com',
-	language: 'pt',
 }
 
 // O modelo da pessoa preenchido para a vaga
@@ -30,7 +29,7 @@ const log = createLogger('test')
 
 describe('buildRewriteRequest', () => {
 	test('manda a mensagem atual, a vaga e o estilo pedido', () => {
-		const { messages } = buildRewriteRequest(message, job, 'pt', { tone: 'formal', length: 'short', direct: true })
+		const { messages } = buildRewriteRequest(message, job, 'pt-BR', { tone: 'formal', length: 'short', direct: true })
 
 		expect(messages[0]?.content).toContain('- Tone formal:')
 		expect(messages[0]?.content).toContain('LinkedIn direct message')
@@ -108,20 +107,27 @@ describe('requestRewrite', () => {
 	test('devolve o texto reescrito', async () => {
 		const { ollama } = fakeOllama(formalBody)
 
-		expect(await requestRewrite({ ollama, model: 'm' }, message, job, style, log)).toBe(formalBody)
+		expect(await requestRewrite({ ollama, model: 'm' }, message, job, 'pt-BR', style, log)).toBe(formalBody)
 	})
 
 	test('pede outra versão quando recusa; null se todas forem recusadas ou a IA falhar', async () => {
 		const invented = formalBody.replace('Vue.js', 'Angular')
 		const retried = fakeOllama(invented, formalBody)
 
-		expect(await requestRewrite({ ollama: retried.ollama, model: 'm' }, message, job, style, log)).toBe(formalBody)
+		expect(await requestRewrite({ ollama: retried.ollama, model: 'm' }, message, job, 'pt-BR', style, log)).toBe(formalBody)
 		expect(retried.calls).toHaveLength(2)
 		expect(
-			await requestRewrite({ ollama: fakeOllama(invented, invented, invented).ollama, model: 'm' }, message, job, style, log),
+			await requestRewrite(
+				{ ollama: fakeOllama(invented, invented, invented).ollama, model: 'm' },
+				message,
+				job,
+				'pt-BR',
+				style,
+				log,
+			),
 		).toBeNull()
 		expect(
-			await requestRewrite({ ollama: fakeOllama(new Error('timeout')).ollama, model: 'm' }, message, job, style, log),
+			await requestRewrite({ ollama: fakeOllama(new Error('timeout')).ollama, model: 'm' }, message, job, 'pt-BR', style, log),
 		).toBeNull()
 	})
 })

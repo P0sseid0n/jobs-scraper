@@ -1,5 +1,7 @@
 import { createContext, use, useEffect, useId, useImperativeHandle, useRef, type ReactNode, type Ref } from 'react'
 
+import { t } from '@shared/i18n'
+
 import { cx } from '../../lib/cx'
 import { Icon } from '../Icon'
 import { Button } from './Button'
@@ -80,7 +82,7 @@ export function DialogTitle({ closable = false, children }: { closable?: boolean
 	return (
 		<div className="flex items-center justify-between gap-3">
 			{title}
-			<IconButton label="Fechar" size="sm" disabled={context.locked} onClick={context.close}>
+			<IconButton label={t().ui.close} size="sm" disabled={context.locked} onClick={context.close}>
 				<Icon name="close" size={16} />
 			</IconButton>
 		</div>

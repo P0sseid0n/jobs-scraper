@@ -1,6 +1,8 @@
+import { t } from '@shared/i18n'
+
 import type { WebJob, WebReprocessResult } from '../../api-types'
 import { api, RequestError } from '../api'
-import { REPORTABLE_FIELDS } from '../components/ReportJobDialog'
+import { formatList } from '../lib/format'
 import { createStore, useStore } from '../lib/store'
 import { replaceJob } from './jobs'
 import { onLive } from './live'
@@ -32,17 +34,18 @@ export async function reprocessJob(job: Pick<WebJob, 'postId'>) {
 	try {
 		const { reprocessId } = await api.reprocessJob(job.postId)
 		pending.set(current => new Map(current).set(job.postId, reprocessId))
-		notify('Vaga enviada para ser processada de novo: o aviso vem quando terminar')
+		notify(t().reprocess.requested)
 	} catch (error) {
-		notify(error instanceof RequestError ? error.message : 'Não consegui pedir para processar a vaga de novo', 'error')
+		notify(error instanceof RequestError ? error.message : t().reprocess.requestFailed, 'error')
 	}
 }
 
 function notifyResult({ status, reason, keptFields }: WebReprocessResult) {
+	const { report, reprocess } = t()
 	if (status === 'updated') {
-		const kept = keptFields.map(field => REPORTABLE_FIELDS[field])
-		notify(kept.length > 0 ? `Vaga processada de novo; ficaram as suas correções em ${kept.join(', ')}` : 'Vaga processada de novo')
+		const kept = keptFields.map(field => report.fields[field])
+		notify(kept.length > 0 ? reprocess.updatedKept(formatList(kept)) : reprocess.updated)
 	} else if (status === 'discarded') {
-		notify(`A vaga ficou como estava: a nova extração a descartaria (${reason})`, 'error')
-	} else notify(`Não deu para processar a vaga de novo: ${reason}`, 'error')
+		notify(reprocess.discarded(reason ?? ''), 'error')
+	} else notify(reprocess.failed(reason ?? ''), 'error')
 }

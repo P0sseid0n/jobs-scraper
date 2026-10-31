@@ -6,6 +6,7 @@ import { cx } from '../lib/cx'
 import { LOGIN_STEPS, loginProgress, loginStep, type LoginReached, type LoginStepState } from '../lib/login-steps'
 import { requestAccountTutorial } from '../stores/account-tutorial'
 import { reopenLinkedinVerification } from '../stores/linkedin-verification'
+import { useT } from '../stores/locale'
 import { notify } from '../stores/toast'
 import { DrawnCheck, Icon } from './Icon'
 import { Button } from './ui/Button'
@@ -28,6 +29,7 @@ const ACTIVE = new Set<LinkedinLoginState['status']>(['pending', 'running', 'ver
  * A verificação pedida pelo LinkedIn (num teste ou numa coleta) abre na modal `LinkedinVerificationDialog`.
  */
 export function useLinkedinLogin() {
+	const t = useT()
 	const [state, setState] = useState<LinkedinLoginState | null>(null)
 	const [startedAt, setStartedAt] = useState<number | null>(null)
 	const [starting, setStarting] = useState(false)
@@ -69,7 +71,7 @@ export function useLinkedinLogin() {
 		try {
 			setState(await api.testLinkedinLogin())
 		} catch (error) {
-			notify(`Não consegui pedir o teste: ${(error as Error).message}`, 'error')
+			notify(t.linkedinLogin.testFailed((error as Error).message), 'error')
 		} finally {
 			setStarting(false)
 		}
@@ -99,18 +101,11 @@ export function LinkedinLoginStatus({ login }: { login: ReturnType<typeof useLin
 	)
 }
 
-const STEP_STATE_TEXT: Record<LoginStepState, string> = {
-	done: 'concluída',
-	current: 'em andamento',
-	failed: 'falhou',
-	skipped: 'não foi pedida',
-	upcoming: 'a seguir',
-}
-
 /** As etapas ligadas por uma linha que se preenche até a atual; cada bolinha muda com a etapa. */
 function LoginTimeline({ states, fill }: ReturnType<typeof loginProgress>) {
+	const t = useT().linkedinLogin
 	return (
-		<ol className={cx(LIST, 'relative grid grid-cols-4')} aria-label="Andamento do login">
+		<ol className={cx(LIST, 'relative grid grid-cols-4')} aria-label={t.progress}>
 			{/* A linha vai do centro da primeira bolinha ao da última (cada coluna tem 1/4 da largura) */}
 			<span aria-hidden="true" className="absolute inset-x-1/8 top-3 h-0.5 -translate-y-1/2 rounded-pill bg-line">
 				<span
@@ -130,8 +125,8 @@ function LoginTimeline({ states, fill }: ReturnType<typeof loginProgress>) {
 								state === 'failed' ? 'text-danger' : state === 'current' ? 'text-ink' : 'text-muted',
 							)}
 						>
-							{step}
-							<span className="sr-only">: {STEP_STATE_TEXT[state]}</span>
+							{t.steps[index]}
+							<span className="sr-only">: {t.stepStates[state]}</span>
 						</span>
 					</li>
 				)
@@ -173,21 +168,24 @@ function StepDot({ state }: { state: LoginStepState }) {
 
 function LoginDetails({ login }: { login: ReturnType<typeof useLinkedinLogin> }) {
 	const { state, stalled } = login
+	const t = useT().linkedinLogin
 	if (!state) return null
 
 	if (state.status === 'pending' || state.status === 'running') {
 		return (
 			<div className="flex flex-col gap-2" role="status">
 				<StatusLine icon="spinner" live={false}>
-					{state.status === 'pending' ? 'Esperando o scraper começar o teste…' : 'Entrando no LinkedIn…'}
+					{state.status === 'pending' ? t.waiting : t.signingIn}
 				</StatusLine>
 				{state.message && <FieldHelp>{state.message}</FieldHelp>}
 				{stalled && (
 					<Notice tone="warn" icon="alert">
 						<p>
-							O scraper ainda não pegou o pedido. Ele está rodando? Confira se o <code className="font-mono">bun dev</code> (ou
-							o <code className="font-mono">docker compose --profile app up</code>) está ligado. O teste começa sozinho quando
-							ele subir.
+							{t.stalledBefore}
+							<code className="font-mono">bun dev</code>
+							{t.stalledOr}
+							<code className="font-mono">docker compose --profile app up</code>
+							{t.stalledAfter}
 						</p>
 					</Notice>
 				)}
@@ -207,16 +205,14 @@ function LoginDetails({ login }: { login: ReturnType<typeof useLinkedinLogin> })
 		>
 			{state.status === 'success' ? <DrawnCheck className="mt-0.5" /> : <Icon name="alert" className="mt-0.5" />}
 			<span>
-				{state.status === 'success'
-					? 'Tudo certo: conseguimos entrar no LinkedIn com a sua conta.'
-					: 'Não deu para entrar no LinkedIn.'}
+				{state.status === 'success' ? t.success : t.failure}
 				{state.message && state.status === 'failed' && <span className="block text-muted">{state.message}</span>}
 				{/* Sem conseguir entrar (ou confirmar o acesso), o cookie de uma sessão já logada é a saída */}
 				{state.status === 'failed' && (
 					<span className="block text-ink">
-						Não conseguiu confirmar o acesso?{' '}
+						{t.cookieQuestion}{' '}
 						<TextLink size="sm" onClick={() => requestAccountTutorial('linkedin', 'li-at')}>
-							entre com o cookie li_at
+							{t.cookieLink}
 						</TextLink>
 					</span>
 				)}
@@ -227,16 +223,17 @@ function LoginDetails({ login }: { login: ReturnType<typeof useLinkedinLogin> })
 
 /** A verificação em andamento fica na modal (`LinkedinVerificationDialog`); aqui, só o aviso e o botão para reabri-la. */
 function Verification() {
+	const t = useT().linkedinLogin
 	return (
 		<div
 			className="flex flex-wrap items-center gap-3 rounded-md bg-lime-soft p-4 animate-pop-in motion-reduce:animate-none"
 			role="status"
 		>
 			<p className="grow text-sm">
-				<span className="font-semibold">O LinkedIn quer confirmar que é você.</span> Resolva na janela da verificação.
+				<span className="font-semibold">{t.verificationTitle}</span> {t.verificationText}
 			</p>
 			<Button variant="lime" size="sm" onClick={reopenLinkedinVerification}>
-				abrir a verificação
+				{t.openVerification}
 			</Button>
 		</div>
 	)

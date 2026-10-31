@@ -5,8 +5,8 @@ import { useWideLayout } from '../../lib/media'
 import { useJobs } from '../../stores/jobs'
 import { DetailPanel } from '../../views/JobsView'
 
-// A lista é o layout `_vagas`; aqui, no desktop, o painel ao lado mostra a primeira vaga
-export const Route = createFileRoute('/_vagas/')({ staticData: { title: 'Vagas' }, component: FirstJob })
+// A lista é o layout `_jobs`; aqui, no desktop, o painel ao lado mostra a primeira vaga
+export const Route = createFileRoute('/_jobs/')({ staticData: { title: 'jobs' }, component: FirstJob })
 
 function FirstJob() {
 	const wide = useWideLayout()

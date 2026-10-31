@@ -1,6 +1,7 @@
 import mongoose, { Schema } from 'mongoose'
 
-import type { CvChanges } from '@shared/contracts'
+import { CvChangesSchema, type CvChanges } from '@shared/contracts'
+import { t } from '@shared/i18n'
 
 import { CV_STATUSES, type CvStatus, type WebCvRequest } from '../api-types'
 
@@ -13,8 +14,8 @@ type CvRequestDocument = {
 	fileName: string | null
 	pdf: Buffer | null
 	error: string | null
-	/** O ajuste feito para a vaga; pedidos de antes do campo não o têm. */
-	changes?: CvChanges | null
+	/** O ajuste feito para a vaga; pedidos de antes do campo não o têm (nem o `language`, dos de antes do idioma). */
+	changes?: (Omit<CvChanges, 'language'> & { language?: CvChanges['language'] }) | null
 	/** De qual currículo base o PDF saiu (`versionId` `null`: o arquivo); `null` na falha e nos pedidos de antes do campo. */
 	base?: { versionId: string | null } | null
 	requestedAt: Date
@@ -44,6 +45,7 @@ const cvRequestSchema = new Schema<CvRequestDocument>(
 					removedSkills: { type: [String], default: [] },
 					summary: { type: new Schema({ before: String, after: String }, { _id: false }), default: null },
 					projects: { type: [String], default: [] },
+					language: { type: new Schema({ locale: String, source: String }, { _id: false }), default: null },
 				},
 				{ _id: false },
 			),
@@ -64,7 +66,8 @@ export const CvRequestRecord = mongoose.model('WebCvRequest', cvRequestSchema, '
 /** Sem resposta do cv-updater nesse tempo, o pedido é dado como falho (o serviço pode estar parado). */
 export const CV_TIMEOUT_MS = 10 * 60 * 1000
 
-export const CV_TIMEOUT_ERROR = 'O cv-updater não respondeu em 10 minutos. Confira se ele está rodando e tente de novo.'
+/** O pedido que passou do prazo, no idioma de quem pergunta. */
+export const cvTimeoutError = () => t().serverErrors.cvTimeout
 
 /** Converte o documento no formato da API; pedidos pendentes há tempo demais aparecem como falhos. */
 export function toWebCvRequest(doc: Omit<CvRequestDocument, 'pdf'>, now = new Date()): WebCvRequest {
@@ -77,13 +80,17 @@ export function toWebCvRequest(doc: Omit<CvRequestDocument, 'pdf'>, now = new Da
 		company: doc.company,
 		status: timedOut ? 'failed' : doc.status,
 		fileName: doc.fileName,
-		error: timedOut ? CV_TIMEOUT_ERROR : doc.error,
+		error: timedOut ? cvTimeoutError() : doc.error,
 		changes: doc.changes
 			? {
 					addedSkills: [...doc.changes.addedSkills],
 					removedSkills: [...doc.changes.removedSkills],
 					summary: doc.changes.summary ? { before: doc.changes.summary.before, after: doc.changes.summary.after } : null,
 					projects: [...doc.changes.projects],
+					// Pelo schema: um idioma que deixou de existir vira `null`
+					language: CvChangesSchema.shape.language.parse(
+						doc.changes.language ? { locale: doc.changes.language.locale, source: doc.changes.language.source } : null,
+					),
 				}
 			: null,
 		base: doc.base ? { versionId: doc.base.versionId ?? null } : null,

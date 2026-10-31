@@ -2,6 +2,7 @@ import { ComponentType, MessageFlags, type ButtonInteraction } from 'discord.js'
 
 import type { JobAppliedChange } from '@shared/contracts'
 import { Job, setJobApplied } from '@shared/database'
+import { t } from '@shared/i18n'
 import type { Logger } from '@shared/logging'
 import { QUEUES, type QueueClient } from '@shared/messaging'
 
@@ -18,7 +19,7 @@ export async function handleAppliedButton(interaction: ButtonInteraction, queue:
 	const current = await Job.findOne({ postId }, { appliedAt: 1 }).lean()
 	const result = current && (await setJobApplied(postId, !current.appliedAt))
 	if (!result) {
-		await interaction.reply({ content: 'Não achei esta vaga no banco.', flags: MessageFlags.Ephemeral })
+		await interaction.reply({ content: t().discord.jobNotFound, flags: MessageFlags.Ephemeral })
 		return
 	}
 

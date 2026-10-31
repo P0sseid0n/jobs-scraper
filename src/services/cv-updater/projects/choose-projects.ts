@@ -1,5 +1,6 @@
 import type { Ollama } from 'ollama'
 
+import type { Locale } from '@shared/i18n'
 import type { Logger } from '@shared/logging'
 
 import type { ParsedResume, ResumeProject } from '../resume/resume.types'
@@ -13,6 +14,8 @@ type ChooseProjectsOptions = {
 	github: GithubRepositories | null
 	ollama: Ollama
 	model: string
+	/** O idioma do currículo da vaga, em que saem as descrições dos projetos novos. */
+	locale: Locale
 }
 
 // Candidatos levados ao PDF, que fica com quantos couberem em uma página (`renderOnePagePdf`)
@@ -58,7 +61,7 @@ async function describeNewProjects(
 	example: string | undefined,
 	log: Logger,
 ) {
-	const request = buildDescriptionRequest(selected, example)
+	const request = buildDescriptionRequest(selected, example, options.locale)
 	if (request.names.length === 0) return []
 
 	try {

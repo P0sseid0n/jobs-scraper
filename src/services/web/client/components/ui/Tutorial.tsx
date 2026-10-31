@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode, type Ref } from 'react'
 
+import { t } from '@shared/i18n'
+
 import { cx } from '../../lib/cx'
 import { Icon } from '../Icon'
 import { Button } from './Button'
@@ -69,7 +71,7 @@ export function Tutorial({
 	highlight,
 	scene,
 	onClose,
-	closeLabel = 'Fechar o passo a passo',
+	closeLabel = t().ui.closeTutorial,
 	done,
 	className,
 }: TutorialProps) {
@@ -126,7 +128,7 @@ export function Tutorial({
 			)}
 
 			{/* Os passos, numerados e ligados por uma linha: o atual em destaque, os anteriores com o check */}
-			<ol className={cx(LIST, 'flex items-center')} aria-label="Passos">
+			<ol className={cx(LIST, 'flex items-center')} aria-label={t().ui.steps}>
 				{steps.map((item, number) => (
 					<li key={item.id} className={cx('flex items-center', number > 0 && 'grow')}>
 						{number > 0 && (
@@ -137,7 +139,7 @@ export function Tutorial({
 						)}
 						<button
 							type="button"
-							aria-label={`Passo ${number + 1}: ${item.title}`}
+							aria-label={t().ui.stepLabel(number + 1, item.title)}
 							aria-current={number === index ? 'step' : undefined}
 							onClick={() => go(number, true)}
 							className={cx(
@@ -173,7 +175,7 @@ export function Tutorial({
 			<div className="flex items-center justify-between gap-3">
 				<Button variant="ghost" size="sm" disabled={index === 0} onClick={() => go(index - 1, true)}>
 					<Icon name="back" />
-					anterior
+					{t().ui.previous}
 				</Button>
 				{index === steps.length - 1 && done ? (
 					<Button variant="ghost" size="sm" onClick={done.onClick}>
@@ -182,7 +184,7 @@ export function Tutorial({
 					</Button>
 				) : (
 					<Button variant="ghost" size="sm" disabled={index === steps.length - 1} onClick={() => go(index + 1, true)}>
-						próximo
+						{t().ui.next}
 						<Icon name="forward" />
 					</Button>
 				)}
@@ -219,7 +221,7 @@ export function Tutorial({
 			{tabs && (
 				<Tabs
 					id={`${id}-paths`}
-					label="Caminhos"
+					label={t().ui.paths}
 					items={paths.map(item => ({ value: item.id, label: item.label }))}
 					selected={selected}
 					onSelect={selectPath}
@@ -270,7 +272,7 @@ function Stage({
 		<article
 			ref={ref}
 			tabIndex={-1}
-			aria-label={`Passo ${number} de ${total}: ${step.title}`}
+			aria-label={t().ui.stepOfLabel(number, total, step.title)}
 			className={cx(
 				'grid items-center gap-5 rounded-md outline-none motion-reduce:animate-none',
 				!!scene && '@xl:grid-cols-2',

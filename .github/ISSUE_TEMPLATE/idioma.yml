@@ -1,0 +1,32 @@
+name: Novo idioma
+description: Traduzir o site e o Discord para um idioma que ainda não existe, ou completar uma tradução parcial
+labels: [i18n, good first issue]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Título: "Traduzir o site para <idioma>", ex.: "Traduzir o site para espanhol".
+        O passo a passo está em [Traduzir o site](https://github.com/P0sseid0n/jobs-scraper/blob/main/CONTRIBUTING.md#traduzir-o-site), no CONTRIBUTING.md. Uma tradução parcial já pode entrar: o que faltar aparece em inglês.
+  - type: input
+    id: idioma
+    attributes:
+      label: Idioma
+      description: O nome e o código BCP 47 (o mesmo do navegador).
+      placeholder: Español (es)
+    validations:
+      required: true
+  - type: dropdown
+    id: situacao
+    attributes:
+      label: O que vai fazer
+      options:
+        - Começar a tradução (o idioma ainda não existe)
+        - Completar uma tradução parcial
+        - Corrigir textos de uma tradução existente
+    validations:
+      required: true
+  - type: textarea
+    id: observacoes
+    attributes:
+      label: Observações
+      description: Partes que pretende traduzir primeiro, dúvidas sobre algum termo, como quer aparecer nos créditos (nome ou usuário do GitHub).

@@ -10,7 +10,7 @@ import { QueueClient } from '../messaging/queue-client'
 import { credentialsEnv, credentialsFromEnv } from '../settings/credentials-env'
 import { setEnvCredentials } from '../settings/credentials-store'
 import { settingsEnv, settingsSeedsFromEnv } from '../settings/settings-env'
-import { seedSettings } from '../settings/settings-store'
+import { followSystemLocale, seedSettings } from '../settings/settings-store'
 
 type ServiceOptions<Env extends z.ZodRawShape> = {
 	/** Nome usado nos logs. */
@@ -60,6 +60,9 @@ export async function startService<Env extends z.ZodRawShape = Record<never, nev
 			logger.fatal({ err: error }, 'Configurações iniciais do .env inválidas (veja o .env.example)')
 			process.exit(1)
 		}
+
+		// Os textos que o serviço manda para fora (Discord, e-mails, mensagens de erro) saem no idioma escolhido no site
+		onShutdown(await followSystemLocale())
 	}
 
 	const queue = new QueueClient({

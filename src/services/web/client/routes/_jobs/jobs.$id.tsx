@@ -8,6 +8,7 @@ import { ButtonLink } from '../../components/ui/Button'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { useWideLayout } from '../../lib/media'
 import { jobsStore, useJobs } from '../../stores/jobs'
+import { useT } from '../../stores/locale'
 import { markViewed } from '../../stores/viewed'
 import { JobPage } from '../../views/JobPage'
 import { DetailPanel } from '../../views/JobsView'
@@ -15,8 +16,8 @@ import { DetailPanel } from '../../views/JobsView'
 /** A vaga da lista já carregada (na hora) ou, se ela não estiver lá (link direto para uma vaga antiga), a da API. */
 const findLoaded = (id: string) => jobsStore.get().jobs.find(job => isJobRouteId(job.postId, id))
 
-export const Route = createFileRoute('/_vagas/vagas/$id')({
-	staticData: { title: 'Vaga' },
+export const Route = createFileRoute('/_jobs/jobs/$id')({
+	staticData: { title: 'job' },
 	loader: ({ params }) => findLoaded(params.id) ?? api.job(params.id),
 	pendingComponent: JobPending,
 	errorComponent: JobError,
@@ -56,6 +57,7 @@ function JobPending() {
 
 function JobError({ error }: ErrorComponentProps) {
 	const wide = useWideLayout()
+	const t = useT()
 
 	if (!wide) return <JobPage error={error.message} />
 	return (
@@ -66,7 +68,7 @@ function JobError({ error }: ErrorComponentProps) {
 				title={error.message}
 				action={
 					<ButtonLink variant="lime" to="/" search={() => jobsStore.get().filters}>
-						ver todas as vagas
+						{t.routes.allJobs}
 					</ButtonLink>
 				}
 			/>

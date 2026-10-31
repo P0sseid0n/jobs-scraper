@@ -16,6 +16,7 @@ import {
 	type ScraperTermErrorKind,
 	type SeenPostOutcome,
 } from '@shared/database'
+import { t } from '@shared/i18n'
 import { QUEUES, type QueueClient } from '@shared/messaging'
 import { loadCredentials, readSettings } from '@shared/settings'
 
@@ -127,10 +128,10 @@ export async function requestRun(queue: QueueClient) {
 		hasLinkedinAccount(),
 		queue.consumerCount(QUEUES.scraper),
 	])
-	if (running) throw new HttpError(409, 'Já há uma coleta em andamento')
-	if (activeSearchTerms(settings).length === 0) throw new HttpError(409, 'Configure os termos de busca antes de coletar')
-	if (!linkedinAccount) throw new HttpError(409, 'Conecte sua conta do LinkedIn (Configurações › Contas) antes de coletar')
-	if (consumers === 0) throw new HttpError(503, 'O scraper não está rodando: inicie-o para coletar')
+	if (running) throw new HttpError(409, t().api.runInProgress)
+	if (activeSearchTerms(settings).length === 0) throw new HttpError(409, t().api.searchTermsFirst)
+	if (!linkedinAccount) throw new HttpError(409, t().api.linkedinFirst)
+	if (consumers === 0) throw new HttpError(503, t().api.scraperDown)
 
 	const requestId = crypto.randomUUID()
 	const command: ScraperCommand = { command: 'run-now', requestedBy: 'web', requestedAt: new Date().toISOString(), requestId }

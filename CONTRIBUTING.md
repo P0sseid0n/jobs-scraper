@@ -38,7 +38,8 @@ Crie a branch a partir da `main` atualizada, com um prefixo do tipo e uma descri
 
 O formato é verificado pelo Prettier e pelo Biome (`.prettierrc`, `biome.json` e `.editorconfig`). No VS Code, use a extensão do Prettier com formatação ao salvar. Além disso:
 
-- **Português** em comentários, mensagens de log, erros e textos da interface. Nomes de variáveis, funções e campos ficam em inglês.
+- **Português** em comentários e mensagens de log. Nomes de variáveis, funções e campos ficam em inglês.
+- **Textos que a pessoa lê** (site, Discord, erros que chegam à tela) ficam nos catálogos de `src/shared/i18n/locales`, nunca direto no código: no site, `const t = useT()` e `t.jobs.empty.title`; nos serviços, `t().jobs.empty.title`. Um texto novo entra no `pt-BR.ts` e no `en.ts` (o `typecheck` e os testes acusam se faltar num deles). Datas e números usam o idioma escolhido (`currentLocale()`), não `'pt-BR'` fixo.
 - **Comentários explicam o porquê**, não o que o código já diz. Funções exportadas têm TSDoc curto.
 - **Contratos entre serviços** (mensagens das filas) ficam em `src/shared/contracts`, como schemas do zod, e são validados por quem consome a fila. Os campos usam camelCase (`postLink`, `recruiterEmail`).
 - **Mudou o formato de algo salvo no MongoDB?** Inclua um script de migração que possa rodar mais de uma vez (como o `bun db:migrate-jobs`) e cite no PR.
@@ -51,6 +52,43 @@ O formato é verificado pelo Prettier e pelo Biome (`.prettierrc`, `biome.json` 
 - Testes com `bun test`, no arquivo `*.test.ts` ao lado do código testado.
 - Prefira testar funções puras (leitura de texto, filtros, montagem de mensagens) com **dados reais**: textos de posts, HTML do LinkedIn, respostas do modelo. Remova dados pessoais deles antes de versionar.
 - Todo bug corrigido ganha um teste que falharia antes da correção.
+
+## Traduzir o site
+
+O site, as mensagens do Discord e os erros que chegam à tela saem de catálogos de texto, um por idioma, em `src/shared/i18n/locales`. O `pt-BR.ts` é a base (define as chaves) e o `en.ts` é o primeiro idioma novo; os dois ficam sempre completos. Um idioma da comunidade pode entrar incompleto: o que faltar aparece em inglês, e o seletor de idioma mostra quanto já foi traduzido ("Español · 72%"). Para começar, abra uma issue com o modelo **Novo idioma**.
+
+**Adicionar um idioma:**
+
+1. Crie `src/shared/i18n/locales/<código>.ts` com o código BCP 47 do idioma (o mesmo do navegador: `es`, `fr`, `de`, `pt-PT`…). Copie do `en.ts` só as seções que for traduzir:
+
+   ```ts
+   import type { PartialMessages } from '../catalog'
+
+   export const es: PartialMessages = {
+   	language: {
+   		label: 'Idioma',
+   		// ...
+   	},
+   }
+   ```
+
+2. Registre o idioma em `LOCALES`, no `src/shared/i18n/locales/index.ts`, com o nome dele no próprio idioma, as mensagens prontas do zod (`z.locales.es`) e quem traduziu (nome ou usuário do GitHub, que aparece nas configurações):
+
+   ```ts
+   es: { name: 'Español', messages: es, zod: z.locales.es, translators: ['seu-usuario'] },
+   ```
+
+3. Veja o que falta com `bun i18n:status` (a cobertura de cada idioma) e `bun i18n:status es` (as chaves que faltam). Uma chave como `jobs.empty.title` é o texto `jobs: { empty: { title } }` do catálogo.
+
+**Como traduzir:**
+
+- Textos que dependem de valores são funções, com o plural dentro delas: `` (count: number) => `${count} ${count === 1 ? 'vaga' : 'vagas'}` ``. Mantenha os mesmos parâmetros.
+- Não traduza nomes de variáveis do modelo de mensagem (`{{empresa}}`), links, nomes de produtos (LinkedIn, Discord, Gmail) nem termos que a pessoa vê em outro lugar com o mesmo nome (os rótulos dos menus citados nos textos).
+- Nenhum componente muda: o idioma novo aparece no seletor (na abertura do onboarding e em Configurações › Idioma) assim que é registrado.
+
+**Testar localmente:** rode `bun dev`, escolha o idioma no seletor e passe pelas telas (o onboarding, as vagas, as configurações). Confira também `bun run typecheck` e `bun test`: os testes acusam uma chave que não existe no catálogo base.
+
+O idioma do sistema é só o da interface. Os idiomas em que a pessoa trabalha (perfil) e os aceitos nos posts (filtros) são outras configurações, e o currículo ajustado tem a própria opção de idioma (o do sistema ou o da vaga).
 
 ## Antes do merge
 

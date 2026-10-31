@@ -1,8 +1,12 @@
 import { describe, expect, test } from 'bun:test'
 
+import { messagesFor } from '@shared/i18n'
+
 import type { CredentialGroup } from '../../api-types'
-import { ACCOUNT_TUTORIALS } from './account-tutorials'
-import { SMTP_PROVIDER_OPTIONS } from './smtp-presets'
+import { accountTutorials } from './account-tutorials'
+import { SMTP_PROVIDER_CHOICES } from './smtp-presets'
+
+const ACCOUNT_TUTORIALS = accountTutorials(messagesFor('pt-BR'))
 
 /** Os passos que o teste de cada conta aponta na falha (`step`, em `server/credential-checks.ts`). */
 const CHECK_STEPS: Partial<Record<CredentialGroup, string[]>> = {
@@ -32,6 +36,6 @@ describe('ACCOUNT_TUTORIALS', () => {
 
 	test('cada opção do provedor do e-mail tem o seu caminho no tutorial', () => {
 		const paths = ACCOUNT_TUTORIALS.smtp.paths.map(path => path.id)
-		expect(paths).toEqual(SMTP_PROVIDER_OPTIONS.map(option => option.id))
+		expect(paths).toEqual(SMTP_PROVIDER_CHOICES)
 	})
 })

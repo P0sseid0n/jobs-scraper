@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 import { blockingCompany, MAX_BLOCKED_COMPANIES, normalizeCompany } from '@shared/contracts'
 import { Job, SeenPost } from '@shared/database'
+import { t } from '@shared/i18n'
 import type { Logger } from '@shared/logging'
 import { readSettings, updateSettings } from '@shared/settings'
 
@@ -56,14 +57,14 @@ async function listedJobsOf(entry: string, postId?: string) {
  */
 export async function blockCompany(req: Request, { logger }: { logger: Logger }) {
 	const { company } = BlockCompanySchema.parse(await readJson(req))
-	if (!normalizeCompany(company)) throw new HttpError(400, 'Informe o nome da empresa')
+	if (!normalizeCompany(company)) throw new HttpError(400, t().api.companyRequired)
 
 	const current = await readSettings('post-processing')
 	const { blockedCompanies, entry } = withBlockedCompany(current.blockedCompanies, company)
 
 	if (blockedCompanies !== current.blockedCompanies) {
 		if (blockedCompanies.length > MAX_BLOCKED_COMPANIES) {
-			throw new HttpError(400, `Já há ${MAX_BLOCKED_COMPANIES} empresas bloqueadas: desbloqueie alguma em Configurações`)
+			throw new HttpError(400, t().api.tooManyBlocked(MAX_BLOCKED_COMPANIES))
 		}
 		await updateSettings('post-processing', { blockedCompanies })
 		logger.info({ company: entry }, 'Empresa bloqueada pelo site')
@@ -113,7 +114,7 @@ export async function removeBlockedJobs(req: Request, { logger }: { logger: Logg
 	const { blockedCompanies } = await readSettings('post-processing')
 
 	const entry = blockingCompany(company, blockedCompanies)
-	if (!entry) throw new HttpError(409, 'Esta empresa não está bloqueada')
+	if (!entry) throw new HttpError(409, t().api.companyNotBlocked)
 
 	const postIds = await listedJobsOf(entry, postId)
 	if (postIds.length > 0) {

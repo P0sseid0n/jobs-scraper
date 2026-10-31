@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { message } from '../i18n'
 import { ReprocessIdSchema } from './job-reprocess'
 
 /**
@@ -15,7 +16,10 @@ export type PostImageType = (typeof POST_IMAGE_TYPES)[number]
 export const PostImageSchema = z.object({
 	mimeType: z.enum(POST_IMAGE_TYPES),
 	/** O arquivo em base64 (sem o prefixo `data:`). */
-	data: z.base64().max(Math.ceil(POST_IMAGE_LIMITS.maxBytes / 3) * 4, 'Imagem maior que o limite'),
+	data: z.base64().max(
+		Math.ceil(POST_IMAGE_LIMITS.maxBytes / 3) * 4,
+		message(m => m.validation.imageTooLarge),
+	),
 })
 export type PostImage = z.infer<typeof PostImageSchema>
 

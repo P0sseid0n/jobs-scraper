@@ -4,6 +4,7 @@ import { useState } from 'react'
 import type { SetupStatus, WebCredentials, WebSettings } from '../../../api-types'
 import { api } from '../../api'
 import { cx } from '../../lib/cx'
+import { useT } from '../../stores/locale'
 import { loadSetup } from '../../stores/setup'
 import { notify } from '../../stores/toast'
 import { Icon } from '../Icon'
@@ -33,50 +34,52 @@ export function ReviewStep({
 	onGoTo: (step: OnboardingStep) => void
 }) {
 	const navigate = useNavigate()
+	const t = useT()
+	const review = t.reviewStep
 	const [starting, setStarting] = useState(false)
 	const terms = settings.scraper.searchTerms.filter(term => term.enabled).map(term => term.term)
 
 	const rows: Row[] = [
 		{
-			step: 'area',
-			title: 'Área e busca',
-			detail: setup.steps.profile
-				? `${settings.profile.targetRole} · ${terms.length} ${terms.length === 1 ? 'busca' : 'buscas'}: ${terms.join(', ')}`
-				: 'Falta a área, a vaga que você quer ou o que buscar.',
+			step: 'field',
+			title: review.areaTitle,
+			detail: setup.steps.profile ? review.areaDetail(settings.profile.targetRole ?? '', terms) : review.areaMissing,
 			done: setup.steps.profile,
 		},
 		{
 			step: 'linkedin',
 			title: 'LinkedIn',
-			detail: setup.steps.linkedin ? (credentials.linkedin.values.email ?? 'conta do .env') : 'Falta conectar a sua conta.',
+			detail: setup.steps.linkedin ? (credentials.linkedin.values.email ?? review.linkedinEnv) : review.linkedinMissing,
 			done: setup.steps.linkedin,
 		},
 		{
-			step: 'curriculo',
-			title: 'Currículo',
-			detail: setup.steps.cv ? 'Pronto para gerar os currículos ajustados.' : 'Falta o seu currículo.',
+			step: 'resume',
+			title: review.cvTitle,
+			detail: setup.steps.cv ? review.cvReady : review.cvMissing,
 			done: setup.steps.cv,
 		},
 		{
 			step: 'extras',
 			title: 'Discord',
-			detail: setup.steps.discord ? 'As vagas também vão para o seu canal.' : 'Não configurado: as vagas ficam só no site.',
+			detail: setup.steps.discord ? review.discordReady : review.discordMissing,
 			done: setup.steps.discord,
 			optional: true,
 		},
 		{
 			step: 'extras',
 			title: 'GitHub',
-			detail: setup.steps.github ? `Projetos de ${credentials.github.values.username ?? 'você'}.` : 'Não configurado.',
+			detail: setup.steps.github
+				? review.githubReady(credentials.github.values.username ?? review.githubYou)
+				: review.notConfigured,
 			done: setup.steps.github,
 			optional: true,
 		},
 		{
 			step: 'email',
-			title: 'E-mail',
+			title: review.emailTitle,
 			detail: setup.steps.email
-				? `Candidaturas enviadas daqui, de ${credentials.smtp.values.from ?? credentials.smtp.values.user ?? 'sua conta'}.`
-				: 'Não configurado: você copia a mensagem e envia pelo seu e-mail.',
+				? review.emailReady(credentials.smtp.values.from ?? credentials.smtp.values.user ?? review.emailYourAccount)
+				: review.emailMissing,
 			done: setup.steps.email,
 			optional: true,
 		},
@@ -88,17 +91,17 @@ export function ReviewStep({
 			await api.runNow()
 			// O site para de levar ao onboarding a partir daqui
 			await loadSetup({ fresh: true })
-			notify('Primeira coleta pedida! As vagas aparecem conforme a IA lê os posts.')
-			await navigate({ to: '/coletas' })
+			notify(review.firstRunStarted)
+			await navigate({ to: '/runs' })
 		} catch (error) {
-			notify(`Não consegui começar a coleta: ${(error as Error).message}`, 'error')
+			notify(review.firstRunFailed((error as Error).message), 'error')
 			setStarting(false)
 		}
 	}
 
 	useStepBar({
 		onBack,
-		primary: { label: starting ? 'começando…' : 'fazer a primeira coleta', disabled: !setup.ready || starting, onClick: firstRun },
+		primary: { label: starting ? review.starting : review.firstRun, disabled: !setup.ready || starting, onClick: firstRun },
 	})
 
 	return (
@@ -108,24 +111,20 @@ export function ReviewStep({
 				title={
 					setup.ready ? (
 						<>
-							Tudo <Hero.Mono>pronto!</Hero.Mono>
+							{review.readyTitle} <Hero.Mono>{review.readyTitleMono}</Hero.Mono>
 						</>
 					) : (
-						'Quase lá'
+						review.almostTitle
 					)
 				}
-				lead={
-					setup.ready
-						? 'Confira o resumo. Quando quiser, a gente faz a primeira busca de vagas. Depois, ela se repete sozinha.'
-						: 'Ainda falta alguma coisa obrigatória. Toque em “resolver” para voltar ao passo.'
-				}
+				lead={setup.ready ? review.readyLead : review.almostLead}
 			/>
 
 			<Rise order={3}>
 				<ul className={card({ className: 'm-0 flex list-none flex-col p-0' })}>
 					{rows.map((row, index) => (
 						<li
-							key={row.title}
+							key={`${row.step}-${index}`}
 							className={cx(
 								'flex items-center gap-3.5 px-5 py-4 animate-rise-in motion-reduce:animate-none max-md:px-4',
 								index > 0 && 'border-t border-line',
@@ -145,7 +144,7 @@ export function ReviewStep({
 								<FieldHelp className="truncate">{row.detail}</FieldHelp>
 							</div>
 							<Button variant="ghost" size="sm" onClick={() => onGoTo(row.step)}>
-								{row.done || row.optional ? 'mudar' : 'resolver'}
+								{row.done || row.optional ? review.change : review.fix}
 							</Button>
 						</li>
 					))}

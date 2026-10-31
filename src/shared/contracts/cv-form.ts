@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import { currentLocale, message, messagesFor, type Locale } from '../i18n'
+
 /**
  * Dados do currículo base preenchidos no formulário do site. O cv-updater gera o `.tex` a partir deles
  * (`resume/latex-from-form.ts`), e a versão guarda os dados para o formulário reabrir preenchido.
@@ -10,21 +12,16 @@ export const CV_FORM_SECTIONS = ['summary', 'skills', 'experience', 'education',
 export type CvFormSectionKind = (typeof CV_FORM_SECTIONS)[number]
 
 /**
- * Título de cada seção no PDF quando a pessoa não escreve outro. Um título próprio precisa ser um dos sinônimos que o
- * cv-updater reconhece para a mesma seção (`resume/latex-syntax.ts`), senão o ajuste à vaga não a encontra.
+ * Título de cada seção no PDF quando a pessoa não escreve outro, no idioma pedido (por padrão, o atual). Um título
+ * próprio precisa ser um dos sinônimos que o cv-updater reconhece para a mesma seção (`resume/latex-syntax.ts`), senão o
+ * ajuste à vaga não a encontra.
  */
-export const CV_FORM_DEFAULT_TITLES: Record<CvFormSectionKind, string> = {
-	summary: 'Apresentação',
-	skills: 'Habilidades',
-	experience: 'Experiência Profissional',
-	education: 'Formação',
-	certifications: 'Certificações e Cursos',
-	languages: 'Idiomas',
-	projects: 'Projetos',
+export function cvSectionTitles(locale: Locale = currentLocale()): Record<CvFormSectionKind, string> {
+	return messagesFor(locale).resume.sections
 }
 
-/** Rótulos aceitos para a linha de ferramentas dos projetos (`	extit{Ferramentas: ...}`); o primeiro é o padrão. */
-export const CV_FORM_TOOLS_LABELS = ['Ferramentas', 'Tecnologias'] as const
+/** Rótulos aceitos para a linha de ferramentas dos projetos (`\textit{Ferramentas: ...}`); o primeiro é o padrão. */
+export const CV_FORM_TOOLS_LABELS = ['Ferramentas', 'Tecnologias', 'Tools', 'Technologies'] as const
 
 /** Máximo de itens de cada lista (experiências, tópicos, links...): bem acima do que cabe numa página. */
 export const CV_FORM_MAX_ITEMS = 20
@@ -32,7 +29,7 @@ export const CV_FORM_MAX_ITEMS = 20
 const text = (max = 200) => z.string().trim().max(max)
 const list = <T extends z.ZodType>(item: T) => z.array(item).max(CV_FORM_MAX_ITEMS)
 
-/** Título da seção no PDF; vazio usa o de CV_FORM_DEFAULT_TITLES. O padrão aceita os dados de antes do campo. */
+/** Título da seção no PDF; vazio usa o de `cvSectionTitles`, no idioma de quem salva. O padrão aceita os dados de antes do campo. */
 const title = text(100).default('')
 
 const ContactDraftSchema = z.object({
@@ -46,7 +43,12 @@ const ContactDraftSchema = z.object({
 	links: list(text(300)),
 })
 
-const ContactSchema = ContactDraftSchema.extend({ name: text().min(1, 'Preencha o nome') })
+const ContactSchema = ContactDraftSchema.extend({
+	name: text().min(
+		1,
+		message(m => m.validation.nameRequired),
+	),
+})
 
 const SummarySectionSchema = z.object({ kind: z.literal('summary'), title, text: text(3000) })
 
@@ -111,7 +113,10 @@ export const CvFormDraftSchema = z.object({
 	sections: z
 		.array(CvFormSectionSchema)
 		.max(CV_FORM_SECTIONS.length)
-		.refine(sections => new Set(sections.map(section => section.kind)).size === sections.length, 'Seção repetida'),
+		.refine(
+			sections => new Set(sections.map(section => section.kind)).size === sections.length,
+			message(m => m.validation.duplicateSection),
+		),
 })
 
 /** O currículo do formulário: o contato e as seções, na ordem em que aparecem no PDF (cada tipo no máximo uma vez). */

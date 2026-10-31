@@ -1,5 +1,7 @@
 import { useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
 
+import { t } from '@shared/i18n'
+
 import { cx } from '../../lib/cx'
 import { Icon } from '../Icon'
 import { badge } from './Badge'
@@ -72,7 +74,7 @@ export function KeywordInput({
 				<span className={badge({ className: 'gap-0.5 py-0.5 pr-0.5 pl-2.5 text-xs whitespace-normal' })} key={word}>
 					{word}
 					<IconButton
-						label={`Remover ${word}`}
+						label={t().ui.removeWord(word)}
 						size="xs"
 						tone="muted"
 						onClick={() => onChange(value.filter(item => item !== word))}
@@ -89,7 +91,7 @@ export function KeywordInput({
 				onChange={event => setDraft(event.target.value)}
 				onKeyDown={onKeyDown}
 				onBlur={add}
-				placeholder={value.length >= max ? `limite de ${max}` : 'digite e Enter'}
+				placeholder={value.length >= max ? t().ui.limit(max) : t().ui.typeAndEnter}
 				disabled={value.length >= max}
 				maxLength={maxLength}
 				aria-describedby={describedBy}

@@ -1,6 +1,8 @@
+import { AsyncLocalStorage } from 'node:async_hooks'
 import { ZodError } from 'zod'
 
 import { isDatabaseUnavailableError } from '@shared/database'
+import { getSystemLocale, resolveLocale, setLocaleSource, t, type Locale } from '@shared/i18n'
 import type { Logger } from '@shared/logging'
 
 import type { ApiError } from '../api-types'
@@ -27,6 +29,24 @@ export function fieldErrors(error: ZodError) {
 	return fields
 }
 
+const requestLocale = new AsyncLocalStorage<Locale>()
+// Fora de uma requisição (os eventos das filas, os prazos dos pedidos), vale o idioma do sistema
+setLocaleSource(() => requestLocale.getStore() ?? getSystemLocale())
+
+/**
+ * O idioma da requisição: o escolhido no site vem no `Accept-Language` (ver `request`, em `client/api.ts`). As
+ * mensagens de erro e de validação saem nele.
+ */
+export function localeOf(req: Request) {
+	const header = req.headers.get('Accept-Language') ?? ''
+	return resolveLocale(
+		header
+			.split(',')
+			.map(part => part.split(';')[0]!.trim())
+			.filter(Boolean),
+	)
+}
+
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
 
 /**
@@ -45,14 +65,16 @@ export function isCrossSiteWrite(req: Request) {
  * `HttpError` vira o status dele, o MongoDB fora do ar vira 503 e o resto vira 500.
  */
 export function handler<R extends Request>(logger: Logger, fn: (req: R) => Promise<Response> | Response) {
-	return async (req: R) => {
+	return (req: R) => requestLocale.run(localeOf(req), () => handle(req))
+
+	async function handle(req: R) {
 		try {
-			if (isCrossSiteWrite(req)) throw new HttpError(403, 'Requisição de outra origem recusada')
+			if (isCrossSiteWrite(req)) throw new HttpError(403, t().api.crossOrigin)
 
 			return await fn(req)
 		} catch (error) {
 			if (error instanceof ZodError) {
-				return Response.json({ error: 'Alguns campos estão inválidos', fields: fieldErrors(error) } satisfies ApiError, {
+				return Response.json({ error: t().api.invalidFields, fields: fieldErrors(error) } satisfies ApiError, {
 					status: 400,
 				})
 			}
@@ -61,11 +83,11 @@ export function handler<R extends Request>(logger: Logger, fn: (req: R) => Promi
 			}
 			if (isDatabaseUnavailableError(error)) {
 				logger.warn({ err: error, url: req.url, method: req.method }, 'MongoDB fora do ar')
-				return Response.json({ error: 'Banco de dados fora do ar' } satisfies ApiError, { status: 503 })
+				return Response.json({ error: t().api.databaseDown } satisfies ApiError, { status: 503 })
 			}
 
 			logger.error({ err: error, url: req.url, method: req.method }, 'Erro na API')
-			return Response.json({ error: 'Erro interno no servidor do site' } satisfies ApiError, { status: 500 })
+			return Response.json({ error: t().api.internal } satisfies ApiError, { status: 500 })
 		}
 	}
 }
@@ -75,7 +97,7 @@ export async function readJson(req: Request): Promise<unknown> {
 	try {
 		return await req.json()
 	} catch {
-		throw new HttpError(400, 'Corpo da requisição não é um JSON válido')
+		throw new HttpError(400, t().api.invalidJson)
 	}
 }
 
@@ -100,6 +122,6 @@ export function decodeCursor(value: string): Cursor {
 		if (Number.isNaN(date.getTime()) || typeof id !== 'string' || !/^[a-f0-9]{24}$/.test(id)) throw new Error()
 		return { at: date, id }
 	} catch {
-		throw new HttpError(400, 'Cursor de paginação inválido')
+		throw new HttpError(400, t().api.invalidCursor)
 	}
 }

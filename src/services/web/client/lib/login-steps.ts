@@ -2,8 +2,11 @@ import type { LinkedinLoginState } from '../../api-types'
 
 type Status = LinkedinLoginState['status']
 
-/** As etapas do login do LinkedIn na linha do tempo; a confirmação só acontece quando o LinkedIn pede. */
-export const LOGIN_STEPS = ['pedido', 'entrando', 'confirmação', 'conectado'] as const
+/**
+ * As etapas do login do LinkedIn na linha do tempo (o nome de cada uma fica em `linkedinLogin.steps`); a confirmação
+ * só acontece quando o LinkedIn pede.
+ */
+export const LOGIN_STEPS = ['requested', 'running', 'verification', 'connected'] as const
 
 /** `skipped`: a confirmação, num login que deu certo sem ela ter sido pedida (nesta tela). */
 export type LoginStepState = 'done' | 'current' | 'failed' | 'skipped' | 'upcoming'

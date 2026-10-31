@@ -1,6 +1,7 @@
 import type { Message, Ollama } from 'ollama'
 
 import type { CvFormDraft } from '@shared/contracts'
+import { t } from '@shared/i18n'
 import type { Logger } from '@shared/logging'
 
 import { importedForm } from './import-form'
@@ -28,9 +29,7 @@ export async function importResumePdf(ai: AiOptions, pdf: Uint8Array, log: Logge
 
 	const hasBase = form.sections.some(section => section.kind === 'experience' || section.kind === 'education')
 	if (!hasBase) {
-		throw new PdfImportError(
-			'Não encontrei experiência nem formação nesse PDF: ele não parece um currículo. Confira o arquivo ou preencha o formulário.',
-		)
+		throw new PdfImportError(t().cvErrors.notResume)
 	}
 
 	return form
@@ -53,7 +52,7 @@ async function requestImportOutput(ai: AiOptions, request: ReturnType<typeof bui
 			content = response.message.content
 		} catch (error) {
 			log.warn({ err: error }, 'Falha ao consultar a IA para importar o PDF')
-			throw new PdfImportError('A IA não respondeu ao ler o currículo. Confira se o Ollama está rodando e tente de novo.')
+			throw new PdfImportError(t().cvErrors.aiNoResponse)
 		}
 
 		try {
@@ -67,5 +66,5 @@ async function requestImportOutput(ai: AiOptions, request: ReturnType<typeof bui
 	}
 
 	log.warn({ err: lastError }, 'A IA não devolveu os campos do currículo no formato pedido')
-	throw new PdfImportError('A IA não conseguiu ler o currículo. Tente de novo ou preencha o formulário.')
+	throw new PdfImportError(t().cvErrors.aiFailed)
 }

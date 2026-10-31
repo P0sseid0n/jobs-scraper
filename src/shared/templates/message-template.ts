@@ -1,4 +1,5 @@
 import type { ProcessedJob } from '../contracts/job'
+import { currentLocale, messagesFor, t, type Locale } from '../i18n'
 
 /**
  * O modelo de e-mail de candidatura da própria pessoa, com variáveis como `{{empresa}}` e `{{cargo}}`: a mensagem sai
@@ -15,29 +16,44 @@ export type TemplateVariableGroup = 'job' | 'profile' | 'own'
 export type TemplateVariable = {
 	/** Em português, sem acentos, em `snake_case`: entra no modelo como `{{nome}}`. */
 	name: string
-	/** O que é, em poucas palavras ("Nome da empresa"). */
-	description: string
+	/** O que é, em poucas palavras ("Nome da empresa"), no idioma atual. */
+	readonly description: string
 	type: TemplateVariableType
 	group: TemplateVariableGroup
 	/** A vaga pode não ter o valor (a IA não achou no post): sem fallback, a mensagem fica com um buraco. */
 	optional: boolean
 }
 
+type BuiltInName = keyof ReturnType<typeof t>['messageTemplate']['variables']
+
+/** Uma variável pronta: a descrição vem do catálogo, no idioma atual (o nome é o mesmo em todos). */
+function builtIn(name: BuiltInName, type: TemplateVariableType, group: TemplateVariableGroup, optional: boolean): TemplateVariable {
+	return {
+		name,
+		type,
+		group,
+		optional,
+		get description() {
+			return t().messageTemplate.variables[name]
+		},
+	}
+}
+
 /** As variáveis da vaga. O cargo nunca falta: o post-processing descarta as vagas sem ele. */
 export const JOB_VARIABLES: readonly TemplateVariable[] = [
-	{ name: 'cargo', description: 'Título da vaga', type: 'text', group: 'job', optional: false },
-	{ name: 'empresa', description: 'Nome da empresa', type: 'text', group: 'job', optional: true },
-	{ name: 'local', description: 'Cidade ou região da vaga', type: 'text', group: 'job', optional: true },
-	{ name: 'modalidade', description: 'Remoto, híbrido ou presencial', type: 'text', group: 'job', optional: true },
-	{ name: 'tecnologias', description: 'O que a vaga pede', type: 'text', group: 'job', optional: true },
-	{ name: 'link_da_vaga', description: 'Link da vaga ou do post', type: 'link', group: 'job', optional: true },
-	{ name: 'autor_do_post', description: 'Quem publicou a vaga', type: 'text', group: 'job', optional: true },
+	builtIn('cargo', 'text', 'job', false),
+	builtIn('empresa', 'text', 'job', true),
+	builtIn('local', 'text', 'job', true),
+	builtIn('modalidade', 'text', 'job', true),
+	builtIn('tecnologias', 'text', 'job', true),
+	builtIn('link_da_vaga', 'link', 'job', true),
+	builtIn('autor_do_post', 'text', 'job', true),
 ]
 
 /** As variáveis do perfil (Configurações › Perfil), sempre preenchidas depois do onboarding. */
 export const PROFILE_VARIABLES: readonly TemplateVariable[] = [
-	{ name: 'area', description: 'Sua área de atuação', type: 'text', group: 'profile', optional: false },
-	{ name: 'cargo_alvo', description: 'O cargo que você procura', type: 'text', group: 'profile', optional: false },
+	builtIn('area', 'text', 'profile', false),
+	builtIn('cargo_alvo', 'text', 'profile', false),
 ]
 
 /** As variáveis prontas, da vaga e do perfil, na ordem do painel "Variáveis disponíveis". */
@@ -60,18 +76,14 @@ export function templateVariables(own: readonly OwnVariable[]): TemplateVariable
 	]
 }
 
-/** O modelo que vem nas configurações: a mesma mensagem do modelo fixo de antes, com as variáveis. */
-export const DEFAULT_TEMPLATE = {
-	subject: 'Candidatura – {{cargo}}',
-	body: [
-		'Olá! Tudo bem?',
-		'',
-		'Vi a publicação sobre {{cargo}} no LinkedIn e tenho interesse na oportunidade.',
-		'Envio em anexo meu currículo e fico à disposição para conversarmos.',
-		'',
-		'Obrigado!',
-	].join('\n'),
+/** O modelo que vem nas configurações, no idioma pedido (por padrão, o atual), com as variáveis. */
+export function defaultTemplate(locale: Locale = currentLocale()) {
+	const { subject, body } = messagesFor(locale).messageTemplate
+	return { subject, body: body.join('\n') }
 }
+
+/** O modelo padrão em português (o de antes da escolha do idioma). */
+export const DEFAULT_TEMPLATE = defaultTemplate('pt-BR')
 
 /**
  * Uma variável no texto: `{{nome}}`, com espaços opcionais dentro das chaves (`{{ empresa }}`) e, depois de uma barra, o

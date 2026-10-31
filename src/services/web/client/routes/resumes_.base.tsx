@@ -5,8 +5,8 @@ import { routeError, RoutePending } from '../components/RouteStatus'
 import { activeVersion } from '../lib/cv-base'
 import { CvBaseView, type CvBaseData } from '../views/CvBaseView'
 
-export const Route = createFileRoute('/curriculos_/base')({
-	staticData: { title: 'Currículo base' },
+export const Route = createFileRoute('/resumes_/base')({
+	staticData: { title: 'cvBase' },
 	loader: async (): Promise<CvBaseData> => {
 		const { versions } = await api.cvBase()
 		const active = activeVersion(versions)
@@ -16,6 +16,6 @@ export const Route = createFileRoute('/curriculos_/base')({
 		return { versions, activeTex: current?.tex ?? '', activeForm: current?.form ?? null }
 	},
 	pendingComponent: () => <RoutePending width="medium" />,
-	errorComponent: routeError('Não consegui carregar o currículo base', 'medium'),
+	errorComponent: routeError('cvBase', 'medium'),
 	component: () => <CvBaseView initial={Route.useLoaderData()} />,
 })

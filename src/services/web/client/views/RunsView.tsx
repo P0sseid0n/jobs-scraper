@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 
+import { t } from '@shared/i18n'
+
 import type { RunsPage, RunsPageSize, ScraperStatus, WebScraperRun, WebScraperRunTerm } from '../../api-types'
 import { api, type RequestError } from '../api'
 import { AutoRunsSwitch } from '../components/AutoRunsSwitch'
@@ -21,36 +23,27 @@ import { StatusDot, type StatusDotTone } from '../components/ui/StatusDot'
 import { LABEL, LIST, META, SECTION_TITLE } from '../components/ui/text'
 import { RouteLink, TextLink } from '../components/ui/TextLink'
 import { cx } from '../lib/cx'
-import { DATE_POSTED_LABELS, formatDateTime, formatDuration, formatInterval } from '../lib/format'
+import { formatDateTime, formatDuration, formatInterval } from '../lib/format'
 import { pageItems } from '../lib/pagination'
 import { useStore } from '../lib/store'
 import { onLive } from '../stores/live'
+import { useT } from '../stores/locale'
 import { RUNS_PAGE_SIZE_OPTIONS, runsPageSize } from '../stores/runs-page-size'
 import { notify } from '../stores/toast'
 
-/** Como a coleta começou, em palavras de quem usa o site. */
-const TRIGGERS: Record<WebScraperRun['trigger'], string> = {
-	schedule: 'automática',
-	manual: 'pedida por você',
-	once: 'execução única',
-}
-
-/** A falha que não foi no login: a mensagem do erro fica no "ver o erro completo". */
-const UNEXPECTED_FAILURE = 'A coleta parou por um erro inesperado. A próxima tenta de novo sozinha.'
-
-/** O que o post-processing fez com cada post, na ordem em que os filtros rodam. */
-const OUTCOMES: Record<keyof NonNullable<WebScraperRun['outcomes']>['counts'], string> = {
-	saved: 'viraram vaga',
-	'multi-job': 'listas de vagas (abertas uma a uma)',
-	'deferred-list': 'listas de vagas para outra coleta (o mínimo já estava completo)',
-	language: 'idioma fora dos aceitos',
-	'job-seeker': 'candidato procurando vaga',
-	'not-a-job': 'não são vaga, segundo a IA',
-	keywords: 'fora das palavras-chave',
-	'blocked-company': 'de empresas bloqueadas',
-	'missing-fields': 'sem cargo ou link do post',
-	unknown: 'processados por uma versão anterior',
-}
+/** O que o post-processing fez com cada post, na ordem em que os filtros rodam (o texto fica em `runs.outcomes`). */
+const OUTCOMES = [
+	'saved',
+	'multi-job',
+	'deferred-list',
+	'language',
+	'job-seeker',
+	'not-a-job',
+	'keywords',
+	'blocked-company',
+	'missing-fields',
+	'unknown',
+] as const satisfies readonly (keyof NonNullable<WebScraperRun['outcomes']>['counts'])[]
 
 // Não são descarte: as listas têm as vagas abertas à parte (ou numa próxima coleta), e os posts sem destino registrado
 // podem ter virado vaga
@@ -71,26 +64,18 @@ function discarded(run: WebScraperRun) {
 	return Object.entries(counts).reduce((total, [outcome, count]) => (NOT_DISCARDED.has(outcome) ? total : total + (count ?? 0)), 0)
 }
 
-const RUN_STATUS: Record<WebScraperRun['status'], { label: string; tone: BadgeTone; dot: StatusDotTone }> = {
-	running: { label: 'em andamento', tone: 'running', dot: 'current' },
-	success: { label: 'sucesso', tone: 'ok', dot: 'ok' },
-	failed: { label: 'falha', tone: 'danger', dot: 'current' },
+const RUN_STATUS: Record<WebScraperRun['status'] | 'noJobs', { tone: BadgeTone; dot: StatusDotTone }> = {
+	running: { tone: 'running', dot: 'current' },
+	success: { tone: 'ok', dot: 'ok' },
+	failed: { tone: 'danger', dot: 'current' },
+	// A coleta que rodou sem erro, mas não trouxe nenhuma vaga nova depois de a IA ler toda a fila
+	noJobs: { tone: 'muted', dot: 'muted' },
 }
-
-/** A coleta que rodou sem erro, mas não trouxe nenhuma vaga nova depois de a IA ler toda a fila. */
-const NO_JOBS: (typeof RUN_STATUS)[keyof typeof RUN_STATUS] = { label: 'sem vagas', tone: 'muted', dot: 'muted' }
 
 function runStatus(run: WebScraperRun) {
 	const settled = run.status === 'success' && (run.outcomes?.pending ?? 0) === 0
-	return settled && run.newJobs === 0 ? NO_JOBS : RUN_STATUS[run.status]
-}
-
-/** O que mostrar quando a busca de um termo não trouxe posts, pelo tipo do erro. */
-const TERM_ERRORS: Record<NonNullable<WebScraperRunTerm['errorKind']>, { title: string; hint: string }> = {
-	empty: { title: 'sem resultados', hint: 'O LinkedIn não achou posts para este termo. Tente outro termo ou um período maior.' },
-	'no-posts': { title: 'nenhum post', hint: 'A busca veio vazia ou o LinkedIn mudou a página.' },
-	timeout: { title: 'não carregou', hint: 'O LinkedIn demorou demais para responder. A próxima coleta tenta de novo.' },
-	unknown: { title: 'erro inesperado', hint: 'Algo deu errado nesta busca; os detalhes ajudam a investigar.' },
+	const key = settled && run.newJobs === 0 ? 'noJobs' : run.status
+	return { ...RUN_STATUS[key], label: t().runs.status[key] }
 }
 
 // Células da tabela de coletas: a borda fica na linha, e a última linha não tem
@@ -105,49 +90,33 @@ const REPLY_TIMEOUT_MS = 10_000
 /** Depois de aceito, quanto o "coletar agora" fica travado esperando a coleta pedida começar. */
 const START_TIMEOUT_MS = 30_000
 
-/** A coleta que parou no login, explicada sem os detalhes técnicos (que ficam no "detalhes" do aviso). */
-const LOGIN_FAILURES: Record<NonNullable<WebScraperRun['loginFailure']>, { title: string; hint: string; test: boolean }> = {
-	verification: {
-		title: 'O LinkedIn pediu uma confirmação, e ela não foi feita a tempo',
-		hint: 'Teste o login: a confirmação abre numa janela aqui no site, para aprovar no app do celular ou digitar o código.',
-		test: true,
-	},
-	captcha: {
-		title: 'O LinkedIn pediu um captcha',
-		hint: 'O captcha só aparece numa janela do navegador, que o scraper no Docker não abre. Espere algumas horas e teste o login de novo, ou informe em Configurações › Contas o cookie li_at de uma sessão aberta no seu navegador.',
-		test: true,
-	},
-	credentials: {
-		title: 'O LinkedIn não aceitou o e-mail ou a senha',
-		hint: 'Confira a conta em Configurações › Contas e teste o login.',
-		test: false,
-	},
-	'no-account': {
-		title: 'Falta a conta do LinkedIn',
-		hint: 'Informe o e-mail e a senha em Configurações › Contas.',
-		test: false,
-	},
-	other: {
-		title: 'Não deu para entrar no LinkedIn',
-		hint: 'Teste o login para ver o que o LinkedIn está pedindo.',
-		test: true,
-	},
+/**
+ * A coleta que parou no login, explicada sem os detalhes técnicos (que ficam no "detalhes" do aviso; o texto fica em
+ * `runs.loginFailures`): se testar o login ajuda.
+ */
+const LOGIN_TESTABLE: Record<NonNullable<WebScraperRun['loginFailure']>, boolean> = {
+	verification: true,
+	captcha: true,
+	credentials: false,
+	'no-account': false,
+	other: true,
 }
 
 function FailureAlert({ status }: { status: ScraperStatus | null }) {
+	const r = useT().runs
 	const [testing, setTesting] = useState(false)
 	const last = status?.last
 	if (last?.status !== 'failed' || status?.current) return null
 
-	const login = last.loginFailure ? LOGIN_FAILURES[last.loginFailure] : null
+	const login = last.loginFailure ? { ...r.loginFailures[last.loginFailure], test: LOGIN_TESTABLE[last.loginFailure] } : null
 
 	async function testLogin() {
 		setTesting(true)
 		try {
 			await api.testLinkedinLogin()
-			notify('Testando o login do LinkedIn. Se ele pedir uma confirmação, ela abre aqui.')
+			notify(r.testing)
 		} catch (error) {
-			notify(`Não consegui pedir o teste: ${(error as Error).message}`, 'error')
+			notify(r.testFailed((error as Error).message), 'error')
 		} finally {
 			setTesting(false)
 		}
@@ -155,26 +124,25 @@ function FailureAlert({ status }: { status: ScraperStatus | null }) {
 
 	return (
 		<Notice tone="danger" size="lg" icon="alert">
-			<p className="font-semibold">{login?.title ?? 'A última coleta falhou'}</p>
+			<p className="font-semibold">{login?.title ?? r.lastFailed}</p>
 			<p className="text-sm">
-				{formatDateTime(last.startedAt)} ·{' '}
-				{login ? `${login.hint} Até lá, as coletas não entram no LinkedIn.` : UNEXPECTED_FAILURE}
+				{formatDateTime(last.startedAt)} · {login ? r.untilThen(login.hint) : r.unexpectedFailure}
 			</p>
 			{login && (
 				<div className="flex flex-wrap items-center gap-3 pt-1">
 					{login.test && (
 						<Button variant="lime" size="sm" onClick={testLogin} disabled={testing}>
-							{testing ? 'pedindo…' : 'testar o login'}
+							{testing ? r.requesting : r.testLogin}
 						</Button>
 					)}
-					<RouteLink to="/configuracoes" search={{ conta: 'linkedin' }} hash="contas">
-						abrir configurações › contas
+					<RouteLink to="/settings" search={{ account: 'linkedin' }} hash="accounts">
+						{r.openAccounts}
 					</RouteLink>
 				</div>
 			)}
 			{last.error && (
 				<details className="text-xs">
-					<summary className="cursor-pointer text-muted">ver o erro completo</summary>
+					<summary className="cursor-pointer text-muted">{r.fullError}</summary>
 					<p className="mt-1 font-mono break-all">{last.error}</p>
 				</details>
 			)}
@@ -184,15 +152,16 @@ function FailureAlert({ status }: { status: ScraperStatus | null }) {
 
 /** Sem termos de busca ativos, o scraper não coleta: a tela diz o que falta e onde configurar. */
 function NoSearchTermsAlert({ status }: { status: ScraperStatus }) {
+	const r = useT().runs
 	if (status.activeSearchTerms > 0 || status.current) return null
 
 	return (
 		<Notice tone="warn" size="lg" icon="alert">
-			<p className="font-semibold">Configure os termos de busca</p>
+			<p className="font-semibold">{r.noTermsTitle}</p>
 			<p className="text-sm">
-				Sem nenhum termo ativo, o scraper fica em espera e não coleta.{' '}
-				<RouteLink to="/configuracoes" hash="coleta">
-					adicionar termos em configurações
+				{r.noTermsText}{' '}
+				<RouteLink to="/settings" hash="search">
+					{r.addTerms}
 				</RouteLink>
 			</p>
 		</Notice>
@@ -201,15 +170,16 @@ function NoSearchTermsAlert({ status }: { status: ScraperStatus }) {
 
 /** Sem conta do LinkedIn (no site ou no `.env`), o scraper não coleta: a tela diz onde conectar. */
 function NoLinkedinAccountAlert({ status }: { status: ScraperStatus }) {
+	const r = useT().runs
 	if (status.linkedinAccount || status.current) return null
 
 	return (
 		<Notice tone="warn" size="lg" icon="alert">
-			<p className="font-semibold">Conecte sua conta do LinkedIn</p>
+			<p className="font-semibold">{r.noAccountTitle}</p>
 			<p className="text-sm">
-				Sem o e-mail e a senha do LinkedIn, o scraper fica em espera e não coleta. A coleta começa sozinha depois de salvar.{' '}
-				<RouteLink to="/configuracoes" search={{ conta: 'linkedin' }} hash="contas">
-					conectar em configurações › contas
+				{r.noAccountText}{' '}
+				<RouteLink to="/settings" search={{ account: 'linkedin' }} hash="accounts">
+					{r.connectAccount}
 				</RouteLink>
 			</p>
 		</Notice>
@@ -218,30 +188,33 @@ function NoLinkedinAccountAlert({ status }: { status: ScraperStatus }) {
 
 /** "3 posts novos · 1 vaga nova", ou o aviso de que a busca só trouxe posts já processados ou em outro idioma. */
 function lastRunSummary(run: WebScraperRun) {
+	const r = t().runs
 	if (run.sent === 0) {
-		const ignored = [run.skipped > 0 && `${run.skipped} já vistos`, run.otherLanguage > 0 && `${run.otherLanguage} em outro idioma`]
+		const ignored = [run.skipped > 0 && r.alreadySeen(run.skipped), run.otherLanguage > 0 && r.otherLanguage(run.otherLanguage)]
 		const reasons = ignored.filter(Boolean).join(', ')
-		return reasons ? `nenhum post novo (${reasons})` : 'nenhum post encontrado'
+		return reasons ? r.noNewPosts(reasons) : r.noPosts
 	}
 
-	const posts = `${run.sent} ${run.sent === 1 ? 'post novo' : 'posts novos'}`
+	const posts = r.newPosts(run.sent)
 	if (run.newJobs === null) return posts
-	return `${posts} · ${run.newJobs} ${run.newJobs === 1 ? 'vaga nova' : 'vagas novas'}`
+	return `${posts} · ${r.newJobs(run.newJobs)}`
 }
 
 function TermCard({ term }: { term: WebScraperRunTerm }) {
+	const t = useT()
+	const r = t.runs
 	if (!term.error) {
 		return (
 			<li className={card({ size: 'sm', className: 'flex flex-col gap-1.5' })}>
 				<span className={META}>
 					{term.term}
-					{term.datePosted && ` · ${DATE_POSTED_LABELS[term.datePosted].toLowerCase()}`}
+					{term.datePosted && ` · ${t.format.datePosted[term.datePosted].toLowerCase()}`}
 				</span>
-				<span className="font-mono text-lg">{term.sent} novos</span>
+				<span className="font-mono text-lg">{r.newCount(term.sent)}</span>
 				{/* O resto embaixo, menor: na mesma linha, o card estreito quebrava os números em três linhas */}
 				{(term.skipped > 0 || term.otherLanguage > 0) && (
 					<span className="font-mono text-muted text-sm">
-						{[term.skipped > 0 && `${term.skipped} já vistos`, term.otherLanguage > 0 && `${term.otherLanguage} em outro idioma`]
+						{[term.skipped > 0 && r.alreadySeen(term.skipped), term.otherLanguage > 0 && r.otherLanguage(term.otherLanguage)]
 							.filter(Boolean)
 							.join(' · ')}
 					</span>
@@ -252,7 +225,7 @@ function TermCard({ term }: { term: WebScraperRunTerm }) {
 
 	// Busca sem resultados não é falha: aviso em amarelo, sem os detalhes técnicos
 	const empty = term.errorKind === 'empty'
-	const { title, hint } = TERM_ERRORS[term.errorKind ?? 'unknown']
+	const { title, hint } = r.termErrors[term.errorKind ?? 'unknown']
 
 	return (
 		<li
@@ -266,16 +239,16 @@ function TermCard({ term }: { term: WebScraperRunTerm }) {
 				<Icon name="alert" size={12} className={empty ? 'text-warn' : 'text-danger'} />
 				{term.term}
 			</span>
-			<span className={cx('font-mono text-lg', empty ? 'text-warn' : 'text-danger')}>{empty ? title : `falhou · ${title}`}</span>
+			<span className={cx('font-mono text-lg', empty ? 'text-warn' : 'text-danger')}>{empty ? title : r.failed(title)}</span>
 			<p className="m-0 text-sm">{hint}</p>
 			{term.searchUrl && (
 				<TextLink href={term.searchUrl} external size="sm" className="self-start">
-					abrir busca no LinkedIn
+					{r.openSearch}
 				</TextLink>
 			)}
 			{!empty && (
-				<Disclosure summary="ver o erro completo" className="text-xs">
-					<CodeBlock label="erro original" action={<CopyButton text={term.error ?? ''} what="Erro" size="xs" />}>
+				<Disclosure summary={r.fullError} className="text-xs">
+					<CodeBlock label={r.originalError} action={<CopyButton text={term.error ?? ''} what={r.errorWhat} size="xs" />}>
 						{term.error}
 					</CodeBlock>
 				</Disclosure>
@@ -290,19 +263,17 @@ function TermCard({ term }: { term: WebScraperRunTerm }) {
  * que faltam.
  */
 function LiveRun({ run }: { run: WebScraperRun }) {
+	const r = useT().runs
 	const done = run.terms.length
 	const counters = [
-		{ label: 'posts novos', value: run.sent },
-		{ label: 'vagas novas', value: run.newJobs ?? 0 },
-		{ label: 'descartados', value: discarded(run) },
+		{ label: r.counters.posts, value: run.sent },
+		{ label: r.counters.jobs, value: run.newJobs ?? 0 },
+		{ label: r.counters.discarded, value: discarded(run) },
 	]
 
 	return (
 		<div className="flex flex-col gap-5">
-			<p className="text-muted text-sm">
-				Buscando os posts de cada termo e enviando para a IA. Uma coleta leva de 2 a 10 minutos; as vagas novas continuam chegando
-				enquanto a IA lê a fila.
-			</p>
+			<p className="text-muted text-sm">{r.liveHelp}</p>
 			<dl className="m-0 grid grid-cols-3 gap-4">
 				{counters.map(counter => (
 					<div key={counter.label} className="flex flex-col gap-1">
@@ -313,7 +284,7 @@ function LiveRun({ run }: { run: WebScraperRun }) {
 					</div>
 				))}
 			</dl>
-			<ol className={cx(LIST, 'flex flex-col gap-3')} aria-label="Termos da coleta">
+			<ol className={cx(LIST, 'flex flex-col gap-3')} aria-label={r.runTerms}>
 				{run.plannedTerms.map((term, index) => {
 					const result = run.terms[index]
 					const state = index < done ? 'done' : index === done ? 'current' : 'upcoming'
@@ -329,13 +300,13 @@ function LiveRun({ run }: { run: WebScraperRun }) {
 								<span className={cx('shrink-0', failed ? 'text-danger' : 'text-muted')}>
 									{state === 'done'
 										? failed
-											? 'falhou'
+											? r.termFailed
 											: result?.errorKind === 'empty'
-												? 'sem resultados'
-												: `${result?.sent ?? 0} novos`
+												? r.noResults
+												: r.newCount(result?.sent ?? 0)
 										: state === 'current'
-											? 'coletando…'
-											: 'a seguir'}
+											? r.collecting
+											: r.upNext}
 								</span>
 							</div>
 							<span className="relative h-1 overflow-hidden rounded-pill bg-line" aria-hidden="true">
@@ -362,12 +333,14 @@ function LiveRun({ run }: { run: WebScraperRun }) {
 /** A falha que não foi no login, resumida: o erro de uma biblioteca (do navegador, do banco) não vai para a tabela. */
 function failureSummary(run: WebScraperRun) {
 	// As duas mensagens do próprio scraper (`run-history.ts`) já são para pessoas
-	if (run.error === 'Todas as buscas falharam') return 'todas as buscas falharam'
-	if (run.error?.startsWith('Coleta interrompida')) return 'interrompida: o serviço ou o banco de dados caiu no meio'
-	return 'parou por um erro inesperado'
+	const r = t().runs
+	if (run.error === 'Todas as buscas falharam') return r.allSearchesFailed
+	if (run.error?.startsWith('Coleta interrompida')) return r.interrupted
+	return r.unexpected
 }
 
 function RunRows({ run, open, onToggle }: { run: WebScraperRun; open: boolean; onToggle: () => void }) {
+	const r = useT().runs
 	const detailsId = `run-${run.id}-details`
 	const failedTerms = run.terms.filter(term => term.error && term.errorKind !== 'empty').length
 	const emptyTerms = run.terms.filter(term => term.errorKind === 'empty').length
@@ -383,19 +356,19 @@ function RunRows({ run, open, onToggle }: { run: WebScraperRun; open: boolean; o
 						{status.label}
 					</Badge>
 				</td>
-				<td className={TD}>{TRIGGERS[run.trigger]}</td>
+				<td className={TD}>{r.triggers[run.trigger]}</td>
 				<td className={cx(TD, 'font-mono')}>{formatDateTime(run.startedAt)}</td>
 				<td className={cx(TD, 'font-mono')}>{duration}</td>
 				<td className={cx(TD, 'font-mono')}>
 					{run.sent}
-					{run.skipped > 0 && <span className="text-muted text-xs"> · {run.skipped} já vistos</span>}
-					{run.otherLanguage > 0 && <span className="text-muted text-xs"> · {run.otherLanguage} em outro idioma</span>}
+					{run.skipped > 0 && <span className="text-muted text-xs"> · {r.alreadySeen(run.skipped)}</span>}
+					{run.otherLanguage > 0 && <span className="text-muted text-xs"> · {r.otherLanguage(run.otherLanguage)}</span>}
 				</td>
 				<td className={cx(TD, 'font-mono')}>
 					{run.newJobs ?? '–'}
-					{belowMinimum(run) && <span className="text-muted text-xs"> · mínimo de {run.minJobs}</span>}
-					{discarded(run) > 0 && <span className="text-muted text-xs"> · {discarded(run)} descartados</span>}
-					{(run.outcomes?.pending ?? 0) > 0 && <span className="text-muted text-xs"> · {run.outcomes?.pending} na fila</span>}
+					{belowMinimum(run) && <span className="text-muted text-xs">{r.minimum(run.minJobs ?? 0)}</span>}
+					{discarded(run) > 0 && <span className="text-muted text-xs">{r.discardedCount(discarded(run))}</span>}
+					{(run.outcomes?.pending ?? 0) > 0 && <span className="text-muted text-xs">{r.queued(run.outcomes?.pending ?? 0)}</span>}
 				</td>
 				<td
 					className={cx(TD, 'max-w-85 whitespace-normal', (run.error || failedTerms > 0) && 'text-danger')}
@@ -404,13 +377,13 @@ function RunRows({ run, open, onToggle }: { run: WebScraperRun; open: boolean; o
 				>
 					{run.error && run.status === 'failed'
 						? run.loginFailure
-							? LOGIN_FAILURES[run.loginFailure].title
+							? r.loginFailures[run.loginFailure].title
 							: failureSummary(run)
 						: run.terms.length > 0
 							? [
-									`${run.terms.length - failedTerms} de ${run.terms.length}`,
-									failedTerms > 0 && `${failedTerms} com falha`,
-									emptyTerms > 0 && `${emptyTerms} sem resultados`,
+									r.termsOf(run.terms.length - failedTerms, run.terms.length),
+									failedTerms > 0 && r.termsFailed(failedTerms),
+									emptyTerms > 0 && r.termsEmpty(emptyTerms),
 								]
 									.filter(Boolean)
 									.join(' · ')
@@ -425,7 +398,7 @@ function RunRows({ run, open, onToggle }: { run: WebScraperRun; open: boolean; o
 							aria-controls={open ? detailsId : undefined}
 							onClick={onToggle}
 						>
-							{open ? 'recolher' : 'detalhar'}
+							{open ? r.collapse : r.expand}
 						</Button>
 					)}
 				</td>
@@ -440,16 +413,14 @@ function RunRows({ run, open, onToggle }: { run: WebScraperRun; open: boolean; o
 						</ul>
 						{run.outcomes && run.sent > 0 && (
 							<div className="mt-3 flex flex-col gap-1.5">
-								<span className={LABEL}>destino dos posts novos</span>
+								<span className={LABEL}>{r.destination}</span>
 								<BadgeList>
-									{(Object.keys(OUTCOMES) as (keyof typeof OUTCOMES)[])
-										.filter(outcome => run.outcomes?.counts[outcome])
-										.map(outcome => (
-											<li key={outcome} className={badge({ tone: outcome === 'saved' ? 'running' : 'neutral' })}>
-												{run.outcomes?.counts[outcome]} {OUTCOMES[outcome]}
-											</li>
-										))}
-									{run.outcomes.pending > 0 && <li className={badge()}>{run.outcomes.pending} ainda na fila da IA</li>}
+									{OUTCOMES.filter(outcome => run.outcomes?.counts[outcome]).map(outcome => (
+										<li key={outcome} className={badge({ tone: outcome === 'saved' ? 'running' : 'neutral' })}>
+											{run.outcomes?.counts[outcome]} {r.outcomes[outcome]}
+										</li>
+									))}
+									{run.outcomes.pending > 0 && <li className={badge()}>{r.stillQueued(run.outcomes.pending)}</li>}
 								</BadgeList>
 							</div>
 						)}
@@ -477,18 +448,16 @@ function RunsPagination({
 	onPageSize: (size: RunsPageSize) => void
 }) {
 	const sizeId = useId()
+	const r = useT().runs
 	const pages = Math.max(1, Math.ceil(total / pageSize))
 	const first = (page - 1) * pageSize + 1
 	const last = Math.min(page * pageSize, total)
 
 	return (
-		<nav
-			aria-label="páginas do histórico"
-			className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-3"
-		>
+		<nav aria-label={r.pagesNav} className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-3">
 			<div className="flex items-center gap-2">
 				<label htmlFor={sizeId} className={META}>
-					por página
+					{r.perPage}
 				</label>
 				<SelectMenu
 					id={sizeId}
@@ -501,25 +470,23 @@ function RunsPagination({
 			</div>
 			<div className="flex flex-wrap items-center gap-x-3 gap-y-2">
 				<span className={META} aria-live="polite">
-					<span aria-hidden="true">
-						{first}–{last} de {total}
-					</span>
+					<span aria-hidden="true">{r.range(first, last, total)}</span>
 					<span className="sr-only">
-						coletas {first} a {last} de {total}
-						{pages > 1 && `, página ${page} de ${pages}`}
+						{r.rangeLabel(first, last, total)}
+						{pages > 1 && r.pageOf(page, pages)}
 					</span>
 				</span>
 				{/* Tudo numa página só: sem botões */}
 				{pages > 1 && (
 					<div className="flex items-center gap-1">
-						<PageArrow label="primeira página" icon="first" target={1} current={page} onPage={onPage} />
-						<PageArrow label="página anterior" icon="back" target={page - 1} current={page} onPage={onPage} />
+						<PageArrow label={r.firstPage} icon="first" target={1} current={page} onPage={onPage} />
+						<PageArrow label={r.previousPage} icon="back" target={page - 1} current={page} onPage={onPage} />
 						{pageItems(page, pages).map(item =>
 							typeof item === 'number' ? (
 								<button
 									key={item}
 									type="button"
-									aria-label={`página ${item}`}
+									aria-label={r.page(item)}
 									aria-current={item === page ? 'page' : undefined}
 									className={iconButton({
 										size: 'sm',
@@ -541,8 +508,8 @@ function RunsPagination({
 								</span>
 							),
 						)}
-						<PageArrow label="próxima página" icon="back" flip target={page + 1} current={page} pages={pages} onPage={onPage} />
-						<PageArrow label="última página" icon="first" flip target={pages} current={page} pages={pages} onPage={onPage} />
+						<PageArrow label={r.nextPage} icon="back" flip target={page + 1} current={page} pages={pages} onPage={onPage} />
+						<PageArrow label={r.lastPage} icon="first" flip target={pages} current={page} pages={pages} onPage={onPage} />
 					</div>
 				)}
 			</div>
@@ -586,8 +553,9 @@ function PageArrow({
 }
 
 /** Acompanhamento do scraper: coleta em andamento, próxima agendada, "coletar agora" e histórico. */
-/** O status e a primeira página do histórico vêm do loader da rota (`routes/coletas.tsx`); daqui em diante a tela consulta sozinha. */
+/** O status e a primeira página do histórico vêm do loader da rota (`routes/runs.tsx`); daqui em diante a tela consulta sozinha. */
 export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: RunsPage } }) {
+	const r = useT().runs
 	const [status, setStatus] = useState(initial.status)
 	const [runs, setRuns] = useState<WebScraperRun[]>(initial.runs.runs)
 	const [runsTotal, setRunsTotal] = useState(initial.runs.total)
@@ -630,7 +598,7 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 			// A coleta pedida começou (ou cansou de esperar): o botão volta a seguir só o status
 			if (startingUntil.current && (next.current || Date.now() >= startingUntil.current)) {
 				if (!next.current && pendingRequest.current) {
-					notify('O scraper não respondeu ao pedido: ele pode estar travado. Veja o log dele.', 'error')
+					notify(t().runs.noReply, 'error')
 				}
 				pendingRequest.current = null
 				startingUntil.current = 0
@@ -707,13 +675,13 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 		replies.current.clear()
 		if (phase === 'accepted') {
 			startingUntil.current = Date.now() + START_TIMEOUT_MS
-			notify('Coleta pedida. Ela começa em instantes.')
+			notify(t().runs.requested)
 			return
 		}
 
 		startingUntil.current = 0
 		setStarting(false)
-		notify('O scraper já está coletando: o pedido foi ignorado.', 'error')
+		notify(t().runs.ignored, 'error')
 		void refreshStatus()
 	}
 
@@ -722,10 +690,10 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 		try {
 			const settings = await api.saveSettings('scraper', { paused })
 			setStatus(current => ({ ...current, paused: settings.paused }))
-			notify(paused ? 'Coletas automáticas pausadas' : 'Coletas automáticas retomadas')
+			notify(paused ? t().settings.paused : t().settings.resumed)
 			void refreshStatus()
 		} catch (error) {
-			notify(`Não consegui salvar: ${(error as Error).message}`, 'error')
+			notify(t().actions.saveFailed((error as Error).message), 'error')
 		} finally {
 			setSavingPause(false)
 		}
@@ -797,12 +765,16 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 					<div className="flex items-center justify-between gap-3 flex-wrap">
 						<div className="flex items-center gap-2.5">
 							<Badge tone={running ? 'lime' : status.paused || waiting || firstRun ? 'muted' : 'ok'}>
-								{running ? 'em andamento' : status.paused ? 'pausada' : waiting || firstRun ? 'em espera' : 'ociosa'}
+								{running
+									? r.state.running
+									: status.paused
+										? r.state.paused
+										: waiting || firstRun
+											? r.state.waiting
+											: r.state.idle}
 							</Badge>
 							{running && (
-								<span className={META}>
-									{TRIGGERS[running.trigger]} · iniciada {formatDateTime(running.startedAt)}
-								</span>
+								<span className={META}>{r.startedAt(r.triggers[running.trigger], formatDateTime(running.startedAt))}</span>
 							)}
 						</div>
 						{running && (
@@ -813,25 +785,22 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 					{running && running.plannedTerms.length > 0 ? (
 						<LiveRun run={running} />
 					) : running ? (
-						<p className="text-muted text-sm">
-							Buscando os posts de cada termo ativo e enviando para a IA. Uma coleta leva de 2 a 10 minutos; o resultado por
-							termo aparece no histórico quando ela terminar.
-						</p>
+						<p className="text-muted text-sm">{r.runningHelp}</p>
 					) : (
 						<div>
-							<p className="text-muted text-sm">próxima coleta automática</p>
+							<p className="text-muted text-sm">{r.nextRun}</p>
 							<p className="mt-1 font-mono text-3xl">
 								{status.paused
-									? 'coletas pausadas'
+									? r.pausedRuns
 									: noTerms
-										? 'sem termos de busca'
+										? r.noTerms
 										: noAccount
-											? 'sem conta do LinkedIn'
+											? r.noAccount
 											: firstRun
-												? 'depois da primeira'
+												? r.afterFirst
 												: next !== null && next > 0
-													? `em ${formatDuration(next)}`
-													: 'a qualquer momento'}
+													? r.inTime(formatDuration(next))
+													: r.anyMoment}
 							</p>
 						</div>
 					)}
@@ -841,47 +810,55 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 							{running
 								? // Durante a coleta, o progresso (a dica de pausa contradizia o botão travado em "coletando…")
 									running.plannedTerms.length > 0
-									? `termo ${Math.min(running.terms.length + 1, running.plannedTerms.length)} de ${running.plannedTerms.length}`
+									? r.termProgress(
+											Math.min(running.terms.length + 1, running.plannedTerms.length),
+											running.plannedTerms.length,
+										)
 									: ''
 								: noTerms
-									? 'adicione um termo para coletar'
+									? r.addTerm
 									: noAccount
-										? 'conecte sua conta do LinkedIn'
+										? r.connect
 										: firstRun
-											? 'a primeira coleta começa quando você pedir'
+											? r.firstWhenAsked
 											: status.paused
-												? '“coletar agora” continua funcionando'
+												? r.stillWorks
 												: status.intervalStretch > 1
-													? `${formatInterval(status.intervalMinutes * status.intervalStretch)} (×${status.intervalStretch}: as últimas buscas se esgotaram)`
+													? r.stretched(
+															formatInterval(status.intervalMinutes * status.intervalStretch),
+															status.intervalStretch,
+														)
 													: formatInterval(status.intervalMinutes)}
 						</span>
 						<Button variant="lime" size="lg" disabled={!!running || requesting || starting || waiting} onClick={runNow}>
 							<Icon name={running || starting ? 'spinner' : 'refresh'} />
-							{running ? 'coletando…' : requesting ? 'pedindo…' : starting ? 'iniciando…' : 'coletar agora'}
+							{running ? r.collecting : requesting ? r.requesting : starting ? r.starting : r.runNow}
 						</Button>
 					</div>
 				</section>
 
 				{/* No topo, sem esticar até a altura da coleta ao vivo; sem título: o interruptor já diz do que se trata */}
 				<section
-					aria-label="agenda"
+					aria-label={r.schedule}
 					className={card({ size: 'lg', className: 'flex flex-1 basis-70 flex-col gap-2.5 self-start' })}
 				>
 					<AutoRunsSwitch
 						id="runs-paused"
-						description="desligadas, o intervalo para de contar até você religar"
+						description={r.pauseHelp}
 						paused={status.paused}
 						disabled={savingPause}
 						onPausedChange={setPaused}
 					/>
 					{status.last && (
 						<p className="text-muted text-sm">
-							última coleta: {formatDateTime(status.last.startedAt)} ·{' '}
-							{status.last.status === 'success' ? lastRunSummary(status.last) : 'falhou'}
+							{r.lastRun(
+								formatDateTime(status.last.startedAt),
+								status.last.status === 'success' ? lastRunSummary(status.last) : r.lastRunFailed,
+							)}
 						</p>
 					)}
-					<RouteLink size="sm" to="/configuracoes" hash="coleta">
-						editar termos e intervalo
+					<RouteLink size="sm" to="/settings" hash="search">
+						{r.editTerms}
 					</RouteLink>
 				</section>
 			</div>
@@ -893,10 +870,10 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 			<Hero
 				title={
 					<>
-						coletas <Hero.Mono>do scraper.</Hero.Mono>
+						{r.heroTitle} <Hero.Mono>{r.heroTitleMono}</Hero.Mono>
 					</>
 				}
-				lead="Histórico dos últimos 90 dias. Cada coleta busca posts por termo e manda para a IA."
+				lead={r.heroLead}
 			/>
 
 			<FailureAlert status={status} />
@@ -906,30 +883,26 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 
 			<section className="flex flex-col gap-2.5">
 				<h2 className={SECTION_TITLE}>
-					histórico <Hero.Mono>de coletas</Hero.Mono>
+					{r.historyTitle} <Hero.Mono>{r.historyTitleMono}</Hero.Mono>
 				</h2>
 				<Notice tone="info" icon="info">
-					<p>Posts novos são os que foram para a IA; vagas novas são as salvas a partir deles.</p>
+					<p>{r.historyNote}</p>
 				</Notice>
 
 				{runsState === 'error' && (
 					<EmptyState
 						tone="error"
-						title="Não consegui carregar o histórico"
+						title={r.historyFailed}
 						action={
 							<Button variant="lime" onClick={() => loadRuns()}>
-								tentar de novo
+								{t().routes.retry}
 							</Button>
 						}
 					/>
 				)}
 				{runsState === 'loading' && runs.length === 0 && <Skeleton className={card({ className: 'min-h-60' })} aria-busy="true" />}
 				{runsState === 'ready' && runs.length === 0 && (
-					<EmptyState
-						illustration="runs"
-						title="Nenhuma coleta nos últimos 90 dias"
-						description="Use “coletar agora” para fazer a primeira; depois, elas seguem o intervalo."
-					/>
+					<EmptyState illustration="runs" title={r.emptyTitle} description={r.emptyDescription} />
 				)}
 				{runsState !== 'error' && runs.length > 0 && (
 					<div className={card()}>
@@ -942,29 +915,13 @@ export function RunsView({ initial }: { initial: { status: ScraperStatus; runs: 
 							<table className="w-full min-w-205 border-collapse">
 								<thead className="text-xs">
 									<tr className="border-b border-line">
+										{(['status', 'trigger', 'start', 'duration', 'posts', 'jobs', 'terms'] as const).map(column => (
+											<th key={column} scope="col" className={TH}>
+												{r.columns[column]}
+											</th>
+										))}
 										<th scope="col" className={TH}>
-											status
-										</th>
-										<th scope="col" className={TH}>
-											origem
-										</th>
-										<th scope="col" className={TH}>
-											início
-										</th>
-										<th scope="col" className={TH}>
-											duração
-										</th>
-										<th scope="col" className={TH}>
-											posts novos
-										</th>
-										<th scope="col" className={TH}>
-											vagas novas
-										</th>
-										<th scope="col" className={TH}>
-											termos
-										</th>
-										<th scope="col" className={TH}>
-											<span className="sr-only">detalhes</span>
+											<span className="sr-only">{r.columns.details}</span>
 										</th>
 									</tr>
 								</thead>

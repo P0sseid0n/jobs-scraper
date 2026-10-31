@@ -5,6 +5,7 @@ import { REQUIRED_SETUP_STEPS, type ScraperStatus, type SetupStatus } from '../.
 import { api } from '../api'
 import { CvTray } from '../components/CvTray'
 import { Icon, type IconName } from '../components/Icon'
+import { LanguageSelect } from '../components/LanguageSelect'
 import { LinkedinVerificationDialog } from '../components/LinkedinVerificationDialog'
 import { Logo } from '../components/Logo'
 import { Toasts } from '../components/Toasts'
@@ -16,47 +17,42 @@ import { Page, pageFrame } from '../components/ui/Page'
 import { useSlidingIndicator } from '../components/ui/sliding-indicator'
 import { StatusDot, type StatusDotTone } from '../components/ui/StatusDot'
 import { cx } from '../lib/cx'
-import { formatDuration } from '../lib/format'
+import { formatDuration, formatList } from '../lib/format'
 import { reducedMotion } from '../lib/motion'
 import { useTrayRequests } from '../stores/cv'
 import { jobsStore } from '../stores/jobs'
 import { onLive, useConnected } from '../stores/live'
+import { useT } from '../stores/locale'
 import { loadSetup, needsOnboarding, useSetup } from '../stores/setup'
 import { toggleTheme } from '../stores/theme'
 import { useToasts } from '../stores/toast'
 
 /**
  * A moldura de todas as telas: cabeçalho, navegação, bandeja de currículos e avisos. Enquanto falta o mínimo (perfil,
- * LinkedIn e currículo), qualquer tela leva ao onboarding (`/boas-vindas`), que tem uma tela só dele, sem o cabeçalho.
+ * LinkedIn e currículo), qualquer tela leva ao onboarding (`/onboarding`), que tem uma tela só dele, sem o cabeçalho.
  */
 export const Route = createRootRoute({
 	beforeLoad: async ({ location }) => {
 		if (isOnboarding(location.pathname)) return
-		if (needsOnboarding(await loadSetup())) throw redirect({ to: '/boas-vindas' })
+		if (needsOnboarding(await loadSetup())) throw redirect({ to: '/onboarding' })
 	},
 	component: RootLayout,
 	notFoundComponent: NotFound,
 })
 
-const isOnboarding = (path: string) => path === '/boas-vindas' || path.startsWith('/boas-vindas/')
-
-const SETUP_NAMES: Record<(typeof REQUIRED_SETUP_STEPS)[number], string> = {
-	profile: 'sua área e o que buscar',
-	linkedin: 'a conta do LinkedIn',
-	cv: 'o currículo',
-}
+const isOnboarding = (path: string) => path === '/onboarding' || path.startsWith('/onboarding/')
 
 /** O que falta do mínimo, em texto ("a conta do LinkedIn e o currículo"); vazio se nada falta. */
-function missingSetup(setup: SetupStatus | null) {
-	const names = setup ? REQUIRED_SETUP_STEPS.filter(step => !setup.steps[step]).map(step => SETUP_NAMES[step]) : []
-	return names.length > 1 ? `${names.slice(0, -1).join(', ')} e ${names.at(-1)}` : (names[0] ?? '')
+function missingSetup(setup: SetupStatus | null, names: Record<(typeof REQUIRED_SETUP_STEPS)[number], string>) {
+	return formatList(setup ? REQUIRED_SETUP_STEPS.filter(step => !setup.steps[step]).map(step => names[step]) : [])
 }
 
+/** As telas do menu; o nome de cada uma fica em `layout.nav` do catálogo. */
 const NAV = [
-	{ path: '/', label: 'vagas', icon: 'briefcase' },
-	{ path: '/curriculos', label: 'currículos', icon: 'file' },
-	{ path: '/coletas', label: 'coletas', icon: 'refresh' },
-	{ path: '/configuracoes', label: 'ajustes', icon: 'settings' },
+	{ path: '/', label: 'jobs', icon: 'briefcase' },
+	{ path: '/resumes', label: 'cvs', icon: 'file' },
+	{ path: '/runs', label: 'runs', icon: 'refresh' },
+	{ path: '/settings', label: 'settings', icon: 'settings' },
 ] as const satisfies readonly { path: string; label: string; icon: IconName }[]
 
 /** Voltar para a lista mantém os últimos filtros usados. */
@@ -78,6 +74,7 @@ function useScraperPill() {
 	const [status, setStatus] = useState<ScraperStatus | null>(null)
 	const [now, setNow] = useState(Date.now())
 	const connected = useConnected()
+	const pill = useT().layout.pill
 
 	useEffect(() => {
 		let active = true
@@ -103,31 +100,32 @@ function useScraperPill() {
 		}
 	}, [connected])
 
-	if (!connected) return { tone: 'offline' as const, text: 'offline · reconectando…' }
+	if (!connected) return { tone: 'offline' as const, text: pill.offline }
 	if (!status) return null
-	if (status.current) return { tone: 'running' as const, text: 'coletando agora' }
-	if (status.last?.status === 'failed') return { tone: 'failed' as const, text: 'última coleta falhou' }
-	if (status.paused) return { tone: 'paused' as const, text: 'coletas pausadas' }
-	if (status.activeSearchTerms === 0) return { tone: 'paused' as const, text: 'sem termos de busca' }
-	if (!status.linkedinAccount) return { tone: 'paused' as const, text: 'conecte o LinkedIn' }
-	if (status.awaitingFirstRun) return { tone: 'paused' as const, text: 'faça a primeira coleta' }
+	if (status.current) return { tone: 'running' as const, text: pill.running }
+	if (status.last?.status === 'failed') return { tone: 'failed' as const, text: pill.failed }
+	if (status.paused) return { tone: 'paused' as const, text: pill.paused }
+	if (status.activeSearchTerms === 0) return { tone: 'paused' as const, text: pill.noTerms }
+	if (!status.linkedinAccount) return { tone: 'paused' as const, text: pill.connectLinkedin }
+	if (status.awaitingFirstRun) return { tone: 'paused' as const, text: pill.firstRun }
 
 	const next = status.nextRunAt ? new Date(status.nextRunAt).getTime() - now : 0
 	return {
 		tone: 'idle' as const,
-		text: next > 60_000 ? `próxima em ${formatDuration(next).replace(/ \d+s$/, '')}` : 'próxima a qualquer momento',
+		text: next > 60_000 ? pill.nextIn(formatDuration(next).replace(/ \d+s$/, '')) : pill.nextAnyTime,
 	}
 }
 
 function NotFound() {
+	const t = useT()
 	return (
 		<Page width="narrow">
 			<EmptyState
 				illustration="lost"
-				title="Página não encontrada"
+				title={t.layout.notFound}
 				action={
 					<ButtonLink variant="lime" to="/">
-						ver vagas
+						{t.layout.seeJobs}
 					</ButtonLink>
 				}
 			/>
@@ -137,6 +135,7 @@ function NotFound() {
 
 function RootLayout() {
 	const path = useRouterState({ select: state => state.location.pathname })
+	const t = useT()
 	// O título da rota mais funda (o `staticData.title` de cada arquivo de `routes/`)
 	const title = useMatches({ select: matches => matches.at(-1)?.staticData.title })
 	const pill = useScraperPill()
@@ -144,15 +143,15 @@ function RootLayout() {
 	const pendingCvs = useTrayRequests().filter(request => request.status === 'pending').length
 	const nav = useSlidingIndicator<HTMLElement>('[aria-current="page"]', path)
 	const navPill = useJellyOnSlide(nav.box)
-	const missing = missingSetup(useSetup())
+	const missing = missingSetup(useSetup(), t.layout.setupNames)
 
-	// "vagas" também fica marcado com uma vaga aberta (`/vagas/$id`)
-	const isActive = (item: string) => (item === '/' ? path === '/' || path.startsWith('/vagas/') : path.startsWith(item))
+	// "vagas" também fica marcado com uma vaga aberta (`/jobs/$id`)
+	const isActive = (item: string) => (item === '/' ? path === '/' || path.startsWith('/jobs/') : path.startsWith(item))
 	const page = usePageTransition(NAV.findIndex(item => isActive(item.path)))
 
 	useEffect(() => {
-		document.title = `${title ?? 'Jobs Scraper'} · jobs/scraper`
-	}, [title])
+		document.title = `${title ? t.routes.titles[title] : 'Jobs Scraper'} · jobs/scraper`
+	}, [title, t])
 
 	if (isOnboarding(path)) {
 		return (
@@ -169,14 +168,14 @@ function RootLayout() {
 			{/* O degradê do topo, mais ao fundo: desce mais devagar que a rolagem e some (`parallax-glow`) */}
 			<div aria-hidden="true" className="parallax-glow pointer-events-none absolute inset-x-0 top-0 -z-10 h-120" />
 			<a className="absolute -top-15 left-3 z-50 rounded-pill bg-lime px-3.5 py-2.5 text-lime-ink focus:top-3" href="#main">
-				pular para o conteúdo
+				{t.layout.skipToContent}
 			</a>
 			<header className="sticky top-0 z-20 border-b border-line bg-bg/88 backdrop-blur-md">
 				<div className={pageFrame({ className: 'flex items-center gap-4 py-3' })}>
 					<Link className="no-underline" to="/" search={lastFilters}>
 						<Logo />
 					</Link>
-					<nav ref={nav.container} className="relative flex flex-auto gap-1 max-md:hidden" aria-label="Principal">
+					<nav ref={nav.container} className="relative flex flex-auto gap-1 max-md:hidden" aria-label={t.layout.mainNav}>
 						{/* O fundo da tela atual, que desliza até a nova */}
 						{nav.box && (
 							<span
@@ -200,7 +199,7 @@ function RootLayout() {
 								search={item.path === '/' ? lastFilters : undefined}
 								aria-current={isActive(item.path) ? 'page' : undefined}
 							>
-								{item.path === '/configuracoes' ? 'configurações' : item.label}
+								{item.path === '/settings' ? t.layout.nav.settingsLong : t.layout.nav[item.label]}
 							</Link>
 						))}
 					</nav>
@@ -218,14 +217,15 @@ function RootLayout() {
 										pill.tone === 'failed' && 'border-danger text-danger',
 									),
 								})}
-								title={pill.tone === 'offline' ? 'Sem conexão em tempo real; reconectando…' : undefined}
-								to="/coletas"
+								title={pill.tone === 'offline' ? t.layout.pill.offlineTitle : undefined}
+								to="/runs"
 							>
 								<StatusDot {...PILL_DOTS[pill.tone]} />
 								{pill.text}
 							</Link>
 						)}
-						<IconButton label="Alternar tema claro/escuro" variant="ghost" onClick={event => toggleTheme(event.currentTarget)}>
+						<LanguageSelect id="header-locale" size="sm" invite={false} className="max-md:hidden" />
+						<IconButton label={t.common.toggleTheme} variant="ghost" onClick={event => toggleTheme(event.currentTarget)}>
 							{/* Os dois ícones no mesmo lugar: um gira e encolhe enquanto o outro cresce */}
 							<Icon
 								name="moon"
@@ -245,9 +245,9 @@ function RootLayout() {
 				<div className="border-b border-line bg-warn-bg text-warn">
 					<div className={pageFrame({ className: 'flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5 text-sm' })}>
 						<Icon name="alert" />
-						<p className="grow">Falta configurar {missing}: sem isso, o site não encontra vagas para você.</p>
-						<Link className="font-semibold text-warn underline underline-offset-2" to="/boas-vindas">
-							configurar agora
+						<p className="grow">{t.layout.missingSetup(missing)}</p>
+						<Link className="font-semibold text-warn underline underline-offset-2" to="/onboarding">
+							{t.layout.setupNow}
 						</Link>
 					</div>
 				</div>
@@ -272,7 +272,7 @@ function RootLayout() {
 
 			<nav
 				className="fixed inset-x-0 bottom-0 z-30 hidden grid-cols-4 border-t border-line bg-bg px-2 pt-1 pb-safe-2 max-md:grid"
-				aria-label="Principal (celular)"
+				aria-label={t.layout.mobileNav}
 			>
 				{NAV.map(item => (
 					<Link
@@ -287,8 +287,8 @@ function RootLayout() {
 					>
 						{/* O ícone da tela que acabou de abrir dá um pulo */}
 						<Icon name={item.icon} size={20} className={cx(isActive(item.path) && 'animate-pop motion-reduce:animate-none')} />
-						{item.label}
-						{item.path === '/curriculos' && pendingCvs > 0 && (
+						{t.layout.nav[item.label]}
+						{item.path === '/resumes' && pendingCvs > 0 && (
 							<Badge tone="lime" size="xs" className="absolute top-1 left-1/2 ml-1.5">
 								{pendingCvs}
 							</Badge>

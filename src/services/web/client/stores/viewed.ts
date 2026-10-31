@@ -1,3 +1,5 @@
+import { t } from '@shared/i18n'
+
 import type { WebJob } from '../../api-types'
 import { api, RequestError } from '../api'
 import { storage } from '../lib/storage'
@@ -48,7 +50,7 @@ export async function setViewed(job: ViewedJob, viewed: boolean) {
 		apply([job.postId], saved.viewedAt)
 	} catch (error) {
 		apply([job.postId], previous)
-		notify(error instanceof RequestError ? error.message : 'Não consegui marcar a vaga', 'error')
+		notify(error instanceof RequestError ? error.message : t().marks.viewedFailed, 'error')
 	}
 }
 
@@ -70,7 +72,7 @@ export async function markAllViewed(jobs: ViewedJob[]) {
 		const change = await api.setJobsViewed(pending, true)
 		if (change.postIds.length > 0) apply(change.postIds, change.viewedAt)
 	} catch (error) {
-		notify(error instanceof RequestError ? error.message : 'Não consegui marcar as vagas', 'error')
+		notify(error instanceof RequestError ? error.message : t().marks.viewedManyFailed, 'error')
 	}
 }
 

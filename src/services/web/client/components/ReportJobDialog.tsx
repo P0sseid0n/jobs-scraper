@@ -1,12 +1,14 @@
 import { useRef, useState, type FormEvent, type ReactNode } from 'react'
 
 import type { CorrectableField, JobCorrectionInput } from '@shared/contracts'
+import type { Messages } from '@shared/i18n'
 
 import type { WebJob } from '../../api-types'
 import { api, RequestError } from '../api'
 import { cx } from '../lib/cx'
-import { CONTRACT_TYPES, WORK_MODES } from '../lib/format'
+import { CONTRACT_TYPE_KEYS, WORK_MODE_KEYS } from '../lib/format'
 import { correctionBody, draftFromJob, type CorrectionDraft } from '../lib/job-correction'
+import { useT } from '../stores/locale'
 import { notify } from '../stores/toast'
 import { Button } from './ui/Button'
 import { Dialog, DialogTitle } from './ui/Dialog'
@@ -17,36 +19,28 @@ import { Pill, PillGroup } from './ui/Pill'
 import { SelectMenu, type SelectMenuOption } from './ui/SelectMenu'
 import { FIELDSET, LABEL } from './ui/text'
 
-/** Campos da vaga que podem ter vindo errados da extração da IA. */
-export const REPORTABLE_FIELDS = {
-	title: 'cargo',
-	company: 'empresa',
-	location: 'local',
-	workMode: 'modalidade',
-	contractTypes: 'regime',
-	necessaryKnowledge: 'tecnologias',
-	recruiterEmail: 'e-mail',
-	applyLink: 'link de candidatura',
-} as const satisfies Record<CorrectableField, string>
+/** Campos da vaga que podem ter vindo errados da extração da IA; o nome de cada um fica em `report.fields`. */
+export const REPORTABLE_FIELDS = [
+	'title',
+	'company',
+	'location',
+	'workMode',
+	'contractTypes',
+	'necessaryKnowledge',
+	'recruiterEmail',
+	'applyLink',
+] as const satisfies readonly CorrectableField[]
 
-export type ReportableField = keyof typeof REPORTABLE_FIELDS
+export type ReportableField = (typeof REPORTABLE_FIELDS)[number]
 
 /** O que o usuário apontou: campos errados, que o post nem é vaga ou que está em outro idioma (um de cada vez). */
 export type JobReport = { kind: 'fields'; fields: ReportableField[] } | { kind: 'not-a-job' } | { kind: 'wrong-language' }
 
-/** Relatos que tiram a vaga da lista, sem formulário. */
+/** Relatos que tiram a vaga da lista, sem formulário; o rótulo e o aviso de cada um ficam em `report`. */
 const REMOVAL_REPORTS = {
-	'not-a-job': {
-		label: 'não é vaga',
-		body: { notAJob: true },
-		toast: 'Vaga tirada da lista. Obrigado: a correção ajuda a avaliar a IA.',
-	},
-	'wrong-language': {
-		label: 'outro idioma',
-		body: { wrongLanguage: true },
-		toast: 'Vaga tirada da lista. Obrigado: o relato ajuda a ajustar o filtro de idioma.',
-	},
-} as const satisfies Record<string, { label: string; body: JobCorrectionInput; toast: string }>
+	'not-a-job': { label: 'notAJob', body: { notAJob: true }, toast: 'notAJobToast' },
+	'wrong-language': { label: 'wrongLanguage', body: { wrongLanguage: true }, toast: 'wrongLanguageToast' },
+} as const satisfies Record<string, { label: keyof Messages['report']; body: JobCorrectionInput; toast: keyof Messages['report'] }>
 
 type RemovalReport = keyof typeof REMOVAL_REPORTS
 
@@ -59,14 +53,7 @@ export function toggleReportField(report: JobReport | null, field: ReportableFie
 
 const DIALOG_ACTIONS = 'flex justify-end gap-2 pt-2'
 
-const CONTRACT_OPTIONS = (Object.keys(CONTRACT_TYPES) as (keyof typeof CONTRACT_TYPES)[]).filter(type => type !== 'none')
-/** `''` é "não informada" (`workMode: null`). */
-const WORK_MODE_OPTIONS: SelectMenuOption<NonNullable<CorrectionDraft['workMode']> | ''>[] = [
-	{ value: '', label: 'não informada' },
-	...(Object.keys(WORK_MODES) as (keyof typeof WORK_MODES)[])
-		.filter(mode => mode !== 'none')
-		.map(mode => ({ value: mode, label: WORK_MODES[mode].label })),
-]
+const CONTRACT_OPTIONS = CONTRACT_TYPE_KEYS.filter(type => type !== 'none')
 const MAX_SKILLS = 30
 
 /**
@@ -87,6 +74,7 @@ export function ReportJobDialog({
 	/** A vaga foi marcada como "não é vaga" e saiu da lista. */
 	onRemoved: () => void
 }) {
+	const t = useT()
 	const ref = useRef<HTMLDialogElement>(null)
 	const [report, setReport] = useState<JobReport | null>(null)
 	const [step, setStep] = useState<'choose' | 'edit' | 'blocked'>('choose')
@@ -107,12 +95,12 @@ export function ReportJobDialog({
 		try {
 			if (report.kind !== 'fields') {
 				await api.correctJob(job.postId, REMOVAL_REPORTS[report.kind].body)
-				notify(REMOVAL_REPORTS[report.kind].toast)
+				notify(t.report[REMOVAL_REPORTS[report.kind].toast])
 				onRemoved()
 			} else {
 				const saved = await api.correctJob(job.postId, correctionBody(draft, report.fields))
 				onCorrected(saved)
-				notify('Vaga corrigida')
+				notify(t.report.corrected)
 				const match = report.fields.includes('company') && saved.company ? await blockedMatch(saved.company) : null
 				if (match?.company) {
 					setBlockedCompany(match.company)
@@ -125,7 +113,7 @@ export function ReportJobDialog({
 			const fields = error instanceof RequestError ? error.fields : {}
 			setErrors(fields)
 			// Erros de campo já aparecem no formulário
-			if (Object.keys(fields).length === 0) notify(`Não consegui salvar: ${(error as Error).message}`, 'error')
+			if (Object.keys(fields).length === 0) notify(t.actions.saveFailed((error as Error).message), 'error')
 		} finally {
 			setSaving(false)
 		}
@@ -147,11 +135,11 @@ export function ReportJobDialog({
 		setSaving(true)
 		try {
 			const { postIds } = await api.removeBlockedJobs(blockedCompany, job.postId)
-			notify('Vaga tirada da lista')
+			notify(t.report.removed)
 			if (postIds.includes(job.postId)) onRemoved()
 			close()
 		} catch (error) {
-			notify(`Não consegui tirar da lista: ${(error as Error).message}`, 'error')
+			notify(t.report.removeFailed((error as Error).message), 'error')
 		} finally {
 			setSaving(false)
 		}
@@ -181,12 +169,12 @@ export function ReportJobDialog({
 
 		return group ? (
 			<fieldset className="flex flex-col gap-1.5" key={name}>
-				<legend className="mb-1.5 p-0 text-sm font-medium">{REPORTABLE_FIELDS[name]}</legend>
+				<legend className="mb-1.5 p-0 text-sm font-medium">{t.report.fields[name]}</legend>
 				{content}
 			</fieldset>
 		) : (
 			<div className="flex flex-col gap-1.5" key={name}>
-				<FieldLabel htmlFor={id}>{REPORTABLE_FIELDS[name]}</FieldLabel>
+				<FieldLabel htmlFor={id}>{t.report.fields[name]}</FieldLabel>
 				{content}
 			</div>
 		)
@@ -199,12 +187,18 @@ export function ReportJobDialog({
 				type={type}
 				invalid={invalid}
 				value={draft[name]}
-				placeholder={name === 'title' ? undefined : 'vazio = não informado'}
+				placeholder={name === 'title' ? undefined : t.report.emptyPlaceholder}
 				maxLength={name === 'applyLink' ? 2000 : 200}
 				aria-describedby={describedBy}
 				onChange={event => edit({ [name]: event.target.value })}
 			/>
 		))
+
+	/** `''` é "não informada" (`workMode: null`). */
+	const workModeOptions: SelectMenuOption<NonNullable<CorrectionDraft['workMode']> | ''>[] = [
+		{ value: '', label: t.report.noWorkMode },
+		...WORK_MODE_KEYS.filter(mode => mode !== 'none').map(mode => ({ value: mode, label: t.format.workModes[mode] })),
+	]
 
 	const inputs: Record<ReportableField, () => ReactNode> = {
 		title: () => textInput('title'),
@@ -216,7 +210,7 @@ export function ReportJobDialog({
 					id={id}
 					invalid={invalid}
 					value={draft.workMode ?? ''}
-					options={WORK_MODE_OPTIONS}
+					options={workModeOptions}
 					describedBy={describedBy}
 					onChange={workMode => edit({ workMode: workMode || null })}
 				/>
@@ -238,7 +232,7 @@ export function ReportJobDialog({
 									})
 								}
 							>
-								{CONTRACT_TYPES[type]}
+								{t.format.contractTypes[type]}
 							</Pill>
 						))}
 					</PillGroup>
@@ -266,58 +260,53 @@ export function ReportJobDialog({
 		<Dialog ref={ref} onClose={onClose}>
 			<div className="flex flex-col gap-2.5 px-5 pt-4 pb-5">
 				<DialogTitle closable>
-					{step === 'edit' ? 'Corrigir a vaga' : step === 'blocked' ? 'Esta empresa está bloqueada' : 'O que saiu errado?'}
+					{step === 'edit' ? t.report.editTitle : step === 'blocked' ? t.report.blockedTitle : t.report.chooseTitle}
 				</DialogTitle>
 				<p className="text-muted text-sm block truncate">{job.title}</p>
 
 				{step === 'blocked' && blockedCompany ? (
 					<>
-						<p className="text-sm">
-							A {blockedCompany} está nas empresas bloqueadas: as próximas vagas dela são descartadas na coleta. Remover esta
-							vaga da lista?
-						</p>
+						<p className="text-sm">{t.report.blockedText(blockedCompany)}</p>
 						<div className={DIALOG_ACTIONS}>
 							<Button variant="ghost" onClick={close}>
-								manter
+								{t.report.keep}
 							</Button>
 							<Button variant="lime" disabled={saving} onClick={() => void removeBlocked()}>
-								{saving ? 'removendo…' : 'remover a vaga'}
+								{saving ? t.report.removing : t.report.remove}
 							</Button>
 						</div>
 					</>
 				) : step === 'edit' && report?.kind === 'fields' ? (
 					<form className="flex flex-col gap-2.5" onSubmit={save} noValidate>
-						{(Object.keys(REPORTABLE_FIELDS) as ReportableField[])
-							.filter(name => report.fields.includes(name))
-							.map(name => inputs[name]())}
+						{REPORTABLE_FIELDS.filter(name => report.fields.includes(name)).map(name => inputs[name]())}
 						{errors._ && <FieldError>{errors._}</FieldError>}
 						<div className={DIALOG_ACTIONS}>
 							<Button variant="ghost" onClick={() => setStep('choose')}>
-								voltar
+								{t.common.back}
 							</Button>
 							<Button variant="lime" type="submit" disabled={saving}>
-								{saving ? 'salvando…' : 'salvar correção'}
+								{saving ? t.actions.saving : t.report.saveCorrection}
 							</Button>
 						</div>
 					</form>
 				) : (
 					<>
 						<fieldset className={FIELDSET}>
-							<legend className={cx(LABEL, 'mb-2.5')}>dados errados</legend>
+							<legend className={cx(LABEL, 'mb-2.5')}>{t.report.wrongData}</legend>
 							<PillGroup>
-								{(Object.keys(REPORTABLE_FIELDS) as ReportableField[]).map(name => (
+								{REPORTABLE_FIELDS.map(name => (
 									<Pill
 										key={name}
 										pressed={report?.kind === 'fields' && report.fields.includes(name)}
 										onClick={() => setReport(toggleReportField(report, name))}
 									>
-										{REPORTABLE_FIELDS[name]}
+										{t.report.fields[name]}
 									</Pill>
 								))}
 							</PillGroup>
 						</fieldset>
 
-						<div className={cx('text-center', LABEL)}>ou</div>
+						<div className={cx('text-center', LABEL)}>{t.report.or}</div>
 
 						<div className="flex flex-col gap-2">
 							{(Object.keys(REMOVAL_REPORTS) as RemovalReport[]).map(kind => (
@@ -327,18 +316,22 @@ export function ReportJobDialog({
 									pressed={report?.kind === kind}
 									onClick={() => setReport(report?.kind === kind ? null : { kind })}
 								>
-									<span className="grow">{REMOVAL_REPORTS[kind].label}</span>
-									<span className="text-xs">sai da lista, sem apagar</span>
+									<span className="grow">{t.report[REMOVAL_REPORTS[kind].label]}</span>
+									<span className="text-xs">{t.report.leavesList}</span>
 								</Pill>
 							))}
 						</div>
 
 						<div className={DIALOG_ACTIONS}>
 							<Button variant="ghost" onClick={close}>
-								cancelar
+								{t.report.cancel}
 							</Button>
 							<Button variant="lime" disabled={!report || saving} onClick={next}>
-								{report && report.kind !== 'fields' ? (saving ? 'salvando…' : 'tirar da lista') : 'continuar'}
+								{report && report.kind !== 'fields'
+									? saving
+										? t.actions.saving
+										: t.report.removeFromList
+									: t.actions.continue}
 							</Button>
 						</div>
 					</>

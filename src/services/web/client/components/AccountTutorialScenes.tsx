@@ -1,5 +1,7 @@
 import { useState, type ReactNode } from 'react'
 
+import { t } from '@shared/i18n'
+
 import type { CredentialGroup } from '../../api-types'
 import { cx } from '../lib/cx'
 import { Cursor, Swap, Typed } from './demo-parts'
@@ -30,7 +32,7 @@ function SceneWindow({ address, children }: { address: string; children: ReactNo
 					{address}
 				</span>
 				<IconButton
-					label="Ver a animação de novo"
+					label={t().scenes.replay}
 					size="xs"
 					className="ml-auto text-muted motion-reduce:hidden"
 					onClick={() => setRound(value => value + 1)}
@@ -117,61 +119,61 @@ const EMAIL_SCENES: Record<string, Record<string, () => ReactNode>> = {
 		'two-step': () => (
 			<SceneWindow address="myaccount.google.com">
 				<span className="flex flex-col">
-					<span className="font-semibold">Verificação em duas etapas</span>
-					<span className="text-xs text-muted">Um segundo passo para entrar na conta</span>
+					<span className="font-semibold">{t().scenes.twoStep}</span>
+					<span className="text-xs text-muted">{t().scenes.twoStepHelp}</span>
 				</span>
 				<span className="relative flex items-center justify-between rounded-sm border border-line bg-surface px-3 py-2.5">
 					<span className="text-xs">
-						<Swap outDelay="stagger-14" inDelay="stagger-15" working="Desativada" done="Ativada" />
+						<Swap outDelay="stagger-14" inDelay="stagger-15" working={t().scenes.off} done={t().scenes.on} />
 					</span>
 					<Swap outDelay="stagger-14" inDelay="stagger-15" working={<SwitchMock on={false} />} done={<SwitchMock on />} />
 					<Cursor className="top-1/2 right-4 stagger-6" />
 				</span>
 				<Result tone="ok" delay="stagger-20">
-					agora dá para criar a senha de app
+					{t().scenes.canCreate}
 				</Result>
 			</SceneWindow>
 		),
 		'app-password': () => (
 			<SceneWindow address="myaccount.google.com">
 				<span className="relative flex items-end gap-2">
-					<Field label="nome do app" className="grow">
+					<Field label={t().scenes.appName} className="grow">
 						<Typed delay="stagger-3">jobs-scraper</Typed>
 					</Field>
 					<Pill tone="lime" press="stagger-22">
-						criar
+						{t().scenes.create}
 					</Pill>
 					<Cursor className="right-3 bottom-1 stagger-14" />
 				</span>
-				<Secret label="sua senha de app" value="abcd efgh ijkl mnop" delay="stagger-25" />
+				<Secret label={t().scenes.yourAppPassword} value="abcd efgh ijkl mnop" delay="stagger-25" />
 			</SceneWindow>
 		),
 		fields: () => (
 			<SceneWindow address="jobs/scraper">
 				<span className="grid grid-cols-2 gap-2">
-					<Field label="usuário">
-						<Typed delay="stagger-3">voce@gmail.com</Typed>
+					<Field label={t().scenes.user}>
+						<Typed delay="stagger-3">{t().scenes.gmailUser}</Typed>
 					</Field>
-					<Field label="senha de app">
+					<Field label={t().scenes.appPassword}>
 						<Typed delay="stagger-14">••••••••••••••••</Typed>
 					</Field>
 				</span>
 				<span className="relative flex items-center gap-3">
-					<Pill press="stagger-32">testar</Pill>
+					<Pill press="stagger-32">{t().scenes.test}</Pill>
 					<Cursor className="top-1 left-6 stagger-24" />
 					<Result tone="ok" delay="stagger-35">
-						login aceito em smtp.gmail.com
+						{t().scenes.gmailAccepted}
 					</Result>
 				</span>
 			</SceneWindow>
 		),
 		refused: () => (
 			<SceneWindow address="jobs/scraper">
-				<Result tone="danger">o Gmail recusou o login (SMTP 535 5.7.8)</Result>
-				<Field label="senha">
+				<Result tone="danger">{t().scenes.gmailRefused}</Result>
+				<Field label={t().scenes.password}>
 					<span className="flex items-center gap-2">
 						<span className="strike-through animate-strike-in text-muted motion-reduce:animate-none stagger-8">
-							senha-do-google
+							{t().scenes.googlePassword}
 						</span>
 						<Typed delay="stagger-14" className="text-lime-text">
 							abcd efgh ijkl mnop
@@ -179,7 +181,7 @@ const EMAIL_SCENES: Record<string, Record<string, () => ReactNode>> = {
 					</span>
 				</Field>
 				<Result tone="ok" delay="stagger-30">
-					com a senha de app, o login é aceito
+					{t().scenes.acceptedWithAppPassword}
 				</Result>
 			</SceneWindow>
 		),
@@ -187,7 +189,7 @@ const EMAIL_SCENES: Record<string, Record<string, () => ReactNode>> = {
 	outlook: {
 		'smtp-auth': () => (
 			<SceneWindow address="admin.microsoft.com">
-				<span className="font-semibold">Gerenciar aplicativos de email</span>
+				<span className="font-semibold">{t().scenes.manageEmailApps}</span>
 				<span className="relative flex flex-col gap-1.5 text-xs">
 					{['IMAP', 'POP'].map(app => (
 						<span key={app} className="flex items-center gap-2">
@@ -197,17 +199,17 @@ const EMAIL_SCENES: Record<string, Record<string, () => ReactNode>> = {
 					))}
 					<span className="flex items-center gap-2">
 						<Swap outDelay="stagger-13" inDelay="stagger-14" working={<Checked on={false} />} done={<Checked on />} />
-						SMTP autenticado
+						{t().scenes.authenticatedSmtp}
 					</span>
 					<Cursor className="bottom-0 left-1 stagger-5" />
 				</span>
 				<span className="relative flex items-center gap-3">
 					<Pill tone="lime" press="stagger-26">
-						salvar alterações
+						{t().scenes.saveChanges}
 					</Pill>
 					<Cursor className="top-1 left-12 stagger-18" />
 					<Result tone="ok" delay="stagger-29">
-						salvo
+						{t().scenes.saved}
 					</Result>
 				</span>
 			</SceneWindow>
@@ -217,33 +219,33 @@ const EMAIL_SCENES: Record<string, Record<string, () => ReactNode>> = {
 				<span className="relative self-start">
 					<Pill press="stagger-12">
 						<Icon name="plus" size={12} />
-						adicionar método de entrada
+						{t().scenes.addSignInMethod}
 					</Pill>
 					<Cursor className="top-2 left-10 stagger-4" />
 				</span>
 				<span className={cx('relative flex flex-col rounded-sm border border-line bg-surface text-xs', POP, 'stagger-14')}>
-					<span className="px-3 py-1.5 text-muted">Aplicativo autenticador</span>
-					<span className="bg-lime-soft px-3 py-1.5 font-semibold text-lime-text">Senha de aplicativo</span>
+					<span className="px-3 py-1.5 text-muted">{t().scenes.authenticatorApp}</span>
+					<span className="bg-lime-soft px-3 py-1.5 font-semibold text-lime-text">{t().scenes.appPasswordMethod}</span>
 					<Cursor className="bottom-1 left-24 stagger-16" />
 				</span>
-				<Secret label="sua senha de app" value="kxqz tpwm rvbn hdfs" delay="stagger-27" />
+				<Secret label={t().scenes.yourAppPassword} value="kxqz tpwm rvbn hdfs" delay="stagger-27" />
 			</SceneWindow>
 		),
 		fields: () => (
 			<SceneWindow address="jobs/scraper">
 				<span className="grid grid-cols-2 gap-2">
-					<Field label="usuário">
-						<Typed delay="stagger-3">voce@empresa.com.br</Typed>
+					<Field label={t().scenes.user}>
+						<Typed delay="stagger-3">{t().scenes.workEmail}</Typed>
 					</Field>
-					<Field label="senha de app">
+					<Field label={t().scenes.appPassword}>
 						<Typed delay="stagger-12">••••••••••••••••</Typed>
 					</Field>
 				</span>
 				<span className="grid grid-cols-4 gap-2">
-					<Field label="servidor SMTP" className="col-span-3">
+					<Field label={t().scenes.smtpServer} className="col-span-3">
 						<Typed delay="stagger-21">smtp.office365.com</Typed>
 					</Field>
-					<Field label="porta">
+					<Field label={t().scenes.port}>
 						<Typed delay="stagger-30">587</Typed>
 					</Field>
 				</span>
@@ -251,15 +253,15 @@ const EMAIL_SCENES: Record<string, Record<string, () => ReactNode>> = {
 		),
 		refused: () => (
 			<SceneWindow address="jobs/scraper">
-				<Result tone="danger">o servidor recusou o login (SMTP 535 5.7.139)</Result>
+				<Result tone="danger">{t().scenes.serverRefused}</Result>
 				<span className={cx('flex items-center gap-1.5 text-xs text-muted', POP, 'stagger-10')}>
 					<Icon name="chevron" size={14} />
-					5.7.139: o SMTP AUTH está desligado para a sua caixa
+					{t().scenes.smtpAuthOff}
 				</span>
 				<span
 					className={cx('self-start rounded-pill bg-lime-soft px-3 py-1 text-xs font-semibold text-lime-text', POP, 'stagger-20')}
 				>
-					peça ao administrador para liberar (passo 1)
+					{t().scenes.askAdmin}
 				</span>
 			</SceneWindow>
 		),
@@ -314,7 +316,7 @@ const DISCORD_SETUP_SCENES: Record<string, () => ReactNode> = {
 			{/* A janela de criar: o nome e o "Create" na mesma linha, para caber na cena */}
 			<span className={cx('relative flex items-end gap-2 rounded-sm border border-line bg-surface p-2.5', POP, 'stagger-14')}>
 				<Field label="name" className="grow">
-					<Typed delay="stagger-16">Vagas</Typed>
+					<Typed delay="stagger-16">{t().scenes.appNameExample}</Typed>
 				</Field>
 				<Pill tone="lime" press="stagger-30">
 					Create
@@ -337,7 +339,7 @@ const DISCORD_SETUP_SCENES: Record<string, () => ReactNode> = {
 						<Pill press="stagger-12">Reset Token</Pill>
 					</span>
 					<Cursor className="top-6 left-10 stagger-4" />
-					<Secret label="copie agora: ele só aparece uma vez" value="MTI4N…Gx9k.hz" delay="stagger-15" />
+					<Secret label={t().scenes.copyNow} value="MTI4N…Gx9k.hz" delay="stagger-15" />
 				</span>
 			</span>
 		</SceneWindow>
@@ -378,20 +380,20 @@ const DISCORD_CHANNEL_ID = () => (
 	<SceneWindow address="discord.com">
 		<span className="relative flex gap-3">
 			<ChannelList>
-				<span className="px-2 pb-1 text-xs font-semibold text-muted">CANAIS</span>
-				<Channel name="geral" />
-				<Channel name="vagas" active />
+				<span className="px-2 pb-1 text-xs font-semibold text-muted">{t().scenes.channels}</span>
+				<Channel name={t().scenes.general} />
+				<Channel name={t().scenes.jobsChannel} active />
 			</ChannelList>
 			<Cursor className="top-12 left-12 stagger-4" />
 			<span className={cx('relative flex flex-col rounded-sm border border-line bg-surface py-1 text-xs', POP, 'stagger-13')}>
-				<span className="px-3 py-1 text-muted">Silenciar canal</span>
-				<span className="px-3 py-1 text-muted">Editar canal</span>
-				<span className="bg-lime-soft px-3 py-1 font-semibold text-lime-text">Copiar ID do canal</span>
+				<span className="px-3 py-1 text-muted">{t().scenes.mute}</span>
+				<span className="px-3 py-1 text-muted">{t().scenes.editChannel}</span>
+				<span className="bg-lime-soft px-3 py-1 font-semibold text-lime-text">{t().scenes.copyChannelId}</span>
 				<Cursor className="bottom-1 left-16 stagger-15" />
 			</span>
 		</span>
 		<Result tone="ok" delay="stagger-27">
-			copiado: 123456789012345678
+			{t().scenes.copied('123456789012345678')}
 		</Result>
 	</SceneWindow>
 )
@@ -402,19 +404,21 @@ const DISCORD_SCENES: Record<string, Record<string, () => ReactNode>> = {
 		invite: inviteScene(['View Channels', 'Send Messages', 'Embed Links', 'Attach Files', 'Read Message History']),
 		channel: () => (
 			<SceneWindow address="discord.com">
-				<span className="font-semibold">Criar canal</span>
+				<span className="font-semibold">{t().scenes.createChannel}</span>
 				<span className="flex gap-2 text-xs">
 					<span className="flex items-center gap-1.5 rounded-sm border border-ink px-2.5 py-1.5 font-semibold">
-						<span className="font-mono">#</span> Texto
+						<span className="font-mono">#</span> {t().scenes.textType}
 					</span>
-					<span className="flex items-center gap-1.5 rounded-sm border border-line px-2.5 py-1.5 text-muted">Voz</span>
+					<span className="flex items-center gap-1.5 rounded-sm border border-line px-2.5 py-1.5 text-muted">
+						{t().scenes.voiceType}
+					</span>
 				</span>
 				<span className="relative flex items-end gap-2">
-					<Field label="nome do canal" className="grow">
-						<Typed delay="stagger-4"># vagas</Typed>
+					<Field label={t().scenes.channelName} className="grow">
+						<Typed delay="stagger-4">{`# ${t().scenes.jobsChannel}`}</Typed>
 					</Field>
 					<Pill tone="lime" press="stagger-22">
-						criar canal
+						{t().scenes.createChannelButton}
 					</Pill>
 					<Cursor className="right-6 bottom-1 stagger-14" />
 				</span>
@@ -435,11 +439,11 @@ const DISCORD_SCENES: Record<string, Record<string, () => ReactNode>> = {
 		channel: () => (
 			<SceneWindow address="discord.com">
 				<span className="flex flex-col">
-					<span className="font-semibold"># vagas · Tags</span>
-					<span className="text-xs text-muted">o bot põe até 5 por vaga, pelo nome</span>
+					<span className="font-semibold">{t().scenes.tagsTitle}</span>
+					<span className="text-xs text-muted">{t().scenes.tagsHelp}</span>
 				</span>
 				<span className="flex flex-wrap gap-1.5">
-					{['Remoto', 'Híbrido', 'CLT', 'PJ', 'React', 'Python'].map((tag, index) => (
+					{t().scenes.tags.map((tag, index) => (
 						<span
 							key={tag}
 							className={cx(
@@ -454,7 +458,7 @@ const DISCORD_SCENES: Record<string, Record<string, () => ReactNode>> = {
 				</span>
 				<span className={cx('flex items-center gap-1.5 text-xs text-muted', POP, 'stagger-26')}>
 					<Icon name="chevron" size={14} />
-					uma vaga remota, CLT, de React ganha as três
+					{t().scenes.tagsExample}
 				</span>
 			</SceneWindow>
 		),

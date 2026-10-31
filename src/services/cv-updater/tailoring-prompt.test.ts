@@ -67,6 +67,14 @@ describe('prompt', () => {
 		expect(messages.at(-1)?.content).not.toContain('Projects:')
 	})
 
+	test('a apresentação sai no idioma do currículo da vaga', () => {
+		const system = (locale?: 'pt-BR' | 'en') => buildTailoringRequest(cv, job, {}, locale).messages[0]?.content ?? ''
+
+		expect(system()).toContain('summary paragraph in Brazilian Portuguese')
+		expect(system('en')).toContain('summary paragraph in English')
+		expect(system('en')).toContain('Write it in English even when the résumé is in another language')
+	})
+
 	test('pede nova versão com o motivo da rejeição', () => {
 		expect(buildRetryMessage('tamanho 600').content).toContain('Your summary was rejected: tamanho 600')
 	})

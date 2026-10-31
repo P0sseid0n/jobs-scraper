@@ -2,6 +2,7 @@ import type { Message } from 'ollama'
 import { z } from 'zod'
 
 import type { ProfileSettings } from '@shared/contracts'
+import { BASE_LOCALE, languageName, type Locale } from '@shared/i18n'
 
 import type { ResumeContent } from './resume/resume.types'
 import { skillsToAdd, unsupportedJobSkills } from './skills/skill-matching'
@@ -21,21 +22,24 @@ export type TailoringSuggestions = z.infer<typeof TailoringSuggestionsSchema>
 
 const POST_MAX = 2500
 
-const SYSTEM_PROMPT = `You tailor a professional's résumé (from any field, not only software) to a job opening.
+/** As instruções do ajuste; `language` é o idioma da apresentação, em inglês ("Brazilian Portuguese", "English"). */
+const systemPrompt = (language: string) => `You tailor a professional's résumé (from any field, not only software) to a job opening.
 The "Candidate profile", when given, tells the person's field and target role.
 
 Return JSON with:
-- summary: a rewritten "Apresentação" paragraph in Brazilian Portuguese (2 to 3 sentences, at most 450 characters).
+- summary: a rewritten summary paragraph in ${language} (2 to 3 sentences, at most 450 characters).
   Emphasize what matches the job and mention the job's main required skills, tools or qualifications that the résumé
   shows (or that are in "Skills to add").
   Never invent skills, tools, companies, certifications, degrees or years of experience, and never mention the items
   in "Not in the résumé": the person does not have them. "Other sections" (education, certifications, languages) are
   facts you may use but must not change.
   It is the person presenting themselves, in the same style as the base summary: short phrases led by the role or an
-  adjective ("Desenvolvedor Front-end com experiência em Vue.js e TypeScript.", "Experiente em testes com Jest."),
-  with no "eu" and no candidate name. Never describe the person from the outside, as a recruiter or an evaluation
-  would: no "o perfil", "o candidato", "possui", "demonstra", "complementa", "suas habilidades", "para esta posição",
-  "conjunto de habilidades". Avoid repeating words.
+  adjective ("Desenvolvedor Front-end com experiência em Vue.js e TypeScript.", "Experiente em testes com Jest."; in
+  English: "Front-end Developer experienced in Vue.js and TypeScript."), with no "eu" or "I" and no candidate name.
+  Write it in ${language} even when the résumé is in another language.
+  Never describe the person from the outside, as a recruiter or an evaluation would: no "o perfil", "o candidato",
+  "possui", "demonstra", "complementa", "suas habilidades", "para esta posição", "conjunto de habilidades", "the
+  candidate", "this profile", "demonstrates", "possesses", "their skills", "for this position". Avoid repeating words.
 - relevantSkills: skills from the résumé "Skills" list that are related to this job, copied exactly, most relevant first.
   Skills can be technologies, tools, techniques or soft skills. Include closely related ones (e.g. for a Vue.js job:
   Nuxt.js, Pinia; for a paid traffic job: Google Ads, Meta Ads) and leave out unrelated ones.
@@ -48,8 +52,16 @@ Return JSON with:
 /** Área e cargo-alvo do perfil profissional, quando preenchidos (sem perfil, o pedido fica como antes). */
 export type TailoringProfile = Partial<Pick<ProfileSettings, 'area' | 'targetRole'>>
 
-/** Monta o pedido de ajuste à IA (mensagens e schema de saída) e a lista de tecnologias a adicionar. */
-export function buildTailoringRequest(cv: ResumeContent, job: TargetJob, profile: TailoringProfile = {}) {
+/**
+ * Monta o pedido de ajuste à IA (mensagens e schema de saída) e a lista de tecnologias a adicionar. A apresentação sai
+ * em `locale`, o idioma do currículo da vaga.
+ */
+export function buildTailoringRequest(
+	cv: ResumeContent,
+	job: TargetJob,
+	profile: TailoringProfile = {},
+	locale: Locale = BASE_LOCALE,
+) {
 	const categories = cv.skills.map(group => group.category)
 	const toAdd = skillsToAdd(cv, job)
 	const unsupported = unsupportedJobSkills(cv, job)
@@ -64,7 +76,7 @@ export function buildTailoringRequest(cv: ResumeContent, job: TargetJob, profile
 	].join('\n\n')
 
 	const messages: Message[] = [
-		{ role: 'system', content: SYSTEM_PROMPT },
+		{ role: 'system', content: systemPrompt(languageName(locale, 'en')) },
 		{ role: 'user', content },
 	]
 

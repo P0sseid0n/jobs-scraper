@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
 
+import { t } from '@shared/i18n'
+
 import { cx } from '../lib/cx'
 import { GLIDE, reducedMotion, shake } from '../lib/motion'
 import { dismissToast, type Toast } from '../stores/toast'
@@ -181,7 +183,7 @@ function ToastItem({ toast, depth }: { toast: Toast; depth: number }) {
 						{toast.action.label}
 					</button>
 				)}
-				<IconButton label="Fechar aviso" size="sm" onClick={() => close()}>
+				<IconButton label={t().ui.closeToast} size="sm" onClick={() => close()}>
 					<Icon name="close" size={14} />
 				</IconButton>
 				{/* O tempo que falta: esvazia até o aviso ir embora; para com o mouse ou o foco em cima, e enquanto é arrastado */}

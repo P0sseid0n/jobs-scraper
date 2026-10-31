@@ -1,6 +1,8 @@
 import { Link } from '@tanstack/react-router'
 import { useId, useState, type MouseEvent } from 'react'
 
+import { t } from '@shared/i18n'
+
 import type { WebCvBaseVersion, WebCvRequest } from '../../api-types'
 import { cvBasePdfUrl, cvPdfUrl } from '../api'
 import { Changes, ChangeSummary, hasChanges } from '../components/CvReady'
@@ -21,6 +23,7 @@ import { cx } from '../lib/cx'
 import { formatDateTime } from '../lib/format'
 import { jobParams } from '../router'
 import { requestCv, useCvRequests } from '../stores/cv'
+import { useT } from '../stores/locale'
 import { notify } from '../stores/toast'
 
 /** A folha clicável que abre o PDF: sobe um pouco no hover, como os botões. */
@@ -42,25 +45,25 @@ const searchable = (text: string) =>
 		.toLowerCase()
 
 /** Os grupos da lista de gerados, na ordem em que aparecem. */
-const DATE_GROUPS = ['hoje', 'ontem', 'nos últimos 7 dias', 'nos últimos 30 dias', 'há mais tempo'] as const
+const DATE_GROUPS = ['today', 'yesterday', 'week', 'month', 'older'] as const
 type DateGroup = (typeof DATE_GROUPS)[number]
 
 function dateGroup(iso: string, now: Date): DateGroup {
 	const startOfDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
 	const days = Math.round((startOfDay(now) - startOfDay(new Date(iso))) / DAY_MS)
 
-	if (days <= 0) return 'hoje'
-	if (days === 1) return 'ontem'
-	if (days < 7) return 'nos últimos 7 dias'
-	if (days < 30) return 'nos últimos 30 dias'
-	return 'há mais tempo'
+	if (days <= 0) return 'today'
+	if (days === 1) return 'yesterday'
+	if (days < 7) return 'week'
+	if (days < 30) return 'month'
+	return 'older'
 }
 
 async function retry(request: WebCvRequest) {
 	try {
 		await requestCv(request)
 	} catch (error) {
-		notify(`Não consegui pedir o currículo: ${(error as Error).message}`, 'error')
+		notify(t().cvs.requestFailed((error as Error).message), 'error')
 	}
 }
 
@@ -73,13 +76,14 @@ type CvItemProps = {
 }
 
 function CvItem({ request, outdated, latest }: CvItemProps) {
+	const c = useT().cvs
 	const [expanded, setExpanded] = useState(false)
 	const detailsId = useId()
 
 	const ready = request.status === 'ready'
 	const justReady = ready && !!request.finishedAt && Date.now() - new Date(request.finishedAt).getTime() < JUST_READY_MS
 	const changes = hasChanges(request.changes) ? request.changes : null
-	const title = request.jobTitle ?? 'Vaga'
+	const title = request.jobTitle ?? c.job
 	const meta = [request.company, formatDateTime(request.finishedAt ?? request.requestedAt)].filter(Boolean).join(' · ')
 
 	// O cabeçalho todo abre e fecha o ajuste; os botões e links dentro dele fazem só a ação deles
@@ -95,12 +99,12 @@ function CvItem({ request, outdated, latest }: CvItemProps) {
 			<div className="flex cursor-pointer items-start gap-3.5" onClick={toggleFromHeader}>
 				{/* Pronto, a folha abre o PDF, como a do currículo base */}
 				{ready ? (
-					<a className={SHEET_LINK} href={cvPdfUrl(request.requestId)} {...NEW_TAB} aria-label={`Abrir o PDF de ${title}`}>
+					<a className={SHEET_LINK} href={cvPdfUrl(request.requestId)} {...NEW_TAB} aria-label={c.openPdfOf(title)}>
 						<PdfIcon>PDF</PdfIcon>
 					</a>
 				) : (
 					<PdfIcon dashed={request.status === 'pending'}>
-						{request.status === 'pending' ? <Icon name="spinner" size={14} /> : 'erro'}
+						{request.status === 'pending' ? <Icon name="spinner" size={14} /> : c.error}
 					</PdfIcon>
 				)}
 
@@ -110,13 +114,13 @@ function CvItem({ request, outdated, latest }: CvItemProps) {
 							{/* O cargo leva à vaga; o resto do cabeçalho abre o ajuste */}
 							<Link
 								className="block truncate font-semibold no-underline hover:underline hover:underline-offset-3"
-								to="/vagas/$id"
+								to="/jobs/$id"
 								params={jobParams(request.postId)}
 							>
 								{title}
 							</Link>
 							<span className={META}>
-								{request.status === 'pending' ? `gerando · pedido ${formatDateTime(request.requestedAt)}` : meta}
+								{request.status === 'pending' ? c.generating(formatDateTime(request.requestedAt)) : meta}
 							</span>
 							{request.status === 'failed' && <span className="text-sm text-danger">{request.error}</span>}
 						</div>
@@ -125,7 +129,7 @@ function CvItem({ request, outdated, latest }: CvItemProps) {
 							{ready && (
 								<>
 									<Button className="max-md:hidden" variant="ghost" href={cvPdfUrl(request.requestId)} external>
-										abrir
+										{c.open}
 									</Button>
 									<Button
 										className="max-md:hidden"
@@ -134,15 +138,15 @@ function CvItem({ request, outdated, latest }: CvItemProps) {
 										download={request.fileName ?? undefined}
 									>
 										<Icon name="download" size={14} />
-										baixar
+										{c.download}
 									</Button>
 									{/* No celular, o baixar vira só o ícone e o abrir fica no ajuste */}
 									<a
 										className={iconButton({ size: 'sm', variant: 'ghost', className: 'md:hidden' })}
 										href={cvPdfUrl(request.requestId, true)}
 										download={request.fileName ?? undefined}
-										aria-label={`Baixar o PDF de ${title}`}
-										title="Baixar"
+										aria-label={c.downloadPdfOf(title)}
+										title={c.downloadTitle}
 									>
 										<Icon name="download" size={15} />
 									</a>
@@ -150,12 +154,12 @@ function CvItem({ request, outdated, latest }: CvItemProps) {
 							)}
 							{request.status === 'failed' && (
 								<Button variant="ghost" size="sm" onClick={() => retry(request)}>
-									tentar de novo
+									{c.retry}
 								</Button>
 							)}
 							<IconButton
 								size="sm"
-								label={expanded ? 'Esconder os detalhes' : 'Ver os detalhes'}
+								label={expanded ? c.hideDetails : c.showDetails}
 								aria-expanded={expanded}
 								aria-controls={detailsId}
 								onClick={() => setExpanded(!expanded)}
@@ -171,11 +175,11 @@ function CvItem({ request, outdated, latest }: CvItemProps) {
 								<span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
 									<span className="flex items-center gap-1.5">
 										<Icon name="alert" size={13} />
-										feito com outra versão do currículo base
+										{c.outdated}
 									</span>
 									{latest && (
 										<TextLink size="xs" onClick={() => retry(request)}>
-											gerar de novo
+											{c.generateAgain}
 										</TextLink>
 									)}
 								</span>
@@ -189,13 +193,13 @@ function CvItem({ request, outdated, latest }: CvItemProps) {
 				<div id={detailsId} className="flex flex-col gap-3 animate-panel-in motion-reduce:animate-none">
 					{changes && <Changes changes={changes} fresh={false} tone="quiet" />}
 					<div className="flex flex-wrap gap-2">
-						<ButtonLink variant="ghost" size="sm" to="/vagas/$id" params={jobParams(request.postId)}>
+						<ButtonLink variant="ghost" size="sm" to="/jobs/$id" params={jobParams(request.postId)}>
 							<Icon name="briefcase" size={14} />
-							ver a vaga
+							{c.seeJob}
 						</ButtonLink>
 						{ready && (
 							<Button className="md:hidden" variant="ghost" size="sm" href={cvPdfUrl(request.requestId)} external>
-								abrir PDF
+								{c.openPdf}
 							</Button>
 						)}
 					</div>
@@ -208,7 +212,7 @@ function CvItem({ request, outdated, latest }: CvItemProps) {
 /** De onde veio a versão: o arquivo enviado, o formulário ou o editor do site. */
 function versionName(version: WebCvBaseVersion) {
 	if (version.fileName) return version.fileName
-	return version.fromForm ? 'feito no formulário' : 'editado no site'
+	return version.fromForm ? t().cvs.fromForm : t().cvs.editedOnSite
 }
 
 type CvBaseCardProps = {
@@ -220,21 +224,19 @@ type CvBaseCardProps = {
 
 /** O currículo base em uso, com a primeira página, quantos currículos saíram dele e o caminho para trocá-lo. */
 function CvBaseCard({ versions, requests }: CvBaseCardProps) {
+	const c = useT().cvs
 	const active = versions && activeVersion(versions)
 	const validating = versions?.some(version => version.status === 'validating')
 	const generated = versions
 		? requests.filter(request => request.base && request.base.versionId === (active?.versionId ?? null)).length
 		: 0
 
-	const name = !versions ? 'não carregou' : active ? versionName(active) : 'cv.tex'
+	const name = !versions ? c.notLoaded : active ? versionName(active) : 'cv.tex'
 	const facts = !versions
-		? ['Não consegui carregar as versões do currículo base.']
+		? [c.versionsFailed]
 		: active
-			? [
-					`em uso desde ${formatDateTime(active.activatedAt!)}`,
-					active.pages && `${active.pages} ${active.pages === 1 ? 'página' : 'páginas'}`,
-				].filter(Boolean)
-			: ['usando o arquivo data/cv/cv.tex']
+			? [c.inUseSince(formatDateTime(active.activatedAt!)), active.pages && c.pages(active.pages)].filter(Boolean)
+			: [c.usingFile]
 
 	return (
 		<section
@@ -243,7 +245,7 @@ function CvBaseCard({ versions, requests }: CvBaseCardProps) {
 		>
 			<div className="flex min-w-0 grow items-center gap-5 max-md:gap-4">
 				{active?.status === 'valid' ? (
-					<a className={SHEET_LINK} href={cvBasePdfUrl(active.versionId)} {...NEW_TAB} aria-label="Abrir o PDF do currículo base">
+					<a className={SHEET_LINK} href={cvBasePdfUrl(active.versionId)} {...NEW_TAB} aria-label={c.openBasePdf}>
 						<PdfIcon>PDF</PdfIcon>
 					</a>
 				) : (
@@ -252,10 +254,10 @@ function CvBaseCard({ versions, requests }: CvBaseCardProps) {
 
 				<div className="flex min-w-0 grow flex-col gap-1">
 					<span className="flex flex-wrap items-center gap-2">
-						<span className={LABEL}>currículo base</span>
+						<span className={LABEL}>{c.base}</span>
 						{validating && (
 							<Badge tone="running" size="sm">
-								validando
+								{c.validating}
 							</Badge>
 						)}
 					</span>
@@ -263,18 +265,12 @@ function CvBaseCard({ versions, requests }: CvBaseCardProps) {
 						{name}
 					</h2>
 					<span className={META}>{facts.join(' · ')}</span>
-					{versions && (
-						<span className="mt-1 text-sm">
-							{generated === 0
-								? 'Nenhum currículo gerado com ele ainda.'
-								: `${generated} ${generated === 1 ? 'currículo gerado' : 'currículos gerados'} com ele.`}
-						</span>
-					)}
+					{versions && <span className="mt-1 text-sm">{generated === 0 ? c.noneGenerated : c.generated(generated)}</span>}
 				</div>
 			</div>
 
-			<ButtonLink className="shrink-0" variant="ghost" to="/curriculos/base">
-				alterar
+			<ButtonLink className="shrink-0" variant="ghost" to="/resumes/base">
+				{c.change}
 			</ButtonLink>
 		</section>
 	)
@@ -300,7 +296,8 @@ function CvList({
 
 /** "Meus currículos": o currículo base e os PDFs gerados pelo site, para baixar de novo sem gerar outro. */
 export function CvsView({ baseVersions }: { baseVersions: WebCvBaseVersion[] | null }) {
-	// A lista vem do loader da rota (`routes/curriculos.tsx`), que também cuida do carregamento e do erro
+	const c = useT().cvs
+	// A lista vem do loader da rota (`routes/resumes.tsx`), que também cuida do carregamento e do erro
 	const { requests } = useCvRequests()
 	const [query, setQuery] = useState('')
 
@@ -338,10 +335,10 @@ export function CvsView({ baseVersions }: { baseVersions: WebCvBaseVersion[] | n
 			<Hero
 				title={
 					<>
-						meus <Hero.Mono>currículos.</Hero.Mono>
+						{c.heroTitle} <Hero.Mono>{c.heroTitleMono}</Hero.Mono>
 					</>
 				}
-				lead="Um PDF de uma página por vaga. Apresentação, habilidades, projetos e experiência se ajustam ao que ela pede."
+				lead={c.heroLead}
 			/>
 
 			<CvBaseCard versions={baseVersions} requests={requests} />
@@ -349,11 +346,11 @@ export function CvsView({ baseVersions }: { baseVersions: WebCvBaseVersion[] | n
 			{requests.length === 0 && (
 				<EmptyState
 					illustration="cv"
-					title="Nenhum currículo gerado pelo site ainda"
-					description="Em qualquer vaga, clique em “gerar currículo”. Ele fica pronto em até ~1 minuto."
+					title={c.emptyTitle}
+					description={c.emptyDescription}
 					action={
 						<ButtonLink variant="lime" to="/">
-							ver vagas
+							{c.seeJobs}
 						</ButtonLink>
 					}
 				/>
@@ -361,20 +358,20 @@ export function CvsView({ baseVersions }: { baseVersions: WebCvBaseVersion[] | n
 
 			{requests.length > 0 && (
 				<SearchInput
-					label="Buscar currículos"
+					label={c.search}
 					value={query}
 					onChange={event => setQuery(event.target.value)}
-					placeholder="cargo ou empresa…"
+					placeholder={c.searchPlaceholder}
 				/>
 			)}
 			{requests.length > 0 && shown.length === 0 && (
 				<EmptyState
 					illustration="search"
-					title="Nenhum currículo com essa busca"
-					description="A busca olha o cargo e a empresa da vaga."
+					title={c.noMatchTitle}
+					description={c.noMatchDescription}
 					action={
 						<Button variant="ghost" onClick={() => setQuery('')}>
-							limpar busca
+							{c.clearSearch}
 						</Button>
 					}
 				/>
@@ -382,14 +379,14 @@ export function CvsView({ baseVersions }: { baseVersions: WebCvBaseVersion[] | n
 
 			{pending.length > 0 && (
 				<section className="flex flex-col gap-2.5">
-					<h2 className={GROUP_TITLE}>em andamento</h2>
+					<h2 className={GROUP_TITLE}>{c.inProgress}</h2>
 					<CvList requests={pending} isOutdated={isOutdated} latest={latest} />
 				</section>
 			)}
 			{groups.map(({ group, items }) => (
 				<section key={group} className="flex flex-col gap-2.5">
 					<h2 className={GROUP_TITLE}>
-						{group} · {items.length}
+						{c.dateGroups[group]} · {items.length}
 					</h2>
 					<CvList requests={items} isOutdated={isOutdated} latest={latest} />
 				</section>

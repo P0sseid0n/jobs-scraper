@@ -4,19 +4,20 @@ import { useEffect, useMemo, useRef, useState, type FormEvent, type InputHTMLAtt
 import {
 	DATE_POSTED_FILTERS,
 	EXTRACTION_CHECKS,
-	PROFILE_AREAS,
 	reviewChecksThreshold,
 	SENIORITY_LEVELS,
 	suggestedRoles,
-	type DatePostedFilter,
 	type SeniorityLevel,
 } from '@shared/contracts'
+import { LOCALES, type Messages } from '@shared/i18n'
 
 import type { CredentialGroup, WebCredentials, WebSettings } from '../../api-types'
 import { api, RequestError } from '../api'
 import { AccountsSection } from '../components/AccountsSection'
 import { AutoRunsSwitch } from '../components/AutoRunsSwitch'
+import { CvLanguageChoice } from '../components/CvLanguageChoice'
 import { DrawnCheck, Icon } from '../components/Icon'
+import { LanguageSelect } from '../components/LanguageSelect'
 import { MessageTemplateEditor } from '../components/MessageTemplateEditor'
 import { Button } from '../components/ui/Button'
 import { Combobox } from '../components/ui/Combobox'
@@ -36,7 +37,7 @@ import { StatusDot } from '../components/ui/StatusDot'
 import { Switch } from '../components/ui/Switch'
 import { LEGEND, LIST, META } from '../components/ui/text'
 import { cx } from '../lib/cx'
-import { DATE_POSTED_LABELS, formatInterval, LANGUAGE_NAMES, languageLabel } from '../lib/format'
+import { COMMON_LANGUAGES, formatInterval, formatList, languageLabel } from '../lib/format'
 import { shakeInvalid } from '../lib/motion'
 import {
 	duplicateSimilarityHint,
@@ -47,40 +48,14 @@ import {
 	type SettingsDraft,
 } from '../lib/settings-form'
 import { useFlash } from '../lib/use-flash'
+import { useLocale, useT } from '../stores/locale'
 import { setMessageProfile, setMessageSettings } from '../stores/message-settings'
 import { notify } from '../stores/toast'
-
-const LIST_FORMAT = new Intl.ListFormat('pt-BR')
-
-const DATE_POSTED_OPTIONS: SelectMenuOption<DatePostedFilter>[] = DATE_POSTED_FILTERS.map(value => ({
-	value,
-	label: DATE_POSTED_LABELS[value],
-}))
-
-const SENIORITY_LABELS: Record<SeniorityLevel, string> = {
-	intern: 'Estágio',
-	junior: 'Júnior',
-	mid: 'Pleno',
-	senior: 'Sênior',
-	lead: 'Liderança',
-}
-
-/** `''` é "Não informar" (`seniority: null`). */
-const SENIORITY_OPTIONS: SelectMenuOption<SeniorityLevel | ''>[] = [
-	{ value: '', label: 'Não informar' },
-	...SENIORITY_LEVELS.map(value => ({ value, label: SENIORITY_LABELS[value] })),
-]
 
 type IntervalUnit = 'min' | 'h' | 'd'
 
 /** As unidades do intervalo entre coletas, em minutos; o salvo é sempre em minutos. */
 const INTERVAL_UNITS: Record<IntervalUnit, number> = { min: 1, h: 60, d: 24 * 60 }
-
-const INTERVAL_UNIT_OPTIONS: SelectMenuOption<IntervalUnit>[] = [
-	{ value: 'min', label: 'minutos' },
-	{ value: 'h', label: 'horas' },
-	{ value: 'd', label: 'dias' },
-]
 
 /** A maior unidade que mostra o intervalo sem fração (1440 → dias, 90 → minutos). */
 function intervalUnitOf(minutes: number): IntervalUnit {
@@ -93,22 +68,16 @@ function intervalUnitOf(minutes: number): IntervalUnit {
  * Como o scraper divide o mínimo de vagas entre os termos ativos (`jobsPerTerm`): o resto vai para os primeiros
  * ("3 a 4 por termo"); com mais termos que vagas, só os primeiros buscam.
  */
-function jobsPerTermLabel(minJobsPerRun: number, activeTerms: number) {
+function jobsPerTermLabel(t: Messages, minJobsPerRun: number, activeTerms: number) {
 	const base = Math.floor(minJobsPerRun / activeTerms)
-	if (base === 0) return `1 vaga em cada um dos ${minJobsPerRun} primeiros termos ativos`
+	if (base === 0) return t.settings.jobsPerTermFirst(minJobsPerRun)
 
-	const count = minJobsPerRun % activeTerms === 0 ? `${base}` : `${base} a ${base + 1}`
-	return `${count} por termo, com ${activeTerms} ${activeTerms === 1 ? 'termo ativo' : 'termos ativos'}`
+	const count = minJobsPerRun % activeTerms === 0 ? `${base}` : t.settings.jobsRange(base, base + 1)
+	return t.settings.jobsPerTerm(count, activeTerms)
 }
 
-/** Os atalhos do `SectionNav`: o `id` de cada seção da tela. */
-const SECTIONS = [
-	{ id: 'perfil', label: 'perfil' },
-	{ id: 'coleta', label: 'coleta' },
-	{ id: 'filtros', label: 'filtros' },
-	{ id: 'mensagem', label: 'mensagem' },
-	{ id: 'contas', label: 'contas' },
-] as const
+/** Os atalhos do `SectionNav`: o `id` de cada seção da tela (o nome fica em `settings.sections`). */
+const SECTIONS = ['language', 'profile', 'search', 'filters', 'message', 'accounts'] as const
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
@@ -125,7 +94,7 @@ function draftOf(settings: WebSettings): SettingsDraft {
 
 /**
  * Formulário do perfil profissional, das configurações do scraper e dos filtros das vagas; valem a partir da próxima coleta. As configurações
- * salvas vêm do loader da rota (`routes/configuracoes.tsx`). As contas ficam no fim, cada uma com o próprio botão de salvar.
+ * salvas vêm do loader da rota (`routes/settings.tsx`). As contas ficam no fim, cada uma com o próprio botão de salvar.
  */
 export function SettingsView({
 	initial,
@@ -134,9 +103,12 @@ export function SettingsView({
 }: {
 	initial: WebSettings
 	credentials: WebCredentials
-	/** A aba de contas que abre selecionada (`?conta=` na URL). */
+	/** A aba de contas que abre selecionada (`?account=` na URL). */
 	account?: CredentialGroup
 }) {
+	const t = useT()
+	const s = t.settings
+	const locale = useLocale()
 	const [loaded, setLoaded] = useState<WebSettings | null>(initial)
 	const [draft, setDraft] = useState<SettingsDraft | null>(() => draftOf(initial))
 	const [serverErrors, setServerErrors] = useState<Record<string, string>>({})
@@ -212,7 +184,7 @@ export function SettingsView({
 		setTouched(true)
 		if (Object.keys(clientErrors).length > 0) {
 			setSaveState('error')
-			setSaveMessage({ title: 'Não salvo', detail: 'Corrija os campos marcados antes de salvar.' })
+			setSaveMessage({ title: s.notSaved, detail: s.fixFields })
 			shakeInvalid(() => document.getElementById('main'))
 			return
 		}
@@ -231,14 +203,11 @@ export function SettingsView({
 			reset(current)
 			setSaveState('saved')
 			flashSaved()
-			setSaveMessage({
-				title: 'Salvo',
-				detail: 'O scraper relê as configurações em até 30 s; os filtros valem para os próximos posts.',
-			})
+			setSaveMessage({ title: s.saved, detail: s.savedDetail })
 		} catch (error) {
 			setSaveState('error')
 			setServerErrors(error instanceof RequestError ? error.fields : {})
-			setSaveMessage({ title: 'Não foi possível salvar', detail: (error as Error).message })
+			setSaveMessage({ title: s.saveFailed, detail: (error as Error).message })
 			shakeInvalid(() => document.getElementById('main'))
 		}
 	}
@@ -249,12 +218,29 @@ export function SettingsView({
 		try {
 			const saved = await api.saveSettings('scraper', { paused })
 			setLoaded(current => current && { ...current, scraper: { ...current.scraper, paused: saved.paused } })
-			notify(paused ? 'Coletas automáticas pausadas' : 'Coletas automáticas retomadas')
+			notify(paused ? s.paused : s.resumed)
 		} catch (error) {
-			notify(`Não consegui salvar: ${(error as Error).message}`, 'error')
+			notify(t.actions.saveFailed((error as Error).message), 'error')
 		} finally {
 			setSavingPause(false)
 		}
+	}
+
+	function renderLanguage() {
+		const translators = LOCALES[locale].translators as string[]
+
+		return (
+			<SectionCard id="language" className={SECTION_SCROLL_MARGIN} title={s.languageTitle} tag={s.languageTag}>
+				<div className="flex flex-col gap-1.5">
+					<FieldLabel htmlFor="settings-locale">{t.language.label}</FieldLabel>
+					<LanguageSelect id="settings-locale" className="max-w-80 max-md:max-w-none" />
+					<FieldHelp>{t.language.description}</FieldHelp>
+					{translators.length > 0 && <FieldHelp>{t.language.translatedBy(formatList(translators))}</FieldHelp>}
+				</div>
+
+				<CvLanguageChoice initial={initial.language.cvLanguage} />
+			</SectionCard>
+		)
 	}
 
 	function addTerm(event: FormEvent) {
@@ -301,16 +287,21 @@ export function SettingsView({
 
 	function renderProfile(d: SettingsDraft) {
 		const profile = d.profile
-		const languages = [...new Set([...Object.keys(LANGUAGE_NAMES), ...profile.languages])]
-		const suggestions = { area: Object.keys(PROFILE_AREAS), targetRole: suggestedRoles(profile.area) }
+		const languages = [...new Set([...COMMON_LANGUAGES, ...profile.languages])]
+		const suggestions = { area: t.profile.areas.map(item => item.area), targetRole: suggestedRoles(t.profile.areas, profile.area) }
+		/** `''` é "Não informar" (`seniority: null`). */
+		const seniorityOptions: SelectMenuOption<SeniorityLevel | ''>[] = [
+			{ value: '', label: s.seniorityNone },
+			...SENIORITY_LEVELS.map(value => ({ value, label: t.profile.seniority[value] })),
+		]
 
 		return (
-			<SectionCard id="perfil" className={SECTION_SCROLL_MARGIN} title="perfil" tag="profissional">
+			<SectionCard id="profile" className={SECTION_SCROLL_MARGIN} title={s.profileTitle} tag={s.profileTag}>
 				<div className="grid grid-cols-2 gap-5 max-md:grid-cols-1">
 					{(
 						[
-							['area', 'área', 'ex.: Marketing, Enfermagem, Desenvolvimento de software', LIMITS.area],
-							['targetRole', 'cargo-alvo', 'ex.: Analista de Marketing Digital', LIMITS.targetRole],
+							['area', s.area, s.areaPlaceholder, LIMITS.area],
+							['targetRole', s.targetRole, s.targetRolePlaceholder, LIMITS.targetRole],
 						] as const
 					).map(([field, label, placeholder, maxLength]) => (
 						<div className="flex flex-col gap-1.5" key={field}>
@@ -332,12 +323,12 @@ export function SettingsView({
 							{fieldError(field) ?? (
 								<FieldHelp id={`${field}-help`}>
 									{field === 'area'
-										? 'Escolha uma das sugestões ou digite a sua.'
+										? s.areaHelp
 										: suggestions.targetRole.length > 0
-											? `Sugestões para ${profile.area.trim()}, ou digite o seu.`
+											? s.roleSuggestions(profile.area.trim())
 											: profile.area.trim()
-												? `Sem sugestões para ${profile.area.trim()}: digite o cargo que você procura.`
-												: 'Escolha a área para ver sugestões de cargo, ou digite o seu.'}
+												? s.roleNoSuggestions(profile.area.trim())
+												: s.roleNoArea}
 								</FieldHelp>
 							)}
 						</div>
@@ -345,12 +336,12 @@ export function SettingsView({
 				</div>
 
 				<div className="flex flex-col gap-1.5">
-					<FieldLabel htmlFor="seniority">senioridade</FieldLabel>
+					<FieldLabel htmlFor="seniority">{s.seniority}</FieldLabel>
 					<SelectMenu
 						id="seniority"
 						className="max-w-80 max-md:max-w-none"
 						value={profile.seniority ?? ''}
-						options={SENIORITY_OPTIONS}
+						options={seniorityOptions}
 						onChange={value =>
 							edit(next => {
 								next.profile.seniority = value || null
@@ -360,7 +351,7 @@ export function SettingsView({
 				</div>
 
 				<fieldset className="flex flex-col gap-2.5">
-					<legend className={LEGEND}>idiomas em que trabalha</legend>
+					<legend className={LEGEND}>{s.profileLanguages}</legend>
 					<PillGroup>
 						{languages.map(code => (
 							<label key={code} className={pill({ className: 'cursor-pointer' })}>
@@ -381,10 +372,7 @@ export function SettingsView({
 					{fieldError('languages')}
 				</fieldset>
 
-				<FieldHelp>
-					Usado para buscar e ler vagas da sua área. Enquanto área e cargo-alvo estão vazios, o sistema continua supondo vagas de
-					desenvolvimento.
-				</FieldHelp>
+				<FieldHelp>{s.profileHelp}</FieldHelp>
 			</SectionCard>
 		)
 	}
@@ -396,31 +384,25 @@ export function SettingsView({
 		const { minJobsPerRun, intervalMinutes } = d.scraper
 
 		return (
-			<SectionCard id="coleta" className={SECTION_SCROLL_MARGIN} title="coleta" tag="scraper">
+			<SectionCard id="search" className={SECTION_SCROLL_MARGIN} title={s.runsTitle} tag="scraper">
 				{loaded && (
 					// Salvo na hora, fora do formulário. Ligado = coletando (como os outros interruptores da tela); pausado, fica
 					// neutro, sem o lime de "rodando"
-					<section aria-label="Coletas automáticas" className="flex flex-col gap-1.5 rounded-sm bg-surface-2 p-3.5">
+					<section aria-label={s.autoRuns} className="flex flex-col gap-1.5 rounded-sm bg-surface-2 p-3.5">
 						<div className="flex flex-wrap items-center justify-between gap-3">
 							<p className="flex items-center gap-2 font-semibold">
 								<StatusDot tone={paused ? 'muted' : 'lime'} glow={!paused} />
-								{paused
-									? 'Coletas automáticas pausadas'
-									: `Coletas automáticas ligadas · ${formatInterval(loaded.scraper.intervalMinutes)}`}
+								{paused ? s.paused : s.autoRunsOn(formatInterval(loaded.scraper.intervalMinutes))}
 							</p>
 							<AutoRunsSwitch id="settings-paused" paused={paused} disabled={savingPause} onPausedChange={setPaused} />
 						</div>
-						<FieldHelp>
-							{paused
-								? '“Coletar agora” continua funcionando: uma coleta pedida à mão roda mesmo com as automáticas pausadas.'
-								: 'Desligue para pausar: o intervalo para de contar até você religar. Vale na hora, sem salvar.'}
-						</FieldHelp>
+						<FieldHelp>{paused ? s.pausedHelp : s.onHelp}</FieldHelp>
 					</section>
 				)}
 
 				<fieldset className="flex flex-col gap-2.5">
 					<legend className={cx(LEGEND, 'flex w-full items-center justify-between gap-3')}>
-						termos de busca
+						{s.searchTerms}
 						<span className={cx('font-mono text-xs font-normal', full ? 'text-warn' : 'text-muted')}>
 							{terms.length} / {LIMITS.searchTerms}
 						</span>
@@ -430,7 +412,7 @@ export function SettingsView({
 							<li key={index} className="flex flex-wrap items-center gap-2.5">
 								<Switch
 									checked={term.enabled}
-									label={`Termo ${term.term || index + 1} ativo`}
+									label={s.termActive(term.term || String(index + 1))}
 									onChange={enabled =>
 										edit(next => {
 											next.scraper.searchTerms[index]!.enabled = enabled
@@ -441,7 +423,7 @@ export function SettingsView({
 									className={cx('grow', !term.enabled && 'opacity-55')}
 									value={term.term}
 									maxLength={LIMITS.termLength}
-									aria-label={`Termo de busca ${index + 1}`}
+									aria-label={s.termLabel(index + 1)}
 									invalid={!!errors[`searchTerms.${index}.term`]}
 									onChange={event => {
 										const value = event.target.value
@@ -452,7 +434,7 @@ export function SettingsView({
 								/>
 								<IconButton
 									className={cx(!term.enabled && 'opacity-55')}
-									label={`Remover o termo ${term.term}`}
+									label={s.removeTerm(term.term)}
 									variant="ghost"
 									onClick={() =>
 										edit(next => {
@@ -471,38 +453,32 @@ export function SettingsView({
 							className="grow"
 							value={newTerm}
 							maxLength={LIMITS.termLength}
-							placeholder={
-								full
-									? `limite de ${LIMITS.searchTerms} termos: remova um para adicionar`
-									: 'novo termo, ex.: Analista de Marketing'
-							}
-							aria-label="Novo termo de busca"
+							placeholder={full ? s.termsFull(LIMITS.searchTerms) : s.newTermPlaceholder}
+							aria-label={s.newTerm}
 							disabled={full}
 							onChange={event => setNewTerm(event.target.value)}
 						/>
 						<Button variant="ghost" type="submit" disabled={full || !newTerm.trim()}>
 							<Icon name="plus" />
-							adicionar
+							{s.add}
 						</Button>
 					</form>
 					{fieldError('searchTerms')}
 					{!terms.some(term => term.enabled) && (
 						<Notice tone="warn" icon="alert">
-							<p>Sem nenhum termo ativo, o scraper fica em espera e não coleta.</p>
+							<p>{s.noActiveTerms}</p>
 						</Notice>
 					)}
-					<FieldHelp>
-						Até {LIMITS.searchTerms} termos, com até {LIMITS.termLength} caracteres e sem repetidos.
-					</FieldHelp>
+					<FieldHelp>{s.termsHelp(LIMITS.searchTerms, LIMITS.termLength)}</FieldHelp>
 				</fieldset>
 
 				<div className="grid grid-cols-3 gap-5 max-md:grid-cols-1">
 					<div className="flex flex-col gap-1.5">
-						<FieldLabel htmlFor="datePosted">publicadas em</FieldLabel>
+						<FieldLabel htmlFor="datePosted">{s.datePosted}</FieldLabel>
 						<SelectMenu
 							id="datePosted"
 							value={d.scraper.datePosted}
-							options={DATE_POSTED_OPTIONS}
+							options={DATE_POSTED_FILTERS.map(value => ({ value, label: t.format.datePosted[value] }))}
 							describedBy="datePosted-help"
 							onChange={value =>
 								edit(next => {
@@ -510,23 +486,23 @@ export function SettingsView({
 								})
 							}
 						/>
-						<FieldHelp id="datePosted-help">se faltarem vagas, a coleta amplia o período até qualquer data</FieldHelp>
+						<FieldHelp id="datePosted-help">{s.datePostedHelp}</FieldHelp>
 					</div>
 					<div className="flex flex-col gap-1.5">
-						<FieldLabel htmlFor="minJobsPerRun">mín. de vagas por coleta</FieldLabel>
+						<FieldLabel htmlFor="minJobsPerRun">{s.minJobs}</FieldLabel>
 						{numberInput(minJobsPerRun, (next, value) => (next.scraper.minJobsPerRun = value), 'minJobsPerRun', {
 							min: LIMITS.minJobsPerRun[0],
 							max: LIMITS.minJobsPerRun[1],
 						})}
 						{fieldError('minJobsPerRun') ?? (
 							<FieldHelp id="minJobsPerRun-help">
-								de {LIMITS.minJobsPerRun[0]} a {LIMITS.minJobsPerRun[1]}, somando os termos
-								{Number.isInteger(minJobsPerRun) && activeTerms > 0 && ` · ${jobsPerTermLabel(minJobsPerRun, activeTerms)}`}
+								{s.minJobsHelp(LIMITS.minJobsPerRun[0], LIMITS.minJobsPerRun[1])}
+								{Number.isInteger(minJobsPerRun) && activeTerms > 0 && ` · ${jobsPerTermLabel(t, minJobsPerRun, activeTerms)}`}
 							</FieldHelp>
 						)}
 					</div>
 					<div className="flex flex-col gap-1.5">
-						<FieldLabel htmlFor="intervalMinutes">intervalo entre coletas</FieldLabel>
+						<FieldLabel htmlFor="intervalMinutes">{s.interval}</FieldLabel>
 						{/* O número na unidade escolhida (trocar a unidade mantém a duração: 1 dia vira 24 h); salvo em minutos */}
 						<div className="flex gap-2.5">
 							{numberInput(
@@ -544,17 +520,20 @@ export function SettingsView({
 							<SelectMenu
 								id="intervalUnit"
 								className="w-28 shrink-0"
-								label="Unidade do intervalo"
+								label={s.intervalUnit}
 								value={intervalUnit}
-								options={INTERVAL_UNIT_OPTIONS}
+								options={(Object.keys(INTERVAL_UNITS) as IntervalUnit[]).map(value => ({
+									value,
+									label: s.intervalUnits[value],
+								}))}
 								onChange={setIntervalUnit}
 							/>
 						</div>
 						{fieldError('intervalMinutes') ?? (
 							<FieldHelp id="intervalMinutes-help">
 								{Number.isInteger(intervalMinutes) && intervalMinutes > 0
-									? `${formatInterval(intervalMinutes)} · máx. 7 dias`
-									: 'máx. 7 dias'}
+									? s.intervalMax(formatInterval(intervalMinutes))
+									: s.maxSevenDays}
 							</FieldHelp>
 						)}
 					</div>
@@ -565,13 +544,13 @@ export function SettingsView({
 
 	function renderProcessing(d: SettingsDraft) {
 		const p = d['post-processing']
-		const languages = [...new Set([...Object.keys(LANGUAGE_NAMES), ...p.allowedLanguages])]
+		const languages = [...new Set([...COMMON_LANGUAGES, ...p.allowedLanguages])]
 
 		return (
-			<SectionCard id="filtros" className={SECTION_SCROLL_MARGIN} title="filtros das vagas" tag="pós-processamento">
+			<SectionCard id="filters" className={SECTION_SCROLL_MARGIN} title={s.filtersTitle} tag={s.filtersTag}>
 				<div className="flex flex-col gap-1.5">
 					<span className="flex items-center justify-between gap-3">
-						<FieldLabel htmlFor="reviewChecksPercent">pedir para conferir o post a partir de</FieldLabel>
+						<FieldLabel htmlFor="reviewChecksPercent">{s.reviewFrom}</FieldLabel>
 						<span className="font-mono">{p.reviewChecksPercent}%</span>
 					</span>
 					<Range
@@ -580,7 +559,7 @@ export function SettingsView({
 						min={1}
 						max={100}
 						value={p.reviewChecksPercent}
-						aria-valuetext={`${p.reviewChecksPercent}% dos checks`}
+						aria-valuetext={s.reviewValue(p.reviewChecksPercent)}
 						onChange={event => {
 							const value = Number(event.target.value)
 							edit(next => {
@@ -589,14 +568,12 @@ export function SettingsView({
 						}}
 					/>
 					<FieldHelp id="reviewChecksPercent-help">
-						{reviewChecksThreshold(p.reviewChecksPercent)} de {EXTRACTION_CHECKS.length} checks da extração (campos que a IA
-						citou sem estarem no post, e a empresa que ela não achou). Daí em diante, a vaga fica em vermelho e pede para
-						conferir o post original e reportar.
+						{s.reviewHelp(reviewChecksThreshold(p.reviewChecksPercent), EXTRACTION_CHECKS.length)}
 					</FieldHelp>
 				</div>
 
 				<fieldset className="flex flex-col gap-2.5">
-					<legend className={LEGEND}>idiomas aceitos</legend>
+					<legend className={LEGEND}>{s.allowedLanguages}</legend>
 					<PillGroup>
 						{languages.map(code => (
 							<label key={code} className={pill({ className: 'cursor-pointer' })}>
@@ -617,22 +594,14 @@ export function SettingsView({
 						))}
 					</PillGroup>
 					{fieldError('allowedLanguages')}
-					<FieldHelp>Nenhum marcado aceita todos os idiomas. O idioma é detectado no texto do post.</FieldHelp>
+					<FieldHelp>{s.allowedLanguagesHelp}</FieldHelp>
 				</fieldset>
 
 				<div className="grid grid-cols-2 gap-5 max-md:grid-cols-1">
 					{(
 						[
-							[
-								'requiredKeywords',
-								'palavras obrigatórias',
-								'A vaga precisa citar ao menos uma no cargo ou nas tecnologias. Vazio desliga o filtro.',
-							],
-							[
-								'excludedKeywords',
-								'palavras excluídas',
-								'A vaga é descartada se citar qualquer uma no cargo ou nas tecnologias.',
-							],
+							['requiredKeywords', s.required, s.requiredHelp],
+							['excludedKeywords', s.excluded, s.excludedHelp],
 						] as const
 					).map(([field, label, help]) => (
 						<div className="flex flex-col gap-1.5" key={field}>
@@ -661,17 +630,14 @@ export function SettingsView({
 				</div>
 
 				<Notice tone="info" icon="info">
-					<p>
-						A comparação é por palavra inteira (“java” não pega “javascript”) e ignora maiúsculas, acentos, hífen e “.js”. Ou
-						seja, “Vue.js” = “vue” e “Front-End” = “frontend”.
-					</p>
+					<p>{s.matching}</p>
 				</Notice>
 
 				{/* Começa fechada: a lista cresce com o tempo e quase nunca é editada aqui */}
-				<Disclosure summary={`empresas bloqueadas (${p.blockedCompanies.length})`}>
+				<Disclosure summary={s.blockedSummary(p.blockedCompanies.length)}>
 					<div className="mt-3 flex flex-col gap-1.5 text-ink">
 						<span className="flex items-center justify-between gap-3">
-							<FieldLabel htmlFor="blockedCompanies">empresas bloqueadas</FieldLabel>
+							<FieldLabel htmlFor="blockedCompanies">{s.blocked}</FieldLabel>
 							<span className={META}>
 								{p.blockedCompanies.length} / {LIMITS.blockedCompanies}
 							</span>
@@ -692,12 +658,8 @@ export function SettingsView({
 						/>
 						{fieldError('blockedCompanies') ?? (
 							<FieldHelp id="blockedCompanies-help">
-								{p.blockedCompanies.length === 0
-									? 'Nenhuma empresa bloqueada. Para bloquear, abra uma vaga da empresa e escolha “bloquear empresa” na bandeira de reportar, ou escreva o nome aqui. '
-									: ''}
-								As vagas dessas empresas são descartadas na coleta, sem aparecer no site nem no Discord. “Itaú” também bloqueia
-								“Banco Itaú S.A.”. Desbloquear vale para os posts que aparecerem de novo nas próximas coletas: não traz de
-								volta as vagas antigas.
+								{p.blockedCompanies.length === 0 ? s.noBlocked : ''}
+								{s.blockedHelp}
 							</FieldHelp>
 						)}
 					</div>
@@ -706,7 +668,7 @@ export function SettingsView({
 				<div className="grid grid-cols-2 gap-5 max-md:grid-cols-1">
 					<div className="flex flex-col gap-1.5">
 						<span className="flex items-center justify-between gap-3">
-							<FieldLabel htmlFor="duplicateSimilarityPercent">agrupar repostagens a partir de</FieldLabel>
+							<FieldLabel htmlFor="duplicateSimilarityPercent">{s.groupFrom}</FieldLabel>
 							<span className="font-mono">{p.duplicateSimilarityPercent}%</span>
 						</span>
 						<Range
@@ -715,7 +677,7 @@ export function SettingsView({
 							min={1}
 							max={100}
 							value={p.duplicateSimilarityPercent}
-							aria-valuetext={`${p.duplicateSimilarityPercent}% de texto em comum`}
+							aria-valuetext={s.groupValue(p.duplicateSimilarityPercent)}
 							onChange={event => {
 								const value = Number(event.target.value)
 								edit(next => {
@@ -724,23 +686,18 @@ export function SettingsView({
 							}}
 						/>
 						<FieldHelp id="duplicateSimilarityPercent-help">
-							{duplicateSimilarityHint(p.duplicateSimilarityPercent)} É quanto do texto dois posts da mesma empresa e cargo têm
-							em comum.
+							{duplicateSimilarityHint(p.duplicateSimilarityPercent)} {s.groupHelp}
 						</FieldHelp>
 					</div>
 					<div className="flex flex-col gap-1.5">
-						<FieldLabel htmlFor="duplicateWindowDays">procurar repostagens em (dias)</FieldLabel>
+						<FieldLabel htmlFor="duplicateWindowDays">{s.window}</FieldLabel>
 						{numberInput(
 							p.duplicateWindowDays,
 							(next, value) => (next['post-processing'].duplicateWindowDays = value),
 							'duplicateWindowDays',
 							{ min: 1, max: 365 },
 						)}
-						{fieldError('duplicateWindowDays') ?? (
-							<FieldHelp id="duplicateWindowDays-help">
-								de 1 a 365; a vaga nova é comparada com as salvas nesse período
-							</FieldHelp>
-						)}
+						{fieldError('duplicateWindowDays') ?? <FieldHelp id="duplicateWindowDays-help">{s.windowHelp}</FieldHelp>}
 					</div>
 				</div>
 			</SectionCard>
@@ -751,17 +708,7 @@ export function SettingsView({
 		const message = d.message
 
 		return (
-			<SectionCard
-				id="mensagem"
-				className={SECTION_SCROLL_MARGIN}
-				title="mensagem de candidatura"
-				description={
-					<>
-						A mensagem de toda vaga sai do seu modelo, com as variáveis trocadas pelos dados da vaga. Na vaga, “melhorar com a
-						IA” reescreve o texto preenchido no tom e no tamanho que você escolher.
-					</>
-				}
-			>
+			<SectionCard id="message" className={SECTION_SCROLL_MARGIN} title={s.messageTitle} description={s.messageDescription}>
 				<MessageTemplateEditor
 					message={message}
 					profile={d.profile}
@@ -780,34 +727,31 @@ export function SettingsView({
 			<Hero
 				title={
 					<>
-						configurações <Hero.Mono>da máquina.</Hero.Mono>
+						{s.heroTitle} <Hero.Mono>{s.heroTitleMono}</Hero.Mono>
 					</>
 				}
-				lead="As mudanças valem a partir da próxima coleta, sem reiniciar nada. Os filtros não reprocessam vagas antigas."
+				lead={s.heroLead}
 			/>
 
 			{blocker.status === 'blocked' && (
 				<ConfirmDialog
-					title="Sair sem salvar?"
-					description={
-						dirtyAccounts.length > 0
-							? `Há alterações não salvas${dirty ? ' nas configurações e' : ''} na ${LIST_FORMAT.format(dirtyAccounts)}; elas vão se perder.`
-							: 'As alterações nas configurações ainda não foram salvas e vão se perder.'
-					}
-					confirmLabel="sair sem salvar"
-					cancelLabel="continuar editando"
+					title={s.leaveTitle}
+					description={dirtyAccounts.length > 0 ? s.leaveAccounts(dirty, formatList(dirtyAccounts)) : s.leaveSettings}
+					confirmLabel={s.leave}
+					cancelLabel={s.keepEditing}
 					onConfirm={blocker.proceed}
 					onCancel={blocker.reset}
 				/>
 			)}
 
-			{draft && <SectionNav sections={SECTIONS} label="Seções das configurações" />}
+			{draft && <SectionNav sections={SECTIONS.map(id => ({ id, label: s.sections[id] }))} label={s.sectionsNav} />}
+			{renderLanguage()}
 			{draft && renderProfile(draft)}
 			{draft && renderScraper(draft)}
 			{draft && renderProcessing(draft)}
 			{draft && renderMessage(draft)}
 			<AccountsSection
-				id="contas"
+				id="accounts"
 				className={SECTION_SCROLL_MARGIN}
 				initial={credentials}
 				initialGroup={account}
@@ -827,20 +771,18 @@ export function SettingsView({
 						>
 							<p className="text-sm">
 								{saveState === 'saving'
-									? 'salvando…'
+									? s.saving
 									: saveState !== 'idle'
 										? saveMessage.title
 										: dirty
-											? 'alterações não salvas'
+											? s.unsaved
 											: dirtyAccounts.length > 0
-												? `${LIST_FORMAT.format(dirtyAccounts)} não salva`
-												: 'tudo salvo'}
+												? s.accountsUnsaved(formatList(dirtyAccounts))
+												: s.allSaved}
 							</p>
 							{/* O "salvar alterações" não leva as contas: cada uma tem o próprio botão */}
 							{dirtyAccounts.length > 0 && (saveState === 'idle' || saveState === 'saving') && (
-								<p className="text-xs text-muted">
-									{dirty ? `e a ${LIST_FORMAT.format(dirtyAccounts)}: ` : ''}use o “salvar” da conta, em contas
-								</p>
+								<p className="text-xs text-muted">{s.accountsHint(dirty, formatList(dirtyAccounts))}</p>
 							)}
 							{(saveState === 'saved' || saveState === 'error') && saveMessage.detail && (
 								<p className={cx('text-xs', saveState === 'saved' && 'text-muted')}>{saveMessage.detail}</p>
@@ -848,7 +790,7 @@ export function SettingsView({
 						</div>
 						<div className="flex items-center gap-3 ml-auto">
 							<Button variant="ghost" disabled={!dirty || saveState === 'saving'} onClick={() => reset()}>
-								descartar
+								{s.discard}
 							</Button>
 							{/* Salvo, o botão mostra o check desenhado por um instante antes de voltar (e não apaga nesse meio-tempo) */}
 							<Button
@@ -860,15 +802,15 @@ export function SettingsView({
 								{saveState === 'saving' ? (
 									<>
 										<Icon name="spinner" />
-										salvando…
+										{s.saving}
 									</>
 								) : savedFlash ? (
 									<>
 										<DrawnCheck />
-										salvo
+										{s.savedButton}
 									</>
 								) : (
-									'salvar alterações'
+									s.saveChanges
 								)}
 							</Button>
 						</div>

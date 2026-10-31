@@ -1,33 +1,31 @@
-import type { ContractType, DatePostedFilter, MessageLength, MessageTone, ProcessedJob } from '@shared/contracts'
+import { CONTRACT_TYPES, type ContractType, type ProcessedJob } from '@shared/contracts'
+import { currentLocale, languageName, t } from '@shared/i18n'
 
 import type { WebJob } from '../../api-types'
 
 type WorkMode = NonNullable<ProcessedJob['workMode']> | 'none'
 
-/** Rótulo e cor de cada modalidade (as mesmas cores do card do Discord). */
-export const WORK_MODES: Record<WorkMode, { label: string; color: string }> = {
-	remoto: { label: 'Remoto', color: '#2ecc71' },
-	hibrido: { label: 'Híbrido', color: '#3498db' },
-	presencial: { label: 'Presencial', color: '#e67e22' },
-	none: { label: 'Sem modalidade', color: '#95a5a6' },
+/** A cor de cada modalidade (as mesmas do card do Discord); o rótulo vem do catálogo (`format.workModes`). */
+export const WORK_MODE_COLORS: Record<WorkMode, string> = {
+	remoto: '#2ecc71',
+	hibrido: '#3498db',
+	presencial: '#e67e22',
+	none: '#95a5a6',
 }
+
+export const WORK_MODE_KEYS = Object.keys(WORK_MODE_COLORS) as WorkMode[]
+
+export const CONTRACT_TYPE_KEYS: (ContractType | 'none')[] = [...CONTRACT_TYPES, 'none']
 
 export function workModeOf(job: Pick<WebJob, 'workMode'>) {
-	return WORK_MODES[job.workMode ?? 'none']
-}
-
-/** Rótulo de cada regime de contratação (os mesmos do card do Discord). */
-export const CONTRACT_TYPES: Record<ContractType | 'none', string> = {
-	clt: 'CLT',
-	pj: 'PJ',
-	estagio: 'Estágio',
-	freelance: 'Freelance',
-	none: 'Sem regime',
+	const mode = job.workMode ?? 'none'
+	return { label: t().format.workModes[mode], color: WORK_MODE_COLORS[mode] }
 }
 
 /** "CLT", ou "CLT ou PJ" quando o post aceita os dois; `null` se o post não diz. */
 export function contractTypesLabel(job: Pick<WebJob, 'contractTypes'>) {
-	return job.contractTypes?.length ? job.contractTypes.map(type => CONTRACT_TYPES[type]).join(' ou ') : null
+	const { contractTypes, or } = t().format
+	return job.contractTypes?.length ? job.contractTypes.map(type => contractTypes[type]).join(` ${or} `) : null
 }
 
 /**
@@ -39,7 +37,7 @@ export function jobSubtitle(job: Pick<WebJob, 'company' | 'companyConfidential' 
 	const parts = [job.company, job.location].filter(Boolean)
 	if (parts.length || confidential) return { confidential, text: parts.join(' · ') }
 
-	return { confidential, text: job.author ? `post de ${job.author}` : '' }
+	return { confidential, text: job.author ? t().format.postBy(job.author) : '' }
 }
 
 /** A primeira data disponível: publicação do post ou entrada no sistema. */
@@ -56,17 +54,16 @@ const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
 	['minute', 60],
 ]
 
-const relative = new Intl.RelativeTimeFormat('pt-BR', { numeric: 'auto', style: 'short' })
-
-/** "há 3 h", "ontem", "agora". */
+/** "há 3 h", "ontem", "agora" (no idioma escolhido). */
 export function timeAgo(iso: string, now = Date.now()) {
 	const seconds = Math.round((new Date(iso).getTime() - now) / 1000)
+	const relative = new Intl.RelativeTimeFormat(currentLocale(), { numeric: 'auto', style: 'short' })
 
 	for (const [unit, size] of UNITS) {
 		if (Math.abs(seconds) >= size) return relative.format(Math.trunc(seconds / size), unit)
 	}
 
-	return 'agora'
+	return t().format.now
 }
 
 /** Duração em "1h 20min", "4min 12s" ou "38s". */
@@ -81,17 +78,16 @@ export function formatDuration(ms: number) {
 	return `${seconds}s`
 }
 
-const dateTime = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
-
-/** "hoje, 14:06", "ontem, 22:00" ou "08/10, 11:15". */
+/** "hoje, 14:06", "ontem, 22:00" ou "08/10, 11:15" (no idioma escolhido). */
 export function formatDateTime(iso: string, now = new Date()) {
+	const locale = currentLocale()
 	const date = new Date(iso)
-	const time = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+	const time = date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
 	const days = Math.round((startOfDay(now) - startOfDay(date)) / (24 * 60 * 60 * 1000))
 
-	if (days === 0) return `hoje, ${time}`
-	if (days === 1) return `ontem, ${time}`
-	return dateTime.format(date)
+	if (days === 0) return t().format.today(time)
+	if (days === 1) return t().format.yesterday(time)
+	return date.toLocaleString(locale, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
 function startOfDay(date: Date) {
@@ -100,44 +96,30 @@ function startOfDay(date: Date) {
 
 /** Intervalo em minutos por extenso: "a cada 4 h", "a cada 1 h 30 min", "a cada 2 dias". */
 export function formatInterval(minutes: number) {
-	if (minutes % (24 * 60) === 0) {
-		const days = minutes / (24 * 60)
-		return `a cada ${days} ${days === 1 ? 'dia' : 'dias'}`
-	}
-	if (minutes < 60) return `a cada ${minutes} min`
+	const { format } = t()
+	if (minutes % (24 * 60) === 0) return format.everyDays(minutes / (24 * 60))
+	if (minutes < 60) return format.everyMinutes(minutes)
 
-	const hours = Math.floor(minutes / 60)
-	const rest = minutes % 60
-	return `a cada ${hours} h${rest ? ` ${rest} min` : ''}`
+	return format.everyHours(Math.floor(minutes / 60), minutes % 60)
 }
 
-export const DATE_POSTED_LABELS: Record<DatePostedFilter, string> = {
-	'past-24h': 'Últimas 24h',
-	'past-week': 'Última semana',
-	'past-month': 'Último mês',
-	any: 'Qualquer data',
+/** Números no formato do idioma escolhido ("1.234" ou "1,234"). */
+export function formatNumber(value: number) {
+	return value.toLocaleString(currentLocale())
 }
 
-/** Os tons do "melhorar com a IA". */
-export const MESSAGE_TONE_LABELS: Record<MessageTone, string> = {
-	formal: 'formal',
-	neutral: 'neutro',
-	casual: 'descontraído',
+/** Lista por extenso no idioma escolhido: "a, b e c" ou "a, b, and c". */
+export function formatList(items: readonly string[], type: Intl.ListFormatType = 'conjunction') {
+	return new Intl.ListFormat(currentLocale(), { type }).format(items)
 }
 
-export const MESSAGE_LENGTH_LABELS: Record<MessageLength, string> = { short: 'curta', medium: 'média' }
+/** Os idiomas oferecidos nos filtros e no perfil (ISO 639-1), além dos que já estiverem salvos. */
+export const COMMON_LANGUAGES = ['pt', 'en', 'es', 'fr', 'de', 'it']
 
-export const LANGUAGE_NAMES: Record<string, string> = {
-	pt: 'Português',
-	en: 'Inglês',
-	es: 'Espanhol',
-	fr: 'Francês',
-	de: 'Alemão',
-	it: 'Italiano',
-}
-
+/** "Português (pt)", com o nome no idioma escolhido; sem nome conhecido, só o código. */
 export function languageLabel(code: string) {
-	return LANGUAGE_NAMES[code] ? `${LANGUAGE_NAMES[code]} (${code})` : code
+	const name = languageName(code)
+	return name === code ? code : `${name} (${code})`
 }
 
 /** Só links http(s) viram botão (o campo vem da IA e pode trazer outra coisa). */

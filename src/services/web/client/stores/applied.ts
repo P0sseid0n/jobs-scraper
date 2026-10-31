@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 
+import { t } from '@shared/i18n'
+
 import type { WebAppliedSimilar, WebJob } from '../../api-types'
 import { api, RequestError } from '../api'
 import { createStore, useStore } from '../lib/store'
@@ -40,7 +42,7 @@ export async function setApplied(job: AppliedJob, applied: boolean) {
 		apply(job.postId, saved.appliedAt)
 	} catch (error) {
 		apply(job.postId, previous)
-		notify(error instanceof RequestError ? error.message : 'Não consegui marcar a candidatura', 'error')
+		notify(error instanceof RequestError ? error.message : t().marks.appliedFailed, 'error')
 	}
 }
 
@@ -51,7 +53,7 @@ export async function setApplied(job: AppliedJob, applied: boolean) {
 export function appliedSuggestion(job: AppliedJob): ToastAction | undefined {
 	if (appliedAtIn(changes.get(), job) !== null) return undefined
 
-	return { label: 'marcar como enviada', run: () => void setApplied(job, true) }
+	return { label: t().marks.markSent, run: () => void setApplied(job, true) }
 }
 
 /**

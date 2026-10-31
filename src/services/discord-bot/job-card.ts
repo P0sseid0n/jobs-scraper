@@ -12,21 +12,13 @@ import {
 	type MessageActionRowComponentBuilder,
 } from 'discord.js'
 
-import {
-	EXTRACTION_CHECK_LABELS,
-	EXTRACTION_CHECKS,
-	type JobPublished,
-	type PostImageType,
-	type ProcessedJob,
-} from '@shared/contracts'
+import { EXTRACTION_CHECKS, type JobPublished, type PostImageType, type ProcessedJob } from '@shared/contracts'
+import { LOCALE_CODES, messagesFor, t } from '@shared/i18n'
 
 import { CONTACT_BUTTON_PREFIX } from './contact-reply'
 
 /** Botão "Já me candidatei": o custom_id carrega o postId da vaga marcada. */
 export const APPLIED_BUTTON_PREFIX = 'applied:'
-
-const WORK_MODE_LABELS = { remoto: 'Remoto', hibrido: 'Híbrido', presencial: 'Presencial' } as const
-const CONTRACT_TYPE_LABELS = { clt: 'CLT', pj: 'PJ', estagio: 'Estágio', freelance: 'Freelance' } as const
 
 // Cor da barra lateral do embed por modalidade: ajuda a diferenciar as vagas de relance
 const WORK_MODE_COLORS = { remoto: 0x2ecc71, hibrido: 0x3498db, presencial: 0xe67e22 } as const
@@ -71,17 +63,19 @@ export function buildJobCard(job: JobPublished, image: JobCardImage | null = nul
 
 /** Monta o nome do post no fórum: "Cargo · Empresa". */
 export function buildThreadName(job: ProcessedJob) {
-	const name = [job.title ?? 'Vaga sem título', job.company].filter(Boolean).join(' · ')
+	const name = [job.title ?? t().discord.untitled, job.company].filter(Boolean).join(' · ')
 
 	return truncate(name, THREAD_NAME_MAX)
 }
 
 /** Escolhe até 5 tags existentes no fórum que batem com a modalidade, o regime ou as tecnologias da vaga. */
 export function pickForumTags(job: ProcessedJob, availableTags: { id: string; name: string }[]) {
-	const contractTypes = (job.contractTypes ?? []).map(type => CONTRACT_TYPE_LABELS[type])
-	const wanted = new Set(
-		[workModeLabel(job), ...contractTypes, ...(job.necessaryKnowledge ?? [])].filter(Boolean).map(value => normalizeTag(value!)),
-	)
+	// As tags valem com o nome em qualquer idioma: trocar o idioma do sistema não deixa as tags do fórum para trás
+	const labels = LOCALE_CODES.flatMap(locale => {
+		const { workModes, contractTypes } = messagesFor(locale).format
+		return [job.workMode && workModes[job.workMode], ...(job.contractTypes ?? []).map(type => contractTypes[type])]
+	})
+	const wanted = new Set([...labels, ...(job.necessaryKnowledge ?? [])].filter(Boolean).map(value => normalizeTag(value!)))
 
 	return availableTags
 		.filter(tag => wanted.has(normalizeTag(tag.name)))
@@ -101,7 +95,7 @@ export function summarizePost(text: string, max = SUMMARY_MAX) {
 
 function buildJobEmbed(job: JobPublished) {
 	const embed = new EmbedBuilder()
-		.setTitle(truncate(job.title ?? 'Vaga sem título', TITLE_MAX))
+		.setTitle(truncate(job.title ?? t().discord.untitled, TITLE_MAX))
 		.setDescription(summarizePost(job.rawContent))
 		.setColor(jobColor(job))
 
@@ -110,7 +104,7 @@ function buildJobEmbed(job: JobPublished) {
 
 	const titleUrl = isHttpUrl(job.postLink) ? job.postLink : isHttpUrl(job.applyLink) ? job.applyLink : null
 	if (titleUrl) embed.setURL(titleUrl)
-	if (job.author) embed.setAuthor({ name: truncate(`Publicado por ${job.author}`, TITLE_MAX) })
+	if (job.author) embed.setAuthor({ name: truncate(t().discord.postedBy(job.author), TITLE_MAX) })
 	if (job.postedAt) embed.setTimestamp(new Date(job.postedAt))
 
 	for (const field of jobFields(job)) {
@@ -125,14 +119,15 @@ function jobFields(job: ProcessedJob) {
 	const postedAt = job.postedAt ? time(new Date(job.postedAt), TimestampStyles.RelativeTime) : null
 	const skills = job.necessaryKnowledge?.length ? job.necessaryKnowledge.map(skill => `\`${skill}\``).join(' ') : null
 
+	const fields = t().discord.fields
 	return [
-		{ name: '🏢 Empresa', value: job.company, inline: true },
-		{ name: '📍 Local', value: job.location, inline: true },
-		{ name: '🏠 Modalidade', value: workModeLabel(job), inline: true },
-		{ name: '📄 Regime', value: contractTypesLabel(job), inline: true },
-		{ name: '🕒 Publicada', value: postedAt, inline: true },
-		{ name: '📧 Contato', value: job.recruiterEmail, inline: true },
-		{ name: '🛠️ Conhecimentos', value: skills, inline: false },
+		{ name: fields.company, value: job.company, inline: true },
+		{ name: fields.location, value: job.location, inline: true },
+		{ name: fields.workMode, value: workModeLabel(job), inline: true },
+		{ name: fields.contract, value: contractTypesLabel(job), inline: true },
+		{ name: fields.posted, value: postedAt, inline: true },
+		{ name: fields.contact, value: job.recruiterEmail, inline: true },
+		{ name: fields.skills, value: skills, inline: false },
 	]
 }
 
@@ -141,7 +136,7 @@ function buildJobComponents(job: ProcessedJob) {
 
 	// Primeiro as formas de candidatura (site, contato); o post vai por último, porque serve mais para conferir
 	if (isHttpUrl(job.applyLink)) {
-		buttons.push(new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel('Candidatar-se').setEmoji('📝').setURL(job.applyLink))
+		buttons.push(new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel(t().discord.apply).setEmoji('📝').setURL(job.applyLink))
 	}
 
 	// Com e-mail: contato + currículo ajustado. Sem e-mail: só o currículo (para se candidatar pelo link).
@@ -152,8 +147,8 @@ function buildJobComponents(job: ProcessedJob) {
 
 		buttons.push(
 			job.recruiterEmail
-				? button.setLabel('Contato do recrutador').setEmoji('📧')
-				: button.setLabel('Gerar currículo').setEmoji('📄'),
+				? button.setLabel(t().discord.recruiterContact).setEmoji('📧')
+				: button.setLabel(t().discord.generateCv).setEmoji('📄'),
 		)
 	}
 
@@ -161,7 +156,7 @@ function buildJobComponents(job: ProcessedJob) {
 	if (`${APPLIED_BUTTON_PREFIX}${job.postId}`.length <= CUSTOM_ID_MAX) buttons.push(appliedButton(job.postId, false))
 
 	if (isHttpUrl(job.postLink)) {
-		buttons.push(new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel('Ver post').setEmoji('🔗').setURL(job.postLink))
+		buttons.push(new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel(t().discord.seePost).setEmoji('🔗').setURL(job.postLink))
 	}
 
 	if (buttons.length === 0) return []
@@ -174,8 +169,8 @@ export function appliedButton(postId: string, applied: boolean) {
 	const button = new ButtonBuilder().setCustomId(`${APPLIED_BUTTON_PREFIX}${postId}`)
 
 	return applied
-		? button.setStyle(ButtonStyle.Success).setLabel('Candidatura enviada').setEmoji('✅')
-		: button.setStyle(ButtonStyle.Secondary).setLabel('Já me candidatei').setEmoji('☑️')
+		? button.setStyle(ButtonStyle.Success).setLabel(t().discord.applied).setEmoji('✅')
+		: button.setStyle(ButtonStyle.Secondary).setLabel(t().discord.alreadyApplied).setEmoji('☑️')
 }
 
 /** As linhas de botões do card com o "Já me candidatei" trocado pelo do estado `applied`; os outros ficam iguais. */
@@ -203,18 +198,20 @@ function jobColor(job: Pick<JobPublished, 'workMode' | 'needsReview'>) {
 function checksFooter(job: Pick<JobPublished, 'extractionChecks' | 'needsReview'>) {
 	if (job.extractionChecks.length === 0) return null
 
-	const labels = job.extractionChecks.map(check => EXTRACTION_CHECK_LABELS[check]).join(', ')
-	const text = `⚠ ${job.extractionChecks.length}/${EXTRACTION_CHECKS.length} · a conferir no post: ${labels}`
-	return job.needsReview ? `${text}. Confira o post original e reporte a vaga no site.` : text
+	const { checks, discord } = t()
+	const labels = job.extractionChecks.map(check => checks.labels[check]).join(', ')
+	const text = discord.checks(job.extractionChecks.length, EXTRACTION_CHECKS.length, labels)
+	return job.needsReview ? discord.review(text) : text
 }
 
 function workModeLabel(job: Pick<ProcessedJob, 'workMode'>) {
-	return job.workMode ? WORK_MODE_LABELS[job.workMode] : null
+	return job.workMode ? t().format.workModes[job.workMode] : null
 }
 
 /** "CLT", ou "CLT ou PJ" quando o post aceita os dois. */
 function contractTypesLabel(job: Pick<ProcessedJob, 'contractTypes'>) {
-	return job.contractTypes?.length ? job.contractTypes.map(type => CONTRACT_TYPE_LABELS[type]).join(' ou ') : null
+	const { contractTypes, or } = t().format
+	return job.contractTypes?.length ? job.contractTypes.map(type => contractTypes[type]).join(` ${or} `) : null
 }
 
 function isHttpUrl(value: string | null): value is string {

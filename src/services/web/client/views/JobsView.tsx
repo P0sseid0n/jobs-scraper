@@ -2,6 +2,8 @@ import { useNavigate, useSearch } from '@tanstack/react-router'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { flushSync } from 'react-dom'
 
+import { languageName, type Messages } from '@shared/i18n'
+
 import { isJobRouteId } from '../../job-route-id'
 import type { JobFilters } from '../api'
 import { Icon } from '../components/Icon'
@@ -26,7 +28,7 @@ import { celebrate } from '../lib/celebrate'
 import { cx } from '../lib/cx'
 import { useFiltersDrag } from '../lib/filters-drag'
 import { useFlipList } from '../lib/flip-list'
-import { CONTRACT_TYPES, LANGUAGE_NAMES, WORK_MODES } from '../lib/format'
+import { COMMON_LANGUAGES, CONTRACT_TYPE_KEYS, formatNumber, languageLabel, WORK_MODE_COLORS, WORK_MODE_KEYS } from '../lib/format'
 import { hasActiveFilters } from '../lib/job-filters'
 import { useWideLayout } from '../lib/media'
 import { reducedMotion } from '../lib/motion'
@@ -34,22 +36,13 @@ import { useStore } from '../lib/store'
 import { useTrayRequests } from '../stores/cv'
 import { filtersOpen } from '../stores/filters-panel'
 import { jobsStore, loadJobs, loadMoreJobs, showIncoming, useJobs } from '../stores/jobs'
+import { useT } from '../stores/locale'
 import { markAllViewed, useViewedCheck } from '../stores/viewed'
 
-const PERIODS = [
-	['24h', '24h'],
-	['7d', '7 dias'],
-	['30d', '30 dias'],
-	['all', 'tudo'],
-] as const
+/** Os períodos do filtro; o nome de cada um fica em `jobs.periods` do catálogo. */
+const PERIODS = ['24h', '7d', '30d', 'all'] as const
 
 const VISIBLE_SKILL_FILTERS = 12
-
-/** `''` é "todos" (sem filtro de idioma). */
-const LANGUAGE_OPTIONS = [
-	{ value: '', label: 'todos' },
-	...Object.entries(LANGUAGE_NAMES).map(([code, name]) => ({ value: code, label: `${name} (${code})` })),
-]
 
 /**
  * Painel do detalhe da vaga ao lado da lista (desktop): acompanha a rolagem e rola por dentro. Com os filtros fechados,
@@ -58,6 +51,7 @@ const LANGUAGE_OPTIONS = [
  */
 export function DetailPanel({ children }: { children: ReactNode }) {
 	const wider = !useStore(filtersOpen)
+	const t = useT()
 
 	return (
 		<aside
@@ -70,7 +64,7 @@ export function DetailPanel({ children }: { children: ReactNode }) {
 					wider ? 'max-w-190 basis-130' : 'max-w-115 basis-100',
 				),
 			})}
-			aria-label="Detalhe da vaga"
+			aria-label={t.jobs.detailPanel}
 		>
 			{/* Rola por dentro: rolando o próprio card, a barra de rolagem passava por cima dos cantos arredondados */}
 			<div className="min-h-0 overflow-y-auto p-7 max-md:p-4.5">{children}</div>
@@ -128,7 +122,7 @@ function observeEnd(el: HTMLDivElement | null) {
  * "voltar" desfaz; a busca por texto substitui a entrada, para não criar uma por letra.
  */
 function useFilters() {
-	const filters = useSearch({ from: '/_vagas' })
+	const filters = useSearch({ from: '/_jobs' })
 	const navigate = useNavigate()
 
 	return {
@@ -142,22 +136,22 @@ function useFilters() {
 type FilterChip = { key: string; label: string; remove: Partial<JobFilters> }
 
 /** Os filtros ligados, um por chip, cada um com o que desligá-lo (o resumo que aparece com o painel fechado). */
-function activeFilterChips(filters: JobFilters): FilterChip[] {
+function activeFilterChips(filters: JobFilters, t: Messages): FilterChip[] {
 	return [
 		...(filters.q.trim() ? [{ key: 'q', label: `“${filters.q.trim()}”`, remove: { q: '' } }] : []),
-		...PERIODS.filter(([value]) => value !== 'all' && value === filters.since).map(([value, label]) => ({
+		...PERIODS.filter(value => value !== 'all' && value === filters.since).map(value => ({
 			key: `since-${value}`,
-			label,
+			label: t.jobs.periods[value],
 			remove: { since: 'all' as const },
 		})),
 		...filters.workMode.map(mode => ({
 			key: `workMode-${mode}`,
-			label: WORK_MODES[mode].label,
+			label: t.format.workModes[mode],
 			remove: { workMode: toggled(filters.workMode, mode) },
 		})),
 		...filters.contractType.map(type => ({
 			key: `contractType-${type}`,
-			label: CONTRACT_TYPES[type],
+			label: t.format.contractTypes[type],
 			remove: { contractType: toggled(filters.contractType, type) },
 		})),
 		...filters.skills.map(skill => ({
@@ -165,33 +159,32 @@ function activeFilterChips(filters: JobFilters): FilterChip[] {
 			label: skill,
 			remove: { skills: toggled(filters.skills, skill) },
 		})),
-		...(filters.unviewed ? [{ key: 'unviewed', label: 'só não vistas', remove: { unviewed: false } }] : []),
+		...(filters.unviewed ? [{ key: 'unviewed', label: t.jobs.chips.unviewed, remove: { unviewed: false } }] : []),
 		// Ligado por padrão: o chip aparece quando a pessoa pede para ver as candidatadas também
-		...(filters.hideApplied ? [] : [{ key: 'hideApplied', label: 'com candidaturas enviadas', remove: { hideApplied: true } }]),
-		...(filters.hasEmail ? [{ key: 'hasEmail', label: 'com e-mail', remove: { hasEmail: false } }] : []),
-		...(filters.language
-			? [{ key: 'language', label: LANGUAGE_NAMES[filters.language] ?? filters.language, remove: { language: '' } }]
-			: []),
+		...(filters.hideApplied ? [] : [{ key: 'hideApplied', label: t.jobs.chips.withApplied, remove: { hideApplied: true } }]),
+		...(filters.hasEmail ? [{ key: 'hasEmail', label: t.jobs.chips.withEmail, remove: { hasEmail: false } }] : []),
+		...(filters.language ? [{ key: 'language', label: languageName(filters.language), remove: { language: '' } }] : []),
 	]
 }
 
 /** Os filtros ligados em chips (× desliga um), o resumo que aparece com o painel fechado. */
 function FilterChips({ className }: { className?: string }) {
 	const { filters, setFilters, clearFilters } = useFilters()
-	const chips = activeFilterChips(filters)
+	const t = useT()
+	const chips = activeFilterChips(filters, t)
 
 	if (chips.length === 0) return null
 	return (
 		<div className={cx('flex flex-wrap items-center gap-1.5', className)}>
 			{chips.map(chip => (
-				<Pill key={chip.key} aria-label={`remover filtro ${chip.label}`} onClick={() => setFilters(chip.remove)}>
+				<Pill key={chip.key} aria-label={t.jobs.removeFilter(chip.label)} onClick={() => setFilters(chip.remove)}>
 					{chip.label}
 					<Icon name="close" size={12} />
 				</Pill>
 			))}
 			{chips.length > 1 && (
 				<TextLink size="xs" className="ml-1.5" onClick={clearFilters}>
-					limpar
+					{t.jobs.clear}
 				</TextLink>
 			)}
 		</div>
@@ -201,13 +194,14 @@ function FilterChips({ className }: { className?: string }) {
 /** Celular: o botão que abre os filtros (num card que desce abaixo dele) e, fechados, o resumo dos ligados. */
 function MobileFiltersBar({ open }: { open: boolean }) {
 	const { filters } = useFilters()
-	const count = activeFilterChips(filters).length
+	const t = useT()
+	const count = activeFilterChips(filters, t).length
 
 	return (
 		<div className="flex flex-col items-start gap-2.5 md:hidden">
 			<Button variant="ghost" aria-expanded={open} aria-controls="filters" onClick={() => filtersOpen.set(!open)}>
 				<Icon name="filter" />
-				filtros{count > 0 ? ` · ${count}` : ''}
+				{t.jobs.filtersButton(count)}
 			</Button>
 			{!open && <FilterChips />}
 		</div>
@@ -223,12 +217,13 @@ const HANDLE_ICON = 'col-start-1 row-start-1 transition duration-300 ease-spring
  */
 function FiltersHandle({ open, count, drag }: { open: boolean; count: number; drag: ReturnType<typeof useFiltersDrag> }) {
 	const closing = drag.previewOpen
+	const t = useT()
 
 	return (
 		<div className="sticky top-19 z-10 h-0 max-md:hidden">
 			<IconButton
 				variant="ghost"
-				label={open ? 'esconder filtros' : count > 0 ? `mostrar filtros (${count} ligados)` : 'mostrar filtros'}
+				label={open ? t.jobs.hideFilters : t.jobs.showFilters(count)}
 				aria-expanded={open}
 				aria-controls="filters"
 				className={cx('absolute top-0 right-0 touch-none bg-bg', drag.dragging && 'cursor-ew-resize')}
@@ -253,6 +248,7 @@ function FiltersHandle({ open, count, drag }: { open: boolean; count: number; dr
 function Filters({ open }: { open: boolean }) {
 	const { facets } = useJobs()
 	const { filters, setFilters, clearFilters } = useFilters()
+	const t = useT()
 	const [allSkills, setAllSkills] = useState(false)
 	const aside = useRef<HTMLElement>(null)
 	const content = useRef<HTMLDivElement>(null)
@@ -264,7 +260,12 @@ function Filters({ open }: { open: boolean }) {
 	const selectedSkills = filters.skills.filter(skill => !skills.some(item => item.name.toLowerCase() === skill.toLowerCase()))
 	const visibleSkills = allSkills ? skills : skills.slice(0, VISIBLE_SKILL_FILTERS)
 
-	const count = activeFilterChips(filters).length
+	const count = activeFilterChips(filters, t).length
+	/** `''` é "todos" (sem filtro de idioma). */
+	const languageOptions = [
+		{ value: '', label: t.jobs.allLanguages },
+		...COMMON_LANGUAGES.map(code => ({ value: code, label: languageLabel(code) })),
+	]
 
 	return (
 		// Desktop: fechados, viram uma faixa com a alça (que acompanha a rolagem); abertos, a coluna desliza a partir dela. O
@@ -277,7 +278,7 @@ function Filters({ open }: { open: boolean }) {
 				open ? 'md:w-66' : 'md:w-12 max-md:hidden',
 				'max-md:rounded-lg max-md:border max-md:border-line max-md:bg-surface max-md:p-4 max-md:starting:-translate-y-2 max-md:starting:opacity-0',
 			)}
-			aria-label="Filtros"
+			aria-label={t.jobs.filtersLabel}
 			id="filters"
 		>
 			<FiltersHandle open={open} count={count} drag={drag} />
@@ -293,39 +294,39 @@ function Filters({ open }: { open: boolean }) {
 			>
 				{/* O lugar da alça, que fica por cima (acompanhando a rolagem) */}
 				<div className="flex min-h-10 items-center justify-between gap-3 pr-12 max-md:hidden">
-					<span className={LABEL}>filtros</span>
+					<span className={LABEL}>{t.jobs.filters}</span>
 				</div>
 
 				<SearchInput
-					label="Buscar vagas"
+					label={t.jobs.search}
 					value={filters.q}
 					onChange={event => setFilters({ q: event.target.value })}
-					placeholder="cargo, empresa, tecnologia…"
+					placeholder={t.jobs.searchPlaceholder}
 				/>
 
 				<fieldset className={FIELDSET}>
-					<legend className={cx(LABEL, 'mb-2.5')}>período</legend>
+					<legend className={cx(LABEL, 'mb-2.5')}>{t.jobs.period}</legend>
 					<PillGroup>
-						{PERIODS.map(([value, label]) => (
+						{PERIODS.map(value => (
 							<Pill key={value} pressed={filters.since === value} onClick={() => setFilters({ since: value })}>
-								{label}
+								{t.jobs.periods[value]}
 							</Pill>
 						))}
 					</PillGroup>
 				</fieldset>
 
 				<fieldset className={FIELDSET}>
-					<legend className={cx(LABEL, 'mb-2.5')}>modalidade</legend>
+					<legend className={cx(LABEL, 'mb-2.5')}>{t.jobs.workMode}</legend>
 					<div className="flex flex-col gap-1.5">
-						{(Object.keys(WORK_MODES) as (keyof typeof WORK_MODES)[]).map(mode => (
+						{WORK_MODE_KEYS.map(mode => (
 							<Pill
 								key={mode}
 								shape="row"
 								pressed={filters.workMode.includes(mode)}
 								onClick={() => setFilters({ workMode: toggled(filters.workMode, mode) })}
 							>
-								<StatusDot style={{ background: WORK_MODES[mode].color }} />
-								<span className="grow">{WORK_MODES[mode].label}</span>
+								<StatusDot style={{ background: WORK_MODE_COLORS[mode] }} />
+								<span className="grow">{t.format.workModes[mode]}</span>
 								{facets && <span className={PILL_COUNT}>{facets.workModes[mode]}</span>}
 							</Pill>
 						))}
@@ -333,15 +334,15 @@ function Filters({ open }: { open: boolean }) {
 				</fieldset>
 
 				<fieldset className={FIELDSET}>
-					<legend className={cx(LABEL, 'mb-2.5')}>regime</legend>
+					<legend className={cx(LABEL, 'mb-2.5')}>{t.jobs.contractType}</legend>
 					<PillGroup>
-						{(Object.keys(CONTRACT_TYPES) as (keyof typeof CONTRACT_TYPES)[]).map(type => (
+						{CONTRACT_TYPE_KEYS.map(type => (
 							<Pill
 								key={type}
 								pressed={filters.contractType.includes(type)}
 								onClick={() => setFilters({ contractType: toggled(filters.contractType, type) })}
 							>
-								{CONTRACT_TYPES[type]} {facets && <span className={PILL_COUNT}>{facets.contractTypes[type]}</span>}
+								{t.format.contractTypes[type]} {facets && <span className={PILL_COUNT}>{facets.contractTypes[type]}</span>}
 							</Pill>
 						))}
 					</PillGroup>
@@ -349,7 +350,7 @@ function Filters({ open }: { open: boolean }) {
 
 				{(skills.length > 0 || filters.skills.length > 0) && (
 					<fieldset className={FIELDSET}>
-						<legend className={cx(LABEL, 'mb-2.5')}>tecnologias</legend>
+						<legend className={cx(LABEL, 'mb-2.5')}>{t.jobs.technologies}</legend>
 						<PillGroup>
 							{selectedSkills.map(skill => (
 								<Pill key={skill} pressed onClick={() => setFilters({ skills: toggled(filters.skills, skill) })}>
@@ -371,7 +372,7 @@ function Filters({ open }: { open: boolean }) {
 							})}
 							{skills.length > VISIBLE_SKILL_FILTERS && (
 								<Pill shape="dashed" onClick={() => setAllSkills(!allSkills)}>
-									{allSkills ? 'menos' : `+ ${skills.length - VISIBLE_SKILL_FILTERS}`}
+									{allSkills ? t.jobs.less : `+ ${skills.length - VISIBLE_SKILL_FILTERS}`}
 								</Pill>
 							)}
 						</PillGroup>
@@ -381,30 +382,29 @@ function Filters({ open }: { open: boolean }) {
 				<div className={cx(FIELDSET, 'gap-3 border-t border-line pt-4 text-sm')}>
 					<label className="flex items-center justify-between gap-3">
 						<span>
-							só não vistas {facets && <span className="font-mono text-muted">{facets.unviewed.toLocaleString('pt-BR')}</span>}
+							{t.jobs.unviewedOnly} {facets && <span className="font-mono text-muted">{formatNumber(facets.unviewed)}</span>}
 						</span>
 						<Checkbox checked={filters.unviewed} onChange={event => setFilters({ unviewed: event.target.checked })} />
 					</label>
 					<label className="flex items-center justify-between gap-3">
 						<span>
-							esconder candidaturas enviadas{' '}
-							{facets && <span className="font-mono text-muted">{facets.applied.toLocaleString('pt-BR')}</span>}
+							{t.jobs.hideApplied} {facets && <span className="font-mono text-muted">{formatNumber(facets.applied)}</span>}
 						</span>
 						<Checkbox checked={filters.hideApplied} onChange={event => setFilters({ hideApplied: event.target.checked })} />
 					</label>
 					<label className="flex items-center justify-between gap-3">
-						tem e-mail de contato
+						{t.jobs.hasEmail}
 						<Checkbox checked={filters.hasEmail} onChange={event => setFilters({ hasEmail: event.target.checked })} />
 					</label>
 					{/* Fora de um <label>: o clique numa opção da lista contaria como clique no rótulo e reabriria a lista */}
 					<div className="flex items-center justify-between gap-3">
-						<label htmlFor="language-filter">idioma</label>
+						<label htmlFor="language-filter">{t.jobs.language}</label>
 						<SelectMenu
 							id="language-filter"
 							size="sm"
 							className="w-40"
 							value={filters.language}
-							options={LANGUAGE_OPTIONS}
+							options={languageOptions}
 							onChange={language => setFilters({ language })}
 						/>
 					</div>
@@ -412,7 +412,7 @@ function Filters({ open }: { open: boolean }) {
 
 				{hasActiveFilters(filters) && (
 					<Button variant="ghost" onClick={clearFilters}>
-						limpar filtros
+						{t.jobs.clearFilters}
 					</Button>
 				)}
 			</div>
@@ -445,6 +445,7 @@ function JobList({
 }) {
 	const { jobs, status, error, nextCursor, loadingMore } = useJobs()
 	const { filters, clearFilters } = useFilters()
+	const t = useT()
 	// Os cards deslizam para o lugar novo ao mudar a lista
 	const { list, ghosts } = useFlipList(jobs.map(job => job.postId))
 
@@ -470,11 +471,11 @@ function JobList({
 		return (
 			<EmptyState
 				tone="error"
-				title="Não consegui carregar as vagas"
+				title={t.jobs.loadFailed}
 				description={error}
 				action={
 					<Button variant="lime" onClick={() => void loadJobs()}>
-						tentar de novo
+						{t.routes.retry}
 					</Button>
 				}
 			/>
@@ -485,22 +486,22 @@ function JobList({
 		return hasActiveFilters(filters) ? (
 			<EmptyState
 				illustration="search"
-				title="Nenhuma vaga com esses filtros"
-				description="Tente outra busca ou volte a mostrar todas as vagas."
+				title={t.jobs.noMatchTitle}
+				description={t.jobs.noMatchDescription}
 				action={
 					<Button variant="lime" onClick={clearFilters}>
-						limpar filtros
+						{t.jobs.clearFilters}
 					</Button>
 				}
 			/>
 		) : (
 			<EmptyState
 				illustration="jobs"
-				title="Nenhuma vaga ainda"
-				description="Rode uma coleta: as vagas aparecem aqui assim que a IA terminar de ler os posts."
+				title={t.jobs.emptyTitle}
+				description={t.jobs.emptyDescription}
 				action={
-					<ButtonLink variant="lime" to="/coletas">
-						ir para coletas
+					<ButtonLink variant="lime" to="/runs">
+						{t.jobs.goToRuns}
 					</ButtonLink>
 				}
 			/>
@@ -520,15 +521,15 @@ function JobList({
 				<div ref={error ? undefined : observeEnd} className="flex flex-col items-center gap-2 py-2">
 					{error && (
 						<p className="text-sm text-danger" role="alert">
-							Não consegui carregar mais vagas: {error}
+							{t.jobs.loadMoreFailed(error)}
 						</p>
 					)}
 					<Button variant="ghost" disabled={loadingMore} onClick={loadMoreJobs}>
-						{loadingMore ? 'carregando…' : error ? 'tentar de novo' : 'carregar mais vagas'}
+						{loadingMore ? t.jobs.loading : error ? t.routes.retry : t.jobs.loadMore}
 					</Button>
 				</div>
 			) : (
-				<p className={cx(META, 'py-2 text-center')}>fim da lista</p>
+				<p className={cx(META, 'py-2 text-center')}>{t.jobs.endOfList}</p>
 			)}
 		</>
 	)
@@ -538,19 +539,27 @@ function JobList({
  * "30+ de 62 vagas": as da lista (com `+` se há mais páginas) do total coletado, que não depende dos filtros. Com todas
  * na lista, só "62 vagas".
  */
-function listCount(loaded: number, hasMore: boolean, total: number | undefined) {
-	const shown = `${loaded.toLocaleString('pt-BR')}${hasMore ? '+' : ''}`
-	if (total === undefined) return `${shown} vagas`
-	if (!hasMore && loaded === total) return `${total.toLocaleString('pt-BR')} vagas`
-	return `${shown} de ${total.toLocaleString('pt-BR')} vagas`
+function listCount(t: Messages, loaded: number, hasMore: boolean, total: number | undefined) {
+	const shown = `${formatNumber(loaded)}${hasMore ? '+' : ''}`
+	if (total === undefined) return t.jobs.count(shown, null)
+	if (!hasMore && loaded === total) return t.jobs.count(formatNumber(total), null)
+	return t.jobs.count(shown, formatNumber(total))
 }
 
-const HERO_TITLE = (
-	<>
-		vagas <Hero.Mono>coletadas.</Hero.Mono>
-	</>
-)
-const HERO_LEAD = 'Posts do LinkedIn lidos pela IA. Abra o post, copie o contato ou gere o currículo.'
+function JobsHero({ aside }: { aside?: ReactNode }) {
+	const t = useT()
+	return (
+		<Hero
+			title={
+				<>
+					{t.jobs.heroTitle} <Hero.Mono>{t.jobs.heroTitleMono}</Hero.Mono>
+				</>
+			}
+			lead={t.jobs.heroLead}
+			aside={aside}
+		/>
+	)
+}
 
 /**
  * A tela das vagas na primeira carga (o `pendingComponent` da rota), no formato dela: os filtros (se abertos), os cards
@@ -559,10 +568,11 @@ const HERO_LEAD = 'Posts do LinkedIn lidos pela IA. Abra o post, copie o contato
 export function JobsPending() {
 	const wide = useWideLayout()
 	const showFilters = useStore(filtersOpen)
+	const t = useT()
 
 	return (
 		<Page>
-			<Hero title={HERO_TITLE} lead={HERO_LEAD} />
+			<JobsHero />
 			<div className="flex flex-wrap items-start gap-6 max-md:flex-col max-md:items-stretch max-md:gap-3.5">
 				{showFilters && (
 					<div className="flex w-66 shrink-0 flex-col gap-5.5 max-md:hidden" aria-hidden="true">
@@ -581,7 +591,7 @@ export function JobsPending() {
 				)}
 				<section
 					className={cx('flex min-w-0 grow-999 flex-col gap-2.5 max-md:basis-auto', showFilters ? 'basis-110' : 'basis-100')}
-					aria-label="Lista de vagas"
+					aria-label={t.jobs.listLabel}
 					aria-busy="true"
 				>
 					{SKELETONS}
@@ -598,7 +608,7 @@ export function JobsPending() {
 
 /**
  * Tela principal: filtros, lista para escanear e, no desktop, o detalhe da vaga ao lado (`detail`, que a rota preenche).
- * No desktop a vaga aberta fica na URL (`/vagas/$id`, em `selectedRouteId`): voltar e avançar trocam de vaga e o link
+ * No desktop a vaga aberta fica na URL (`/jobs/$id`, em `selectedRouteId`): voltar e avançar trocam de vaga e o link
  * pode ser compartilhado.
  */
 export function JobsView({ selectedRouteId, detail }: { selectedRouteId: string | null; detail: ReactNode }) {
@@ -607,6 +617,7 @@ export function JobsView({ selectedRouteId, detail }: { selectedRouteId: string 
 	const wide = useWideLayout()
 	const showFilters = useStore(filtersOpen)
 	const pendingCvs = useTrayRequests().filter(request => request.status === 'pending').length
+	const t = useT()
 
 	// Destacada na lista: a vaga da URL ou, no desktop sem vaga na URL, a primeira (que o painel mostra)
 	const selectedId = selectedRouteId
@@ -619,16 +630,8 @@ export function JobsView({ selectedRouteId, detail }: { selectedRouteId: string 
 
 	return (
 		<Page>
-			<Hero
-				title={HERO_TITLE}
-				lead={HERO_LEAD}
-				aside={
-					pendingCvs > 0 && (
-						<span className="font-mono text-muted text-sm">
-							{pendingCvs === 1 ? '1 currículo gerando' : `${pendingCvs} currículos gerando`}
-						</span>
-					)
-				}
+			<JobsHero
+				aside={pendingCvs > 0 && <span className="font-mono text-muted text-sm">{t.jobs.cvsGenerating(pendingCvs)}</span>}
 			/>
 
 			{incoming.length > 0 && (
@@ -642,12 +645,12 @@ export function JobsView({ selectedRouteId, detail }: { selectedRouteId: string 
 					onClick={showIncomingOnTop}
 				>
 					<Badge tone="lime" size="sm">
-						ao vivo
+						{t.jobs.live}
 					</Badge>
 					<span>
-						<RollingNumber value={incoming.length} /> {incoming.length === 1 ? 'vaga nova' : 'vagas novas'}
+						<RollingNumber value={incoming.length} /> {t.jobs.newJobs(incoming.length)}
 					</span>
-					<span className="font-mono text-xs underline">mostrar no topo</span>
+					<span className="font-mono text-xs underline">{t.jobs.showOnTop}</span>
 				</button>
 			)}
 
@@ -662,7 +665,7 @@ export function JobsView({ selectedRouteId, detail }: { selectedRouteId: string 
 						showFilters ? 'basis-110' : 'basis-100',
 						status === 'loading' && jobs.length > 0 && 'opacity-60',
 					)}
-					aria-label="Lista de vagas"
+					aria-label={t.jobs.listLabel}
 					aria-busy={status === 'loading'}
 				>
 					{!showFilters && <FilterChips className="mb-1 max-md:hidden" />}
@@ -670,6 +673,7 @@ export function JobsView({ selectedRouteId, detail }: { selectedRouteId: string 
 						<div className="font-mono text-muted text-sm">
 							{/* Com as candidaturas enviadas escondidas (o padrão), elas não contam no total */}
 							{listCount(
+								t,
 								jobs.length,
 								Boolean(nextCursor),
 								facets ? facets.total - (filters.hideApplied ? facets.applied : 0) : undefined,
@@ -678,7 +682,7 @@ export function JobsView({ selectedRouteId, detail }: { selectedRouteId: string 
 								<>
 									{' · '}
 									<TextLink size="xs" onClick={() => void markAllViewed(jobs)}>
-										marcar todas como vistas
+										{t.jobs.markAllViewed}
 									</TextLink>
 								</>
 							)}

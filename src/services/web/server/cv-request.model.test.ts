@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test'
 
-import { CV_TIMEOUT_ERROR, CV_TIMEOUT_MS, toWebCvRequest } from './cv-request.model'
+import { CV_TIMEOUT_MS, cvTimeoutError, toWebCvRequest } from './cv-request.model'
 
 const requestedAt = new Date('2026-10-10T12:00:00.000Z')
 const doc = {
@@ -22,7 +22,7 @@ test('pedido pendente dentro do prazo continua gerando', () => {
 test('sem resposta do cv-updater no prazo, aparece como falha com o motivo', () => {
 	const result = toWebCvRequest(doc, new Date(requestedAt.getTime() + CV_TIMEOUT_MS + 1))
 
-	expect(result).toMatchObject({ status: 'failed', error: CV_TIMEOUT_ERROR, requestedAt: requestedAt.toISOString() })
+	expect(result).toMatchObject({ status: 'failed', error: cvTimeoutError(), requestedAt: requestedAt.toISOString() })
 })
 
 test('a mensagem que a IA escrevia nos pedidos antigos fica de fora', () => {
@@ -38,8 +38,17 @@ test('o ajuste feito para a vaga vai junto; pedidos antigos, sem o campo, ficam 
 		removedSkills: ['jQuery'],
 		summary: { before: 'Antes.', after: 'Depois.' },
 		projects: ['Painel'],
+		language: { locale: 'en', source: 'job' } as const,
 	}
 
 	expect(toWebCvRequest({ ...doc, status: 'ready', changes }).changes).toEqual(changes)
 	expect(toWebCvRequest(doc).changes).toBeNull()
+})
+
+test('o idioma do currículo: pedidos de antes do campo, ou num idioma que deixou de existir, ficam sem ele', () => {
+	const changes = { addedSkills: [], removedSkills: [], summary: null, projects: [] }
+
+	expect(toWebCvRequest({ ...doc, status: 'ready', changes }).changes?.language).toBeNull()
+	const gone = { ...changes, language: { locale: 'xx', source: 'job' } } as unknown as typeof changes
+	expect(toWebCvRequest({ ...doc, status: 'ready', changes: gone }).changes?.language).toBeNull()
 })

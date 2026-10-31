@@ -6,6 +6,7 @@ import {
 	type ExtractionFeedbackRecord,
 	type LanguageFeedbackRecord,
 } from '@shared/database'
+import { t } from '@shared/i18n'
 import type { Logger } from '@shared/logging'
 import { readSettings } from '@shared/settings'
 
@@ -30,7 +31,7 @@ export function planCorrection(doc: JobDocument, correction: JobCorrection, now 
 	}
 	const correctedFields = Object.keys(changes)
 
-	if (!correction.notAJob && correctedFields.length === 0) throw new HttpError(400, 'Nenhum valor mudou: a vaga já está assim')
+	if (!correction.notAJob && correctedFields.length === 0) throw new HttpError(400, t().api.correctionUnchanged)
 
 	const set: Record<string, unknown> = { ...changes, correctedAt: now }
 	if (!doc.aiExtraction) set.aiExtraction = current
@@ -88,14 +89,14 @@ export async function correctJob(req: Request & { params: { postId: string } }, 
 	const correction = JobCorrectionSchema.parse(await readJson(req))
 
 	const doc = await Job.findOne({ ...LISTABLE_JOBS, postId }).lean<JobDocument>()
-	if (!doc) throw new HttpError(404, 'Vaga não encontrada')
+	if (!doc) throw new HttpError(404, t().api.jobNotFound)
 
 	const { reviewChecksPercent, allowedLanguages } = await readSettings('post-processing')
 
 	if (correction.wrongLanguage) {
 		const { set, feedback } = planLanguageReport(doc, allowedLanguages)
 		const updated = await Job.findOneAndUpdate({ postId }, { $set: set }, { returnDocument: 'after', lean: true })
-		if (!updated) throw new HttpError(404, 'Vaga não encontrada')
+		if (!updated) throw new HttpError(404, t().api.jobNotFound)
 
 		await LanguageFeedback.create(feedback)
 		logger.info({ postId, detectedLanguage: feedback.detectedLanguage }, 'Vaga marcada pelo site como outro idioma')
@@ -104,7 +105,7 @@ export async function correctJob(req: Request & { params: { postId: string } }, 
 
 	const { set, feedback } = planCorrection(doc, correction)
 	const updated = await Job.findOneAndUpdate({ postId }, { $set: set }, { returnDocument: 'after', lean: true })
-	if (!updated) throw new HttpError(404, 'Vaga não encontrada')
+	if (!updated) throw new HttpError(404, t().api.jobNotFound)
 
 	await ExtractionFeedback.create(feedback)
 	logger.info({ postId, kind: feedback.kind, fields: feedback.correctedFields }, 'Vaga corrigida pelo site')

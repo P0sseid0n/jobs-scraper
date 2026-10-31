@@ -20,6 +20,7 @@ import { appliedSuggestion, setApplied, useAppliedAt, useAppliedSimilar } from '
 import { useCvFor } from '../stores/cv'
 import { removeJob, replaceJob } from '../stores/jobs'
 import { onLive } from '../stores/live'
+import { useT } from '../stores/locale'
 import { reprocessJob, useReprocessing } from '../stores/reprocess'
 import { notify } from '../stores/toast'
 import { BlockCompanyButton, BlockCompanyDialog, useCompanyBlock } from './BlockCompanyButton'
@@ -79,6 +80,8 @@ export function JobDetail({ job }: { job: WebJob }) {
 
 function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job: WebJob) => void }) {
 	const navigate = useNavigate()
+	const t = useT()
+	const detail = t.jobDetail
 	const root = useRef<HTMLDivElement>(null)
 	const [expanded, setExpanded] = useState(false)
 	const [reporting, setReporting] = useState(false)
@@ -96,7 +99,7 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 	// Copiar a mensagem ou abrir a candidatura não quer dizer que enviou: o aviso só lembra de marcar
 	const suggestion = appliedSuggestion({ postId: job.postId, appliedAt })
 	const remindToMark = () => {
-		if (suggestion) notify('Depois de enviar a candidatura, marque aqui', 'info', suggestion)
+		if (suggestion) notify(detail.markReminder, 'info', suggestion)
 	}
 	const postLink = safeLink(job.postLink)
 	const applyLink = safeLink(job.applyLink)
@@ -105,7 +108,6 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 	const fromList = !!job.sourcePostId
 	const fromPage = fromList && isListingPageText(job.rawContent)
 	const content = fromPage ? listingPageText(job.rawContent) : job.rawContent
-	const contentNoun = fromPage ? 'texto' : 'post'
 	const isLong = content.length > LONG_POST_CHARS
 	const subtitle = jobSubtitle(job)
 	const removeFromList = () => {
@@ -128,7 +130,7 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 		try {
 			setRawJson(JSON.stringify(await api.rawJob(job.postId), null, 2))
 		} catch (error) {
-			notify(error instanceof RequestError ? error.message : 'Não consegui carregar o JSON da vaga', 'error')
+			notify(error instanceof RequestError ? error.message : detail.rawJsonFailed, 'error')
 		} finally {
 			setLoadingRaw(false)
 		}
@@ -147,12 +149,12 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 					</div>
 					<div className="flex items-center">
 						<time className="font-mono text-muted text-sm whitespace-nowrap" dateTime={jobDate(job)}>
-							publicada {timeAgo(jobDate(job))}
+							{detail.published(timeAgo(jobDate(job)))}
 						</time>
 						{/* Os dois na cor do texto (`tone="ink"`), para não sumirem ao lado da data; a descrição da imagem sai do texto como o detalhe mostra */}
 						<ShareJobButton job={{ ...job, rawContent: content }} className="ml-3" />
 						<IconButton
-							label="reportar problema na vaga"
+							label={detail.report}
 							size="sm"
 							variant="ghost"
 							tone="ink"
@@ -176,7 +178,7 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 				{job.author && (job.company || job.location || subtitle.confidential) && (
 					// O subtítulo do perfil (de onde a empresa pode ter saído) cabe numa linha; inteiro, no mouse
 					<p className={cx(META, 'truncate')} title={job.authorHeadline ?? undefined}>
-						postado por {job.author}
+						{detail.postedBy(job.author)}
 						{job.authorHeadline && ` · ${job.authorHeadline}`}
 					</p>
 				)}
@@ -200,7 +202,7 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 			)}
 
 			{job.necessaryKnowledge && (
-				<BadgeList aria-label="Tecnologias">
+				<BadgeList aria-label={detail.technologies}>
 					{job.necessaryKnowledge.map(skill => (
 						<li className={badge()} key={skill}>
 							{skill}
@@ -218,13 +220,13 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 				)}
 				{applyLink && (
 					<Button variant="ghost" size="lg" className={DETAIL_ACTION} href={applyLink} external onClick={remindToMark}>
-						ir para a candidatura
+						{detail.goToApplication}
 					</Button>
 				)}
 				{/* Sem site nem e-mail, a candidatura é pelo próprio post: aí ele é um botão */}
 				{postLink && appliesThroughPost && (
 					<Button variant="ghost" size="lg" className={DETAIL_ACTION} href={postLink} external onClick={remindToMark}>
-						ver post e se candidatar
+						{detail.applyThroughPost}
 					</Button>
 				)}
 			</div>
@@ -237,16 +239,16 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 				<div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm" role="status">
 					<span className={badge({ tone: 'running' })}>
 						<Icon name="check" size={13} />
-						candidatura enviada {formatDateTime(appliedAt)}
+						{detail.applied(formatDateTime(appliedAt))}
 					</span>
 					<TextLink size="xs" mono onClick={() => void setApplied(job, false)}>
-						desmarcar
+						{detail.unmark}
 					</TextLink>
 				</div>
 			) : (
 				<Button variant="ghost" size="sm" className="self-start" onClick={() => void setApplied(job, true)}>
 					<Icon name="check" size={13} />
-					já enviei a candidatura
+					{detail.alreadyApplied}
 				</Button>
 			)}
 
@@ -254,26 +256,26 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 			{appliedSimilar && !appliedAt && (
 				<Notice tone="warn" icon="alert">
 					<p className="m-0">
-						Você já enviou candidatura para uma vaga parecida em {formatDateTime(appliedSimilar.appliedAt)}:{' '}
-						<RouteLink size="sm" to="/vagas/$id" params={jobParams(appliedSimilar.postId)}>
+						{detail.similarBefore(formatDateTime(appliedSimilar.appliedAt))}
+						<RouteLink size="sm" to="/jobs/$id" params={jobParams(appliedSimilar.postId)}>
 							{appliedSimilar.title}
 							{appliedSimilar.company && ` · ${appliedSimilar.company}`}
 						</RouteLink>
-						. Confira se não é a mesma antes de enviar de novo.
+						{detail.similarAfter}
 					</p>
 				</Notice>
 			)}
 
 			{cv?.status === 'ready' && <CvReady key={cv.requestId} cv={cv} />}
-			{cv?.status === 'failed' && <Notice tone="danger">O currículo falhou: {cv.error}</Notice>}
+			{cv?.status === 'failed' && <Notice tone="danger">{detail.cvFailed(cv.error ?? '')}</Notice>}
 
-			<section className="flex flex-col gap-2.5" aria-label={fromPage ? 'Página da vaga' : 'Post original'}>
+			<section className="flex flex-col gap-2.5" aria-label={fromPage ? detail.jobPage : detail.originalPost}>
 				<div className="flex items-center justify-between gap-3">
-					<h3 className={LABEL}>{fromPage ? 'página da vaga' : 'post original'}</h3>
+					<h3 className={LABEL}>{fromPage ? detail.jobPageTitle : detail.originalPostTitle}</h3>
 					{/* Sempre aparece, mesmo repetindo o botão de candidatura pelo post: é o lugar onde se procura o post */}
 					{postLink && (
 						<TextLink size="xs" mono href={postLink} external>
-							{fromList ? 'ver post com a lista' : 'ir para o post'}
+							{fromList ? detail.seeListPost : detail.goToPost}
 						</TextLink>
 					)}
 				</div>
@@ -289,7 +291,7 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 				</div>
 				{isLong && (
 					<TextLink size="sm" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
-						{expanded ? `recolher ${contentNoun}` : `mostrar ${contentNoun} completo`}
+						{expanded ? detail.collapse(fromPage) : detail.expand(fromPage)}
 					</TextLink>
 				)}
 			</section>
@@ -308,21 +310,22 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 				{job.needsReview && (
 					<Notice tone="danger" icon="alert">
 						<p>
-							Confira <MissedChecks job={job} /> no post original: a extração pode ter errado{' '}
-							{job.extractionChecks.length === 1 ? 'nesse campo' : 'nesses campos'} e no resto da vaga. Se houver erro,{' '}
+							{detail.reviewBefore}
+							<MissedChecks job={job} />
+							{detail.reviewMiddle(job.extractionChecks.length)}
 							<TextLink size="sm" aria-haspopup="dialog" onClick={() => setReporting(true)}>
-								reporte a vaga
+								{detail.reviewLink}
 							</TextLink>
 							.
 						</p>
 					</Notice>
 				)}
-				{job.language && <span className={META}>idioma: {languageLabel(job.language)}</span>}
+				{job.language && <span className={META}>{detail.language(languageLabel(job.language))}</span>}
 				{/* Ferramentas para a vaga que veio errada; o "processar de novo" fica à direita, também sozinho fora do `bun dev` */}
 				<div className="flex flex-wrap items-center gap-x-4">
 					{DEVELOPMENT && (
 						<TextLink size="xs" mono aria-expanded={rawJson !== null} disabled={loadingRaw} onClick={toggleRawJson}>
-							{loadingRaw ? 'carregando json…' : rawJson !== null ? 'esconder json da vaga' : 'ver json da vaga (debug)'}
+							{loadingRaw ? detail.loadingJson : rawJson !== null ? detail.hideJson : detail.showJson}
 						</TextLink>
 					)}
 					{/* A página ou o post lidos pela metade (o site mudou, o scraper falhou): lê e extrai de novo, sem anunciar.
@@ -331,17 +334,17 @@ function JobDetailContent({ job, onCorrected }: { job: WebJob; onCorrected: (job
 						size="xs"
 						mono
 						className="ml-auto inline-flex items-center gap-1 text-muted no-underline hover:text-ink"
-						title="Lê a página ou o post de novo e refaz a extração; as suas correções ficam"
+						title={detail.reprocessTitle}
 						aria-busy={reprocessing}
 						disabled={reprocessing}
 						onClick={() => void reprocessJob(job)}
 					>
 						<Icon name={reprocessing ? 'spinner' : 'refresh'} size={13} />
-						{reprocessing ? 'processando…' : 'processar de novo'}
+						{reprocessing ? detail.reprocessing : detail.reprocess}
 					</TextLink>
 				</div>
 				{rawJson !== null && (
-					<CodeBlock label="documento no mongodb" action={<CopyButton text={rawJson} what="JSON da vaga" size="xs" />} scroll>
+					<CodeBlock label={detail.rawLabel} action={<CopyButton text={rawJson} what={detail.jsonWhat} size="xs" />} scroll>
 						{rawJson}
 					</CodeBlock>
 				)}

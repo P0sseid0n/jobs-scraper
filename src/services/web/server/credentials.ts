@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 import { CREDENTIAL_GROUPS, type CredentialGroup } from '@shared/contracts'
 import { findActiveCvBaseName } from '@shared/database'
+import { t } from '@shared/i18n'
 import { deleteCredentials, mergeCredentials, readCredentialsStatus, saveCredentials } from '@shared/settings'
 
 import { checkDiscord, checkGithub, checkSmtp } from './credential-checks'
@@ -39,7 +40,7 @@ export async function removeCredentials(req: GroupRequest) {
  */
 export async function testCredentials(req: GroupRequest) {
 	const group = parseGroup(req.params.group)
-	if (group === 'linkedin') throw new HttpError(404, 'A conta do LinkedIn não tem teste: ela é usada na próxima coleta')
+	if (group === 'linkedin') throw new HttpError(404, t().api.linkedinHasNoTest)
 
 	const patch = await readPatch(req)
 	if (group === 'discord') return Response.json(await checkDiscord(await mergeCredentials('discord', patch)))
@@ -50,7 +51,7 @@ export async function testCredentials(req: GroupRequest) {
 
 function parseGroup(value: string) {
 	const group = CredentialGroupSchema.safeParse(value)
-	if (!group.success) throw new HttpError(404, `Credenciais "${value}" não existem`)
+	if (!group.success) throw new HttpError(404, t().api.credentialsNotFound(value))
 
 	return group.data
 }
@@ -64,12 +65,12 @@ async function readPatch(req: Request) {
 	try {
 		patch = JSON.parse(text)
 	} catch {
-		throw new HttpError(400, 'Corpo da requisição não é um JSON válido')
+		throw new HttpError(400, t().api.invalidJson)
 	}
 
-	if (!patch || typeof patch !== 'object' || Array.isArray(patch)) throw new HttpError(400, 'Envie um objeto com os campos a alterar')
+	if (!patch || typeof patch !== 'object' || Array.isArray(patch)) throw new HttpError(400, t().api.objectExpected)
 	if (Object.values(patch).some(value => value !== undefined && typeof value !== 'string')) {
-		throw new HttpError(400, 'Os campos das credenciais são texto')
+		throw new HttpError(400, t().api.credentialsAreText)
 	}
 
 	return patch as Record<string, string>

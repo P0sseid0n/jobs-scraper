@@ -1,4 +1,5 @@
-import type { ContractType, ProcessedJob } from '../contracts/job'
+import type { ProcessedJob } from '../contracts/job'
+import { currentLocale, t } from '../i18n'
 
 /**
  * Os dados da vaga que entram no compartilhamento: só os públicos, que servem a quem não tem o jobs-scraper. O
@@ -25,19 +26,16 @@ export const SHARE_SKILLS_MAX = 5
 /** Até onde vai a descrição da imagem; o card ainda corta em quantas linhas couberem. */
 export const SHARE_DESCRIPTION_MAX = 600
 
-// Os mesmos rótulos do card do Discord e do site
-const WORK_MODE_LABELS = { remoto: 'Remoto', hibrido: 'Híbrido', presencial: 'Presencial' } as const
-const CONTRACT_TYPE_LABELS: Record<ContractType, string> = { clt: 'CLT', pj: 'PJ', estagio: 'Estágio', freelance: 'Freelance' }
-
-const LIST_FORMAT = new Intl.ListFormat('pt-BR')
-
-// A data do post no horário de Brasília (o dos posts), igual em qualquer máquina
-const POSTED_AT_FORMAT = new Intl.DateTimeFormat('pt-BR', {
-	day: '2-digit',
-	month: '2-digit',
-	year: 'numeric',
-	timeZone: 'America/Sao_Paulo',
-})
+/** A data do post no horário de Brasília (o dos posts), igual em qualquer máquina, no formato do idioma atual. */
+function postedAtLabel(postedAt: string) {
+	const date = new Intl.DateTimeFormat(currentLocale(), {
+		day: '2-digit',
+		month: '2-digit',
+		year: 'numeric',
+		timeZone: 'America/Sao_Paulo',
+	}).format(new Date(postedAt))
+	return t().share.postedOn(date)
+}
 
 /**
  * O texto para indicar a vaga a alguém (WhatsApp, e-mail, outro app): o cargo em `*negrito*` (o do WhatsApp, que nos
@@ -51,17 +49,18 @@ export function jobShareText(job: ShareJob) {
 	const recruiterEmail = job.recruiterEmail?.trim()
 
 	const title = `*${jobTitle(job).replaceAll('*', '')}*`
-	const details = [contractTypesLabel(job), job.workMode && WORK_MODE_LABELS[job.workMode], job.location?.trim()].filter(Boolean)
+	const { share, format } = t()
+	const details = [contractTypesLabel(job), job.workMode && format.workModes[job.workMode], job.location?.trim()].filter(Boolean)
 	const skills = jobSkills(job)
 
 	const about = [
 		job.company?.trim() ? `${title} — ${job.company.trim()}` : title,
 		details.length > 0 && details.join(' · '),
-		skills.length > 0 && `Tecnologias: ${skillList(skills)}`,
+		skills.length > 0 && share.technologies(skillList(skills)),
 	]
 	const links = [
-		applyLink ? `Candidatura: ${applyLink}` : recruiterEmail && `Candidatura: envie o currículo para ${recruiterEmail}`,
-		postLink && `Post original: ${postLink}`,
+		applyLink ? share.applyLink(applyLink) : recruiterEmail && share.applyEmail(recruiterEmail),
+		postLink && share.originalPost(postLink),
 	]
 
 	return [about, links]
@@ -111,13 +110,13 @@ export function jobShareCard(job: ShareJob, options: ShareCardOptions): ShareCar
 		title: jobTitle(job),
 		company: job.company?.trim() || null,
 		contractTypes: contractTypesLabel(job),
-		workMode: job.workMode ? { value: job.workMode, label: WORK_MODE_LABELS[job.workMode] } : null,
+		workMode: job.workMode ? { value: job.workMode, label: t().format.workModes[job.workMode] } : null,
 		location: job.location?.trim() || null,
 		skills: skills.slice(0, SHARE_SKILLS_MAX),
 		moreSkills: Math.max(skills.length - SHARE_SKILLS_MAX, 0),
 		description: options.description ? jobDescription(job.rawContent) : null,
-		postedAt: job.postedAt ? `publicada em ${POSTED_AT_FORMAT.format(new Date(job.postedAt))}` : null,
-		qr: qrLink ? { link: qrLink, caption: qrLink === applyLink ? 'Candidate-se' : 'Ver vaga' } : null,
+		postedAt: job.postedAt ? postedAtLabel(job.postedAt) : null,
+		qr: qrLink ? { link: qrLink, caption: qrLink === applyLink ? t().share.apply : t().share.seeJob } : null,
 	}
 }
 
@@ -128,7 +127,7 @@ export function jobShareSubject(job: Pick<ShareJob, 'title' | 'company'>) {
 
 /** O nome do PNG da imagem da vaga: "vaga-dev-backend-empresa-x.png", sem acentos nem símbolos. */
 export function jobShareFileName(job: Pick<ShareJob, 'title' | 'company'>) {
-	const slug = ['vaga', job.title, job.company]
+	const slug = [t().share.fileSlug, job.title, job.company]
 		.filter(Boolean)
 		.join(' ')
 		.normalize('NFD')
@@ -146,12 +145,13 @@ const FILE_NAME_MAX = 80
 
 /** O cargo; sem ele, "Vaga". */
 function jobTitle(job: Pick<ShareJob, 'title'>) {
-	return job.title?.trim() || 'Vaga'
+	return job.title?.trim() || t().share.job
 }
 
 /** "CLT", ou "CLT ou PJ" quando o post aceita os dois; `null` se o post não diz. */
 function contractTypesLabel(job: Pick<ShareJob, 'contractTypes'>) {
-	return job.contractTypes?.length ? job.contractTypes.map(type => CONTRACT_TYPE_LABELS[type]).join(' ou ') : null
+	const { contractTypes, or } = t().format
+	return job.contractTypes?.length ? job.contractTypes.map(type => contractTypes[type]).join(` ${or} `) : null
 }
 
 /** As tecnologias da vaga, sem as vazias (o campo vem da IA). */
@@ -183,9 +183,9 @@ function jobDescription(rawContent: string | null | undefined) {
 /** "React, TypeScript e Node.js"; acima do limite, "React, …, Docker e mais 3". */
 function skillList(skills: string[]) {
 	const rest = skills.length - SHARE_SKILLS_MAX
-	if (rest <= 0) return LIST_FORMAT.format(skills)
+	if (rest <= 0) return new Intl.ListFormat(currentLocale()).format(skills)
 
-	return `${skills.slice(0, SHARE_SKILLS_MAX).join(', ')} e mais ${rest}`
+	return t().share.moreSkills(skills.slice(0, SHARE_SKILLS_MAX).join(', '), rest)
 }
 
 /** Só links http(s) de fora (o campo vem da IA): nada de `localhost` nem de IP da rede local. */

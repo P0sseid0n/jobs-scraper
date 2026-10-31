@@ -2,6 +2,7 @@ import QRCode from 'qrcode'
 
 import { VerificationCodeSchema, type LoginTestRequest, type VerificationCode } from '@shared/contracts'
 import { readLinkedinLogin, reportLinkedinLogin } from '@shared/database'
+import { t } from '@shared/i18n'
 import { QUEUES, type QueueClient } from '@shared/messaging'
 import { loadCredentials } from '@shared/settings'
 
@@ -29,7 +30,7 @@ export async function getLinkedinLogin() {
  * se o LinkedIn pedir) aparece em `GET /api/linkedin/login`.
  */
 export async function requestLinkedinLogin(queue: QueueClient) {
-	if (!(await loadCredentials('linkedin'))) throw new HttpError(409, 'Salve o e-mail e a senha do LinkedIn antes de testar')
+	if (!(await loadCredentials('linkedin'))) throw new HttpError(409, t().api.linkedinCredentialsFirst)
 
 	const requestedAt = new Date()
 	await reportLinkedinLogin({ status: 'pending', requestedAt })

@@ -5,7 +5,8 @@ import type { ShareCard } from '@shared/templates'
 
 import tokens from '../../design-system/tokens.json'
 import { cx } from '../lib/cx'
-import { WORK_MODES } from '../lib/format'
+import { WORK_MODE_COLORS } from '../lib/format'
+import { useT } from '../stores/locale'
 import { Logo } from './Logo'
 
 export type ShareCardTheme = 'light' | 'dark'
@@ -79,6 +80,7 @@ type ShareJobCardProps = {
  * modal o mostra encolhido, como prévia, e gera o PNG dele.
  */
 export function ShareJobCard({ card, theme, format, titleSize: size, ref }: ShareJobCardProps) {
+	const t = useT()
 	const { width, height } = SHARE_CARD_SIZES[format]
 	const details = card.contractTypes || card.workMode || card.location
 
@@ -94,7 +96,7 @@ export function ShareJobCard({ card, theme, format, titleSize: size, ref }: Shar
 		>
 			<div className="flex items-center justify-between gap-10">
 				<div className="flex items-center gap-6">
-					<span className="rounded-pill bg-lime px-7 py-3 font-mono text-3xl font-medium text-lime-ink">vaga</span>
+					<span className="rounded-pill bg-lime px-7 py-3 font-mono text-3xl font-medium text-lime-ink">{t.share.badge}</span>
 					{card.postedAt && <span className="font-mono text-2xl text-muted">{card.postedAt}</span>}
 				</div>
 				<Logo size="xl" className="text-muted" />
@@ -118,8 +120,8 @@ export function ShareJobCard({ card, theme, format, titleSize: size, ref }: Shar
 					<div className="flex flex-wrap gap-4">
 						{card.contractTypes && <span className={cx(BADGE, 'border-line')}>{card.contractTypes}</span>}
 						{card.workMode && (
-							<span className={BADGE} style={{ borderColor: WORK_MODES[card.workMode.value].color }}>
-								<span className="size-4 rounded-full" style={{ background: WORK_MODES[card.workMode.value].color }} />
+							<span className={BADGE} style={{ borderColor: WORK_MODE_COLORS[card.workMode.value] }}>
+								<span className="size-4 rounded-full" style={{ background: WORK_MODE_COLORS[card.workMode.value] }} />
 								{card.workMode.label}
 							</span>
 						)}
@@ -133,7 +135,7 @@ export function ShareJobCard({ card, theme, format, titleSize: size, ref }: Shar
 
 				{card.skills.length > 0 && (
 					<div className="flex flex-col gap-5">
-						<span className="font-mono text-2xl text-muted">tecnologias</span>
+						<span className="font-mono text-2xl text-muted">{t.share.technologiesLabel}</span>
 						<div className="flex flex-wrap gap-4">
 							{card.skills.map(skill => (
 								<span key={skill} className="max-w-full truncate rounded-pill bg-surface-2 px-7 py-3 font-mono text-3xl">

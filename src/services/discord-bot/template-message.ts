@@ -1,12 +1,11 @@
 import { Job } from '@shared/database'
+import { currentLocale, t } from '@shared/i18n'
 import { readSettings } from '@shared/settings'
 import { templateMessage, type TemplateMessage } from '@shared/templates'
 
-const LIST_FORMAT = new Intl.ListFormat('pt-BR')
-
 /** Os nomes como aparecem no modelo: "{{empresa}} e {{local}}". */
 function variableList(names: readonly string[]) {
-	return LIST_FORMAT.format(names.map(name => `{{${name}}}`))
+	return new Intl.ListFormat(currentLocale()).format(names.map(name => `{{${name}}}`))
 }
 
 /**
@@ -15,12 +14,8 @@ function variableList(names: readonly string[]) {
  */
 export function templateNotes(message: Pick<TemplateMessage, 'fallbacks' | 'missing'>) {
 	return [
-		...(message.fallbacks.length > 0 ? [`ℹ️ A vaga não tem ${variableList(message.fallbacks)}: entrou o texto do fallback.`] : []),
-		...(message.missing.length > 0
-			? [
-					`⚠️ A vaga não tem ${variableList(message.missing)}, e o modelo não tem fallback: complete o texto antes de enviar. O envio desta vaga fica no site (“entrar em contato”).`,
-				]
-			: []),
+		...(message.fallbacks.length > 0 ? [t().discord.fallbacks(variableList(message.fallbacks))] : []),
+		...(message.missing.length > 0 ? [t().discord.missing(variableList(message.missing))] : []),
 	]
 }
 

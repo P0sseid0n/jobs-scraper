@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 import { CV_IMPORT_PDF_MAX_BYTES, type CvForm } from '@shared/contracts'
+import { currentLocale, t } from '@shared/i18n'
 
 import type { WebCvImport } from '../../api-types'
 import { api, RequestError } from '../api'
@@ -11,18 +12,17 @@ import { notify } from '../stores/toast'
 const POLL_MS = 4_000
 
 /** "2,5 MB" */
-const megabytes = (bytes: number) => `${new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 }).format(bytes / 1024 / 1024)} MB`
+const megabytes = (bytes: number) =>
+	`${new Intl.NumberFormat(currentLocale(), { maximumFractionDigits: 1 }).format(bytes / 1024 / 1024)} MB`
 
 /**
  * A confirmação para sair da tela durante a leitura: o resultado chega para a tela aberta, então sair o perde (o
  * cv-updater termina de ler, mas ninguém recebe).
  */
-export const LEAVE_DURING_IMPORT = {
-	title: 'Sair durante a importação?',
-	description: 'A IA ainda está lendo o PDF. Saindo agora, o que ela ler vai se perder e você terá que importar de novo.',
-	confirmLabel: 'sair mesmo assim',
-	cancelLabel: 'continuar aqui',
-} as const
+export function leaveDuringImport() {
+	const { cvImport } = t()
+	return { title: cvImport.leaveTitle, description: cvImport.leaveText, confirmLabel: cvImport.leave, cancelLabel: cvImport.stay }
+}
 
 /**
  * Importa o currículo de um PDF: envia o arquivo, espera o cv-updater ler e entrega o formulário preenchido em
@@ -47,7 +47,7 @@ export function useCvImport(onImported: (form: CvForm, fileName: string) => void
 
 			setPending(null)
 			if (result.form) callback.current(result.form, fileName)
-			else notify(`Não consegui importar o PDF: ${result.error}`, 'error')
+			else notify(t().cvImport.failed(result.error ?? ''), 'error')
 		}
 
 		const stop = onLive('cvImport', finish)
@@ -59,7 +59,7 @@ export function useCvImport(onImported: (form: CvForm, fileName: string) => void
 				if (error instanceof RequestError && error.status === 404 && !done) {
 					done = true
 					setPending(null)
-					notify(`Não consegui importar o PDF: ${error.message}`, 'error')
+					notify(t().cvImport.failed(error.message), 'error')
 				}
 			}
 		}, POLL_MS)
@@ -73,7 +73,7 @@ export function useCvImport(onImported: (form: CvForm, fileName: string) => void
 
 	async function start(file: File) {
 		if (file.size > CV_IMPORT_PDF_MAX_BYTES) {
-			notify(`O PDF tem ${megabytes(file.size)}; o limite é ${megabytes(CV_IMPORT_PDF_MAX_BYTES)}.`, 'error')
+			notify(t().cvImport.tooLarge(megabytes(file.size), megabytes(CV_IMPORT_PDF_MAX_BYTES)), 'error')
 			return
 		}
 
@@ -83,7 +83,7 @@ export function useCvImport(onImported: (form: CvForm, fileName: string) => void
 			setPending({ importId: started.importId, fileName: file.name })
 		} catch (error) {
 			setPending(null)
-			notify(`Não consegui enviar o PDF: ${(error as Error).message}`, 'error')
+			notify(t().cvImport.sendFailed((error as Error).message), 'error')
 		}
 	}
 

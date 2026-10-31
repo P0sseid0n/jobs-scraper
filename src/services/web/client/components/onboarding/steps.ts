@@ -1,27 +1,20 @@
 import type { SetupStatus } from '../../../api-types'
 
-/** Os passos do onboarding, na ordem, como aparecem na URL (`/boas-vindas?passo=linkedin`); `inicio` é a abertura. */
-export const ONBOARDING_STEPS = ['inicio', 'area', 'linkedin', 'curriculo', 'extras', 'email', 'revisao'] as const
+/** Os passos do onboarding, na ordem, como aparecem na URL (`/onboarding?step=linkedin`); `welcome` é a abertura. */
+export const ONBOARDING_STEPS = ['welcome', 'field', 'linkedin', 'resume', 'extras', 'email', 'review'] as const
 export type OnboardingStep = (typeof ONBOARDING_STEPS)[number]
 
-/** Os passos numerados (todos menos a abertura), com o nome curto da lista de passos. */
-export const NUMBERED_STEPS: { step: Exclude<OnboardingStep, 'inicio'>; label: string }[] = [
-	{ step: 'area', label: 'Sua área' },
-	{ step: 'linkedin', label: 'LinkedIn' },
-	{ step: 'curriculo', label: 'Currículo' },
-	{ step: 'extras', label: 'Extras' },
-	{ step: 'email', label: 'E-mail' },
-	{ step: 'revisao', label: 'Revisão' },
-]
+/** Os passos numerados (todos menos a abertura); o nome curto de cada um fica em `onboarding.steps`. */
+export const NUMBERED_STEPS: Exclude<OnboardingStep, 'welcome'>[] = ['field', 'linkedin', 'resume', 'extras', 'email', 'review']
 
 /** Se o passo já está feito (a abertura e a revisão não têm o que fazer; os extras contam com qualquer um deles). */
 export function stepDone(step: OnboardingStep, setup: SetupStatus) {
 	switch (step) {
-		case 'area':
+		case 'field':
 			return setup.steps.profile
 		case 'linkedin':
 			return setup.steps.linkedin
-		case 'curriculo':
+		case 'resume':
 			return setup.steps.cv
 		case 'extras':
 			return setup.steps.discord || setup.steps.github
@@ -38,9 +31,9 @@ export function stepDone(step: OnboardingStep, setup: SetupStatus) {
  */
 export function resumeStep(setup: SetupStatus): OnboardingStep {
 	const { profile, linkedin, cv } = setup.steps
-	if (!profile && !linkedin && !cv) return 'inicio'
-	if (!profile) return 'area'
+	if (!profile && !linkedin && !cv) return 'welcome'
+	if (!profile) return 'field'
 	if (!linkedin) return 'linkedin'
-	if (!cv) return 'curriculo'
-	return 'revisao'
+	if (!cv) return 'resume'
+	return 'review'
 }

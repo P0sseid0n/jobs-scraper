@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 import type { CvRequest, CvResult } from '@shared/contracts'
 import { Job } from '@shared/database'
+import { t } from '@shared/i18n'
 import type { Logger } from '@shared/logging'
 import { QUEUES, type QueueClient } from '@shared/messaging'
 
@@ -27,7 +28,7 @@ export async function requestCv(req: Request & { params: { postId: string } }, {
 	const { postId } = req.params
 
 	const job = await Job.findOne({ ...LISTABLE_JOBS, postId }, { title: 1, company: 1 }).lean()
-	if (!job) throw new HttpError(404, 'Vaga não encontrada')
+	if (!job) throw new HttpError(404, t().api.jobNotFound)
 
 	const pending = await CvRequestRecord.findOne(
 		{ postId, status: 'pending', requestedAt: { $gt: new Date(Date.now() - CV_TIMEOUT_MS) } },
@@ -70,7 +71,7 @@ export async function listCvRequests() {
 /** `GET /api/cv/:requestId`: status do pedido (alternativa ao SSE). */
 export async function getCvRequest(req: Request & { params: { requestId: string } }) {
 	const doc = await CvRequestRecord.findOne({ requestId: req.params.requestId }, WITHOUT_PDF).lean()
-	if (!doc) throw new HttpError(404, 'Pedido de currículo não encontrado')
+	if (!doc) throw new HttpError(404, t().api.cvRequestNotFound)
 
 	return Response.json(toWebCvRequest(doc) satisfies WebCvRequest)
 }
@@ -79,7 +80,7 @@ export async function getCvRequest(req: Request & { params: { requestId: string 
 export async function getCvPdf(req: Request & { params: { requestId: string } }) {
 	// Sem `.lean()`: com ele o `pdf` vem como `Binary` do BSON, e `new Uint8Array(binary)` dá um PDF vazio
 	const doc = await CvRequestRecord.findOne({ requestId: req.params.requestId, status: 'ready' }, { pdf: 1, fileName: 1 })
-	if (!doc?.pdf) throw new HttpError(404, 'Currículo não encontrado ou ainda não gerado')
+	if (!doc?.pdf) throw new HttpError(404, t().api.cvNotFound)
 
 	const download = new URL(req.url).searchParams.has('download')
 	const fileName = doc.fileName ?? 'Curriculo.pdf'
@@ -108,7 +109,7 @@ export async function saveCvResult(result: CvResult, { events, logger }: Omit<De
 			status: result.file ? 'ready' : 'failed',
 			fileName: result.file?.name ?? null,
 			pdf: result.file ? Buffer.from(result.file.base64, 'base64') : null,
-			error: result.file ? null : (result.error ?? 'Erro desconhecido no cv-updater'),
+			error: result.file ? null : (result.error ?? t().serverErrors.cvUnknownError),
 			changes: result.file ? result.changes : null,
 			base: result.file ? result.base : null,
 			finishedAt: new Date(),

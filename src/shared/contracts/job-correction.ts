@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { message, t } from '../i18n'
 import { CONTRACT_TYPES, WORK_MODES, type ProcessedJob } from './job'
 
 /** Campos da vaga extraídos pela IA que podem ser corrigidos pelo site (os mesmos avaliados por `bun eval:extraction`). */
@@ -39,7 +40,10 @@ const optionalText = (max: number) =>
 	z
 		.string()
 		.trim()
-		.max(max, `Use até ${max} caracteres`)
+		.max(
+			max,
+			message(m => m.validation.maxChars(max)),
+		)
 		.nullable()
 		.transform(value => value || null)
 
@@ -47,7 +51,10 @@ const optionalText = (max: number) =>
 const optionalList = <T extends z.ZodType<string>>(item: T, max: number) =>
 	z
 		.array(item)
-		.max(max, `Use no máximo ${max} itens`)
+		.max(
+			max,
+			message(m => m.validation.maxItems(max)),
+		)
 		.nullable()
 		.transform(items => {
 			const seen = new Set<string>()
@@ -75,7 +82,13 @@ export const JobCorrectionSchema = z
 			.transform(types => types && CONTRACT_TYPES.filter(type => types.includes(type)))
 			.optional(),
 		necessaryKnowledge: optionalList(
-			z.string().trim().max(CORRECTION_LIMITS.skillLength, `Use até ${CORRECTION_LIMITS.skillLength} caracteres`),
+			z
+				.string()
+				.trim()
+				.max(
+					CORRECTION_LIMITS.skillLength,
+					message(m => m.validation.maxChars(CORRECTION_LIMITS.skillLength)),
+				),
 			CORRECTION_LIMITS.skills,
 		).optional(),
 		recruiterEmail: z
@@ -85,7 +98,7 @@ export const JobCorrectionSchema = z
 		applyLink: z
 			.union([
 				z.literal('').transform(() => null),
-				z.url({ protocol: /^https?$/, message: 'Use um link começando com http:// ou https://' }).max(CORRECTION_LIMITS.link),
+				z.url({ protocol: /^https?$/, ...message(m => m.validation.httpLink) }).max(CORRECTION_LIMITS.link),
 			])
 			.nullable()
 			.optional(),
@@ -100,7 +113,7 @@ export const JobCorrectionSchema = z
 		} else if (value.wrongLanguage && fields.length > 0) {
 			ctx.addIssue({ code: 'custom', path: ['wrongLanguage'], message: '"Outro idioma" vai sozinho, sem outra correção' })
 		} else if (!value.notAJob && !value.wrongLanguage && fields.length === 0) {
-			ctx.addIssue({ code: 'custom', path: [], message: 'Envie ao menos um campo para corrigir' })
+			ctx.addIssue({ code: 'custom', path: [], message: t().validation.correctionEmpty })
 		}
 	})
 export type JobCorrection = z.output<typeof JobCorrectionSchema>

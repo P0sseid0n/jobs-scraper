@@ -3,6 +3,7 @@ import { useId, useRef, useState } from 'react'
 import { jobShareSubject, jobShareText, type ShareJob } from '@shared/templates'
 
 import { useCoarsePointer } from '../lib/media'
+import { useT } from '../stores/locale'
 import { notify } from '../stores/toast'
 import { CopyButton } from './CopyButton'
 import { Icon } from './Icon'
@@ -21,10 +22,7 @@ const CAN_SHARE = typeof navigator !== 'undefined' && typeof navigator.share ===
 
 type ShareFormat = 'text' | 'image'
 
-const FORMATS: { value: ShareFormat; label: string }[] = [
-	{ value: 'text', label: 'texto' },
-	{ value: 'image', label: 'imagem' },
-]
+const FORMATS: ShareFormat[] = ['text', 'image']
 
 /** O `*negrito*` do WhatsApp: um trecho entre asteriscos, sem quebra de linha. */
 const BOLD = /\*([^*\n]+)\*/g
@@ -42,6 +40,7 @@ function WhatsAppText({ text }: { text: string }) {
  * todos com o texto como está no campo. Na imagem: o card da vaga em PNG, para status, stories e posts.
  */
 export function ShareJobDialog({ job, onClose }: { job: ShareJob; onClose: () => void }) {
+	const t = useT()
 	const ref = useRef<HTMLDialogElement>(null)
 	const textId = useId()
 	const generated = jobShareText(job)
@@ -65,14 +64,14 @@ export function ShareJobDialog({ job, onClose }: { job: ShareJob; onClose: () =>
 			await navigator.share({ text })
 		} catch (error) {
 			// Fechar a folha do sistema sem escolher um app não é erro
-			if (!(error instanceof DOMException && error.name === 'AbortError')) notify('Não consegui abrir o compartilhamento', 'error')
+			if (!(error instanceof DOMException && error.name === 'AbortError')) notify(t.share.openFailed, 'error')
 		}
 	}
 
 	const shareButton = (variant: 'ghost' | 'lime') => (
 		<Button variant={variant} disabled={empty} onClick={share}>
 			<Icon name="share" size={14} />
-			compartilhar
+			{t.share.share}
 		</Button>
 	)
 
@@ -86,14 +85,21 @@ export function ShareJobDialog({ job, onClose }: { job: ShareJob; onClose: () =>
 			className="w-180 overflow-hidden open:flex open:flex-col"
 		>
 			<div className="flex flex-col gap-1 px-5 pt-4 pb-1">
-				<DialogTitle closable>Compartilhar vaga</DialogTitle>
+				<DialogTitle closable>{t.share.title}</DialogTitle>
 				<p className="m-0 min-w-0 truncate text-sm">
 					<span className="font-semibold">{job.title}</span>
 					{job.company && <span className="text-muted"> · {job.company}</span>}
 				</p>
-				<FieldHelp>Só os dados públicos da vaga: quem recebe não precisa do jobs-scraper.</FieldHelp>
+				<FieldHelp>{t.share.publicOnly}</FieldHelp>
 			</div>
-			<Tabs id={tabsId} label="Formato" items={FORMATS} selected={format} onSelect={selectFormat} className="px-2" />
+			<Tabs
+				id={tabsId}
+				label={t.share.format}
+				items={FORMATS.map(value => ({ value, label: t.share.formats[value] }))}
+				selected={format}
+				onSelect={selectFormat}
+				className="px-2"
+			/>
 
 			{/* Cada aba tem o seu meio, que rola, e o seu rodapé, com as ações daquele formato */}
 			<TabPanel tabsId={tabsId} value="text" selected={format === 'text'} className="flex min-h-0 grow flex-col">
@@ -101,19 +107,19 @@ export function ShareJobDialog({ job, onClose }: { job: ShareJob; onClose: () =>
 					<div className="flex flex-col gap-1.5">
 						{/* Na linha do rótulo, o copiar só com o ícone (como nos campos do contato) e o "restaurar" depois de editar */}
 						<div className="flex items-center justify-between gap-2">
-							<FieldLabel htmlFor={textId}>texto</FieldLabel>
+							<FieldLabel htmlFor={textId}>{t.share.text}</FieldLabel>
 							<div className="flex items-center gap-3">
 								{text !== generated && (
 									<TextLink size="xs" onClick={() => setText(generated)}>
-										restaurar texto
+										{t.share.restore}
 									</TextLink>
 								)}
 								{!empty && (
 									<CopyButton
 										icon
 										text={text}
-										what="Texto da vaga"
-										label="copiar texto"
+										what={t.share.textWhat}
+										label={t.share.copyText}
 										className="text-muted hover:text-ink"
 									/>
 								)}
@@ -130,16 +136,16 @@ export function ShareJobDialog({ job, onClose }: { job: ShareJob; onClose: () =>
 
 					{!empty && (
 						// A mesma caixa das prévias do editor do modelo de mensagem
-						<section aria-label="Prévia no WhatsApp" className="flex flex-col gap-2 rounded-sm bg-surface-2 p-3.5">
-							<span className={LABEL}>como chega no whatsapp</span>
+						<section aria-label={t.share.whatsappPreview} className="flex flex-col gap-2 rounded-sm bg-surface-2 p-3.5">
+							<span className={LABEL}>{t.share.whatsappTitle}</span>
 							<p className="m-0 text-sm leading-relaxed whitespace-pre-wrap wrap-anywhere">
 								<WhatsAppText text={text} />
 							</p>
 						</section>
 					)}
 
-					<section className="flex flex-col gap-1.5" aria-label="Enviar por">
-						<h3 className={LABEL}>enviar por</h3>
+					<section className="flex flex-col gap-1.5" aria-label={t.share.sendVia}>
+						<h3 className={LABEL}>{t.share.sendViaTitle}</h3>
 						<div className="flex flex-wrap gap-2">
 							<Button variant="ghost" href={`https://wa.me/?text=${encodeURIComponent(text)}`} external externalIcon={false}>
 								<Icon name="chat" size={14} />
@@ -150,7 +156,7 @@ export function ShareJobDialog({ job, onClose }: { job: ShareJob; onClose: () =>
 								href={`mailto:?subject=${encodeURIComponent(jobShareSubject(job))}&body=${encodeURIComponent(text)}`}
 							>
 								<Icon name="mail" size={14} />
-								e-mail
+								{t.share.email}
 							</Button>
 							{CAN_SHARE && !sharePrimary && shareButton('ghost')}
 						</div>
@@ -159,12 +165,12 @@ export function ShareJobDialog({ job, onClose }: { job: ShareJob; onClose: () =>
 
 				<div className="flex justify-end gap-2 border-t border-line px-5 py-3.5">
 					<Button variant="ghost" onClick={() => ref.current?.close()}>
-						fechar
+						{t.share.close}
 					</Button>
 					{sharePrimary ? (
 						shareButton('lime')
 					) : (
-						<CopyButton variant="lime" text={text} what="Texto da vaga" label="copiar texto" disabled={empty} />
+						<CopyButton variant="lime" text={text} what={t.share.textWhat} label={t.share.copyText} disabled={empty} />
 					)}
 				</div>
 			</TabPanel>
@@ -178,12 +184,13 @@ export function ShareJobDialog({ job, onClose }: { job: ShareJob; onClose: () =>
 
 /** "Compartilhar vaga", só o ícone (no topo do detalhe, ao lado do "reportar"): abre a modal com o texto da vaga. */
 export function ShareJobButton({ job, className }: { job: ShareJob; className?: string }) {
+	const t = useT()
 	const [open, setOpen] = useState(false)
 
 	return (
 		<>
 			<IconButton
-				label="compartilhar vaga"
+				label={t.share.shareJob}
 				size="sm"
 				variant="ghost"
 				tone="ink"
